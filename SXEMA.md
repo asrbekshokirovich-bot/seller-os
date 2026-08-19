@@ -47,6 +47,20 @@ Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,
 
 ## 2. Kunlik tarix
 
+### `product_observation` — xom o'lchov
+
+Har sweepda har tovar uchun bitta qator: `observed_at`, `price`, `stock`,
+`reviews`, `rating`, `buyers_per_week`.
+
+**Nega kunlik jadval yetmaydi:** sotuv qoldiq kamayishidan hisoblanadi.
+Agar faqat kun oxiri saqlansa, kun ichidagi to'ldirish sotuvni yashiradi —
+ertalab 100, kunduzi 20, kechqurun yana 100 bo'lsa, kunlik farq **nol**
+chiqadi va 80 dona sotuv yo'qoladi.
+
+**O'zgarmagan o'lchov yozilmaydi** (change-only). Narx ham, qoldiq ham,
+sharh ham o'zgarmagan bo'lsa — yangi qator kerak emas. Zumsavdoda
+o'lchandi: bu yillik hajmni 460 GB dan 14 GB ga tushiradi.
+
 ### `product_daily`
 Har kuni har tovar uchun bitta qator: `price`, `stock`, `rating`,
 `reviews`, `sellers_count`, `observed_at`, `window_hours`.
@@ -59,9 +73,13 @@ to'g'ridan-to'g'ri solishtirib bo'lmaydi.
 Kunlik hisoblangan sotuv — **stok farqidan**.
 
 ```
-sotilgan ≈ Σ (stok kamayishi)     — kun ichida
-keltirilgan ≈ Σ (stok o'sishi)    — alohida saqlanadi, ayirilmaydi
+sotilgan    ≈ Σ (stok kamayishi)   — kun ichidagi HAR qadam bo'yicha
+keltirilgan ≈ Σ (stok o'sishi)     — alohida saqlanadi, AYIRILMAYDI
 ```
+
+Ikkalasi `product_observation` dagi ketma-ket o'lchovlardan chiqadi.
+Ayirilmasligi muhim: keltirilgan tovarni sotuvdan ayirsak, ko'p
+to'ldiriladigan tovar "sotilmayapti" bo'lib ko'rinadi.
 
 `certainty` ustuni: `exact` (Uzum hisoblagichi) yoki `approx` (stok farqi).
 `method` — qaysi usul bilan chiqarilgani.
