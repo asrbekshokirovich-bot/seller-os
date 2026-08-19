@@ -1,0 +1,62 @@
+# CI — merge darvozasi.
+#
+# QOIDALAR.md, 5-bo'lim: "Merge sharti — CI yashil: lint + testlar +
+# tuzoq 100% + eval ≥90%".
+#
+# Tuzoq va eval testlari B1/B2 da qo'shiladi (hozir ular uchun ma'lumot
+# yo'q). Ular qo'shilganda shu faylga qadam bo'lib tushadi.
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  node:
+    name: Node — typecheck va testlar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx vitest run
+
+  python:
+    name: Python — skreyper testlari
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: apps/scraper }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -e '.[dev]'
+      - run: python -m pytest -q
+
+  hujjat:
+    name: Hujjatlar joyida
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Manba-haqiqat fayllari yo'qolib qolmasin. Ular yo'q bo'lsa agent
+      # keyingi sessiyada kontekstsiz qoladi va mantiqni qaytadan
+      # o'ylab topa boshlaydi.
+      - name: Manba-haqiqat fayllari bormi
+        run: |
+          for f in QOIDALAR.md SXEMA.md FORMULA.md TUZOQLAR.md BACKLOG.md; do
+            test -f "$f" || { echo "::error::$f yo'q"; exit 1; }
+          done
+          echo "Hammasi joyida."
+
+      # Sir qidiruvi. Kalit omborga tushsa, uni o'chirish yetarli emas —
+      # git tarixida qolib ketadi va almashtirish kerak bo'ladi.
+      - name: Sir omborga tushmaganmi
+        run: |
+          if git grep -nIE "(sb_secret_|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9])" \
+               -- ':!*.example' ':!.github/workflows/*'; then
+            echo "::error::Omborda sirga o'xshash matn topildi."
+            exit 1
+          fi
+          echo "Sir topilmadi."

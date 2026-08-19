@@ -1,0 +1,16 @@
+{
+  "name": "seller-os",
+  "private": true,
+  "workspaces": ["packages/*", "apps/backend", "apps/web", "apps/extension"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

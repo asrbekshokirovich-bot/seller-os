@@ -1,0 +1,18 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Sirlar — HECH QACHON omborga tushmaydi (QOIDALAR.md, 3-qoida).
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
