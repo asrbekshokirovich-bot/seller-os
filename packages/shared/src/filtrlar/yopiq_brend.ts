@@ -33,13 +33,22 @@ import type { Baholanmadi, TovarHolati } from './turlar.js';
  * dastlabki roʻyxatimizda "yopiq brend" deb turgan edi. Aslida u yangi
  * brend — yaʼni aynan yaxshi imkoniyat, tuzoq emas.
  *
+ * NEGA `sellersCount` SoʻRALMAYDI. Avval "shu tovarni nechta doʻkon
+ * sotadi" alohida signal edi. U ortiqcha: filtr brend nomi tovar nomida
+ * boʻlishini talab qiladi, demak tovar shu brendniki; brendni ≤2 doʻkon
+ * sotsa, uni ham ≤2 doʻkon sotadi. Ikkita saqlangan shart uchinchisini
+ * mantiqan keltirib chiqaradi.
+ *
+ * Bu shunchaki soddalashtirish emas. `sellersCount` doʻkonlar aro tovar
+ * moslashni talab qiladi — u hali yoʻq, va u boʻlmagani uchun filtr
+ * haqiqiy maʼlumotda hech qachon javob bermasdi.
+ *
  * `block` beriladi: bunday tovar tavsiyaga umuman chiqmasligi kerak.
  */
 export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
   const c = THRESHOLDS.closedBrand;
 
   const missing: string[] = [];
-  if (t.sellersCount === null) missing.push('sellersCount');
   if (t.brandSellersCount === null) missing.push('brandSellersCount');
   if (t.soldUnits30d === null) missing.push('soldUnits30d');
   if (t.categoryMedianUnits30d === null) missing.push('categoryMedianUnits30d');
@@ -50,13 +59,11 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
   }
   if (missing.length) return { kind: 'baholanmadi', missing };
 
-  const sellers = t.sellersCount as number;
   const sold = t.soldUnits30d as number;
   const median = t.categoryMedianUnits30d as number;
 
   const brendDokonlari = t.brandSellersCount as number;
 
-  const kamSotuvchi = sellers <= c.maxSellers;
   // Brend yangi emas — ikki dalildan biri yetarli.
   const tarixdan = t.sellersStableDays !== null && t.sellersStableDays >= c.stableDays;
   const sharhdan = t.brandReviews !== null && t.brandReviews >= c.minBrandReviews;
@@ -68,7 +75,7 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
   // degan tushuncha ham yoʻq.
   const kattaSotuv = median > 0 && sold >= median * c.highSalesMultiple;
 
-  const hammasi = kamSotuvchi && yangiEmas && brendYopiq && brendNomda && kattaSotuv;
+  const hammasi = yangiEmas && brendYopiq && brendNomda && kattaSotuv;
   if (!hammasi) return null;
 
   return {
@@ -79,7 +86,6 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
       `Sotuv katta, lekin hech kim kira olmagan: brendning butun ` +
       `assortimentini ${brendDokonlari} ta doʻkon sotadi.`,
     evidence: {
-      sotuvchilar: sellers,
       yangi_emasligi: tarixdan
         ? `sotuvchilar soni ${t.sellersStableDays} kun oʻzgarmagan`
         : `brendda ${t.brandReviews} ta sharh toʻplangan`,

@@ -22,3 +22,12 @@ yerda ko'rindi (Amadora 199 · ROSSVIK 70). 14 nuqta oz.
 Qayta tekshirish sharti: perepis 100% to'lganda va pilotdan haqiqiy
 natija kelganda. Agar 60 kunlik tarix yig'ilsa, `stableDays` bilan
 solishtirish mumkin bo'ladi — ikkalasi bir xil javob berishi kerak.
+
+## Tuzoq roʻyxati faqat 1-tuzoqni qamraydi
+
+`traps.json` da 53 qator bor, lekin hammasi yopiq brend (`closed_brand`)
+boʻyicha. 6-tuzoq (monopoliya) uchun bironta qator yoʻq — yaʼni darvoza
+testi u filtrni umuman tekshirmaydi.
+
+Kerak: monopol kategoriyalar uchun ham mustaqil belgi topish va
+`tuzoq_nomzodlari.sql` ga qoʻshish.

@@ -26,7 +26,6 @@ describe('1-tuzoq: yopiq brend', () => {
   it('sababi raqam bilan tushuntiriladi', () => {
     const f = yopiqBrend(YOPIQ) as { evidence: Record<string, unknown> };
     // Sababsiz bayroq ishonchni yo'qotadi.
-    expect(f.evidence.sotuvchilar).toBe(1);
     expect(f.evidence.yangi_emasligi).toBe('sotuvchilar soni 90 kun oʻzgarmagan');
     expect(f.evidence.sotuv_30k).toBe(600);
   });
@@ -80,14 +79,19 @@ describe('1-tuzoq: yopiq brend', () => {
     expect(yopiqBrend({ ...YOPIQ, soldUnits30d: 120 })).toBeNull();
   });
 
-  it('ko\'p sotuvchi bo\'lsa — tuzoq emas', () => {
-    expect(yopiqBrend({ ...YOPIQ, sellersCount: 9 })).toBeNull();
+  it('`sellersCount` javobga taʼsir qilmaydi', () => {
+    // U ortiqcha: brend nomda + brendni 1 do'kon sotadi → tovarni ham
+    // 1 do'kon sotadi. Filtr unga qaramaydi.
+    expect(yopiqBrend({ ...YOPIQ, sellersCount: 9 }))
+      .toMatchObject({ kind: 'closed_brand' });
+    expect(yopiqBrend({ ...YOPIQ, sellersCount: null }))
+      .toMatchObject({ kind: 'closed_brand' });
   });
 
   it('ma\'lumot yetishmasa BAHOLANMADI — tuzoq emas deb aytmaydi', () => {
-    const r = yopiqBrend({ ...YOPIQ, sellersCount: null, soldUnits30d: null });
+    const r = yopiqBrend({ ...YOPIQ, brandSellersCount: null, soldUnits30d: null });
     expect(r).toMatchObject({ kind: 'baholanmadi' });
-    expect((r as { missing: string[] }).missing).toContain('sellersCount');
+    expect((r as { missing: string[] }).missing).toContain('brandSellersCount');
   });
 
   it('turkum medianasi nol bo\'lsa bo\'linmaydi', () => {
