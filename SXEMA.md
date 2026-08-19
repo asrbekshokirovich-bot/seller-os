@@ -87,6 +87,19 @@ to'ldiriladigan tovar "sotilmayapti" bo'lib ko'rinadi.
 > Tovar kun ichida keltirilsa, sotuvning bir qismi ko'rinmay qoladi.
 > Shuning uchun bu **taxminiy** va shunday deb belgilanadi.
 
+### `sweep_log` — har aylanish natijasi
+
+`started_at`, `finished_at`, `platform`, `requested`, `found`, `missing`,
+`errors`, `written`, `stopped_reason`.
+
+**Nega kerak:** sifat paneli "qamrov %, xato %, oxirgi yangilanish" ni
+shundan o'qiydi. Yig'uvchi jimgina ishlamay qolsa, buni faqat shu jadval
+ko'rsatadi — baza esa eski ma'lumot bilan to'g'ridek turaveradi.
+
+**`missing` xato EMAS.** Id fazosining ~70% i bo'sh; agar u xatoga
+qo'shilsa, xato darajasi 70% ga chiqadi va kill-switch bekorga ishlaydi.
+Shuning uchun ular alohida ustunda.
+
 ## 3. Usta jadvallari
 
 ### `product_flags`

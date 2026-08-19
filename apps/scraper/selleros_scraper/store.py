@@ -63,3 +63,27 @@ class Store:
 
     def sotuvni_hisobla(self, client: httpx.Client, kundan: str, kungacha: str) -> dict[str, Any]:
         return self._rpc(client, "so_rollup_sales", {"p_from": kundan, "p_to": kungacha})
+
+    def sweep_ochish(self, client: httpx.Client) -> int:
+        """Aylanish boshlanganini yozadi.
+
+        Yozilmasa yig'uvchi jimgina ishlamay qolishi mumkin va buni hech
+        narsa ko'rsatmaydi: baza eski ma'lumot bilan to'g'ridek turaveradi.
+        """
+        return int(self._rpc(client, "so_sweep_open", {"p_platform": self.platform}))
+
+    def sweep_yopish(self, client: httpx.Client, sweep_id: int, hisobot: Any) -> None:
+        self._rpc(
+            client,
+            "so_sweep_close",
+            {
+                "p_id": sweep_id,
+                "p_requested": hisobot.sorovlar,
+                "p_found": hisobot.topildi,
+                # Bo'sh id XATO EMAS — alohida ustunda.
+                "p_missing": hisobot.yoq,
+                "p_errors": hisobot.xatolar,
+                "p_written": hisobot.yozildi or None,
+                "p_stopped_reason": hisobot.toxtadi,
+            },
+        )

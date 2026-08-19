@@ -72,6 +72,7 @@ def sweep(
     limits = limits or Limits()
     hisobot = Hisobot()
     partiya: list[dict] = []
+    sweep_id = store.sweep_ochish(client) if store else None
 
     def yuborish() -> None:
         if store and partiya:
@@ -108,6 +109,8 @@ def sweep(
             break
 
     yuborish()
+    if store and sweep_id is not None:
+        store.sweep_yopish(client, sweep_id, hisobot)
     return hisobot
 
 
