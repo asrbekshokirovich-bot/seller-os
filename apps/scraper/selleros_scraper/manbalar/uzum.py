@@ -36,6 +36,9 @@ query sellerosProduct($id: Int!) {
       minSellPrice
       minFullPrice
       category { id title }
+      # `official` so'raladi, lekin YOZILMAYDI — Uzum uni doim `false`
+      # qaytaradi (parse() dagi izohga qarang). So'rovda qoldirilgan
+      # sababi: Uzum to'ldira boshlasa, bir marta tekshirib bilamiz.
       shop { id title official ordersQuantity }
     }
   }
@@ -103,11 +106,12 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         title=product.get("title") or f"Mahsulot {product['id']}",
         shop_external_id=_int(shop.get("id")),
         shop_name=shop.get("title"),
-        # OGOHLANTIRISH: Uzum bu maydonni to'ldirmaydi (2026-08-19 da
-        # jonli tekshirilgan). `bool(...)` qo'yilsa `None` → `False`
-        # bo'lib ketardi, ya'ni "bilmadim" javobi "yo'q" ga aylanardi.
-        # Hech bir filtr bunga suyanmaydi; xom holida uzatamiz.
-        shop_official=_bool(shop.get("official")),
+        # Uzum bu maydonni ISHLATMAYDI. 63 113 do'kondan birortasi ham
+        # `true` emas — ARTEL_OFFICIAL, Artel Brand Shop, Яшкино ham
+        # `false`. Ya'ni Uzumning `false` i "rasmiy emas" degani emas:
+        # u doimiy. Doimiyni o'lchov deb yozsak, bo'shliq o'lchov bo'lib
+        # ko'rinadi. Boshqa bozor haqiqiy belgi bersa — o'sha manba yozadi.
+        shop_official=None,
         shop_orders=_int(shop.get("ordersQuantity")),
         category_external_id=_int(category.get("id")),
         category_name=category.get("title"),
@@ -126,17 +130,6 @@ def _int(value: Any) -> int | None:
         return round(float(value))
     except (TypeError, ValueError):
         return None
-
-
-def _bool(value: Any) -> bool | None:
-    """`None` ni `False` ga aylantirmaydi.
-
-    "Yo'q" va "bilmadim" — boshqa javob. Aralashtirsak, o'lchanmagan
-    maydon o'lchangan bo'lib ko'rinadi (QOIDALAR.md, 4-qoida).
-    """
-    if isinstance(value, bool):
-        return value
-    return None
 
 
 def _float(value: Any) -> float | None:

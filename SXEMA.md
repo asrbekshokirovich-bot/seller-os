@@ -43,7 +43,8 @@ Sotuvchi. `(platform, external_id)`, `name`, `rating`, `official`.
 > jonli tekshirilgan: Artel Brand Shop, ARTEL_OFFICIAL, Яшкино — hammasi
 > `false`). Ustun NULL bo'la oladi (migratsiya `0009`) va hech bir filtr
 > unga suyanmaydi. Saqlanishining yagona sababi — Uzum to'ldira boshlasa
-> tayyor bo'lish.
+> tayyor bo'lish. Uzum manbasi bu ustunga hech narsa yozmaydi: uning
+> `false` i o'lchov emas, doimiy (63 113 do'konda 0 ta `true`).
 
 ### `product`
 Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,

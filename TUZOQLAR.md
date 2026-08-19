@@ -77,6 +77,15 @@ emas, yopiq eshik."
 > brend darajasidagi do'kon soniga almashtirildi — bu o'lchov bazada
 > haqiqatan bor.
 
+> **Yangilanish (o'sha kuni, kechroq).** Dastlab "Uzum maydonni bo'sh
+> qoldiradi" deb o'ylagandik va yig'uvchida `bool(...)` ni olib tashlash
+> yetarli deb hisoblagandik. Noto'g'ri edi: Uzum haqiqiy `false` yuboradi.
+> 63 113 do'kondan **birortasi ham `true` emas**. Ya'ni bu `false` —
+> o'lchov emas, doimiy. Shuning uchun Uzum manbasi endi bu ustunga
+> umuman yozmaydi (`shop_official=None`). Boshqa bozor haqiqiy belgi
+> bersa — o'sha manba yozadi.
+
+
 ## 2. Mavsumiy tovar — `seasonal`
 
 **Nega jozibali:** hozir sotuv o'sib turibdi (isitgich — kuzda).

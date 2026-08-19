@@ -183,3 +183,14 @@ $$;
 
 revoke all on function public.so_ingest_batch(text, jsonb) from public, anon, authenticated;
 grant execute on function public.so_ingest_batch(text, jsonb) to service_role;
+
+-- QOʻSHIMCHA (o'sha kuni, kechroq). Yuqoridagi "Uzum to'ldirmaydi" xulosasi
+-- to'g'ri, lekin yetarli emas edi: Uzum maydonni bo'sh qoldirmaydi —
+-- haqiqiy `false` yuboradi. 63 113 do'konda 0 ta `true`. Ya'ni bu `false`
+-- o'lchov emas, doimiy.
+--
+-- Shuning uchun `coalesce(...)` ni olib tashlash yetmadi. Uzum manbasi
+-- endi bu ustunga umuman yozmaydi (skreyperdagi `shop_official=None`).
+-- Baza tomonida qo'shimcha o'zgarish kerak emas: `coalesce(excluded.official,
+-- eski)` NULL kelganda eski qiymatni saqlaydi, demak bir marta tozalangandan
+-- keyin toza qoladi.

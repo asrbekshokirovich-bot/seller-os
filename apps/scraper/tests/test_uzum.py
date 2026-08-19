@@ -34,26 +34,20 @@ def test_yopiq_brend_uchun_dokon_nomi_kerak():
     """1-tuzoq do'kon nomisiz ishlamaydi."""
     k = parse(JAVOB)
     assert k.shop_name == "Sunlight Group"
-    assert k.shop_official is True
 
 
-def test_official_yoq_bolsa_none_boladi_false_emas():
-    """"Bilmadim" ni "yo'q" ga aylantirmaymiz.
+def test_uzumdan_official_yozilmaydi():
+    """Uzumning `official` i o'lchov emas — doimiy.
 
-    Uzum amalda bu maydonni to'ldirmaydi (2026-08-19 da jonli
-    tekshirilgan). Ilgari `bool(...)` qo'yilgani uchun bo'sh javob
-    `False` bo'lib yozilardi va "rasmiy emas" degan o'lchov bo'lib
-    ko'rinardi. QOIDALAR.md, 4-qoida.
+    63 113 do'kondan birortasi ham `true` emas (2026-08-19): ARTEL_OFFICIAL,
+    Artel Brand Shop, Яшкино ham `false`. Uning `false` ini bazaga yozsak,
+    bo'shliq o'lchov bo'lib ko'rinadi (QOIDALAR.md, 4-qoida). Javobda
+    `official: True` tursa ham yozmaymiz — manbaga ishonch yo'q.
     """
+    assert parse(JAVOB).shop_official is None
+
     javob = {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D"})}
-    k = parse(javob)
-    assert k.shop_official is None
-
-    javob = {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D", "official": None})}
     assert parse(javob).shop_official is None
-
-    javob = {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D", "official": False})}
-    assert parse(javob).shop_official is False
 
 
 def test_olik_id_none_qaytaradi_xato_emas():
