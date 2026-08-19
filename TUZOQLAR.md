@@ -51,6 +51,7 @@ Sababsiz bayroq — ishonchni yo'qotadi.
 - sotuvchilar soni ≤ `closedBrand.maxSellers`
 - uzoq davr o'zgarmagan (yangi sotuvchi kirmagan)
 - brendning BUTUN assortimentini ≤ `closedBrand.maxBrandSellers` do'kon sotadi
+- brend YANGI EMAS: 60 kun sotuvchi o'zgarmagan YOKI brend ≥180 kunlik
 - brend nomi tovar nomida uchraydi
 - yuqori sotuvga qaramay hech kim kirmagan
 
@@ -190,3 +191,51 @@ Hozirgi holat: **21 ta tuzoq + 33 ta tuzoq emas** (2026-08-19).
 
 Pilot davomida boyitiladi: hodisa → shu faylga → filtr qoidasi → CI
 testi. Ro'yxat doim o'sadi. Bu jarayon — mahsulotning o'zi.
+
+---
+
+## Yosh qanday o'lchanadi
+
+1-tuzoqning "hech kim kira olmagan" da'vosi vaqtga tayanadi. Uni ikki
+xil o'lchash mumkin va ikkalasi ham ishlaydi:
+
+1. **O'z tariximiz** — sotuvchilar soni 60 kun o'zgarmadi. Kuchli dalil,
+   lekin 60 kunlik tarix kerak. Bazada hozir 3 kun bor.
+2. **Uzum id soati** — Uzum mahsulot id larini ketma-ket beradi. Brendning
+   eng kichik id li mahsuloti uning yoshini ko'rsatadi. Birinchi kuniyoq
+   mavjud.
+
+**Kalibrovka** (id → sana). Har mahsulotning eng eski sharhi ≈ u paydo
+bo'lgan vaqt. 526 mahsulot, korrelyatsiya **0.81**:
+
+| id | Median sana | Yosh (2026-08-19) |
+|---|---|---|
+| 0 | 2023-04-06 | 1231 kun |
+| 1 000 000 | 2024-08-31 | 718 kun |
+| 1 250 000 | 2025-01-18 | 578 kun |
+| 1 500 000 | 2025-05-20 | 456 kun |
+| 1 750 000 | 2025-08-08 | 376 kun |
+| 2 000 000 | 2025-12-08 | 254 kun |
+| 2 250 000 | 2026-02-21 | 179 kun |
+| 2 500 000 | 2026-04-15 | 126 kun |
+| 3 000 000 | 2026-08-02 | 17 kun |
+
+### Rad etilgan usul: sharhlar yig'indisi
+
+Avval yosh "brendning sharhlar yig'indisi ≥200" bilan o'lchanardi.
+**Noto'g'ri edi va o'z-o'zidan sezilmasdi** — u ham xuddi shunday
+ishonarli ko'rinardi.
+
+Mustaqil soat (id) bilan solishtirilganda:
+- korrelyatsiya atigi **−0.29** (log-log, 195 brend)
+- 195 dan 16 tasi ochiq ziddiyatda
+
+Sabab: sharh yoshni emas, **yosh × sotuvni** o'lchaydi. Ikki xil xato
+beradi:
+- **Rieker** — 1102 kunlik brend, 11 sharh. Sharh qoidasi "yangi" dedi.
+- **SOLAB** — 391 kunlik brend, 3 798 sharh. Tez o'sgani uchun "eski"
+  bo'lib ko'rindi.
+
+Dars: proksi o'lchov **mustaqil o'lchov bilan tekshirilmaguncha**
+ishonchli emas. Ikkalasi ham ma'lumotdan chiqarilgan bo'lsa, ular bir
+xil xatoni takrorlaydi.

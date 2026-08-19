@@ -21,19 +21,20 @@ export interface TovarHolati {
    */
   sellersStableDays: number | null;
   /**
-   * Brendning BARCHA mahsulotlaridagi sharhlar yigʻindisi.
+   * Brend Uzumda necha kundan beri bor.
    *
-   * Sharh — vaqtning bepul oʻlchovi. U faqat sotuvdan keyin paydo
-   * boʻladi va yoʻqolmaydi, yaʼni orqaga qarab toʻplangan tarix.
-   * Uzum uni birinchi kuniyoq beradi — 60 kun kutish shart emas.
+   * Uzum mahsulot id larini KETMA-KET beradi, demak id — soat. Brendning
+   * eng kichik id li mahsuloti uning paydo boʻlgan vaqtini koʻrsatadi.
+   * Id → sana kalibrovkasi sharh sanalaridan chiqarilgan (526 mahsulot,
+   * korrelyatsiya 0.81) — `supabase/seed/tuzoq_nomzodlari.sql`.
    *
-   * Nega kerak: "1 sotuvchi + katta sotuv" yangi brendda ham boʻladi,
-   * u esa aynan yaxshi imkoniyat. Oʻlchandi (2026-08-19): VITACCI 224
-   * mahsulot / 3 sharh, Rieker 85 / 11 — bular yangi brendlar, tuzoq
-   * emas. Willmoda 1 729 sharh, ARTERY 1 333, Lamart 657 — bular esa
-   * uzoq vaqtdan beri yolgʻiz.
+   * Nega sharh EMAS. Avval bu oʻrinda "brendning sharhlar yigʻindisi"
+   * turgan edi. U notoʻgʻri: sharh yoshni emas, yosh×sotuvni oʻlchaydi.
+   * Mustaqil soat (id) bilan solishtirilganda korrelyatsiya atigi −0.29,
+   * 195 brenddan 16 tasi ochiq ziddiyatda. Aniq misol: Rieker — 1102
+   * kunlik brend, atigi 11 sharh. Sharh qoidasi uni "yangi" degan edi.
    */
-  brandReviews: number | null;
+  brandAgeDays: number | null;
   /**
    * Shu BRENDning tovarlarini umuman nechta doʻkon sotadi.
    *

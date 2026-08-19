@@ -10,7 +10,7 @@ const YOPIQ: TovarHolati = {
   brand: 'Nike',
   sellersCount: 1,
   sellersStableDays: 90,
-  brandReviews: 900,
+  brandAgeDays: 1100,
   brandSellersCount: 1,
   shopOfficial: null,
   soldUnits30d: 600,
@@ -33,25 +33,24 @@ describe('1-tuzoq: yopiq brend', () => {
   it('YANGI tovar yopiq brend deb belgilanmaydi', () => {
     // Bitta sotuvchi, katta sotuv — lekin hali 5 kunlik va sharh ham
     // yo'q. Bu aynan yaxshi imkoniyat bo'lishi mumkin, tuzoq emas.
-    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: 5, brandReviews: 3 })).toBeNull();
+    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: 5, brandAgeDays: 30 })).toBeNull();
   });
 
-  it('tarix yo\'q bo\'lsa sharh yoshni isbotlaydi', () => {
-    // Bazaga endi to'lgan. 60 kunlik tarix yo'q, lekin brendda 900
-    // sharh bor — demak u ancha vaqtdan beri yolg'iz sotilyapti.
+  it('tarix yo\'q bo\'lsa id soati yoshni isbotlaydi', () => {
+    // Bazaga endi to'lgan. 60 kunlik o'z tariximiz yo'q, lekin brend
+    // Uzumda 1100 kundan beri bor — id soati shuni ko'rsatadi.
     expect(yopiqBrend({ ...YOPIQ, sellersStableDays: null }))
       .toMatchObject({ kind: 'closed_brand' });
   });
 
-  it('VITACCI xatosi qaytmaydi', () => {
-    // Haqiqiy holat (2026-08-19): 224 mahsulot, 1 do'kon, lekin jami
-    // 3 sharh. Dastlabki ro'yxatimizda "yopiq brend" deb turgan edi —
-    // aslida YANGI brend, ya'ni aynan yaxshi imkoniyat.
-    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: null, brandReviews: 3 })).toBeNull();
+  it('YANGI brend tuzoq deb belgilanmaydi', () => {
+    // 1 do'kon, katta sotuv — lekin brend 30 kunlik. Hech kim kirishga
+    // ulgurmagan; bu yopiq eshik emas, endi ochilgan eshik.
+    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: null, brandAgeDays: 30 })).toBeNull();
   });
 
   it('ikkala yosh dalili ham yo\'q bo\'lsa BAHOLANMADI', () => {
-    const r = yopiqBrend({ ...YOPIQ, sellersStableDays: null, brandReviews: null });
+    const r = yopiqBrend({ ...YOPIQ, sellersStableDays: null, brandAgeDays: null });
     expect(r).toMatchObject({ kind: 'baholanmadi' });
   });
 

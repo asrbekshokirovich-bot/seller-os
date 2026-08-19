@@ -1,32 +1,87 @@
 {
   "izoh": [
     "Tuzoq roʻyxati. `supabase/seed/tuzoq_nomzodlari.sql` chiqargan, 2026-08-19.",
-    "Aniqlovchi belgi — doʻkon NOMI brend nomi bilan bir xil. Bu belgi",
-    "filtrning signallaridan EMAS: filtr doʻkon nomiga umuman qaramaydi.",
-    "`kirish` — bazadan olingan HAQIQIY oʻlchovlar, oʻylab topilgan emas.",
-    "`sellersStableDays: null` — bazada 3 kunlik tarix bor, 60 kun kerak.",
-    "Filtr yoshni sharh orqali isbotlaydi; shu yoʻl aynan shu yerda sinaladi.",
+    "Aniqlovchi belgi — doʻkon NOMI brend nomi bilan bir xil. Filtr doʻkon",
+    "nomiga umuman qaramaydi, shuning uchun test aylanma emas.",
+    "`kirish` — bazadan olingan HAQIQIY oʻlchovlar.",
+    "`brandAgeDays` — Uzum id soatidan: id lar ketma-ket beriladi, brendning",
+    "eng kichik id li mahsuloti uning yoshini koʻrsatadi. Kalibrovka sharh",
+    "sanalaridan (526 mahsulot, korrelyatsiya 0.81).",
     "`expect: null` — filtr bayroq QOʻYMASLIGI kerak.",
-    "`expect: 'baholanmadi'` — maʼlumot yetishmaydi, filtr JAVOB BERMASLIGI kerak."
+    "`expect: 'baholanmadi'` — maʼlumot yetishmaydi, javob bermasligi kerak."
   ],
   "elementlar": [
     {
       "platform": "uzum",
-      "external_id": 1330084,
-      "expect": "closed_brand",
-      "dokon": "PrimeKraft",
-      "title": "Kollagen + Vitamin C + gialuron kislotasi, Primekraft, kukun, 200 gr",
+      "external_id": 2191965,
+      "expect": null,
+      "dokon": "Amadora",
+      "title": "Ziraklar ayollar uchun kristalli qinnigul sirg’alar, 9 rang bujiteriya, Amadora taqinchoq",
       "kirish": {
-        "brand": "primekraft",
-        "title": "Kollagen + Vitamin C + gialuron kislotasi, Primekraft, kukun, 200 gr",
+        "brand": "amadora",
+        "title": "Ziraklar ayollar uchun kristalli qinnigul sirg’alar, 9 rang bujiteriya, Amadora taqinchoq",
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 1,
-        "brandReviews": 6430,
-        "soldUnits30d": 292,
-        "categoryMedianUnits30d": 30
+        "brandAgeDays": 208,
+        "soldUnits30d": 26,
+        "categoryMedianUnits30d": 22
       },
-      "note": "PrimeKraft brendning oʻz doʻkoni; brendni 1 doʻkon sotadi, 6430 sharh toʻplangan"
+      "note": "Amadora brend doʻkoni, lekin: sotuv past (26 < 66)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 869121,
+      "expect": "closed_brand",
+      "dokon": "ARTERY",
+      "title": "Raqamlar bo'yicha rasm chizish ARTERY Shedevlar, 40 * 50 sm",
+      "kirish": {
+        "brand": "artery",
+        "title": "Raqamlar bo'yicha rasm chizish ARTERY Shedevlar, 40 * 50 sm",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1057,
+        "soldUnits30d": 56,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "ARTERY brend doʻkoni; brendni 1 doʻkon sotadi, 1057 kundan beri bor, sotuv medianadan 3.3x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1962329,
+      "expect": null,
+      "dokon": "ARUA",
+      "title": "Yostiq jild Arua Dalia DVALA",
+      "kirish": {
+        "brand": "arua",
+        "title": "Yostiq jild Arua Dalia DVALA",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 330,
+        "soldUnits30d": 13,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "ARUA brend doʻkoni, lekin: sotuv past (13 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 585401,
+      "expect": null,
+      "dokon": "AYQIZ",
+      "title": "Narsalarni saqlash uchun xalta, kichik, 25 * 30 sm",
+      "kirish": {
+        "brand": "ayqiz",
+        "title": "Narsalarni saqlash uchun xalta, kichik, 25 * 30 sm",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1091,
+        "soldUnits30d": 284,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "AYQIZ brend doʻkoni, lekin: brend nomi tovar nomida yoʻq"
     },
     {
       "platform": "uzum",
@@ -40,11 +95,191 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 2,
-        "brandReviews": 5278,
+        "brandAgeDays": 790,
         "soldUnits30d": 7770,
         "categoryMedianUnits30d": 22
       },
       "note": "AZALY brend doʻkoni, lekin: brend nomi tovar nomida yoʻq"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 518924,
+      "expect": null,
+      "dokon": "Bager",
+      "title": "Ko'za Infuzor Bager M-323, shishali, 1.4 litr",
+      "kirish": {
+        "brand": "bager",
+        "title": "Ko'za Infuzor Bager M-323, shishali, 1.4 litr",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1231,
+        "soldUnits30d": 4,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "Bager brend doʻkoni, lekin: sotuv past (4 < 66)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2046478,
+      "expect": null,
+      "dokon": "Barline",
+      "title": "Barline Caramel — qahva, kokteyl va desertlar uchun karamel siropi, 1 l",
+      "kirish": {
+        "brand": "barline",
+        "title": "Barline Caramel — qahva, kokteyl va desertlar uchun karamel siropi, 1 l",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 240,
+        "soldUnits30d": 13,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "Barline brend doʻkoni, lekin: sotuv past (13 < 39)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 448896,
+      "expect": null,
+      "dokon": "BEBENEO",
+      "title": "Ortodontik so'rg'ich №1 \"shaffof\" 0 dan 6 oygacha bo'lgan bolalar uchun",
+      "kirish": {
+        "brand": "bebeneo",
+        "title": "Ortodontik so'rg'ich №1 \"shaffof\" 0 dan 6 oygacha bo'lgan bolalar uchun",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1047,
+        "soldUnits30d": 43,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "BEBENEO brend doʻkoni, lekin: brend nomi tovar nomida yoʻq"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 676800,
+      "expect": null,
+      "dokon": "BOYOO",
+      "title": "Shahar muhandislik mexanizmini o'zgartiruvchi robot, 12 tasi 1 da, 566 zarracha",
+      "kirish": {
+        "brand": "boyoo",
+        "title": "Shahar muhandislik mexanizmini o'zgartiruvchi robot, 12 tasi 1 da, 566 zarracha",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1038,
+        "soldUnits30d": 17,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "BOYOO brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; sotuv past (17 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 239419,
+      "expect": null,
+      "dokon": "BRUCKNER",
+      "title": "Qora mevali choy Bruckner, limon ta'mi bilan, 25 dona",
+      "kirish": {
+        "brand": "bruckner",
+        "title": "Qora mevali choy Bruckner, limon ta'mi bilan, 25 dona",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1109,
+        "soldUnits30d": 4,
+        "categoryMedianUnits30d": 26
+      },
+      "note": "BRUCKNER brend doʻkoni, lekin: sotuv past (4 < 78)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 794851,
+      "expect": "closed_brand",
+      "dokon": "Chortoq",
+      "title": "Ichimlik suvi Chortoq suv tabiiy, gazlangan, 1.5 litr",
+      "kirish": {
+        "brand": "chortoq",
+        "title": "Ichimlik suvi Chortoq suv tabiiy, gazlangan, 1.5 litr",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1210,
+        "soldUnits30d": 464,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "Chortoq brend doʻkoni; brendni 2 doʻkon sotadi, 1210 kundan beri bor, sotuv medianadan 21.1x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2069762,
+      "expect": null,
+      "dokon": "Derimod",
+      "title": "DERIMOD Erkaklar uchun etik, 25WFD6719FT",
+      "kirish": {
+        "brand": "derimod",
+        "title": "DERIMOD Erkaklar uchun etik, 25WFD6719FT",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 358,
+        "soldUnits30d": 60,
+        "categoryMedianUnits30d": 34
+      },
+      "note": "Derimod brend doʻkoni, lekin: sotuv past (60 < 102)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 859003,
+      "expect": null,
+      "dokon": "DIVA-KIDS",
+      "title": "Divakids tomonidan qizlar uchun pijamalar, DKM-897",
+      "kirish": {
+        "brand": "divakids",
+        "title": "Divakids tomonidan qizlar uchun pijamalar, DKM-897",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1092,
+        "soldUnits30d": 22,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "DIVA-KIDS brend doʻkoni, lekin: sotuv past (22 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1489762,
+      "expect": null,
+      "dokon": "Furla",
+      "title": "Furla Camelia kalit zanjiri",
+      "kirish": {
+        "brand": "furla",
+        "title": "Furla Camelia kalit zanjiri",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 474,
+        "soldUnits30d": 39,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "Furla brend doʻkoni, lekin: sotuv past (39 < 66)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1220347,
+      "expect": null,
+      "dokon": "Genau",
+      "title": "Velotrenajyor Genau Spin Bike W101 , 8 kg maxovik, maksimal vazni 120 kg SB1-05A",
+      "kirish": {
+        "brand": "genau",
+        "title": "Velotrenajyor Genau Spin Bike W101 , 8 kg maxovik, maksimal vazni 120 kg SB1-05A",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 600,
+        "soldUnits30d": 13,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Genau brend doʻkoni, lekin: sotuv past (13 < 51)"
     },
     {
       "platform": "uzum",
@@ -58,47 +293,191 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 2,
-        "brandReviews": 3981,
+        "brandAgeDays": 1002,
         "soldUnits30d": 288,
         "categoryMedianUnits30d": 60
       },
-      "note": "HORUN brendning oʻz doʻkoni; brendni 2 doʻkon sotadi, 3981 sharh toʻplangan"
+      "note": "HORUN brend doʻkoni; brendni 2 doʻkon sotadi, 1002 kundan beri bor, sotuv medianadan 4.8x yuqori"
     },
     {
       "platform": "uzum",
-      "external_id": 1704465,
-      "expect": "closed_brand",
-      "dokon": "SOLAB",
-      "title": "L-karnitin, SOLAB, ozishga va energiyaga moʻljallangan yogʻyoquvchi, 90 kapsula",
-      "kirish": {
-        "brand": "solab",
-        "title": "L-karnitin, SOLAB, ozishga va energiyaga moʻljallangan yogʻyoquvchi, 90 kapsula",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 3798,
-        "soldUnits30d": 323,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "SOLAB brendning oʻz doʻkoni; brendni 2 doʻkon sotadi, 3798 sharh toʻplangan"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1049672,
+      "external_id": 805220,
       "expect": null,
-      "dokon": "Selmir",
-      "title": "Maydalangan zarchava Selmir – choy, sut, ichimlik, sous go‘sht, tovuq uchun ziravor, 130 g",
+      "dokon": "INDENIM",
+      "title": "INDENIM / ayollar shimlari AW8DEA17591",
       "kirish": {
-        "brand": "selmir",
-        "title": "Maydalangan zarchava Selmir – choy, sut, ichimlik, sous go‘sht, tovuq uchun ziravor, 130 g",
+        "brand": "indenim",
+        "title": "INDENIM / ayollar shimlari AW8DEA17591",
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 2,
-        "brandReviews": 3441,
-        "soldUnits30d": 52,
+        "brandAgeDays": 1102,
+        "soldUnits30d": 4,
         "categoryMedianUnits30d": 22
       },
-      "note": "Selmir brend doʻkoni, lekin: sotuv turkum medianasidan past (52 < 66)"
+      "note": "INDENIM brend doʻkoni, lekin: sotuv past (4 < 66)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2177181,
+      "expect": null,
+      "dokon": "INstreet",
+      "title": "INstreet еrkaklar uchun futbolka",
+      "kirish": {
+        "brand": "instreet",
+        "title": "INstreet еrkaklar uchun futbolka",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 201,
+        "soldUnits30d": 9,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "INstreet brend doʻkoni, lekin: sotuv past (9 < 39)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1887742,
+      "expect": null,
+      "dokon": "Kanishka",
+      "title": "KANISHKA brelok IKKITALI",
+      "kirish": {
+        "brand": "kanishka",
+        "title": "KANISHKA brelok IKKITALI",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 359,
+        "soldUnits30d": 22,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "Kanishka brend doʻkoni, lekin: sotuv past (22 < 66)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1142070,
+      "expect": null,
+      "dokon": "KAYZER оснастка",
+      "title": "Yog'och arra pichog'i 165*20*24T",
+      "kirish": {
+        "brand": "kayzer",
+        "title": "Yog'och arra pichog'i 165*20*24T",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 638,
+        "soldUnits30d": 4,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "KAYZER оснастка brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; sotuv past (4 < 39)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2120343,
+      "expect": null,
+      "dokon": "kezy",
+      "title": "Kezy Involne Rangli Soch rangi Qora va Moviy 1.1 100ml",
+      "kirish": {
+        "brand": "kezy",
+        "title": "Kezy Involne Rangli Soch rangi Qora va Moviy 1.1 100ml",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 219,
+        "soldUnits30d": 17,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "kezy brend doʻkoni, lekin: sotuv past (17 < 39)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1935537,
+      "expect": null,
+      "dokon": "KikkaBoo",
+      "title": "KikkaBoo Moony me up, 220 ml, somonli ichimlik idishi",
+      "kirish": {
+        "brand": "kikkaboo",
+        "title": "KikkaBoo Moony me up, 220 ml, somonli ichimlik idishi",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 287,
+        "soldUnits30d": 4,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "KikkaBoo brend doʻkoni, lekin: sotuv past (4 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 259593,
+      "expect": "closed_brand",
+      "dokon": "KREDA",
+      "title": "Kreda Prime-gel oziq-ovqat bo'yoqlari, geleviy, suvda eriydigan",
+      "kirish": {
+        "brand": "kreda",
+        "title": "Kreda Prime-gel oziq-ovqat bo'yoqlari, geleviy, suvda eriydigan",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1111,
+        "soldUnits30d": 581,
+        "categoryMedianUnits30d": 26
+      },
+      "note": "KREDA brend doʻkoni; brendni 1 doʻkon sotadi, 1111 kundan beri bor, sotuv medianadan 22.3x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 793347,
+      "expect": "closed_brand",
+      "dokon": "KREMBER",
+      "title": "Krember 5+, karamel va yong'oq bilan, 200 g",
+      "kirish": {
+        "brand": "krember",
+        "title": "Krember 5+, karamel va yong'oq bilan, 200 g",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1118,
+        "soldUnits30d": 305,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "KREMBER brend doʻkoni; brendni 2 doʻkon sotadi, 1118 kundan beri bor, sotuv medianadan 13.9x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2064,
+      "expect": null,
+      "dokon": "Lamart",
+      "title": "Sabzavot va mevalarni tozalash uchun pichoq Lamart LT2095",
+      "kirish": {
+        "brand": "lamart",
+        "title": "Sabzavot va mevalarni tozalash uchun pichoq Lamart LT2095",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1231,
+        "soldUnits30d": 4,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Lamart brend doʻkoni, lekin: sotuv past (4 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 866371,
+      "expect": null,
+      "dokon": "LaQandil",
+      "title": "Lyustra \"LaQandil\" yotoqxona uchun qandil,  mehmonxona uchun qandil, oshxona uchun qandil",
+      "kirish": {
+        "brand": "laqandil",
+        "title": "Lyustra \"LaQandil\" yotoqxona uchun qandil,  mehmonxona uchun qandil, oshxona uchun qandil",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 808,
+        "soldUnits30d": 9,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "LaQandil brend doʻkoni, lekin: sotuv past (9 < 66)"
     },
     {
       "platform": "uzum",
@@ -112,29 +491,65 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 2,
-        "brandReviews": 3304,
-        "soldUnits30d": 86,
-        "categoryMedianUnits30d": 26
+        "brandAgeDays": 1209,
+        "soldUnits30d": 69,
+        "categoryMedianUnits30d": 22
       },
-      "note": "MacCoffee brendning oʻz doʻkoni; brendni 2 doʻkon sotadi, 3304 sharh toʻplangan"
+      "note": "MacCoffee brend doʻkoni; brendni 2 doʻkon sotadi, 1209 kundan beri bor, sotuv medianadan 3.1x yuqori"
     },
     {
       "platform": "uzum",
-      "external_id": 1012784,
-      "expect": "closed_brand",
-      "dokon": "Willmoda",
-      "title": "Bolalar pijamalari, qorong'ida porlaydi, Willmoda, skelet",
+      "external_id": 822951,
+      "expect": null,
+      "dokon": "Maula",
+      "title": "Ayollar qo'lqopli longsliv koftasi Maula, qora rang",
       "kirish": {
-        "brand": "willmoda",
-        "title": "Bolalar pijamalari, qorong'ida porlaydi, Willmoda, skelet",
+        "brand": "maula",
+        "title": "Ayollar qo'lqopli longsliv koftasi Maula, qora rang",
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 1,
-        "brandReviews": 1729,
-        "soldUnits30d": 439,
+        "brandAgeDays": 1097,
+        "soldUnits30d": 17,
+        "categoryMedianUnits30d": 30
+      },
+      "note": "Maula brend doʻkoni, lekin: sotuv past (17 < 90)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 5700,
+      "expect": "closed_brand",
+      "dokon": "MeLiSSki",
+      "title": "Bolalar aravachasi uchun matras MeLiSSki \"Yulduzlar\"",
+      "kirish": {
+        "brand": "melisski",
+        "title": "Bolalar aravachasi uchun matras MeLiSSki \"Yulduzlar\"",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1228,
+        "soldUnits30d": 39,
         "categoryMedianUnits30d": 13
       },
-      "note": "Willmoda brendning oʻz doʻkoni; brendni 1 doʻkon sotadi, 1729 sharh toʻplangan"
+      "note": "MeLiSSki brend doʻkoni; brendni 1 doʻkon sotadi, 1228 kundan beri bor, sotuv medianadan 3.0x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 3138448,
+      "expect": "baholanmadi",
+      "dokon": "Miconic",
+      "title": "\"Meowdidas\" Y2K uslubidagi mushuk tasviri tushirilgan futbolka",
+      "kirish": {
+        "brand": "miconic",
+        "title": "\"Meowdidas\" Y2K uslubidagi mushuk tasviri tushirilgan futbolka",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": null,
+        "soldUnits30d": 4,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Miconic: yosh oʻlchanmagan (id kalibrovka chegarasidan tashqarida) — filtr javob bermasligi kerak"
     },
     {
       "platform": "uzum",
@@ -148,7 +563,7 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 1,
-        "brandReviews": 1706,
+        "brandAgeDays": 1132,
         "soldUnits30d": 297,
         "categoryMedianUnits30d": 13
       },
@@ -166,713 +581,11 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 2,
-        "brandReviews": 1554,
+        "brandAgeDays": 1203,
         "soldUnits30d": 224,
-        "categoryMedianUnits30d": 26
-      },
-      "note": "Nuppi brend doʻkoni, lekin: brend nomi tovar nomida yoʻq"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 176783,
-      "expect": null,
-      "dokon": "PASSIM",
-      "title": "Passim butun donli suli yormasi, 700 g",
-      "kirish": {
-        "brand": "passim",
-        "title": "Passim butun donli suli yormasi, 700 g",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 1362,
-        "soldUnits30d": 43,
-        "categoryMedianUnits30d": 34
-      },
-      "note": "PASSIM brend doʻkoni, lekin: sotuv turkum medianasidan past (43 < 102)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 869121,
-      "expect": "closed_brand",
-      "dokon": "ARTERY",
-      "title": "Raqamlar bo'yicha rasm chizish ARTERY Shedevlar, 40 * 50 sm",
-      "kirish": {
-        "brand": "artery",
-        "title": "Raqamlar bo'yicha rasm chizish ARTERY Shedevlar, 40 * 50 sm",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 1333,
-        "soldUnits30d": 56,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "ARTERY brendning oʻz doʻkoni; brendni 1 doʻkon sotadi, 1333 sharh toʻplangan"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 794851,
-      "expect": "closed_brand",
-      "dokon": "Chortoq",
-      "title": "Ichimlik suvi Chortoq suv tabiiy, gazlangan, 1.5 litr",
-      "kirish": {
-        "brand": "chortoq",
-        "title": "Ichimlik suvi Chortoq suv tabiiy, gazlangan, 1.5 litr",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 1289,
-        "soldUnits30d": 464,
-        "categoryMedianUnits30d": 22
-      },
-      "note": "Chortoq brendning oʻz doʻkoni; brendni 2 doʻkon sotadi, 1289 sharh toʻplangan"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1220347,
-      "expect": null,
-      "dokon": "Genau",
-      "title": "Velotrenajyor Genau Spin Bike W101 , 8 kg maxovik, maksimal vazni 120 kg SB1-05A",
-      "kirish": {
-        "brand": "genau",
-        "title": "Velotrenajyor Genau Spin Bike W101 , 8 kg maxovik, maksimal vazni 120 kg SB1-05A",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 877,
-        "soldUnits30d": 13,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "Genau brend doʻkoni, lekin: sotuv turkum medianasidan past (13 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 2064,
-      "expect": null,
-      "dokon": "Lamart",
-      "title": "Sabzavot va mevalarni tozalash uchun pichoq Lamart LT2095",
-      "kirish": {
-        "brand": "lamart",
-        "title": "Sabzavot va mevalarni tozalash uchun pichoq Lamart LT2095",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 807,
-        "soldUnits30d": 4,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "Lamart brend doʻkoni, lekin: sotuv turkum medianasidan past (4 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 797665,
-      "expect": "closed_brand",
-      "dokon": "SERRADOR",
-      "title": "Alon - Klassik uslubdagi erkaklar kamari - SERRADOR",
-      "kirish": {
-        "brand": "serrador",
-        "title": "Alon - Klassik uslubdagi erkaklar kamari - SERRADOR",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 641,
-        "soldUnits30d": 305,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "SERRADOR brendning oʻz doʻkoni; brendni 1 doʻkon sotadi, 641 sharh toʻplangan"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 822951,
-      "expect": null,
-      "dokon": "Maula",
-      "title": "Ayollar qo'lqopli longsliv koftasi Maula, qora rang",
-      "kirish": {
-        "brand": "maula",
-        "title": "Ayollar qo'lqopli longsliv koftasi Maula, qora rang",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 637,
-        "soldUnits30d": 17,
         "categoryMedianUnits30d": 30
       },
-      "note": "Maula brend doʻkoni, lekin: sotuv turkum medianasidan past (17 < 90)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 804546,
-      "expect": "closed_brand",
-      "dokon": "INDENIM",
-      "title": "INDENIM ayollar tunikasi AW8KTA10174",
-      "kirish": {
-        "brand": "indenim",
-        "title": "INDENIM ayollar tunikasi AW8KTA10174",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 571,
-        "soldUnits30d": 241,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "INDENIM brendning oʻz doʻkoni; brendni 2 doʻkon sotadi, 571 sharh toʻplangan"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1887742,
-      "expect": null,
-      "dokon": "Kanishka",
-      "title": "KANISHKA brelok IKKITALI",
-      "kirish": {
-        "brand": "kanishka",
-        "title": "KANISHKA brelok IKKITALI",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 362,
-        "soldUnits30d": 22,
-        "categoryMedianUnits30d": 22
-      },
-      "note": "Kanishka brend doʻkoni, lekin: sotuv turkum medianasidan past (22 < 66)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 259593,
-      "expect": "closed_brand",
-      "dokon": "KREDA",
-      "title": "Kreda Prime-gel oziq-ovqat bo'yoqlari, geleviy, suvda eriydigan",
-      "kirish": {
-        "brand": "kreda",
-        "title": "Kreda Prime-gel oziq-ovqat bo'yoqlari, geleviy, suvda eriydigan",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 345,
-        "soldUnits30d": 581,
-        "categoryMedianUnits30d": 26
-      },
-      "note": "KREDA brendning oʻz doʻkoni; brendni 1 doʻkon sotadi, 345 sharh toʻplangan"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 5700,
-      "expect": "closed_brand",
-      "dokon": "MeLiSSki",
-      "title": "Bolalar aravachasi uchun matras MeLiSSki \"Yulduzlar\"",
-      "kirish": {
-        "brand": "melisski",
-        "title": "Bolalar aravachasi uchun matras MeLiSSki \"Yulduzlar\"",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 306,
-        "soldUnits30d": 39,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "MeLiSSki brendning oʻz doʻkoni; brendni 1 doʻkon sotadi, 306 sharh toʻplangan"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 2191965,
-      "expect": null,
-      "dokon": "Amadora",
-      "title": "Ziraklar ayollar uchun kristalli qinnigul sirg’alar, 9 rang bujiteriya, Amadora taqinchoq",
-      "kirish": {
-        "brand": "amadora",
-        "title": "Ziraklar ayollar uchun kristalli qinnigul sirg’alar, 9 rang bujiteriya, Amadora taqinchoq",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 199,
-        "soldUnits30d": 26,
-        "categoryMedianUnits30d": 22
-      },
-      "note": "Amadora brend doʻkoni, lekin: atigi 199 sharh — yangi brend; sotuv turkum medianasidan past (26 < 66)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1807672,
-      "expect": null,
-      "dokon": "Ziaja",
-      "title": "Tana uchun namlantiruvchi va oziqlantiruvchi losyon, купуasu ekstrakti bilan - 300 ml",
-      "kirish": {
-        "brand": "ziaja",
-        "title": "Tana uchun namlantiruvchi va oziqlantiruvchi losyon, купуasu ekstrakti bilan - 300 ml",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 140,
-        "soldUnits30d": 168,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "Ziaja brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 140 sharh — yangi brend"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 518924,
-      "expect": null,
-      "dokon": "Bager",
-      "title": "Ko'za Infuzor Bager M-323, shishali, 1.4 litr",
-      "kirish": {
-        "brand": "bager",
-        "title": "Ko'za Infuzor Bager M-323, shishali, 1.4 litr",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 107,
-        "soldUnits30d": 4,
-        "categoryMedianUnits30d": 24
-      },
-      "note": "Bager brend doʻkoni, lekin: atigi 107 sharh — yangi brend; sotuv turkum medianasidan past (4 < 72)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1592647,
-      "expect": null,
-      "dokon": "TEFIA",
-      "title": "Qazg‘oqqa qarshi TEFIA MY TREAT losyoni, 120 ml, quruq va yog‘li bosh terisi uchun",
-      "kirish": {
-        "brand": "tefia",
-        "title": "Qazg‘oqqa qarshi TEFIA MY TREAT losyoni, 120 ml, quruq va yog‘li bosh terisi uchun",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 102,
-        "soldUnits30d": 13,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "TEFIA brend doʻkoni, lekin: atigi 102 sharh — yangi brend; sotuv turkum medianasidan past (13 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 239419,
-      "expect": null,
-      "dokon": "BRUCKNER",
-      "title": "Qora mevali choy Bruckner, limon ta'mi bilan, 25 dona",
-      "kirish": {
-        "brand": "bruckner",
-        "title": "Qora mevali choy Bruckner, limon ta'mi bilan, 25 dona",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 98,
-        "soldUnits30d": 4,
-        "categoryMedianUnits30d": 26
-      },
-      "note": "BRUCKNER brend doʻkoni, lekin: atigi 98 sharh — yangi brend; sotuv turkum medianasidan past (4 < 78)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 420361,
-      "expect": null,
-      "dokon": "Sitonni",
-      "title": "Erkaklar uchun mokasinlar Sitonni",
-      "kirish": {
-        "brand": "sitonni",
-        "title": "Erkaklar uchun mokasinlar Sitonni",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 98,
-        "soldUnits30d": 56,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "Sitonni brend doʻkoni, lekin: atigi 98 sharh — yangi brend"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 859003,
-      "expect": null,
-      "dokon": "DIVA-KIDS",
-      "title": "Divakids tomonidan qizlar uchun pijamalar, DKM-897",
-      "kirish": {
-        "brand": "divakids",
-        "title": "Divakids tomonidan qizlar uchun pijamalar, DKM-897",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 88,
-        "soldUnits30d": 22,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "DIVA-KIDS brend doʻkoni, lekin: atigi 88 sharh — yangi brend; sotuv turkum medianasidan past (22 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 2120343,
-      "expect": null,
-      "dokon": "kezy",
-      "title": "Kezy Involne Rangli Soch rangi Qora va Moviy 1.1 100ml",
-      "kirish": {
-        "brand": "kezy",
-        "title": "Kezy Involne Rangli Soch rangi Qora va Moviy 1.1 100ml",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 76,
-        "soldUnits30d": 17,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "kezy brend doʻkoni, lekin: atigi 76 sharh — yangi brend; sotuv turkum medianasidan past (17 < 39)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 315233,
-      "expect": null,
-      "dokon": "SEENTEX",
-      "title": "Ikki kranli aralashtirgich Seentex SX353SHA-1KB ",
-      "kirish": {
-        "brand": "seentex",
-        "title": "Ikki kranli aralashtirgich Seentex SX353SHA-1KB ",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 73,
-        "soldUnits30d": 13,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "SEENTEX brend doʻkoni, lekin: atigi 73 sharh — yangi brend; sotuv turkum medianasidan past (13 < 39)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 602190,
-      "expect": null,
-      "dokon": "ROSSVIK",
-      "title": "Yelim-aktivatori ROSSVIK, cho'tka bilan banka, 250 ml, 1 dona",
-      "kirish": {
-        "brand": "rossvik",
-        "title": "Yelim-aktivatori ROSSVIK, cho'tka bilan banka, 250 ml, 1 dona",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 70,
-        "soldUnits30d": 17,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "ROSSVIK brend doʻkoni, lekin: atigi 70 sharh — yangi brend; sotuv turkum medianasidan past (17 < 39)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 448896,
-      "expect": null,
-      "dokon": "BEBENEO",
-      "title": "Ortodontik so'rg'ich №1 \"shaffof\" 0 dan 6 oygacha bo'lgan bolalar uchun",
-      "kirish": {
-        "brand": "bebeneo",
-        "title": "Ortodontik so'rg'ich №1 \"shaffof\" 0 dan 6 oygacha bo'lgan bolalar uchun",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 66,
-        "soldUnits30d": 43,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "BEBENEO brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 66 sharh — yangi brend"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1549621,
-      "expect": null,
-      "dokon": "WORKPRO",
-      "title": "WORKPRO qurilish pichogi, neylon tutqich, zanglamaydigan pichoq, ip kesish, tugmali qul",
-      "kirish": {
-        "brand": "workpro",
-        "title": "WORKPRO qurilish pichogi, neylon tutqich, zanglamaydigan pichoq, ip kesish, tugmali qul",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 57,
-        "soldUnits30d": 34,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "WORKPRO brend doʻkoni, lekin: atigi 57 sharh — yangi brend; sotuv turkum medianasidan past (34 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 585401,
-      "expect": null,
-      "dokon": "AYQIZ",
-      "title": "Narsalarni saqlash uchun xalta, kichik, 25 * 30 sm",
-      "kirish": {
-        "brand": "ayqiz",
-        "title": "Narsalarni saqlash uchun xalta, kichik, 25 * 30 sm",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 51,
-        "soldUnits30d": 284,
-        "categoryMedianUnits30d": 22
-      },
-      "note": "AYQIZ brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 51 sharh — yangi brend"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1935537,
-      "expect": null,
-      "dokon": "KikkaBoo",
-      "title": "KikkaBoo Moony me up, 220 ml, somonli ichimlik idishi",
-      "kirish": {
-        "brand": "kikkaboo",
-        "title": "KikkaBoo Moony me up, 220 ml, somonli ichimlik idishi",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 49,
-        "soldUnits30d": 4,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "KikkaBoo brend doʻkoni, lekin: atigi 49 sharh — yangi brend; sotuv turkum medianasidan past (4 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 2046478,
-      "expect": null,
-      "dokon": "Barline",
-      "title": "Barline Caramel — qahva, kokteyl va desertlar uchun karamel siropi, 1 l",
-      "kirish": {
-        "brand": "barline",
-        "title": "Barline Caramel — qahva, kokteyl va desertlar uchun karamel siropi, 1 l",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 45,
-        "soldUnits30d": 13,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "Barline brend doʻkoni, lekin: atigi 45 sharh — yangi brend; sotuv turkum medianasidan past (13 < 39)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1287144,
-      "expect": null,
-      "dokon": "Sensilis",
-      "title": "Yuz uchun quyoshdan himoyalovchi SPF 50+ Sensilis Photocorrection HA+ krem-flyuidi, 50 ml",
-      "kirish": {
-        "brand": "sensilis",
-        "title": "Yuz uchun quyoshdan himoyalovchi SPF 50+ Sensilis Photocorrection HA+ krem-flyuidi, 50 ml",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 38,
-        "soldUnits30d": 73,
-        "categoryMedianUnits30d": 9
-      },
-      "note": "Sensilis brend doʻkoni, lekin: atigi 38 sharh — yangi brend"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 849382,
-      "expect": null,
-      "dokon": "LaQandil",
-      "title": "\"LaQandil\" Qirolicha, shiftdagi qandil",
-      "kirish": {
-        "brand": "laqandil",
-        "title": "\"LaQandil\" Qirolicha, shiftdagi qandil",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 31,
-        "soldUnits30d": 26,
-        "categoryMedianUnits30d": 22
-      },
-      "note": "LaQandil brend doʻkoni, lekin: atigi 31 sharh — yangi brend; sotuv turkum medianasidan past (26 < 66)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 2896419,
-      "expect": null,
-      "dokon": "SKINEVER",
-      "title": "Yuz uchun oqartiruvchi SKINEVER zardobi, 10% niatsinamid bilan, pigmentatsiyaga qarshi, 30 ml",
-      "kirish": {
-        "brand": "skinever",
-        "title": "Yuz uchun oqartiruvchi SKINEVER zardobi, 10% niatsinamid bilan, pigmentatsiyaga qarshi, 30 ml",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 19,
-        "soldUnits30d": 241,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "SKINEVER brend doʻkoni, lekin: atigi 19 sharh — yangi brend"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1142070,
-      "expect": null,
-      "dokon": "KAYZER оснастка",
-      "title": "Yog'och arra pichog'i 165*20*24T",
-      "kirish": {
-        "brand": "kayzer",
-        "title": "Yog'och arra pichog'i 165*20*24T",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 17,
-        "soldUnits30d": 4,
-        "categoryMedianUnits30d": 13
-      },
-      "note": "KAYZER оснастка brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 17 sharh — yangi brend; sotuv turkum medianasidan past (4 < 39)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 533100,
-      "expect": null,
-      "dokon": "RESPECTWEAR",
-      "title": "RespectWear erkaklar jinsi shimlari",
-      "kirish": {
-        "brand": "respectwear",
-        "title": "RespectWear erkaklar jinsi shimlari",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 14,
-        "soldUnits30d": 4,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "RESPECTWEAR brend doʻkoni, lekin: atigi 14 sharh — yangi brend; sotuv turkum medianasidan past (4 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 815649,
-      "expect": null,
-      "dokon": "Rieker",
-      "title": "Erkaklar etiklari Rieker 12042 - 00,25",
-      "kirish": {
-        "brand": "rieker",
-        "title": "Erkaklar etiklari Rieker 12042 - 00,25",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 11,
-        "soldUnits30d": 60,
-        "categoryMedianUnits30d": 26
-      },
-      "note": "Rieker brend doʻkoni, lekin: atigi 11 sharh — yangi brend; sotuv turkum medianasidan past (60 < 78)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1901060,
-      "expect": null,
-      "dokon": "Samura",
-      "title": "Oshxona pichog'i Samura Golf SG-0010 sabzavot pichog‘i AUS-8 yapon po‘latidan tayyorlangan",
-      "kirish": {
-        "brand": "samura",
-        "title": "Oshxona pichog'i Samura Golf SG-0010 sabzavot pichog‘i AUS-8 yapon po‘latidan tayyorlangan",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 10,
-        "soldUnits30d": 9,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "Samura brend doʻkoni, lekin: atigi 10 sharh — yangi brend; sotuv turkum medianasidan past (9 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 676800,
-      "expect": null,
-      "dokon": "BOYOO",
-      "title": "Shahar muhandislik mexanizmini o'zgartiruvchi robot, 12 tasi 1 da, 566 zarracha",
-      "kirish": {
-        "brand": "boyoo",
-        "title": "Shahar muhandislik mexanizmini o'zgartiruvchi robot, 12 tasi 1 da, 566 zarracha",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 9,
-        "soldUnits30d": 17,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "BOYOO brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 9 sharh — yangi brend; sotuv turkum medianasidan past (17 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1962329,
-      "expect": null,
-      "dokon": "ARUA",
-      "title": "Yostiq jild Arua Dalia DVALA",
-      "kirish": {
-        "brand": "arua",
-        "title": "Yostiq jild Arua Dalia DVALA",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 9,
-        "soldUnits30d": 13,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "ARUA brend doʻkoni, lekin: atigi 9 sharh — yangi brend; sotuv turkum medianasidan past (13 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 2069762,
-      "expect": null,
-      "dokon": "Derimod",
-      "title": "DERIMOD Erkaklar uchun etik, 25WFD6719FT",
-      "kirish": {
-        "brand": "derimod",
-        "title": "DERIMOD Erkaklar uchun etik, 25WFD6719FT",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 6,
-        "soldUnits30d": 60,
-        "categoryMedianUnits30d": 34
-      },
-      "note": "Derimod brend doʻkoni, lekin: atigi 6 sharh — yangi brend; sotuv turkum medianasidan past (60 < 102)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 3139015,
-      "expect": "baholanmadi",
-      "dokon": "Miconic",
-      "title": "Porsche 911 Turbo printli erkaklar oversayz futbolkasi",
-      "kirish": {
-        "brand": "miconic",
-        "title": "Porsche 911 Turbo printli erkaklar oversayz futbolkasi",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 4,
-        "soldUnits30d": null,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "sotuv oʻlchanmagan — filtr javob bermasligi kerak"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 2179176,
-      "expect": null,
-      "dokon": "INstreet",
-      "title": "U.S. POLO ASSN, Erkaklar poyabzali, 101938157",
-      "kirish": {
-        "brand": "instreet",
-        "title": "U.S. POLO ASSN, Erkaklar poyabzali, 101938157",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 4,
-        "soldUnits30d": 13,
-        "categoryMedianUnits30d": 26
-      },
-      "note": "INstreet brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 4 sharh — yangi brend; sotuv turkum medianasidan past (13 < 78)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1849927,
-      "expect": null,
-      "dokon": "VITACCI",
-      "title": "Vitacci 6550221 ayollar shippagi",
-      "kirish": {
-        "brand": "vitacci",
-        "title": "Vitacci 6550221 ayollar shippagi",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 1,
-        "brandReviews": 3,
-        "soldUnits30d": 125,
-        "categoryMedianUnits30d": 22
-      },
-      "note": "VITACCI brend doʻkoni, lekin: atigi 3 sharh — yangi brend"
+      "note": "Nuppi brend doʻkoni, lekin: brend nomi tovar nomida yoʻq"
     },
     {
       "platform": "uzum",
@@ -886,11 +599,29 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 1,
-        "brandReviews": 1,
+        "brandAgeDays": 371,
         "soldUnits30d": 13,
         "categoryMedianUnits30d": 13
       },
-      "note": "NurKid brend doʻkoni, lekin: atigi 1 sharh — yangi brend; sotuv turkum medianasidan past (13 < 39)"
+      "note": "NurKid brend doʻkoni, lekin: sotuv past (13 < 39)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 176783,
+      "expect": null,
+      "dokon": "PASSIM",
+      "title": "Passim butun donli suli yormasi, 700 g",
+      "kirish": {
+        "brand": "passim",
+        "title": "Passim butun donli suli yormasi, 700 g",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1171,
+        "soldUnits30d": 43,
+        "categoryMedianUnits30d": 28
+      },
+      "note": "PASSIM brend doʻkoni, lekin: sotuv past (43 < 84)"
     },
     {
       "platform": "uzum",
@@ -904,11 +635,227 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 1,
-        "brandReviews": 1,
+        "brandAgeDays": 37,
         "soldUnits30d": 13,
         "categoryMedianUnits30d": 17
       },
-      "note": "PMKL brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 1 sharh — yangi brend; sotuv turkum medianasidan past (13 < 51)"
+      "note": "PMKL brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; brend atigi 37 kunlik — yangi; sotuv past (13 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1330084,
+      "expect": "closed_brand",
+      "dokon": "PrimeKraft",
+      "title": "Kollagen + Vitamin C + gialuron kislotasi, Primekraft, kukun, 200 gr",
+      "kirish": {
+        "brand": "primekraft",
+        "title": "Kollagen + Vitamin C + gialuron kislotasi, Primekraft, kukun, 200 gr",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 739,
+        "soldUnits30d": 292,
+        "categoryMedianUnits30d": 30
+      },
+      "note": "PrimeKraft brend doʻkoni; brendni 1 doʻkon sotadi, 739 kundan beri bor, sotuv medianadan 9.7x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 533100,
+      "expect": null,
+      "dokon": "RESPECTWEAR",
+      "title": "RespectWear erkaklar jinsi shimlari",
+      "kirish": {
+        "brand": "respectwear",
+        "title": "RespectWear erkaklar jinsi shimlari",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 976,
+        "soldUnits30d": 4,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "RESPECTWEAR brend doʻkoni, lekin: sotuv past (4 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 815649,
+      "expect": null,
+      "dokon": "Rieker",
+      "title": "Erkaklar etiklari Rieker 12042 - 00,25",
+      "kirish": {
+        "brand": "rieker",
+        "title": "Erkaklar etiklari Rieker 12042 - 00,25",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1102,
+        "soldUnits30d": 60,
+        "categoryMedianUnits30d": 26
+      },
+      "note": "Rieker brend doʻkoni, lekin: sotuv past (60 < 78)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 602190,
+      "expect": null,
+      "dokon": "ROSSVIK",
+      "title": "Yelim-aktivatori ROSSVIK, cho'tka bilan banka, 250 ml, 1 dona",
+      "kirish": {
+        "brand": "rossvik",
+        "title": "Yelim-aktivatori ROSSVIK, cho'tka bilan banka, 250 ml, 1 dona",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 924,
+        "soldUnits30d": 17,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "ROSSVIK brend doʻkoni, lekin: sotuv past (17 < 39)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1901060,
+      "expect": null,
+      "dokon": "Samura",
+      "title": "Oshxona pichog'i Samura Golf SG-0010 sabzavot pichog‘i AUS-8 yapon po‘latidan tayyorlangan",
+      "kirish": {
+        "brand": "samura",
+        "title": "Oshxona pichog'i Samura Golf SG-0010 sabzavot pichog‘i AUS-8 yapon po‘latidan tayyorlangan",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 333,
+        "soldUnits30d": 9,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Samura brend doʻkoni, lekin: sotuv past (9 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 315233,
+      "expect": null,
+      "dokon": "SEENTEX",
+      "title": "Ikki kranli aralashtirgich Seentex SX353SHA-1KB ",
+      "kirish": {
+        "brand": "seentex",
+        "title": "Ikki kranli aralashtirgich Seentex SX353SHA-1KB ",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1069,
+        "soldUnits30d": 13,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "SEENTEX brend doʻkoni, lekin: sotuv past (13 < 39)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1049672,
+      "expect": null,
+      "dokon": "Selmir",
+      "title": "Maydalangan zarchava Selmir – choy, sut, ichimlik, sous go‘sht, tovuq uchun ziravor, 130 g",
+      "kirish": {
+        "brand": "selmir",
+        "title": "Maydalangan zarchava Selmir – choy, sut, ichimlik, sous go‘sht, tovuq uchun ziravor, 130 g",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 710,
+        "soldUnits30d": 52,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "Selmir brend doʻkoni, lekin: sotuv past (52 < 66)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1274925,
+      "expect": "closed_brand",
+      "dokon": "Sensilis",
+      "title": "Sensilis The Cool Rescue yuz uchun mist spreyi, 150 ml, namlovchi, sezgir teri uchun",
+      "kirish": {
+        "brand": "sensilis",
+        "title": "Sensilis The Cool Rescue yuz uchun mist spreyi, 150 ml, namlovchi, sezgir teri uchun",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 567,
+        "soldUnits30d": 90,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Sensilis brend doʻkoni; brendni 2 doʻkon sotadi, 567 kundan beri bor, sotuv medianadan 5.3x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 797665,
+      "expect": "closed_brand",
+      "dokon": "SERRADOR",
+      "title": "Alon - Klassik uslubdagi erkaklar kamari - SERRADOR",
+      "kirish": {
+        "brand": "serrador",
+        "title": "Alon - Klassik uslubdagi erkaklar kamari - SERRADOR",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 914,
+        "soldUnits30d": 305,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "SERRADOR brend doʻkoni; brendni 1 doʻkon sotadi, 914 kundan beri bor, sotuv medianadan 23.5x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 420361,
+      "expect": "closed_brand",
+      "dokon": "Sitonni",
+      "title": "Erkaklar uchun mokasinlar Sitonni",
+      "kirish": {
+        "brand": "sitonni",
+        "title": "Erkaklar uchun mokasinlar Sitonni",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1015,
+        "soldUnits30d": 56,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Sitonni brend doʻkoni; brendni 1 doʻkon sotadi, 1015 kundan beri bor, sotuv medianadan 3.3x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2896419,
+      "expect": null,
+      "dokon": "SKINEVER",
+      "title": "Yuz uchun oqartiruvchi SKINEVER zardobi, 10% niatsinamid bilan, pigmentatsiyaga qarshi, 30 ml",
+      "kirish": {
+        "brand": "skinever",
+        "title": "Yuz uchun oqartiruvchi SKINEVER zardobi, 10% niatsinamid bilan, pigmentatsiyaga qarshi, 30 ml",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 58,
+        "soldUnits30d": 241,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "SKINEVER brend doʻkoni, lekin: brend atigi 58 kunlik — yangi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1704465,
+      "expect": "closed_brand",
+      "dokon": "SOLAB",
+      "title": "L-karnitin, SOLAB, ozishga va energiyaga moʻljallangan yogʻyoquvchi, 90 kapsula",
+      "kirish": {
+        "brand": "solab",
+        "title": "L-karnitin, SOLAB, ozishga va energiyaga moʻljallangan yogʻyoquvchi, 90 kapsula",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 391,
+        "soldUnits30d": 323,
+        "categoryMedianUnits30d": 13
+      },
+      "note": "SOLAB brend doʻkoni; brendni 2 doʻkon sotadi, 391 kundan beri bor, sotuv medianadan 24.8x yuqori"
     },
     {
       "platform": "uzum",
@@ -922,47 +869,119 @@
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 1,
-        "brandReviews": 1,
+        "brandAgeDays": 351,
         "soldUnits30d": 9,
-        "categoryMedianUnits30d": 17
-      },
-      "note": "Stol Stoya brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; atigi 1 sharh — yangi brend; sotuv turkum medianasidan past (9 < 51)"
-    },
-    {
-      "platform": "uzum",
-      "external_id": 1462766,
-      "expect": null,
-      "dokon": "Furla",
-      "title": "Furla Flow L sumkasi",
-      "kirish": {
-        "brand": "furla",
-        "title": "Furla Flow L sumkasi",
-        "sellersCount": null,
-        "sellersStableDays": null,
-        "brandSellersCount": 2,
-        "brandReviews": 0,
-        "soldUnits30d": 4,
         "categoryMedianUnits30d": 22
       },
-      "note": "Furla brend doʻkoni, lekin: atigi 0 sharh — yangi brend; sotuv turkum medianasidan past (4 < 66)"
+      "note": "Stol Stoya brend doʻkoni, lekin: brend nomi tovar nomida yoʻq; sotuv past (9 < 66)"
     },
     {
       "platform": "uzum",
-      "external_id": 153420,
-      "expect": "baholanmadi",
-      "dokon": "Магазин женского белья Walhala",
-      "title": "Ichki kiyim to'plami Walhala, ayol,Qizil ",
+      "external_id": 1592647,
+      "expect": null,
+      "dokon": "TEFIA",
+      "title": "Qazg‘oqqa qarshi TEFIA MY TREAT losyoni, 120 ml, quruq va yog‘li bosh terisi uchun",
       "kirish": {
-        "brand": "walhala",
-        "title": "Ichki kiyim to'plami Walhala, ayol,Qizil ",
+        "brand": "tefia",
+        "title": "Qazg‘oqqa qarshi TEFIA MY TREAT losyoni, 120 ml, quruq va yog‘li bosh terisi uchun",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 442,
+        "soldUnits30d": 13,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "TEFIA brend doʻkoni, lekin: sotuv past (13 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1849927,
+      "expect": "closed_brand",
+      "dokon": "VITACCI",
+      "title": "Vitacci 6550221 ayollar shippagi",
+      "kirish": {
+        "brand": "vitacci",
+        "title": "Vitacci 6550221 ayollar shippagi",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 332,
+        "soldUnits30d": 125,
+        "categoryMedianUnits30d": 22
+      },
+      "note": "VITACCI brend doʻkoni; brendni 1 doʻkon sotadi, 332 kundan beri bor, sotuv medianadan 5.7x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1012784,
+      "expect": "closed_brand",
+      "dokon": "Willmoda",
+      "title": "Bolalar pijamalari, qorong'ida porlaydi, Willmoda, skelet",
+      "kirish": {
+        "brand": "willmoda",
+        "title": "Bolalar pijamalari, qorong'ida porlaydi, Willmoda, skelet",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 1,
+        "brandAgeDays": 1228,
+        "soldUnits30d": 439,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Willmoda brend doʻkoni; brendni 1 doʻkon sotadi, 1228 kundan beri bor, sotuv medianadan 25.8x yuqori"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1549621,
+      "expect": null,
+      "dokon": "WORKPRO",
+      "title": "WORKPRO qurilish pichogi, neylon tutqich, zanglamaydigan pichoq, ip kesish, tugmali qul",
+      "kirish": {
+        "brand": "workpro",
+        "title": "WORKPRO qurilish pichogi, neylon tutqich, zanglamaydigan pichoq, ip kesish, tugmali qul",
         "sellersCount": null,
         "sellersStableDays": null,
         "brandSellersCount": 2,
-        "brandReviews": 0,
-        "soldUnits30d": null,
-        "categoryMedianUnits30d": 24
+        "brandAgeDays": 460,
+        "soldUnits30d": 34,
+        "categoryMedianUnits30d": 17
       },
-      "note": "sotuv oʻlchanmagan — filtr javob bermasligi kerak"
+      "note": "WORKPRO brend doʻkoni, lekin: sotuv past (34 < 51)"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1807672,
+      "expect": null,
+      "dokon": "Ziaja",
+      "title": "Tana uchun namlantiruvchi va oziqlantiruvchi losyon, купуasu ekstrakti bilan - 300 ml",
+      "kirish": {
+        "brand": "ziaja",
+        "title": "Tana uchun namlantiruvchi va oziqlantiruvchi losyon, купуasu ekstrakti bilan - 300 ml",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 480,
+        "soldUnits30d": 168,
+        "categoryMedianUnits30d": 17
+      },
+      "note": "Ziaja brend doʻkoni, lekin: brend nomi tovar nomida yoʻq"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 152861,
+      "expect": "baholanmadi",
+      "dokon": "Магазин женского белья Walhala",
+      "title": "Ichki kiyim to'plami Walhala, ayol, Qora",
+      "kirish": {
+        "brand": "walhala",
+        "title": "Ichki kiyim to'plami Walhala, ayol, Qora",
+        "sellersCount": null,
+        "sellersStableDays": null,
+        "brandSellersCount": 2,
+        "brandAgeDays": 1153,
+        "soldUnits30d": null,
+        "categoryMedianUnits30d": 26
+      },
+      "note": "Магазин женского белья Walhala: sotuv oʻlchanmagan — filtr javob bermasligi kerak"
     }
   ]
 }

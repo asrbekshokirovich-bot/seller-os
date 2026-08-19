@@ -24,14 +24,15 @@ import type { Baholanmadi, TovarHolati } from './turlar.js';
  * "Brend yangi emas" signali IKKI yoʻl bilan isbotlanadi va bittasi
  * yetarli:
  *   1. oʻz tariximiz — sotuvchilar soni 60 kun oʻzgarmagan;
- *   2. brendning sharhlar yigʻindisi — sharh faqat sotuvdan keyin
- *      paydo boʻladi va yoʻqolmaydi, yaʼni orqaga qarab toʻplangan
- *      tarix. Uzum uni birinchi kuniyoq beradi.
+ *   2. brend yoshi — Uzum mahsulot id larini ketma-ket beradi, demak
+ *      id soat vazifasini bajaradi. Brendning eng kichik id li mahsuloti
+ *      uning yoshini koʻrsatadi. Bu birinchi kuniyoq mavjud.
  *
- * Ikkinchisi shunchaki "vaqt yoʻq" degani uchun qoʻshilgani yoʻq. U
- * xatoni ham topdi: VITACCI 224 mahsulot / 3 sharh bilan bizning
- * dastlabki roʻyxatimizda "yopiq brend" deb turgan edi. Aslida u yangi
- * brend — yaʼni aynan yaxshi imkoniyat, tuzoq emas.
+ * Ikkinchisi avval "brendning sharhlar yigʻindisi" edi va u NOTOʻGʻRI
+ * edi: sharh yoshni emas, yosh×sotuvni oʻlchaydi. Mustaqil soat bilan
+ * korrelyatsiyasi atigi −0.29. Rieker — 1102 kunlik brend, 11 sharh:
+ * sharh qoidasi uni "yangi" degan edi. Tez oʻsayotgan yangi brend esa
+ * teskari xato beradi — sharhi tez toʻplanadi va "eski" boʻlib koʻrinadi.
  *
  * NEGA `sellersCount` SoʻRALMAYDI. Avval "shu tovarni nechta doʻkon
  * sotadi" alohida signal edi. U ortiqcha: filtr brend nomi tovar nomida
@@ -54,8 +55,8 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
   if (t.categoryMedianUnits30d === null) missing.push('categoryMedianUnits30d');
   // "Yangi emas" ni ikki yoʻldan biri isbotlaydi. Ikkalasi ham yoʻq
   // boʻlsagina baholay olmaymiz.
-  if (t.sellersStableDays === null && t.brandReviews === null) {
-    missing.push('sellersStableDays yoki brandReviews');
+  if (t.sellersStableDays === null && t.brandAgeDays === null) {
+    missing.push('sellersStableDays yoki brandAgeDays');
   }
   if (missing.length) return { kind: 'baholanmadi', missing };
 
@@ -66,8 +67,8 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
 
   // Brend yangi emas — ikki dalildan biri yetarli.
   const tarixdan = t.sellersStableDays !== null && t.sellersStableDays >= c.stableDays;
-  const sharhdan = t.brandReviews !== null && t.brandReviews >= c.minBrandReviews;
-  const yangiEmas = tarixdan || sharhdan;
+  const yoshdan = t.brandAgeDays !== null && t.brandAgeDays >= c.minBrandAgeDays;
+  const yangiEmas = tarixdan || yoshdan;
   // Brendning butun assortimenti bir-ikki doʻkonda toʻplangan.
   const brendYopiq = brendDokonlari <= c.maxBrandSellers;
   const brendNomda = brendTovarNomida(t.brand, t.title);
@@ -88,7 +89,7 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
     evidence: {
       yangi_emasligi: tarixdan
         ? `sotuvchilar soni ${t.sellersStableDays} kun oʻzgarmagan`
-        : `brendda ${t.brandReviews} ta sharh toʻplangan`,
+        : `brend ${t.brandAgeDays} kundan beri yolgʻiz`,
       brendni_sotuvchi_dokonlar: brendDokonlari,
       brend: t.brand ?? '—',
       sotuv_30k: sold,

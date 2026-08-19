@@ -13,15 +13,20 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 *(bo'sh)*
 
-## `minBrandReviews` chegarasini qayta tekshirish
+## Id → sana kalibrovkasini yangilash
 
-`THRESHOLDS.closedBrand.minBrandReviews = 200` — vaqtincha. U 2026-08-19
-da atigi 14 ta brend do'koni bo'yicha o'lchandi va aniq ajralish shu
-yerda ko'rindi (Amadora 199 · ROSSVIK 70). 14 nuqta oz.
+Kalibrovka 526 mahsulotning eng eski sharh sanasidan chiqarilgan
+(korrelyatsiya 0.81). Ikki kamchiligi bor:
 
-Qayta tekshirish sharti: perepis 100% to'lganda va pilotdan haqiqiy
-natija kelganda. Agar 60 kunlik tarix yig'ilsa, `stableDays` bilan
-solishtirish mumkin bo'ladi — ikkalasi bir xil javob berishi kerak.
+1. Eng eski sharh ≈ mahsulot paydo bo'lgan vaqt, lekin ANIQ emas —
+   sotilmagan mahsulotda sharh umuman yo'q, ya'ni tanlov sotiladigan
+   mahsulotlar tomon qiyshiq.
+2. 3 000 000 dan yuqori id lar uchun nuqta yetarli emas; u yerdagi
+   brendlar `baholanmadi` oladi.
+
+Yaxshilash: frontier zondini KUNLIK yozib borish. 30 kundan keyin
+id/kun tezligi to'g'ridan-to'g'ri o'lchanadi va sharhga bog'liq
+bo'lmaydi.
 
 ## Tuzoq roʻyxati faqat 1-tuzoqni qamraydi
 
