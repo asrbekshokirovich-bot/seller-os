@@ -10,6 +10,7 @@ const YOPIQ: TovarHolati = {
   brand: 'Nike',
   sellersCount: 1,
   sellersStableDays: 90,
+  brandReviews: 900,
   brandSellersCount: 1,
   shopOfficial: null,
   soldUnits30d: 600,
@@ -26,14 +27,33 @@ describe('1-tuzoq: yopiq brend', () => {
     const f = yopiqBrend(YOPIQ) as { evidence: Record<string, unknown> };
     // Sababsiz bayroq ishonchni yo'qotadi.
     expect(f.evidence.sotuvchilar).toBe(1);
-    expect(f.evidence.barqaror_kun).toBe(90);
+    expect(f.evidence.yangi_emasligi).toBe('sotuvchilar soni 90 kun oʻzgarmagan');
     expect(f.evidence.sotuv_30k).toBe(600);
   });
 
   it('YANGI tovar yopiq brend deb belgilanmaydi', () => {
-    // Bitta sotuvchi, katta sotuv — lekin hali 5 kunlik. Bu aynan
-    // yaxshi imkoniyat bo'lishi mumkin, tuzoq emas.
-    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: 5 })).toBeNull();
+    // Bitta sotuvchi, katta sotuv — lekin hali 5 kunlik va sharh ham
+    // yo'q. Bu aynan yaxshi imkoniyat bo'lishi mumkin, tuzoq emas.
+    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: 5, brandReviews: 3 })).toBeNull();
+  });
+
+  it('tarix yo\'q bo\'lsa sharh yoshni isbotlaydi', () => {
+    // Bazaga endi to'lgan. 60 kunlik tarix yo'q, lekin brendda 900
+    // sharh bor — demak u ancha vaqtdan beri yolg'iz sotilyapti.
+    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: null }))
+      .toMatchObject({ kind: 'closed_brand' });
+  });
+
+  it('VITACCI xatosi qaytmaydi', () => {
+    // Haqiqiy holat (2026-08-19): 224 mahsulot, 1 do'kon, lekin jami
+    // 3 sharh. Dastlabki ro'yxatimizda "yopiq brend" deb turgan edi —
+    // aslida YANGI brend, ya'ni aynan yaxshi imkoniyat.
+    expect(yopiqBrend({ ...YOPIQ, sellersStableDays: null, brandReviews: 3 })).toBeNull();
+  });
+
+  it('ikkala yosh dalili ham yo\'q bo\'lsa BAHOLANMADI', () => {
+    const r = yopiqBrend({ ...YOPIQ, sellersStableDays: null, brandReviews: null });
+    expect(r).toMatchObject({ kind: 'baholanmadi' });
   });
 
   it('brendni ko\'p do\'kon sotsa — tuzoq emas', () => {

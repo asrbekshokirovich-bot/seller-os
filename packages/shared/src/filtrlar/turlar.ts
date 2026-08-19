@@ -12,8 +12,28 @@ export interface TovarHolati {
   brand: string | null;
   /** Shu tovarni nechta doʻkon sotyapti. */
   sellersCount: number | null;
-  /** Sotuvchilar soni shuncha kundan beri oʻzgarmagan. */
+  /**
+   * Sotuvchilar soni shuncha kundan beri oʻzgarmagan.
+   *
+   * Kuchli dalil, lekin qimmat: 60 kunlik tarix kerak. Yangi bazada u
+   * yoʻq va uzoq kutib boʻlmaydi, shuning uchun `brandReviews` bilan
+   * almashtirsa boʻladi — pastdagi izohga qarang.
+   */
   sellersStableDays: number | null;
+  /**
+   * Brendning BARCHA mahsulotlaridagi sharhlar yigʻindisi.
+   *
+   * Sharh — vaqtning bepul oʻlchovi. U faqat sotuvdan keyin paydo
+   * boʻladi va yoʻqolmaydi, yaʼni orqaga qarab toʻplangan tarix.
+   * Uzum uni birinchi kuniyoq beradi — 60 kun kutish shart emas.
+   *
+   * Nega kerak: "1 sotuvchi + katta sotuv" yangi brendda ham boʻladi,
+   * u esa aynan yaxshi imkoniyat. Oʻlchandi (2026-08-19): VITACCI 224
+   * mahsulot / 3 sharh, Rieker 85 / 11 — bular yangi brendlar, tuzoq
+   * emas. Willmoda 1 729 sharh, ARTERY 1 333, Lamart 657 — bular esa
+   * uzoq vaqtdan beri yolgʻiz.
+   */
+  brandReviews: number | null;
   /**
    * Shu BRENDning tovarlarini umuman nechta doʻkon sotadi.
    *

@@ -17,6 +17,19 @@ export const THRESHOLDS = {
     maxSellers: 2,
     /** Sotuvchilar soni shu qadar kun o'zgarmagan bo'lsa — "hech kim kirmagan". */
     stableDays: 60,
+    /**
+     * `stableDays` o'rniga ishlatiladigan yosh o'lchovi: brendning
+     * barcha mahsulotlaridagi sharhlar yig'indisi.
+     *
+     * VAQTINCHA CHEGARA. 2026-08-19 da 14 ta brend do'koni bo'yicha
+     * o'lchandi. Aniq ajralish shu yerda: bir tomonda Amadora 199,
+     * MeLiSSki 299, KREDA 345 — ikkinchi tomonda ROSSVIK 70,
+     * AYQIZ 51, KikkaBoo 49, Rieker 11, VITACCI 3.
+     *
+     * 14 ta nuqta oz. Pilot ma'lumoti kelganda qayta tekshirilishi
+     * SHART — BACKLOG.md ga yozilgan.
+     */
+    minBrandReviews: 200,
     /** Kategoriya o'rtachasidan shuncha barobar yuqori sotuv — "katta sotuv". */
     highSalesMultiple: 3,
     /**

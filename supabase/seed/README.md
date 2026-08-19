@@ -42,5 +42,6 @@ Har element — ma'lum tuzoq tovar va uni qaysi filtr ushlashi kerakligi:
 
 CI da: **ro'yxatning 100% i ushlanishi shart.** Ushlanmasa merge bo'lmaydi.
 
-Hozir ro'yxat bo'sh. U to'lguncha tuzoq testi ishlamaydi — bu B1
-darvozasining bir qismi.
+Ro'yxat `tuzoq_nomzodlari.sql` bilan o'lchovdan chiqariladi, qo'lda
+yozilmaydi. Nomzodni topadigan belgi filtrning signallaridan bo'lmasligi
+shart — batafsil TUZOQLAR.md, "Sifat nazorati".

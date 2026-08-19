@@ -161,13 +161,32 @@ sinov partiyasi taklif qilinadi.
 
 ## Sifat nazorati
 
-Nazoratchi 20+ "tuzoq tovar" ro'yxatini tuzadi (yopiq brendlar,
-mavsumiylar, nakrutkalar). CI da avtomatik test:
+Ro'yxat `apps/backend/test/fixtures/traps.json` da.
 
-**Ro'yxatning 100% i filtrlar tomonidan ushlanishi SHART.**
-Ushlanmasa — merge bo'lmaydi.
+**Ro'yxatning 100% i to'g'ri baholanishi SHART.** Noto'g'ri bo'lsa —
+merge bo'lmaydi.
 
-Ro'yxat `apps/backend/test/fixtures/traps.json` da. Pilot davomida
-boyitiladi: hodisa → shu faylga → filtr qoidasi → CI testi.
+### Ro'yxat qanday tuziladi
 
-Ro'yxat doim o'sadi. Bu jarayon — mahsulotning o'zi.
+Avval "nazoratchi qo'lda yozib beradi" deb rejalashtirilgandi. Ikki
+sababdan voz kechildi: (1) ro'yxat yozilguncha ish to'xtaydi;
+(2) ro'yxat bir kishining xotirasi bilan cheklanadi.
+
+Endi u **o'lchovdan** chiqadi: `supabase/seed/tuzoq_nomzodlari.sql`.
+
+**Aylanmalikdan qochish — asosiy shart.** Nomzodni topadigan belgi
+filtrning o'z signallaridan BO'LMASLIGI kerak. Aks holda filtr o'zi
+topgan narsada o'zini sinaydi va test doim yashil bo'ladi.
+
+Ishlatilgan belgi: **do'kon NOMI brend nomi bilan bir xil.** "Lamart"
+degan do'kon "Lamart" mahsulotini sotsa — bu brendning o'z do'koni.
+Filtr bunga qaramaydi.
+
+**Salbiy misollar ham shart.** Ro'yxat faqat tuzoqlardan iborat bo'lsa,
+hammaga "tuzoq" deydigan filtr ham 100% oladi. Shuning uchun `expect:
+null` qatorlari — filtr bayroq QO'YMASLIGI kerak bo'lgan holatlar.
+
+Hozirgi holat: **21 ta tuzoq + 33 ta tuzoq emas** (2026-08-19).
+
+Pilot davomida boyitiladi: hodisa → shu faylga → filtr qoidasi → CI
+testi. Ro'yxat doim o'sadi. Bu jarayon — mahsulotning o'zi.
