@@ -14,7 +14,24 @@ export interface TovarHolati {
   sellersCount: number | null;
   /** Sotuvchilar soni shuncha kundan beri oʻzgarmagan. */
   sellersStableDays: number | null;
-  /** Sotuvchi rasmiy brend doʻkonimi. */
+  /**
+   * Shu BRENDning tovarlarini umuman nechta doʻkon sotadi.
+   *
+   * `sellersCount` dan farqi: u bitta tovarni, bu esa butun brendni
+   * oʻlchaydi. Yopiq brendni aynan shu koʻrsatadi — Lamart 170 tovar,
+   * hammasi bitta doʻkonda.
+   */
+  brandSellersCount: number | null;
+  /**
+   * Sotuvchi rasmiy brend doʻkonimi.
+   *
+   * OGOHLANTIRISH: Uzum bu maydonni toʻldirmaydi. 2026-08-19 da jonli
+   * tekshirilgan — Artel Brand Shop, ARTEL_OFFICIAL, Яшкино (207 847
+   * sharh), hammasi `false` qaytardi. Maydon API'da bor, lekin boʻsh.
+   *
+   * Shuning uchun hech bir filtr bunga SUYANMAYDI. Saqlab turibmiz:
+   * Uzum toʻldira boshlasa, tayyor boʻlamiz. Toʻlmaguncha `null`.
+   */
   shopOfficial: boolean | null;
   /** Oxirgi 30 kunlik taxminiy sotuv (dona). */
   soldUnits30d: number | null;

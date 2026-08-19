@@ -10,7 +10,8 @@ const YOPIQ: TovarHolati = {
   brand: 'Nike',
   sellersCount: 1,
   sellersStableDays: 90,
-  shopOfficial: true,
+  brandSellersCount: 1,
+  shopOfficial: null,
   soldUnits30d: 600,
   categoryMedianUnits30d: 100,
 };
@@ -35,8 +36,23 @@ describe('1-tuzoq: yopiq brend', () => {
     expect(yopiqBrend({ ...YOPIQ, sellersStableDays: 5 })).toBeNull();
   });
 
-  it('rasmiy do\'kon bo\'lmasa — tuzoq emas', () => {
-    expect(yopiqBrend({ ...YOPIQ, shopOfficial: false })).toBeNull();
+  it('brendni ko\'p do\'kon sotsa — tuzoq emas', () => {
+    // Ochiq brend: assortiment 30 ta do'konda. Bitta tovarda sotuvchi
+    // kam bo'lishi mumkin, lekin eshik yopiq emas.
+    expect(yopiqBrend({ ...YOPIQ, brandSellersCount: 30 })).toBeNull();
+  });
+
+  it('Uzum bermaydigan `official` filtrni to\'xtatmaydi', () => {
+    // Bu maydon amalda doim null. Agar u majburiy bo'lsa, filtr hech
+    // qachon ishlamasdi va buni hech kim sezmasdi.
+    expect(yopiqBrend({ ...YOPIQ, shopOfficial: null }))
+      .toMatchObject({ kind: 'closed_brand' });
+  });
+
+  it('brend do\'konlari o\'lchanmagan bo\'lsa BAHOLANMADI', () => {
+    const r = yopiqBrend({ ...YOPIQ, brandSellersCount: null });
+    expect(r).toMatchObject({ kind: 'baholanmadi' });
+    expect((r as { missing: string[] }).missing).toContain('brandSellersCount');
   });
 
   it('sotuv o\'rtachadan past bo\'lsa — tuzoq emas', () => {

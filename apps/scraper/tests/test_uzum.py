@@ -30,11 +30,30 @@ def test_toliq_javob_oqiladi():
     assert k.buyers_per_week == 313
 
 
-def test_yopiq_brend_uchun_majburiy_maydonlar():
-    """1-tuzoq `official` va do'kon nomisiz ishlamaydi."""
+def test_yopiq_brend_uchun_dokon_nomi_kerak():
+    """1-tuzoq do'kon nomisiz ishlamaydi."""
     k = parse(JAVOB)
-    assert k.shop_official is True
     assert k.shop_name == "Sunlight Group"
+    assert k.shop_official is True
+
+
+def test_official_yoq_bolsa_none_boladi_false_emas():
+    """"Bilmadim" ni "yo'q" ga aylantirmaymiz.
+
+    Uzum amalda bu maydonni to'ldirmaydi (2026-08-19 da jonli
+    tekshirilgan). Ilgari `bool(...)` qo'yilgani uchun bo'sh javob
+    `False` bo'lib yozilardi va "rasmiy emas" degan o'lchov bo'lib
+    ko'rinardi. QOIDALAR.md, 4-qoida.
+    """
+    javob = {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D"})}
+    k = parse(javob)
+    assert k.shop_official is None
+
+    javob = {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D", "official": None})}
+    assert parse(javob).shop_official is None
+
+    javob = {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D", "official": False})}
+    assert parse(javob).shop_official is False
 
 
 def test_olik_id_none_qaytaradi_xato_emas():

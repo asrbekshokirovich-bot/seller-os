@@ -48,14 +48,34 @@ Sababsiz bayroq — ishonchni yo'qotadi.
 **Aslida:** brendni faqat egasi sotadi. Bu imkoniyat emas, yopiq eshik.
 
 **Signal (hammasi birga):**
-- sotuvchilar soni ≤ `CLOSED_BRAND_MAX_SELLERS`
+- sotuvchilar soni ≤ `closedBrand.maxSellers`
 - uzoq davr o'zgarmagan (yangi sotuvchi kirmagan)
-- sotuvchi rasmiy brend do'koni
+- brendning BUTUN assortimentini ≤ `closedBrand.maxBrandSellers` do'kon sotadi
 - brend nomi tovar nomida uchraydi
 - yuqori sotuvga qaramay hech kim kirmagan
 
 **Harakat:** `block`. Sabab: "Bu brendni faqat egasi sotadi — bu imkoniyat
 emas, yopiq eshik."
+
+**O'lchangan nomzodlar** (Uzum, 663 779 tovar, 2026-08-19):
+
+| Brend | Tovar | Sotuvchi do'kon |
+|---|---|---|
+| Lamart | 170 | 1 |
+| VITACCI | 138 | 1 |
+| Thule | 130 | 1 |
+| Lirene | 122 | 1 |
+| Jenavi | 81 | 1 |
+
+> **Olib tashlangan signal.** Avval beshinchi signal "sotuvchi rasmiy brend
+> do'koni" edi. Uzum `Shop.official` maydonini to'ldirmaydi — 2026-08-19 da
+> jonli tekshirildi: Artel Brand Shop, ARTEL_OFFICIAL, ARTEL • STORE,
+> Яшкино (207 847 sharh) — hammasi `false` qaytardi. Maydon API'da bor,
+> lekin bo'sh. Bazadagi ustun `not null default false` bo'lgani uchun
+> "yo'q" bilan "bilmadim" farqlanmasdi va filtr jimgina hech qachon
+> ishlamasdi. Migratsiya `0009` ustunni NULL qilib qo'ydi, signal esa
+> brend darajasidagi do'kon soniga almashtirildi — bu o'lchov bazada
+> haqiqatan bor.
 
 ## 2. Mavsumiy tovar — `seasonal`
 

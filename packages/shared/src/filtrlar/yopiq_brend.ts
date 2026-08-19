@@ -11,9 +11,15 @@ import type { Baholanmadi, TovarHolati } from './turlar.js';
  * Beshta signal BIRGA kelishi kerak. Bittasi yoki ikkitasi yetarli emas:
  * yangi, hali kimsa kirmagan tovar ham "bitta sotuvchi, katta sotuv"
  * boʻlishi mumkin — u esa aynan yaxshi imkoniyat. Farqni **barqarorlik**
- * va **rasmiy doʻkon** koʻrsatadi: agar sotuv katta boʻlsa-yu, ikki oy
- * davomida hech kim kirmagan boʻlsa va sotuvchi brendning oʻz doʻkoni
- * boʻlsa — demak kira olmaganlar, xohlamaganlar emas.
+ * va **brend darajasidagi yopiqlik** koʻrsatadi: agar sotuv katta
+ * boʻlsa-yu, ikki oy davomida hech kim kirmagan boʻlsa va brendning
+ * BUTUN assortimenti bitta doʻkonda boʻlsa — demak kira olmaganlar,
+ * xohlamaganlar emas.
+ *
+ * Avval beshinchi signal "sotuvchi rasmiy brend doʻkonimi" edi. U olib
+ * tashlandi: Uzum `official` maydonini toʻldirmaydi (turlar.ts ga qarang),
+ * shuning uchun u signal hech qachon yonmasdi va butun filtrni oʻlik
+ * qilib qoʻyardi. Oʻrniga bazada haqiqatan bor boʻlgan oʻlchov qoʻyildi.
  *
  * `block` beriladi: bunday tovar tavsiyaga umuman chiqmasligi kerak.
  */
@@ -23,7 +29,7 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
   const missing: string[] = [];
   if (t.sellersCount === null) missing.push('sellersCount');
   if (t.sellersStableDays === null) missing.push('sellersStableDays');
-  if (t.shopOfficial === null) missing.push('shopOfficial');
+  if (t.brandSellersCount === null) missing.push('brandSellersCount');
   if (t.soldUnits30d === null) missing.push('soldUnits30d');
   if (t.categoryMedianUnits30d === null) missing.push('categoryMedianUnits30d');
   if (missing.length) return { kind: 'baholanmadi', missing };
@@ -33,15 +39,18 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
   const sold = t.soldUnits30d as number;
   const median = t.categoryMedianUnits30d as number;
 
+  const brendDokonlari = t.brandSellersCount as number;
+
   const kamSotuvchi = sellers <= c.maxSellers;
   const barqaror = stable >= c.stableDays;
-  const rasmiy = t.shopOfficial === true;
+  // Brendning butun assortimenti bir-ikki doʻkonda toʻplangan.
+  const brendYopiq = brendDokonlari <= c.maxBrandSellers;
   const brendNomda = brendTovarNomida(t.brand, t.title);
   // Mediana nol boʻlsa boʻlish mumkin emas; bunday turkumda "katta sotuv"
   // degan tushuncha ham yoʻq.
   const kattaSotuv = median > 0 && sold >= median * c.highSalesMultiple;
 
-  const hammasi = kamSotuvchi && barqaror && rasmiy && brendNomda && kattaSotuv;
+  const hammasi = kamSotuvchi && barqaror && brendYopiq && brendNomda && kattaSotuv;
   if (!hammasi) return null;
 
   return {
@@ -49,11 +58,12 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
     severity: 'block',
     reason:
       'Bu brendni faqat egasi sotadi — bu imkoniyat emas, yopiq eshik. ' +
-      `Sotuv katta, lekin ${stable} kundan beri hech kim kira olmagan.`,
+      `Sotuv katta, lekin ${stable} kundan beri hech kim kira olmagan. ` +
+      `Brendning butun assortimentini ${brendDokonlari} ta doʻkon sotadi.`,
     evidence: {
       sotuvchilar: sellers,
       barqaror_kun: stable,
-      rasmiy_dokon: String(rasmiy),
+      brendni_sotuvchi_dokonlar: brendDokonlari,
       brend: t.brand ?? '—',
       sotuv_30k: sold,
       turkum_medianasi: median,

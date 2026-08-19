@@ -19,6 +19,15 @@ export const THRESHOLDS = {
     stableDays: 60,
     /** Kategoriya o'rtachasidan shuncha barobar yuqori sotuv — "katta sotuv". */
     highSalesMultiple: 3,
+    /**
+     * Butun brendni shu qadar yoki undan kam do'kon sotsa — brend yopiq.
+     *
+     * Bu `maxSellers` dan boshqa narsa: u bitta tovarni, bu butun
+     * brendni o'lchaydi. O'lchandi (Uzum, 663 779 tovar): Lamart 170
+     * tovar / 1 do'kon, VITACCI 138 / 1, Thule 130 / 1. Ochiq brendlarda
+     * bu son o'nlab bo'ladi.
+     */
+    maxBrandSellers: 2,
   },
 
   /** 2-tuzoq: mavsumiy. */

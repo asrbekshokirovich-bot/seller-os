@@ -37,8 +37,13 @@ Kategoriya daraxti. `(platform, external_id)` kalit, `parent_id` bilan
 o'ziga havola. `name_uz`, `name_ru`.
 
 ### `shop`
-Sotuvchi. `(platform, external_id)`, `name`, `official` (rasmiy brend
-do'konimi — **1-tuzoq uchun majburiy**), `rating`.
+Sotuvchi. `(platform, external_id)`, `name`, `rating`, `official`.
+
+> `official` — **ishonmang.** Uzum bu maydonni to'ldirmaydi (2026-08-19 da
+> jonli tekshirilgan: Artel Brand Shop, ARTEL_OFFICIAL, Яшкино — hammasi
+> `false`). Ustun NULL bo'la oladi (migratsiya `0009`) va hech bir filtr
+> unga suyanmaydi. Saqlanishining yagona sababi — Uzum to'ldira boshlasa
+> tayyor bo'lish.
 
 ### `product`
 Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,

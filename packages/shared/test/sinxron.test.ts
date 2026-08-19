@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { TRAP_KINDS, TRAP_LABEL } from '../src/traps.js';
@@ -58,6 +58,18 @@ describe('hujjat ↔ kod ↔ baza', () => {
       expect(row, `FORMULA.md da "${part}" qatori yo'q`).toBeDefined();
       const weight = row!.split('|').map((c) => c.trim()).at(-2);
       expect(weight, `"${part}" vazni mos emas`).toBe(String(WEIGHTS[part]));
+    }
+  });
+
+  it('hech bir filtr `shopOfficial` ga suyanmaydi', () => {
+    // Uzum bu maydonni to'ldirmaydi (TUZOQLAR.md, 1-tuzoq izohi).
+    // Unga suyangan filtr jimgina hech qachon ishlamaydi — buni CI
+    // ushlab tursin, aks holda keyingi safar yana sezilmay o'tadi.
+    const dir = join(ROOT, 'packages/shared/src/filtrlar');
+    for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts') && n !== 'turlar.ts')) {
+      const src = readFileSync(join(dir, f), 'utf8');
+      const kod = src.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+      expect(kod, `${f} hali ham shopOfficial ni o'qiyapti`).not.toContain('shopOfficial');
     }
   });
 

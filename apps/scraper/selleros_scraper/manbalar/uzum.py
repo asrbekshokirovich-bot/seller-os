@@ -74,7 +74,7 @@ class Kuzatuv:
     title: str
     shop_external_id: int | None
     shop_name: str | None
-    shop_official: bool
+    shop_official: bool | None
     shop_orders: int | None
     category_external_id: int | None
     category_name: str | None
@@ -103,8 +103,11 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         title=product.get("title") or f"Mahsulot {product['id']}",
         shop_external_id=_int(shop.get("id")),
         shop_name=shop.get("title"),
-        # 1-tuzoq (yopiq brend) uchun MAJBURIY maydon.
-        shop_official=bool(shop.get("official")),
+        # OGOHLANTIRISH: Uzum bu maydonni to'ldirmaydi (2026-08-19 da
+        # jonli tekshirilgan). `bool(...)` qo'yilsa `None` → `False`
+        # bo'lib ketardi, ya'ni "bilmadim" javobi "yo'q" ga aylanardi.
+        # Hech bir filtr bunga suyanmaydi; xom holida uzatamiz.
+        shop_official=_bool(shop.get("official")),
         shop_orders=_int(shop.get("ordersQuantity")),
         category_external_id=_int(category.get("id")),
         category_name=category.get("title"),
@@ -123,6 +126,17 @@ def _int(value: Any) -> int | None:
         return round(float(value))
     except (TypeError, ValueError):
         return None
+
+
+def _bool(value: Any) -> bool | None:
+    """`None` ni `False` ga aylantirmaydi.
+
+    "Yo'q" va "bilmadim" — boshqa javob. Aralashtirsak, o'lchanmagan
+    maydon o'lchangan bo'lib ko'rinadi (QOIDALAR.md, 4-qoida).
+    """
+    if isinstance(value, bool):
+        return value
+    return None
 
 
 def _float(value: Any) -> float | None:
