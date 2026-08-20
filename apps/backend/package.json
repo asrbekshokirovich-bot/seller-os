@@ -9,6 +9,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "dependencies": { "fastify": "^5.0.0" },
-  "devDependencies": { "@types/node": "^22.0.0" }
+  "dependencies": {
+    "fastify": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
 }

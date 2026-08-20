@@ -7,11 +7,15 @@ yumshatmasdan yozadi. Har daʼvo buyruq bilan tekshirilgan.
 ular hech qayerdan chaqirilmaydi va SellerOS oʻz bazasiga bironta ham
 qator yozmagan.
 
+> **YANGILANDI 2026-08-20 (kechroq).** Quyidagi 1.1–1.3, 4 va 5-bandlar
+> shu tekshiruvdan keyin YOPILDI. Har biri "yopildi" belgisi bilan
+> koʻrsatilgan. Ochiq qolgan bandlar: 6, 7, 8, 9, 10.
+
 ---
 
 ## 1. Eng jiddiy uchta kamchilik
 
-### 1.1. `selleros` sxemasi BOʻSH
+### 1.1. `selleros` sxemasi BOʻSH  ✅ YOPILDI
 
 ```
 selleros.shop                 0
@@ -29,7 +33,16 @@ Bugungi barcha oʻlchovlar `zumsavdo` sxemasidan olindi. U boshqa
 loyihaning bazasi. Yaʼni "maʼlumot yigʻiladi" degan daʼvo SellerOS uchun
 **isbotlanmagan**.
 
-### 1.2. Filtrlarni hech kim chaqirmaydi
+**Yopilishi:** 12 ta haqiqiy Uzum mahsuloti Uzum API sidan olinib,
+`so_ingest_batch` orqali yozildi. Natija: 12 turkum, 12 doʻkon,
+12 mahsulot, 12 kunlik qator, 12 oʻlchov. Yozish yoʻli uchidan-uchiga
+isbotlandi.
+
+**Qolgan qism:** Python skreyperning oʻzi hali toʻliq yurish qilmagan —
+buning uchun kalit kerak boʻlgan mashina kerak (Routine yoki
+foydalanuvchi kompyuteri).
+
+### 1.2. Filtrlarni hech kim chaqirmaydi  ✅ YOPILDI
 
 ```
 grep yopiqBrend|monopoliya(  →  faqat testlarda
@@ -45,7 +58,20 @@ baza → TovarHolati → filtr → bayroq → tavsiya
 Hozir bor narsa: `qoʻlda yozilgan JSON → filtr → test`. Yaʼni filtrlar
 kutubxona sifatida toʻgʻri, lekin mahsulotning bir qismi emas.
 
-### 1.3. Fikstura bazadan avtomatik yasалmaydi
+**Yopilishi:** `so_tovar_holati` va `so_turkum_holati` funksiyalari
+bazadan filtr kutgan shaklni yigʻadi, `apps/backend/src/tahlil.ts` ularni
+filtrdan oʻtkazadi, `/tuzoqlar` uchi natijani beradi. Test
+`apps/backend/test/tahlil.test.ts` — fikstura qoʻlda yozilmagan, u
+bazadagi funksiya qaytargan haqiqiy javob.
+
+**Yoʻl-yoʻlakay TOʻRTINCHI xato topildi:** `selleros.product.brand`
+hech qachon toʻldirilmasdi — 12 tadan 12 tasi NULL. Yopiq brend filtri
+brend nomini talab qiladi, demak u haqiqiy maʼlumotda hech qachon
+ishlay olmasdi. Bu `shopOfficial`, `sellersCount` va yupqa namunadan
+keyin shu naqshning toʻrtinchi holati. Endi brend doʻkon nomidan
+chiqariladi (`selleros.brend_topish`) — 12 tadan 10 tasida topildi.
+
+### 1.3. Fikstura bazadan avtomatik yasalmaydi  ✅ YOPILDI
 
 `supabase/seed/*_json_yasash.py` skriptlari **bazaga ulanmaydi**.
 Ichida men SQL natijasini qoʻlda koʻchirib qoʻygan massiv turibdi.
@@ -60,8 +86,8 @@ tugagach roʻyxatni yangilash — yana qoʻlda ish.
 
 | # | Nima | Dalil |
 |---|---|---|
-| 4 | `npm run lint` **hech narsa qilmaydi** | bironta workspace da `lint` skripti yoʻq; CI dagi "lint" darvozasi boʻsh |
-| 5 | **Eval yoʻq** | QOIDALAR §5 merge uchun "eval ≥90%" talab qiladi; bironta eval testi yozilmagan |
+| 4 | ~~`npm run lint` hech narsa qilmaydi~~ **✅ YOPILDI** | eslint qoʻyildi, 4 qoida; ataylab buzib sinaldi — 3 ta xato ushladi |
+| 5 | ~~Eval yoʻq~~ **✅ YOPILDI** | `apps/backend/test/eval.test.ts` — aniqlik ≥90%, roʻyxat ≥20 qator, ikkala sinf shart |
 | 6 | Sifat paneli **oʻlchamaydi** | backend hech qayerda ishlamaydi, KPI jonli raqamsiz |
 | 7 | **B0 darvozasi ochiq** | "staging'da avtomatik deploy" bajarilmagan (hosting hisobi yoʻq) |
 | 8 | Perepis **88%** | 17 boʻlakdan 15 tasi; "brendni 1 doʻkon sotadi" = "koʻrilgan 88% ichida" |

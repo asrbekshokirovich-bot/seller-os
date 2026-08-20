@@ -1,0 +1,19 @@
+{
+  "izoh": [
+    "Bazadan `so_tovar_holati` va `so_turkum_holati` qaytargan HAQIQIY javob.",
+    "Olingan sana: 2026-08-20, selleros sxemasi, 12 ta haqiqiy Uzum mahsuloti.",
+    "Bu qoʻlda yozilgan fikstura EMAS — quvur chiqargan javob."
+  ],
+  "tovar": [
+    {"productId":2064,"title":"Sabzavot va mevalarni tozalash uchun pichoq Lamart LT2095","brand":"lamart","sellersCount":null,"sellersStableDays":null,"brandSellersCount":1,"brandAgeDays":1231,"soldUnits30d":4,"categoryMedianUnits30d":4},
+    {"productId":5700,"title":"Bolalar aravachasi uchun matras MeLiSSki \"Yulduzlar\"","brand":"melisski","sellersCount":null,"sellersStableDays":null,"brandSellersCount":1,"brandAgeDays":1229,"soldUnits30d":null,"categoryMedianUnits30d":null},
+    {"productId":45253,"title":"Eriydigan qahva MacCoffee Classic, 100 gr","brand":"maccoffee","sellersCount":null,"sellersStableDays":null,"brandSellersCount":1,"brandAgeDays":1209,"soldUnits30d":47,"categoryMedianUnits30d":47},
+    {"productId":529267,"title":"Bolalar uchun pechenye Mazzalak banan bilan, format - mini, 150 g","brand":null,"sellersCount":null,"sellersStableDays":null,"brandSellersCount":null,"brandAgeDays":null,"soldUnits30d":null,"categoryMedianUnits30d":null},
+    {"productId":886388,"title":"Chia urug'i, tabiiy qora \"Horun\" dan, 300 g","brand":"horun","sellersCount":null,"sellersStableDays":null,"brandSellersCount":1,"brandAgeDays":777,"soldUnits30d":305,"categoryMedianUnits30d":305}
+  ],
+  "turkum": [
+    {"categoryId":12392,"name":"Kiyim to'plamlari","top3SharePercent":100,"measuredSellers":1,"totalSellers":1},
+    {"categoryId":14333,"name":"Suv","top3SharePercent":100,"measuredSellers":1,"totalSellers":1},
+    {"categoryId":17499,"name":"Urug'lar","top3SharePercent":100,"measuredSellers":1,"totalSellers":1}
+  ]
+}

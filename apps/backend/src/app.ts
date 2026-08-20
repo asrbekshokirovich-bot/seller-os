@@ -1,5 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Sifat, holat } from './sifat.js';
+import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.js';
+import type { TovarHolati, TurkumHolati } from '@selleros/shared';
 
 /**
  * Backend — yagona kirish nuqtasi.
@@ -35,7 +37,59 @@ export function build(): FastifyInstance {
     return { ...sifat, holat: holat(sifat) };
   });
 
+  /**
+   * Tuzoq tekshiruvi — bazadagi tovar va turkumlarni filtrlardan
+   * oʻtkazadi.
+   *
+   * Bu uch qismning oxirgi halqasi: yigʻuvchi bazaga yozadi, baza
+   * `so_tovar_holati` bilan filtr kutgan shaklga keltiradi, shu yer
+   * filtrni ishlatadi. Ilgari oxirgi halqa YOʻQ edi.
+   */
+  app.get('/tuzoqlar', async () => {
+    const tovarlar = await rpc<TovarHolati[]>('so_tovar_holati', {
+      p_platform: 'uzum',
+      p_limit: 200,
+    });
+    const turkumlar = await rpc<TurkumHolati[]>('so_turkum_holati', {
+      p_platform: 'uzum',
+    });
+
+    if (tovarlar === null || turkumlar === null) {
+      // Baza javob bermasa nol koʻrsatmaymiz: nol "tuzoq yoʻq" degan
+      // daʼvo boʻlardi (QOIDALAR.md, 4-qoida).
+      return { olchov_yoq: true, sabab: 'baza javob bermadi' };
+    }
+
+    return {
+      olchov_yoq: false,
+      tovar: xulosa(tovarlar.map(tovarniTekshir)),
+      turkum: xulosa(turkumlar.map(turkumniTekshir)),
+    };
+  });
+
   return app;
+}
+
+/** Bazadagi funksiyani chaqiradi. `null` — ulanmagan yoki javob yoʻq. */
+async function rpc<T>(nom: string, argumentlar: unknown): Promise<T | null> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  try {
+    const response = await fetch(`${url}/rest/v1/rpc/${nom}`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(argumentlar),
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
 /** Bazadan sifat hisobotini oladi. Ulanmagan boʻlsa boʻsh holat. */
