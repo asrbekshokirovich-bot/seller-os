@@ -39,3 +39,16 @@ turkumdagi tovar bahosi baribir yupqa maʼlumotga tayanadi.
 
 Kerak: 2-qatlamni turkum boʻyicha muvozanatlash — hozir u eng koʻp
 sotiladigan tovarlar tomon qiyshiq.
+
+## B1 tekshiruvi ochgan bandlar (2026-08-20)
+
+Toʻliq hisobot: `docs/B1-TEKSHIRUV.md`.
+
+1. `selleros` sxemasi boʻsh — skreyper bazaga hech qachon yozmagan.
+2. Filtrlarni ishlab chiqarish kodi chaqirmaydi; `TovarHolati` ni
+   bazadan yigʻadigan qatlam yoʻq.
+3. Fikstura yasash skriptlari bazaga ulanmaydi — maʼlumot qoʻlda
+   koʻchirilgan, perepis tugagach yana qoʻlda yangilash kerak.
+4. `npm run lint` hech narsa qilmaydi — CI darvozasi boʻsh.
+5. Eval testlari yoʻq (QOIDALAR §5 merge uchun talab qiladi).
+6. `minSellerCoveragePercent = 50` atigi 7 ta oʻlchov nuqtasiga tayanadi.
