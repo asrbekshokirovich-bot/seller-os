@@ -20,8 +20,14 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - run: npm run lint
       - run: npm run typecheck
       - run: npx vitest run
+      # Edge Function nusxasi manbadan ajralib ketmasin. Ikki nusxa
+      # boʻlgan joyda ular albatta bir kun farq qiladi va buni hech kim
+      # sezmaydi — aynan shu naqshdan qochamiz.
+      - name: Edge Function nusxasi manbaga mos
+        run: node supabase/functions/tayyorlash.mjs --tekshir
 
   python:
     name: Python — skreyper testlari
