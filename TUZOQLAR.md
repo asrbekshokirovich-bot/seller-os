@@ -131,10 +131,32 @@ sertifikat, ~X so'm va Y hafta". Boshlovchiga soddaroq yo'nalish taklif.
 
 **Nega jozibali:** bozor hajmi juda katta.
 
-**Signal:** top-3 sotuvchi ulushi > `MONOPOLY_TOP3_SHARE`
+**Signal (ikkalasi birga):**
+- top-3 sotuvchi ulushi > `monopoly.top3SharePercent`
+- ulush turkumdagi sotuvchilarning kamida `monopoly.minSellerCoveragePercent`
+  i ustida hisoblangan
 
 **Harakat:** `warn`. "Kirish qiyin: bozorning 4/5 qismi 3 do'konda" +
 kichik o'yinchilar qancha olayotgani ko'rsatiladi.
+
+> **Ulush PEREPISDAN hisoblanadi, namunadan emas.** 2026-08-20 da
+> o'lchandi va eski qoida rad etildi. Avval filtr faqat "kamida 8 ta
+> o'lchangan sotuvchi" ni talab qilardi. Yetarli emas ekan:
+>
+> | Turkum | Namuna | Namuna ulushi | Haqiqiy sotuvchi | Haqiqiy ulush |
+> |---|---|---|---|---|
+> | Qoplamalar | 10 | **76%** | 2 052 | **21%** |
+> | Cho'tkalar | 8 | **79%** | 720 | 43% |
+> | Sumkalar | 9 | 63% | 2 439 | **12%** |
+> | Ziraklar | 8 | 57% | 1 452 | 19% |
+>
+> Yettita turkumning yettitasida ham namuna konsentratsiyani 2–4 barobar
+> oshirib ko'rsatdi — o'lchovga aynan yirik sotuvchilar tushadi.
+> "Qoplamalar" namuna bilan berilsa, filtr yolg'on ogohlantirish berardi.
+>
+> O'lchangan haqiqiy monopoliyalar: "Chop etish uchun qog'oz" (293
+> sotuvchi, top-3 = 97%), "Dush uchun gellar" (82 / 95%), "Filtrli
+> kuvshinlar" (57 / 96%).
 
 ## 7. Og'ir / katta hajmli tovar — `heavy`
 
@@ -187,7 +209,12 @@ Filtr bunga qaramaydi.
 hammaga "tuzoq" deydigan filtr ham 100% oladi. Shuning uchun `expect:
 null` qatorlari — filtr bayroq QO'YMASLIGI kerak bo'lgan holatlar.
 
-Hozirgi holat: **21 ta tuzoq + 33 ta tuzoq emas** (2026-08-19).
+Hozirgi holat (2026-08-20):
+
+| Roʻyxat | Tuzoq | Tuzoq emas | Baholanmadi |
+|---|---|---|---|
+| `traps.json` — 1-tuzoq | 14 | 38 | 2 |
+| `monopoliya.json` — 6-tuzoq | 12 | 10 | 7 |
 
 Pilot davomida boyitiladi: hodisa → shu faylga → filtr qoidasi → CI
 testi. Ro'yxat doim o'sadi. Bu jarayon — mahsulotning o'zi.

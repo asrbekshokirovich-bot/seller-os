@@ -1,0 +1,417 @@
+{
+  "izoh": [
+    "6-tuzoq roʻyxati. Oʻlchov sanasi 2026-08-19/20.",
+    "Konsentratsiya PEREPISDAN hisoblanadi (butun turkum, hamma doʻkon),",
+    "2-qatlam namunasidan EMAS. Sabab: namuna konsentratsiyani 2–4",
+    "barobar oshirib koʻrsatadi — 'yupqa namuna' qatorlariga qarang.",
+    "`expect: 'baholanmadi'` — qamrov past, filtr javob bermasligi kerak."
+  ],
+  "elementlar": [
+    {
+      "platform": "uzum",
+      "category_external_id": 15461,
+      "expect": "monopoly",
+      "turkum": "Praline konfetlari",
+      "kirish": {
+        "categoryId": 15461,
+        "name": "Praline konfetlari",
+        "top3SharePercent": 100,
+        "measuredSellers": 9,
+        "totalSellers": 9
+      },
+      "note": "Praline konfetlari: 9 sotuvchi, top-3 ulushi 100% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14287,
+      "expect": "monopoly",
+      "turkum": "Guruch",
+      "kirish": {
+        "categoryId": 14287,
+        "name": "Guruch",
+        "top3SharePercent": 98,
+        "measuredSellers": 23,
+        "totalSellers": 23
+      },
+      "note": "Guruch: 23 sotuvchi, top-3 ulushi 98% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 15462,
+      "expect": "monopoly",
+      "turkum": "Jele konfetlari",
+      "kirish": {
+        "categoryId": 15462,
+        "name": "Jele konfetlari",
+        "top3SharePercent": 98,
+        "measuredSellers": 17,
+        "totalSellers": 17
+      },
+      "note": "Jele konfetlari: 17 sotuvchi, top-3 ulushi 98% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12868,
+      "expect": "monopoly",
+      "turkum": "Chop etish uchun qogʻoz",
+      "kirish": {
+        "categoryId": 12868,
+        "name": "Chop etish uchun qogʻoz",
+        "top3SharePercent": 97,
+        "measuredSellers": 293,
+        "totalSellers": 293
+      },
+      "note": "Chop etish uchun qogʻoz: 293 sotuvchi, top-3 ulushi 97% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 16263,
+      "expect": "monopoly",
+      "turkum": "SIM-kartalar",
+      "kirish": {
+        "categoryId": 16263,
+        "name": "SIM-kartalar",
+        "top3SharePercent": 97,
+        "measuredSellers": 8,
+        "totalSellers": 8
+      },
+      "note": "SIM-kartalar: 8 sotuvchi, top-3 ulushi 97% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14342,
+      "expect": "monopoly",
+      "turkum": "Krekerlar",
+      "kirish": {
+        "categoryId": 14342,
+        "name": "Krekerlar",
+        "top3SharePercent": 97,
+        "measuredSellers": 27,
+        "totalSellers": 27
+      },
+      "note": "Krekerlar: 27 sotuvchi, top-3 ulushi 97% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 16020,
+      "expect": "monopoly",
+      "turkum": "Sut",
+      "kirish": {
+        "categoryId": 16020,
+        "name": "Sut",
+        "top3SharePercent": 96,
+        "measuredSellers": 13,
+        "totalSellers": 13
+      },
+      "note": "Sut: 13 sotuvchi, top-3 ulushi 96% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12052,
+      "expect": "monopoly",
+      "turkum": "Filtrli kuvshinlar",
+      "kirish": {
+        "categoryId": 12052,
+        "name": "Filtrli kuvshinlar",
+        "top3SharePercent": 96,
+        "measuredSellers": 57,
+        "totalSellers": 57
+      },
+      "note": "Filtrli kuvshinlar: 57 sotuvchi, top-3 ulushi 96% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14621,
+      "expect": "monopoly",
+      "turkum": "Bir martali tagliklar",
+      "kirish": {
+        "categoryId": 14621,
+        "name": "Bir martali tagliklar",
+        "top3SharePercent": 96,
+        "measuredSellers": 28,
+        "totalSellers": 28
+      },
+      "note": "Bir martali tagliklar: 28 sotuvchi, top-3 ulushi 96% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12920,
+      "expect": "monopoly",
+      "turkum": "Dush uchun gellar",
+      "kirish": {
+        "categoryId": 12920,
+        "name": "Dush uchun gellar",
+        "top3SharePercent": 95,
+        "measuredSellers": 82,
+        "totalSellers": 82
+      },
+      "note": "Dush uchun gellar: 82 sotuvchi, top-3 ulushi 95% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14343,
+      "expect": "monopoly",
+      "turkum": "Suxarilar, krekerlar",
+      "kirish": {
+        "categoryId": 14343,
+        "name": "Suxarilar, krekerlar",
+        "top3SharePercent": 95,
+        "measuredSellers": 21,
+        "totalSellers": 21
+      },
+      "note": "Suxarilar, krekerlar: 21 sotuvchi, top-3 ulushi 95% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13730,
+      "expect": "monopoly",
+      "turkum": "Burchaklar va ushlagichlar",
+      "kirish": {
+        "categoryId": 13730,
+        "name": "Burchaklar va ushlagichlar",
+        "top3SharePercent": 95,
+        "measuredSellers": 32,
+        "totalSellers": 32
+      },
+      "note": "Burchaklar va ushlagichlar: 32 sotuvchi, top-3 ulushi 95% — perepisdan, qamrov 100%"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12980,
+      "expect": null,
+      "turkum": "Simsiz quloqchinlar",
+      "kirish": {
+        "categoryId": 12980,
+        "name": "Simsiz quloqchinlar",
+        "top3SharePercent": 16,
+        "measuredSellers": 3566,
+        "totalSellers": 3566
+      },
+      "note": "Simsiz quloqchinlar: 3566 sotuvchi, top-3 atigi 16% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12648,
+      "expect": null,
+      "turkum": "Parfyumlangan suv",
+      "kirish": {
+        "categoryId": 12648,
+        "name": "Parfyumlangan suv",
+        "top3SharePercent": 21,
+        "measuredSellers": 2448,
+        "totalSellers": 2448
+      },
+      "note": "Parfyumlangan suv: 2448 sotuvchi, top-3 atigi 21% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11770,
+      "expect": null,
+      "turkum": "Sumkalar",
+      "kirish": {
+        "categoryId": 11770,
+        "name": "Sumkalar",
+        "top3SharePercent": 12,
+        "measuredSellers": 2439,
+        "totalSellers": 2439
+      },
+      "note": "Sumkalar: 2439 sotuvchi, top-3 atigi 12% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11937,
+      "expect": null,
+      "turkum": "Qoplamalar",
+      "kirish": {
+        "categoryId": 11937,
+        "name": "Qoplamalar",
+        "top3SharePercent": 20,
+        "measuredSellers": 2054,
+        "totalSellers": 2054
+      },
+      "note": "Qoplamalar: 2054 sotuvchi, top-3 atigi 20% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 2610,
+      "expect": null,
+      "turkum": "Soat",
+      "kirish": {
+        "categoryId": 2610,
+        "name": "Soat",
+        "top3SharePercent": 18,
+        "measuredSellers": 1726,
+        "totalSellers": 1726
+      },
+      "note": "Soat: 1726 sotuvchi, top-3 atigi 18% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13069,
+      "expect": null,
+      "turkum": "Kiyim toʻplamlari",
+      "kirish": {
+        "categoryId": 13069,
+        "name": "Kiyim toʻplamlari",
+        "top3SharePercent": 23,
+        "measuredSellers": 1648,
+        "totalSellers": 1648
+      },
+      "note": "Kiyim toʻplamlari: 1648 sotuvchi, top-3 atigi 23% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13983,
+      "expect": null,
+      "turkum": "Krossovkalar",
+      "kirish": {
+        "categoryId": 13983,
+        "name": "Krossovkalar",
+        "top3SharePercent": 15,
+        "measuredSellers": 1525,
+        "totalSellers": 1525
+      },
+      "note": "Krossovkalar: 1525 sotuvchi, top-3 atigi 15% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11574,
+      "expect": null,
+      "turkum": "Bilaguzuklar",
+      "kirish": {
+        "categoryId": 11574,
+        "name": "Bilaguzuklar",
+        "top3SharePercent": 23,
+        "measuredSellers": 1499,
+        "totalSellers": 1499
+      },
+      "note": "Bilaguzuklar: 1499 sotuvchi, top-3 atigi 23% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14251,
+      "expect": null,
+      "turkum": "Kiprik uchun tushlar",
+      "kirish": {
+        "categoryId": 14251,
+        "name": "Kiprik uchun tushlar",
+        "top3SharePercent": 18,
+        "measuredSellers": 1495,
+        "totalSellers": 1495
+      },
+      "note": "Kiprik uchun tushlar: 1495 sotuvchi, top-3 atigi 18% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13061,
+      "expect": null,
+      "turkum": "Ziraklar",
+      "kirish": {
+        "categoryId": 13061,
+        "name": "Ziraklar",
+        "top3SharePercent": 19,
+        "measuredSellers": 1456,
+        "totalSellers": 1456
+      },
+      "note": "Ziraklar: 1456 sotuvchi, top-3 atigi 19% — bozor tarqoq, tuzoq emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12980,
+      "expect": "baholanmadi",
+      "turkum": "Simsiz quloqchinlar (yupqa namuna)",
+      "kirish": {
+        "categoryId": 12980,
+        "name": "Simsiz quloqchinlar",
+        "top3SharePercent": 43,
+        "measuredSellers": 22,
+        "totalSellers": 3565
+      },
+      "note": "Simsiz quloqchinlar: namuna 22/3565 = 1% qamrov. Namuna ulushi 43%, haqiqiy 16%. Filtr javob BERMASLIGI kerak — namuna qiyshiq."
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 15271,
+      "expect": "baholanmadi",
+      "turkum": "Smartfonlar Android (yupqa namuna)",
+      "kirish": {
+        "categoryId": 15271,
+        "name": "Smartfonlar Android",
+        "top3SharePercent": 39,
+        "measuredSellers": 20,
+        "totalSellers": 1059
+      },
+      "note": "Smartfonlar Android: namuna 20/1059 = 2% qamrov. Namuna ulushi 39%, haqiqiy 27%. Filtr javob BERMASLIGI kerak — namuna qiyshiq."
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11937,
+      "expect": "baholanmadi",
+      "turkum": "Qoplamalar (yupqa namuna)",
+      "kirish": {
+        "categoryId": 11937,
+        "name": "Qoplamalar",
+        "top3SharePercent": 76,
+        "measuredSellers": 10,
+        "totalSellers": 2052
+      },
+      "note": "Qoplamalar: namuna 10/2052 = 0% qamrov. Namuna ulushi 76%, haqiqiy 21%. Filtr javob BERMASLIGI kerak — namuna qiyshiq."
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12663,
+      "expect": "baholanmadi",
+      "turkum": "Stikerlar (yupqa namuna)",
+      "kirish": {
+        "categoryId": 12663,
+        "name": "Stikerlar",
+        "top3SharePercent": 60,
+        "measuredSellers": 9,
+        "totalSellers": 341
+      },
+      "note": "Stikerlar: namuna 9/341 = 3% qamrov. Namuna ulushi 60%, haqiqiy 30%. Filtr javob BERMASLIGI kerak — namuna qiyshiq."
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11770,
+      "expect": "baholanmadi",
+      "turkum": "Sumkalar (yupqa namuna)",
+      "kirish": {
+        "categoryId": 11770,
+        "name": "Sumkalar",
+        "top3SharePercent": 63,
+        "measuredSellers": 9,
+        "totalSellers": 2439
+      },
+      "note": "Sumkalar: namuna 9/2439 = 0% qamrov. Namuna ulushi 63%, haqiqiy 12%. Filtr javob BERMASLIGI kerak — namuna qiyshiq."
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13061,
+      "expect": "baholanmadi",
+      "turkum": "Ziraklar (yupqa namuna)",
+      "kirish": {
+        "categoryId": 13061,
+        "name": "Ziraklar",
+        "top3SharePercent": 57,
+        "measuredSellers": 8,
+        "totalSellers": 1452
+      },
+      "note": "Ziraklar: namuna 8/1452 = 1% qamrov. Namuna ulushi 57%, haqiqiy 19%. Filtr javob BERMASLIGI kerak — namuna qiyshiq."
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12394,
+      "expect": "baholanmadi",
+      "turkum": "Choʻtkalar va shpatellar (yupqa namuna)",
+      "kirish": {
+        "categoryId": 12394,
+        "name": "Choʻtkalar va shpatellar",
+        "top3SharePercent": 79,
+        "measuredSellers": 8,
+        "totalSellers": 720
+      },
+      "note": "Choʻtkalar va shpatellar: namuna 8/720 = 1% qamrov. Namuna ulushi 79%, haqiqiy 43%. Filtr javob BERMASLIGI kerak — namuna qiyshiq."
+    }
+  ]
+}

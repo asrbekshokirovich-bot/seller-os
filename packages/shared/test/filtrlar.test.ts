@@ -121,7 +121,22 @@ describe('6-tuzoq: monopoliya', () => {
     name: 'Krossovkalar',
     top3SharePercent: 85,
     measuredSellers: 40,
+    totalSellers: 40,
   };
+
+  it('qamrov past bo\'lsa BAHOLANMADI — yolg\'on ogohlantirish bermaydi', () => {
+    // Haqiqiy holat (2026-08-20): "Qoplamalar" turkumida 10 ta sotuvchi
+    // o'lchangan, ular bo'yicha ulush 76%. Aslida 2 052 sotuvchi bor va
+    // haqiqiy ulush 21%. Namuna konsentratsiyani oshirib ko'rsatadi.
+    const r = monopoliya({ ...TURKUM, top3SharePercent: 76, measuredSellers: 10, totalSellers: 2052 });
+    expect(r).toMatchObject({ kind: 'baholanmadi' });
+  });
+
+  it('turkumdagi sotuvchilar soni noma\'lum bo\'lsa BAHOLANMADI', () => {
+    const r = monopoliya({ ...TURKUM, totalSellers: null });
+    expect(r).toMatchObject({ kind: 'baholanmadi' });
+    expect((r as { missing: string[] }).missing).toContain('totalSellers');
+  });
 
   it('top-3 ulushi chegaradan yuqori bo\'lsa — WARN', () => {
     expect(monopoliya(TURKUM)).toMatchObject({ kind: 'monopoly', severity: 'warn' });
@@ -145,11 +160,17 @@ describe('6-tuzoq: monopoliya', () => {
   });
 
   it('chegara sotuvchi sonida ishlaydi', () => {
-    expect(monopoliya({ ...TURKUM, measuredSellers: MIN_SOTUVCHI })).toMatchObject({
-      kind: 'monopoly',
-    });
-    expect(monopoliya({ ...TURKUM, measuredSellers: MIN_SOTUVCHI - 1 })).toMatchObject({
-      kind: 'baholanmadi',
-    });
+    // `totalSellers` ham birga o'zgaradi: bu yerda sinalayotgani mutlaq
+    // son chegarasi, qamrov emas. Qamrov alohida testda.
+    expect(
+      monopoliya({ ...TURKUM, measuredSellers: MIN_SOTUVCHI, totalSellers: MIN_SOTUVCHI }),
+    ).toMatchObject({ kind: 'monopoly' });
+    expect(
+      monopoliya({
+        ...TURKUM,
+        measuredSellers: MIN_SOTUVCHI - 1,
+        totalSellers: MIN_SOTUVCHI - 1,
+      }),
+    ).toMatchObject({ kind: 'baholanmadi' });
   });
 });

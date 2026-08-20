@@ -65,8 +65,22 @@ export interface TurkumHolati {
   name: string;
   /** Top-3 sotuvchining ulushi, foizda. */
   top3SharePercent: number | null;
-  /** Turkumda nechta sotuvchi oʻlchangan. */
+  /** Ulush shuncha sotuvchi ustida hisoblandi. */
   measuredSellers: number | null;
+  /**
+   * Turkumda AMALDA nechta sotuvchi bor (perepis boʻyicha).
+   *
+   * `measuredSellers` dan farqi hal qiluvchi. Oʻlchandi (2026-08-19):
+   * "Qoplamalar" turkumida 10 ta sotuvchi oʻlchangan edi va ular
+   * boʻyicha top-3 ulushi 76% chiqdi. Aslida turkumda 2 052 ta
+   * sotuvchi bor va haqiqiy ulush 21%. Namuna konsentratsiyani
+   * 2–4 barobar oshirib koʻrsatadi — chunki oʻlchovga aynan yirik
+   * sotuvchilar tushadi.
+   *
+   * Shu sababli filtr endi qamrovni ham talab qiladi: namuna
+   * turkumning kichik qismi boʻlsa, javob berilmaydi.
+   */
+  totalSellers: number | null;
 }
 
 /**

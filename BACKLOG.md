@@ -28,11 +28,14 @@ Yaxshilash: frontier zondini KUNLIK yozib borish. 30 kundan keyin
 id/kun tezligi to'g'ridan-to'g'ri o'lchanadi va sharhga bog'liq
 bo'lmaydi.
 
-## Tuzoq roʻyxati faqat 1-tuzoqni qamraydi
+## 2-qatlam namunasi monopoliya uchun juda yupqa
 
-`traps.json` da 53 qator bor, lekin hammasi yopiq brend (`closed_brand`)
-boʻyicha. 6-tuzoq (monopoliya) uchun bironta qator yoʻq — yaʼni darvoza
-testi u filtrni umuman tekshirmaydi.
+493 turkumdan atigi 8 tasida 8 va undan koʻp sotuvchi oʻlchangan.
+Qolgan 485 tasida filtr baholay olmaydi.
 
-Kerak: monopol kategoriyalar uchun ham mustaqil belgi topish va
-`tuzoq_nomzodlari.sql` ga qoʻshish.
+Hozircha zarari yoʻq — konsentratsiya perepisdan hisoblanadi va u
+toʻliq. Lekin talab ballari 2-qatlamdan chiqadi, yaʼni monopol
+turkumdagi tovar bahosi baribir yupqa maʼlumotga tayanadi.
+
+Kerak: 2-qatlamni turkum boʻyicha muvozanatlash — hozir u eng koʻp
+sotiladigan tovarlar tomon qiyshiq.

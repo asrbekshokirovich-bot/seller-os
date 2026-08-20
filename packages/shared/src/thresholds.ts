@@ -72,6 +72,29 @@ export const THRESHOLDS = {
   monopoly: {
     /** Top-3 sotuvchi ulushi shundan yuqori bo'lsa — monopol kategoriya. */
     top3SharePercent: 70,
+    /**
+     * Ulush turkumdagi sotuvchilarning kamida shuncha foizi ustida
+     * hisoblangan bo'lishi shart.
+     *
+     * O'LCHANGAN, tanlab olinmagan (2026-08-19). 2-qatlam namunasi
+     * bo'yicha hisoblangan ulush haqiqatdan qanchalik farq qiladi:
+     *
+     *   turkum        namuna/jami   namuna ulushi   haqiqiy ulush
+     *   Qoplamalar     10/2052          76%              21%
+     *   Cho'tkalar      8/720           79%              43%
+     *   Sumkalar        9/2439          63%              12%
+     *   Ziraklar        8/1452          57%              19%
+     *
+     * Yettita turkumning YETTITASIDA ham namuna konsentratsiyani
+     * oshirib ko'rsatdi. Sabab: o'lchovga aynan yirik sotuvchilar
+     * tushadi, kichiklari namunaga kirmaydi.
+     *
+     * 50% tanlandi: yarmidan ko'pi o'lchanganda tanlov qiyshiqligi
+     * ulushni ag'darib yubora olmaydi. Amalda ulush perepisdan
+     * hisoblanadi va qamrov 100% bo'ladi — bu chegara plombа vazifasini
+     * bajaradi, kimdir yana namunani ulasa CI yiqiladi.
+     */
+    minSellerCoveragePercent: 50,
   },
 
   /** 7-tuzoq: og'ir tovar. */
