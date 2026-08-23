@@ -45,6 +45,36 @@ query sellerosProduct($id: Int!) {
 }
 """
 
+# 2-QATLAM so'rovi — OG'IR. Farqi bitta: `skuList`.
+#
+# Nega alohida so'rov. `skuList` javobni ~16 barobar shishiradi (0,4 KB →
+# 5,0 KB). Butun katalog bo'ylab bu 1 GB va 13 GB o'rtasidagi farq.
+# Shuning uchun u faqat TANLANGAN tovarlarga so'raladi.
+#
+# Nega kerak. Reja "sotuv baholash v1" ni qoldiq farqidan hisoblashni
+# talab qiladi: qoldiq kamaysa — sotilgan. `availableAmount` busiz
+# umuman kelmaydi, ya'ni sotuv baholash ishlamaydi.
+PRODUCT_QUERY_STOK = """
+query sellerosProductStok($id: Int!) {
+  productPage(id: $id) {
+    actions { __typename ... on MotivationAction { text } }
+    product {
+      id
+      title
+      rating
+      feedbackQuantity
+      minSellPrice
+      minFullPrice
+      category { id title }
+      shop { id title official ordersQuantity }
+      # Qoldiq variantlar bo'yicha keladi — tovar qoldig'i ularning
+      # yig'indisi. `weight` 7-tuzoq (og'ir tovar) uchun ham keladi.
+      skuList { id availableAmount sellPrice weight }
+    }
+  }
+}
+"""
+
 # "1 234 kishi sotib oldi" kabi matndan sonni ajratadi. Uzum uni faqat
 # matn sifatida beradi — alohida maydon yo'q.
 _BUYERS = re.compile(r"(\d[\d\s ]*)")
@@ -79,6 +109,7 @@ class Kuzatuv:
     shop_name: str | None
     shop_official: bool | None
     shop_orders: int | None
+    """Do'kon hisoblagichi."""
     category_external_id: int | None
     category_name: str | None
     price: int | None
@@ -86,6 +117,15 @@ class Kuzatuv:
     reviews: int | None
     rating: float | None
     buyers_per_week: int | None
+    """Qoldiq — barcha variantlar yig'indisi. `None` = og'ir so'rov qilinmagan.
+
+    Nol EMAS: nol "tovar tugagan" degani, `None` "o'lchanmagan".
+    Aralashtirsak, yengil so'rov bilan olingan tovar "tugagan" bo'lib
+    ko'rinardi va sotuv baholash uni noto'g'ri hisoblardi.
+    """
+    stock: int | None = None
+    """Og'irlik, gramm. 7-tuzoq (og'ir tovar) uchun."""
+    weight_g: int | None = None
 
 
 def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
@@ -120,7 +160,35 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         reviews=_int(product.get("feedbackQuantity")),
         rating=_float(product.get("rating")),
         buyers_per_week=buyers_per_week((node or {}).get("actions")),
+        stock=_qoldiq(product.get("skuList")),
+        weight_g=_ogirlik(product.get("skuList")),
     )
+
+
+def _qoldiq(sku_list: list[dict[str, Any]] | None) -> int | None:
+    """Variantlar qoldig'ini qo'shadi.
+
+    `None` qaytaradi agar `skuList` umuman kelmagan bo'lsa — ya'ni
+    yengil so'rov ishlatilgan. Bu nol bilan aralashmasligi kerak.
+    """
+    if not sku_list:
+        return None
+    jami = 0
+    topildi = False
+    for sku in sku_list:
+        qiymat = _int((sku or {}).get("availableAmount"))
+        if qiymat is not None:
+            jami += qiymat
+            topildi = True
+    return jami if topildi else None
+
+
+def _ogirlik(sku_list: list[dict[str, Any]] | None) -> int | None:
+    """Variantlarning eng katta og'irligi — kargo tannarxi shunga qarab."""
+    if not sku_list:
+        return None
+    ogirliklar = [w for w in (_int((s or {}).get("weight")) for s in sku_list) if w]
+    return max(ogirliklar) if ogirliklar else None
 
 
 def _int(value: Any) -> int | None:

@@ -149,3 +149,51 @@ Javobgarlik uchun ham, o'rganish uchun ham. `score_breakdown` (jsonb) —
 | Versiya | Sana | O'zgarish |
 |---|---|---|
 | v1 | 2026-08-19 | Birinchi sxema (B0) |
+
+
+## `sales_estimates` — sotuv qanday hisoblanadi
+
+Uzum sotuv sonini bermaydi. `Product.ordersQuantity` bor, lekin u
+yaxlitlangan va haqiqiy sotuvning ~55% ini ko'rsatadi — shuning uchun
+**hech qachon so'ralmaydi**.
+
+Sotuv **qoldiq farqidan** hisoblanadi:
+
+```
+sotilgan    = ketma-ket o'lchovlar orasidagi qoldiq KAMAYISHLARI yig'indisi
+keltirilgan = o'sha o'lchovlar orasidagi qoldiq O'SISHLARI yig'indisi
+```
+
+**Ikkalasi alohida saqlanadi va bir-biridan ayirilmaydi.** Sinaldi:
+
+| Qoldiq yo'li | To'g'ri javob | Sodda ayirish bersa edi |
+|---|---|---|
+| 100 → 95 → 98 → 90 | sotilgan **13**, keltirilgan **3** | 10 — ikkalasi ham yo'qoladi |
+
+Ayirsak, "3 sotildi, 1 keltirildi" degan kun ikkala raqamini ham
+yo'qotadi va tovari tugagan do'kon bilan ombori to'lgan do'kon bir xil
+ko'rinadi.
+
+### Bu TAXMIN, va u pastga qiyshiq
+
+Ikki o'lchov orasida sotilib, keyin qayta to'ldirilgan tovar
+ko'rinmaydi. Ya'ni raqam haqiqiydan **kam** bo'lishi mumkin, ko'p
+bo'lishi mumkin emas. `certainty` ustuni kunlik o'lchov soniga qarab
+belgilanadi: 3+ o'lchov — `yuqori`, 2 — `o'rta`, 1 — `past`.
+
+### `stock` NULL va 0 — boshqa narsa
+
+`0` — tovar tugagan (o'lchandi). `NULL` — qoldiq umuman o'lchanmagan
+(yengil so'rov ishlatilgan). Aralashtirsak, o'lchanmagan tovar
+"hammasi sotilgan" bo'lib chiqardi.
+
+Qoldiq faqat **og'ir so'rovda** (`PRODUCT_QUERY_STOK`) keladi — u
+javobni ~16 barobar shishiradi, shuning uchun faqat tanlangan
+tovarlarga so'raladi.
+
+### Zaxira yo'l ochiq belgilanadi
+
+Qoldiq hali o'lchanmagan tovarda sotuv `buyers_per_week x 4.3` bilan
+taxmin qilinadi. Bu **aniqroq emas**, shuning uchun javobda
+`sotuvManbasi` maydoni bor: `olchandi` yoki `taxmin`. Foydalanuvchi
+raqam qayerdan kelganini bilishi kerak.

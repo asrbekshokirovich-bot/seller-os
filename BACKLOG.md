@@ -52,3 +52,12 @@ Toʻliq hisobot: `docs/B1-TEKSHIRUV.md`.
 4. `npm run lint` hech narsa qilmaydi — CI darvozasi boʻsh.
 5. Eval testlari yoʻq (QOIDALAR §5 merge uchun talab qiladi).
 6. `minSellerCoveragePercent = 50` atigi 7 ta oʻlchov nuqtasiga tayanadi.
+
+## Qoldiq faqat 6 ta tovarda o'lchangan
+
+`so_rollup_days` ishlaydi, lekin hozircha 0 qator chiqaradi: har
+tovarda bitta qoldiq o'lchovi bor, farq yo'q. Ikkinchi o'lchovdan
+keyin sotuv hisoblana boshlaydi.
+
+Kerak: 2-qatlam tsikli kuniga kamida 2 marta o'lchasin (`certainty`
+`o'rta` bo'lishi uchun), imkoni bo'lsa 3 marta (`yuqori`).

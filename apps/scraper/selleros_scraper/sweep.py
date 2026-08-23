@@ -126,7 +126,10 @@ def _qatorga(javob: Javob) -> dict:
         "category_external_id": k.category_external_id,
         "category_name": k.category_name,
         "price": k.price,
-        "stock": None,  # yengil so'rovda qoldiq yo'q — 2-qatlamda olinadi
+        # Og'ir so'rovda qoldiq keladi, yengilida `None` qoladi.
+        # `None` va 0 ATAYLAB farqlanadi: 0 "tovar tugagan", `None`
+        # "o'lchanmagan". Sotuv baholash faqat o'lchanganlarni sanaydi.
+        "stock": k.stock,
         "reviews": k.reviews,
         "rating": k.rating,
         "buyers_per_week": k.buyers_per_week,
