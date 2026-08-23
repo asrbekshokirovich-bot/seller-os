@@ -123,6 +123,13 @@ jimgina yashil beraverardi — bu tekshiruvsizlikdan battar
 |---|---|---|
 | `sb_secret_AAAA…` (soxta kalit) | topadi | topadi |
 | `sb_secret_4OM_xK9-…` (haqiqiy shakl) | topadi | topadi |
-| `SUPABASE_SERVICE_ROLE_KEY=abc123` | topadi | topadi |
+| `SUPABASE_SERVICE_ROLE_KEY=` + qiymat | topadi | topadi |
 | `` `sb_secret_...` `` (hujjatdagi matn) | **topadi — yolgʻon xavotir** | tinch qoldiradi |
-| `SUPABASE_SERVICE_ROLE_KEY=` (boʻsh) | tinch | tinch |
+| `SUPABASE_SERVICE_ROLE_KEY=` (qiymatsiz) | tinch | tinch |
+
+Ikkinchi urinishda yana qizil boʻldi va sabab yana shu edi: bu jadvalga
+`…KEY=abc123` deb tirik misol yozgandim, qorovul uni **toʻgʻri** ushladi.
+Yaʼni xato qorovulda emas, hujjatda. Qoida: sir qidiruvchi bilan bir
+omborda turgan hujjat sirga oʻxshash **tirik matn** yozmaydi — shaklni
+soʻz bilan tasvirlaydi. Chetlab oʻtish roʻyxati qoʻshilmadi: u qorovulni
+kelajakda jimgina zaiflashtiradigan yoʻl ochadi.
