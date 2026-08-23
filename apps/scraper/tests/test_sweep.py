@@ -32,6 +32,14 @@ def javob_ok(pid: int) -> dict:
 JAVOB_YOQ = {"errors": [{"message": "path '/productPage/product' declared as non-null"}]}
 
 
+#: Testda rostdan kutmaymiz. `sweep` hurmat rejimida har id dan keyin
+#: uxlaydi (3 so'rov/sek -> 0,33 s); 100 id li test 33 soniya ketardi.
+#: Uyquni ALMASHTIRAMIZ, O'CHIRMAYMIZ — u haqiqatan chaqirilishini
+#: `test_KECHIKISH_HAQIQATAN_QOLLANADI` tekshiradi.
+def UXLAMA(_kechikish: float) -> None:
+    return None
+
+
 def tokens() -> TokenProvider:
     tp = TokenProvider(user_agent="t", installation_id="i")
     tp._token = "sinov"
@@ -45,7 +53,7 @@ def test_hammasi_topilsa_qamrov_toliq():
         return httpx.Response(200, json=javob_ok(pid))
 
     c = httpx.Client(transport=httpx.MockTransport(handler))
-    h = sweep([1, 2, 3], client=c, tokens=tokens(), store=None)
+    h = sweep([1, 2, 3], client=c, tokens=tokens(), store=None, uxla=UXLAMA)
     assert h.topildi == 3
     assert h.xatolar == 0
     assert h.qamrov == 1.0
@@ -58,7 +66,7 @@ def test_BOSH_ID_XATO_DEB_SANALMAYDI():
     bekordan yig'ishni to'xtatardi.
     """
     c = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=JAVOB_YOQ)))
-    h = sweep(range(50), client=c, tokens=tokens(), store=None)
+    h = sweep(range(50), client=c, tokens=tokens(), store=None, uxla=UXLAMA)
     assert h.yoq == 50
     assert h.xatolar == 0
     assert h.xato_darajasi == 0.0
@@ -68,7 +76,7 @@ def test_BOSH_ID_XATO_DEB_SANALMAYDI():
 def test_kop_xato_kill_switch_ni_ishga_tushiradi():
     """Jimgina davom etish eng yomon variant: baza buzuq to'ladi."""
     c = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(500)))
-    h = sweep(range(100), client=c, tokens=tokens(), store=None)
+    h = sweep(range(100), client=c, tokens=tokens(), store=None, uxla=UXLAMA)
     assert h.toxtadi is not None
     assert h.sorovlar < 100, "to'xtashi kerak edi, oxirigacha bormasligi kerak"
 
@@ -86,7 +94,7 @@ def test_token_olsa_osha_id_qayta_soraladi():
     c = httpx.Client(transport=httpx.MockTransport(handler))
     tp = tokens()
     tp._fetch = lambda client: "yangi"  # type: ignore[method-assign]
-    h = sweep([7], client=c, tokens=tp, store=None)
+    h = sweep([7], client=c, tokens=tp, store=None, uxla=UXLAMA)
     assert h.topildi == 1, "token yangilangach o'lchov olinishi kerak edi"
 
 
@@ -95,3 +103,38 @@ def test_hisobot_qamrov_va_xato_darajasini_beradi():
     assert h.qamrov == 0.6
     # 1 / (6 + 1) — bo'sh id maxrajga kirmaydi
     assert h.xato_darajasi == pytest.approx(1 / 7)
+
+
+def test_KECHIKISH_HAQIQATAN_QOLLANADI():
+    """Hurmat rejimi qog'ozda emas, amalda ishlashi kerak.
+
+    Bir vaqtlar `next_delay()` chaqirilib, qaytargan qiymati tashlab
+    yuborilgan edi: kill-switch ishlagan (u istisno tashlaydi), lekin
+    sekinlashish umuman bo'lmagan va so'rovlar tsikl qanchalik tez
+    aylansa shunchalik tez ketgan. Tashqaridan qaralganda hammasi
+    joyida ko'rinardi — QOIDALAR.md §7 esa buzilib turardi.
+    """
+    kutilgan = []
+
+    def yozib_ol(kechikish: float) -> None:
+        kutilgan.append(kechikish)
+
+    c = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=javob_ok(1))))
+    sweep([1, 2, 3], client=c, tokens=tokens(), store=None,
+          limits=Limits(per_second=4.0), uxla=yozib_ol)
+
+    assert len(kutilgan) == 3, "har id dan keyin kechikish qo'llanishi kerak"
+    assert all(k == pytest.approx(0.25) for k in kutilgan), (
+        f"4 so'rov/sek -> 0,25 s kutilardi, keldi: {kutilgan}"
+    )
+
+
+def test_kill_switch_da_uxlanmaydi():
+    """To'xtash qaroridan keyin kutish — bekorga sarflangan vaqt."""
+    kutilgan = []
+    c = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(500)))
+    h = sweep(range(100), client=c, tokens=tokens(), store=None,
+              uxla=kutilgan.append)
+    assert h.toxtadi is not None
+    # Oxirgi qadam to'xtash bo'lgani uchun uyqu so'rovdan bitta kam.
+    assert len(kutilgan) < h.sorovlar

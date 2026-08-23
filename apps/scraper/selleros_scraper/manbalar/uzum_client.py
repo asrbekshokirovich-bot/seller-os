@@ -25,7 +25,7 @@ from typing import Any
 
 import httpx
 
-from .uzum import PRODUCT_QUERY, Kuzatuv, parse
+from .uzum import PRODUCT_QUERY, PRODUCT_QUERY_STOK, Kuzatuv, parse
 
 ENDPOINT = "https://graphql.uzum.uz/"
 
@@ -71,12 +71,33 @@ def _tez_deganimi(errors: list[dict[str, Any]]) -> bool:
     return "429" in matn or "too many" in matn
 
 
-def sorov(client: httpx.Client, headers: dict[str, str], product_id: int) -> Javob:
-    """Bitta mahsulotni so'raydi va javobni turkumlaydi."""
+def sorov(
+    client: httpx.Client,
+    headers: dict[str, str],
+    product_id: int,
+    *,
+    stok: bool = False,
+) -> Javob:
+    """Bitta mahsulotni so'raydi va javobni turkumlaydi.
+
+    `stok=True` og'ir so'rovni yuboradi — u `skuList` ni ham oladi va
+    qoldiq shundan chiqadi. Javob ~16 barobar shishadi (0,4 KB → 5,0
+    KB), shuning uchun standart qiymat `False`: og'ir so'rov faqat
+    TANLANGAN tovarlarga beriladi.
+
+    Standart `False` bo'lgani bir vaqtlar jimgina zarar keltirgan:
+    `PRODUCT_QUERY_STOK` yozilgan, lekin hech qayerdan chaqirilmagan
+    edi. Natijada `stock` HAR DOIM `None` bo'lgan va sotuv baholash
+    (`prev_stock − stock`) ishlay olmasdi — chunki farqni hisoblash
+    uchun ikkita `None` dan boshqa narsa yo'q edi.
+    """
     try:
         response = client.post(
             ENDPOINT,
-            json={"query": PRODUCT_QUERY, "variables": {"id": product_id}},
+            json={
+                "query": PRODUCT_QUERY_STOK if stok else PRODUCT_QUERY,
+                "variables": {"id": product_id},
+            },
             headers=headers,
         )
     except httpx.HTTPError as exc:

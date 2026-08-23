@@ -11,11 +11,20 @@ Ikki narsa ataylab shunday qilingan:
 2. PARTIYALAB yoziladi, har id dan keyin emas. Bitta so'rov 500 ta
    o'lchovni yozadi; har biriga alohida so'rov yuborilsa, yozish
    yig'ishdan sekinroq bo'lib qolardi.
+
+3. KECHIKISH HAQIQATAN QO'LLANADI. Bir vaqtlar `next_delay()` chaqirilib,
+   qaytargan qiymati tashlab yuborilgan edi — ya'ni kill-switch ishlagan
+   (u istisno tashlaydi), sekinlashish esa umuman ishlamagan va so'rovlar
+   tsikl qanchalik tez aylansa shunchalik tez ketgan. QOIDALAR.md §7
+   talab qiladigan hurmat rejimi shu sababli faqat qog'ozda bo'lgan.
+   Uyqu funksiyasi tashqaridan berilishi mumkin — test uni almashtiradi,
+   aks holda tekshirish uchun rostdan kutish kerak bo'lardi.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+import time
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -63,11 +72,16 @@ def sweep(
     tokens: TokenProvider,
     store: Store | None,
     limits: Limits | None = None,
+    stok: bool = False,
+    uxla: Callable[[float], None] = time.sleep,
 ) -> Hisobot:
     """Berilgan id lar bo'yicha bir aylanish.
 
     `store=None` — quruq yurish: yig'iladi, lekin yozilmaydi. Sinov
     uchun kerak, chunki bazaga to'qilgan ma'lumot yozish taqiqlangan.
+
+    `stok=True` og'ir so'rovni yuboradi va qoldiqni ham oladi. U
+    javobni ~16 barobar shishirgani uchun standart qiymat `False`.
     """
     limits = limits or Limits()
     hisobot = Hisobot()
@@ -84,13 +98,13 @@ def sweep(
     token = tokens.get(client)
     for pid in ids:
         hisobot.sorovlar += 1
-        javob = sorov(client, tokens.headers(token), pid)
+        javob = sorov(client, tokens.headers(token), pid, stok=stok)
 
         if javob.natija is Natija.TOKEN:
             # Token o'ldi — yangilaymiz va SHU id ni qayta so'raymiz.
             tokens.invalidate()
             token = tokens.get(client)
-            javob = sorov(client, tokens.headers(token), pid)
+            javob = sorov(client, tokens.headers(token), pid, stok=stok)
 
         if javob.natija is Natija.TOPILDI and javob.kuzatuv:
             hisobot.topildi += 1
@@ -103,10 +117,12 @@ def sweep(
             hisobot.xatolar += 1
 
         try:
-            next_delay(limits, hisobot.xato_darajasi)
+            kechikish = next_delay(limits, hisobot.xato_darajasi)
         except KillSwitch as toxtash:
             hisobot.toxtadi = str(toxtash)
             break
+        if kechikish > 0:
+            uxla(kechikish)
 
     yuborish()
     if store and sweep_id is not None:

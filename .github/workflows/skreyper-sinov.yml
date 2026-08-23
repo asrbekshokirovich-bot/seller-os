@@ -1,0 +1,66 @@
+# Skreyperning bazaga yozish yo'lini JONLI tekshirish.
+#
+# Nega jadval yo'q, faqat qo'lda. SellerOS uchun "kimni kuzatamiz"
+# degan qaror hali yozilmagan (`docs/1-QADAM-SAVOLLAR.md`). Jadval
+# qo'yish o'sha qarorni jimgina men qilib qo'yish bo'lardi. Bu ish
+# faqat bitta savolga javob beradi: skreyper haqiqatan bazaga yoza
+# oladimi.
+#
+# Nega umuman kerak. B1 ning asosiy va'dasi shu edi va u
+# isbotlanmagan: `selleros.sweep_log` bo'sh, ya'ni skreyper hech
+# qachon o'zi yozmagan. Testlar 38/38 yashil bo'lsa ham.
+name: Skreyper — jonli sinov
+
+on:
+  workflow_dispatch:
+    inputs:
+      dan:
+        description: "Id oralig'i boshi"
+        required: true
+        default: "1234560"
+      gacha:
+        description: "Id oralig'i oxiri (kiradi)"
+        required: true
+        default: "1234569"
+
+concurrency:
+  group: skreyper-sinov
+  cancel-in-progress: false
+
+jobs:
+  sinov:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sir borligini tekshirish
+        run: |
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY yo'q."
+            echo "Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "::error::SUPABASE_URL yo'q."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - run: pip install -e '.[dev]'
+        working-directory: apps/scraper
+
+      # Avval bazaga tegmasdan: Uzum javob beryaptimi, parse ishlayaptimi.
+      # Bu qadam yiqilsa, sabab bazada emasligi darrov ma'lum bo'ladi.
+      - name: Quruq yurish
+        working-directory: apps/scraper
+        run: python -m selleros_scraper --dan "${{ inputs.dan }}" --gacha "${{ inputs.gacha }}" --stok --quruq
+
+      - name: Bazaga yozish
+        working-directory: apps/scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python -m selleros_scraper --dan "${{ inputs.dan }}" --gacha "${{ inputs.gacha }}" --stok
