@@ -133,3 +133,32 @@ Yaʼni xato qorovulda emas, hujjatda. Qoida: sir qidiruvchi bilan bir
 omborda turgan hujjat sirga oʻxshash **tirik matn** yozmaydi — shaklni
 soʻz bilan tasvirlaydi. Chetlab oʻtish roʻyxati qoʻshilmadi: u qorovulni
 kelajakda jimgina zaiflashtiradigan yoʻl ochadi.
+
+## Yakuniy holat — 2026-08-23
+
+| Ish | Holat |
+|---|---|
+| CI → Hujjatlar + sir qidiruvi | ✅ |
+| CI → Node (lint, typecheck, 166 test, drift) | ✅ |
+| CI → Python (29 test) | ✅ |
+| Deploy (staging) → Edge Function | ✅ |
+
+Deploy `SUPABASE_ACCESS_TOKEN` va `SUPABASE_ANON_KEY` sirlari
+qoʻyilgach oʻtdi. Tirikligi mustaqil tasdiqlandi — CI ning soʻziga
+emas, uchning oʻz javobiga qarab:
+
+```
+GET /functions/v1/selleros/health  →  200
+{"ok": true, "service": "selleros-api", "live": {"payments": false}}
+```
+
+`payments: false` toʻgʻri: toʻlov jonli rejimi merchant tasdigʻigacha
+bayroq ostida yopiq (`.env.example`, `PAYMENTS_LIVE=0`).
+
+### Kalendarga tushadigan bitta narsa
+
+`SUPABASE_ACCESS_TOKEN` muddatli. Muddat tugagan kuni Deploy qizil
+boʻladi va logda sabab aniq yoziladi — yaʼni jimgina oʻlmaydi, lekin
+oʻsha kuni yangi token yasab, GitHub sirini almashtirish kerak
+boʻladi. Token butun Supabase hisobini boshqargani uchun muddatsiz
+kalit ataylab tanlanmadi.
