@@ -93,3 +93,36 @@ sir qidiruvi                          ✅
 ```
 
 Yaʼni kod tayyor. Faqat GitHub uni ishga tushirmayapti.
+
+## Yechildi — 2026-08-23
+
+Ombor ochiq qilindi. Natija darhol koʻrindi: runner haqiqiy
+(`runner_id: 1000010798`, avval `0` edi), ishlar 3 soniyada emas,
+oʻz vaqtida yugurdi. Yaʼni sabab kodda emasligi tasdiqlandi.
+
+Runner kelgach birinchi marta **haqiqiy** xato koʻrindi:
+
+```
+docs/CI-TOXTAB-QOLDI.md:42:| `sb_secret_...` | ✅ topilmadi |
+##[error]Omborda sirga oʻxshash matn topildi.
+```
+
+Sir qidiruvchi qadam **shu hujjatning oʻzini** ushladi. Naqsh
+`sb_secret_` prefiksining oʻziga qanoat qilardi, kalitning qolgan
+qismini talab qilmasdi — shuning uchun kalit haqida *yozish* ham
+kalit *qoldirish* bilan bir xil hisoblanardi.
+
+Naqsh kalitning oʻzini talab qiladigan qilib toraytirildi
+(`sb_secret_[A-Za-z0-9_-]{12,}`), va yoniga qorovulning tirikligini
+tekshiradigan qadam qoʻshildi: har yugurishda soxta kalit yasaladi va
+naqsh uni topishi shart. Aks holda buzilgan naqsh «sir topilmadi» deb
+jimgina yashil beraverardi — bu tekshiruvsizlikdan battar
+(QOIDALAR.md §8).
+
+| | oldin | keyin |
+|---|---|---|
+| `sb_secret_AAAA…` (soxta kalit) | topadi | topadi |
+| `sb_secret_4OM_xK9-…` (haqiqiy shakl) | topadi | topadi |
+| `SUPABASE_SERVICE_ROLE_KEY=abc123` | topadi | topadi |
+| `` `sb_secret_...` `` (hujjatdagi matn) | **topadi — yolgʻon xavotir** | tinch qoldiradi |
+| `SUPABASE_SERVICE_ROLE_KEY=` (boʻsh) | tinch | tinch |
