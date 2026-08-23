@@ -45,14 +45,32 @@ Butun git tarixi (17 commit) skanerlandi:
 | parol / api_key naqshlari | ✅ topilmadi |
 | `.env` fayllari | ✅ hech qachon commit qilinmagan |
 
-Baza tomoni ham yopiq:
+Baza tomoni:
 
 | Tekshiruv | Natija |
 |---|---|
 | anon → `selleros` sxema | yopiq |
 | anon → `zumsavdo` sxema | yopiq |
-| anon → jadval huquqi | 0 |
+| anon → `selleros`/`zumsavdo` jadval huquqi | 0 |
 | anon chaqiradigan funksiya | 11 ta, hammasi faqat oʻqiydigan `zs_*` (panel uchun) |
+
+> **Bu jadval avval toʻliq emas edi.** Yuqoridagi qator ilgari
+> «anon → jadval huquqi: 0» deb yozilgandi. Oʻlchov `selleros` va
+> `zumsavdo` sxemalari boʻyicha qilingan, lekin gap barcha jadvallar
+> haqidagidek yozilgan edi. `public` sxemasi tekshirilmagan — va
+> teshik oʻsha yerda chiqdi.
+>
+> 2026-08-23 da toʻliq tekshirilganda maʼlum boʻldi: `public` dagi
+> toʻqqizta panel koʻrinishiga `anon` uchun `SELECT` emas, `ALL`
+> berilgan ekan (Supabase zavod `alter default privileges` sozlamasi).
+> Beshtasi avtomatik yangilanuvchi — yaʼni ochiq anon kaliti bilan
+> perepis maʼlumotini oʻchirish mumkin edi. Oʻlchab tasdiqlandi, keyin
+> yopildi: zumsavdo omborida
+> `20260823090000_zumsavdo_anon_faqat_oqiydi.sql`, va holat endi
+> `cd ingest && npm run xavfsizlik` buyrugʻi bilan oʻlchanadi.
+>
+> Dars QOIDALAR.md §8 ning oʻzi: «yopiq» degan xulosa oʻlchov
+> qamragan joygacha amal qiladi, undan nariga emas.
 
 Omborda loyiha manzili (`duequijnnzcngzzvjqst`) bor, lekin u
 panelning ochiq URL'ida ham koʻrinadi va sir emas. Yozish huquqi
