@@ -113,6 +113,72 @@ export const THRESHOLDS = {
     growthWindowDays: 14,
   },
 
+  /**
+   * Ball qismlarini hisoblash chegaralari (FORMULA.md, "Har qismning
+   * hisobi").
+   *
+   * Bular v0 taklifi. Ular pilot ma'lumotidan chiqmagan — hozircha
+   * asosli taxmin. Shuning uchun har birining yonida NEGA shu son
+   * tanlangani yozilgan: pilot boshlangach ularni o'lchov bilan
+   * almashtirish kerak, va nimani almashtirayotganini bilish kerak.
+   */
+  formula: {
+    /**
+     * Marja balli chiziqli: `floorPercent` da 0, `targetPercent` da 100.
+     *
+     * 5% — dumping chegarasi bilan bir xil: undan past marja "bu narxda
+     * foyda yo'q" degani, ya'ni ball ham nol.
+     * 35% — Uzumda barqaror ishlaydigan sotuvchilar ko'rsatadigan daraja.
+     * Undan yuqorisi ham bo'ladi, lekin u odatda tor bozor yoki brend
+     * afzalligi — yangi sotuvchi unga tayana olmaydi.
+     */
+    marginFloorPercent: 5,
+    marginTargetPercent: 35,
+
+    /**
+     * Raqobat balli: `100 − (konsentratsiya × 0.7 + zichlik × 0.3)`.
+     * Vaznlar FORMULA.md da yozilgan.
+     *
+     * Zichlik sotuvchilar sonidan chiqadi va shu songa yetganda 100 ga
+     * to'yinadi. 50 tanlandi: undan keyin yana bitta sotuvchi qo'shilishi
+     * yangi kiruvchi uchun deyarli hech narsani o'zgartirmaydi.
+     */
+    crowdedSellers: 50,
+
+    /**
+     * Kirish balli 100 dan boshlanadi va har to'siq uni pasaytiradi.
+     *
+     * Markirovka sertifikatdan qimmatroq turadi: u uzluksiz jarayon
+     * (har partiya kodlanadi), sertifikat esa bir martalik.
+     */
+    entryMarkingPenalty: 35,
+    entryCertificatePenalty: 25,
+    /** Har kutish haftasi uchun. 12 haftadan keyin to'yinadi. */
+    entryWeekPenalty: 3,
+    entryMaxWeeks: 12,
+
+    /**
+     * Mavsum koeffitsienti ballga: `koef × 100`, 0–100 orasida qisiladi.
+     *
+     * Koeffitsient 1.0 — o'rtacha oy. 1.0 dan yuqori bo'lsa ball 100 ga
+     * qisiladi: "mavsumning eng cho'qqisi" bilan "shunchaki yaxshi oy"
+     * orasidagi farq tavsiyaga ta'sir qilmasligi kerak — aks holda
+     * tizim faqat cho'qqi oylarni ko'rsatib, qolgan yilni bo'sh
+     * qoldirardi.
+     */
+    seasonNeutralCoefficient: 1.0,
+
+    /**
+     * Profil balli neytraldan boshlanadi va moslik uni ko'taradi.
+     *
+     * 50 — "hech narsa ma'lum emas" degani, nol emas: profil bo'sh
+     * bo'lsa tovar jazolanmasligi kerak.
+     */
+    profileNeutral: 50,
+    /** Har moslik uchun. Uchta moslik 100 ga olib chiqadi. */
+    profileMatchBonus: 17,
+  },
+
   /** Ma'lumot yetarlimi. */
   data: {
     /**
