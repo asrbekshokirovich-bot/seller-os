@@ -15,7 +15,8 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "olik-kod": "node scripts/olik-kod.mjs"
+    "olik-kod": "node scripts/olik-kod.mjs",
+    "ci": "bash scripts/ci.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -4,3 +4,5 @@ export * from './formula.ts';
 export * from './filtrlar/turlar.ts';
 export * from './filtrlar/yopiq_brend.ts';
 export * from './filtrlar/monopoliya.ts';
+export * from './profil.ts';
+export * from './filtrlar/sertifikat.ts';

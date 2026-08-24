@@ -1,5 +1,6 @@
 pyproject.toml
 selleros_scraper/__init__.py
+selleros_scraper/__main__.py
 selleros_scraper/hurmat.py
 selleros_scraper/store.py
 selleros_scraper/sweep.py
@@ -12,8 +13,10 @@ selleros_scraper.egg-info/top_level.txt
 selleros_scraper/manbalar/__init__.py
 selleros_scraper/manbalar/uzum.py
 selleros_scraper/manbalar/uzum_client.py
+tests/test_cli.py
 tests/test_hurmat.py
 tests/test_stok.py
+tests/test_store.py
 tests/test_sweep.py
 tests/test_uzum.py
 tests/test_uzum_client.py
