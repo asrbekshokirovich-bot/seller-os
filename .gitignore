@@ -20,3 +20,8 @@ venv/
 # Mahalliy sozlamalar — omborga tushmaydi.
 .env.local
 .next/
+
+# Dizayndan yasaladi — `node apps/web/dizayn/qurish.mjs`.
+# Omborda saqlanmaydi: hosila fayl manbadan ajralib ketishi mumkin.
+apps/web/public/sotuv.html
+apps/web/public/boylik/

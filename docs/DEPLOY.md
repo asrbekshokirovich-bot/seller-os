@@ -60,11 +60,32 @@ shuni oldini oladi.
 
 ---
 
-# Usta sahifasi (`apps/web`) — Vercel
+# Sayt (`apps/web`) — Vercel
 
 Edge Function API ni beradi, `apps/web` esa **odam koʻradigan
 sahifani**. Ikkalasi alohida joylanadi: API Supabase da, sahifa
 Vercel da.
+
+## Ikkita yoʻl, bitta loyiha
+
+| Yoʻl | Nima | Qayerdan |
+|---|---|---|
+| `/` | sotuv sahifasi | `dizayn/ZumSavdo-standalone.html` dan yasaladi |
+| `/usta` | 1-qadam formasi | `src/app/usta/page.tsx` |
+
+Sotuv sahifasi Next komponenti EMAS: u dizayn vositasidan chiqqan
+178 KB lik tayyor HTML. `dizayn/qurish.mjs` uni ochib, matn
+tuzatishlarini qoʻllab `public/sotuv.html` ga yozadi; `/` esa unga
+yoʻnaltiriladi.
+
+Chiqish **omborda saqlanmaydi** — `npm run build` uni har safar
+qaytadan yasaydi. Sabab: hosila fayl manbadan ajralib ketishi
+mumkin va buni hech narsa koʻrsatmaydi. Manba bitta —
+`dizayn/`.
+
+`qurish.mjs` dagi har matn tuzatishi topilmasa **xato beradi va
+qurishni toʻxtatadi**. Dizaynning yangi versiyasi kelib matn
+koʻchsa, biz buni CI da bilamiz — sayt esa tuzatishsiz chiqmaydi.
 
 ## Vercel loyihasini ulash (bir marta)
 
