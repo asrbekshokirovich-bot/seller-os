@@ -84,21 +84,25 @@ tashlanadi.
 Kerak: `apps/web` da 1-qadam formasi va javoblarni
 `selleros.user_profiles` ga yozadigan uch.
 
-## `/yonalishlar` 25 soniya ishlaydi
+## ~~`/yonalishlar` 25 soniya ishlaydi~~ — TUZATILDI
 
-Jonli oʻlchov (2026-08-24, staging): 300 turkum, javob 7 KB,
-**25.2 soniya**.
+*2026-08-24.* Jonli oʻlchov 25.2 s koʻrsatgan edi. Sabab:
+`so_yonalish_nomzodlari()` har chaqiruvda butun perepis kesimini
+qaytadan hisoblardi, holbuki perepis kuniga 4 marta yangilanadi.
 
-Sabab: `so_yonalish_nomzodlari()` har chaqiruvda butun perepis
-kesimini qaytadan hisoblaydi — kuzatilayotgan 300 turkumdagi har
-tovarning oxirgi oʻlchovi, doʻkonlar boʻyicha yigʻindi, top-3.
-Foydalanuvchi uchun bu juda sekin.
+Ikkiga boʻlindi:
 
-Vaqt byudjeti 120 s qoʻyilgani shu sababdan: 8 s lik standart
-chegara bilan u umuman ishlamasdi. Yaʼni hozirgi holat "ishlaydi",
-"tez" emas — va buni yashirmaslik kerak.
+| | Nima qiladi | Qancha | Qachon |
+|---|---|---|---|
+| `so_yonalish_yangila()` | ogʻir hisob, keshga yozadi | **34.9 s** | skreyper bilan, kuniga 3 marta |
+| `so_yonalish_nomzodlari()` | tayyor qatorni oʻqiydi | **0.032 s** | har soʻrovda |
 
-Kerak: natijani kunlik jadvalda saqlash (`category_daily` yoki
-alohida `yonalish_nomzodi`), uchi esa tayyor qatorni oʻqisin.
-Perepis kuniga 4 marta yangilanadi, yaʼni real vaqtda hisoblashning
-maʼnosi yoʻq.
+780 barobar tez. Javob endi massiv emas, obyekt: `hisoblandi`,
+`yoshi_soat` va `royxat`. Eskirish KOʻRINIB turadi — 24 soatdan
+oshsa `kesh_eskirgan: true` qaytadi. Eskirgan kesh javobni
+toʻxtatmaydi (kechagi raqam bugungi tavsiyani deyarli
+oʻzgartirmaydi), lekin u aytiladi.
+
+Qoladi: yangilash qadami `if: always()` bilan qoʻyilgan, yaʼni
+oʻlchov yiqilsa ham kesh yangilanadi. Bu ataylab — kechagi keshni
+bugungi nosozlik tufayli eskitib yuborishning foydasi yoʻq.

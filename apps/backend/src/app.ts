@@ -2,12 +2,13 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { type Sifat, holat } from './sifat.js';
 import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.js';
 import {
+  KESH_ESKI_SOAT,
   profilOqi,
   sohalar,
   yonalishlar,
+  type NomzodJavobi,
   type TovarHolati,
   type TurkumHolati,
-  type TurkumNomzodi,
 } from '@selleros/shared';
 
 /**
@@ -92,15 +93,19 @@ export function build(): FastifyInstance {
       (tana.profil as Record<string, unknown>) ?? {},
     );
 
-    const nomzodlar = await rpc<TurkumNomzodi[]>('so_yonalish_nomzodlari', {});
-    if (nomzodlar === null) {
+    const javob = await rpc<NomzodJavobi>('so_yonalish_nomzodlari', {});
+    if (javob === null) {
       // Boʻsh roʻyxat "mos yoʻnalish yoʻq" degan DAʼVO boʻlardi.
       // Baza javob bermagani boshqa narsa va shunday aytiladi.
       return { olchov_yoq: true, sabab: 'baza javob bermadi' };
     }
+    if (!javob.royxat.length) {
+      // Kesh hali toʻldirilmagan. Bu ham "yoʻq" emas, "hali yoʻq".
+      return { olchov_yoq: true, sabab: 'nomzodlar hali hisoblanmadi' };
+    }
 
     const natija = yonalishlar(
-      nomzodlar,
+      javob.royxat,
       profil.budgetUzs,
       sohalar(profil),
       hozirgiOy(),
@@ -108,7 +113,10 @@ export function build(): FastifyInstance {
 
     return {
       olchov_yoq: false,
-      nomzod_soni: nomzodlar.length,
+      nomzod_soni: javob.royxat.length,
+      hisoblandi: javob.hisoblandi,
+      yoshi_soat: javob.yoshi_soat,
+      kesh_eskirgan: javob.yoshi_soat !== null && javob.yoshi_soat > KESH_ESKI_SOAT,
       ...natija,
     };
   });

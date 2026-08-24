@@ -82,3 +82,38 @@ jobs:
             exit 1
           fi
           echo "Bugun $n ta oʻlchov yozildi."
+
+      # 2-qadam nomzodlarini qayta hisoblash.
+      #
+      # NEGA SHU YERDA. Hisob 35 soniya ketadi va perepis maʼlumotiga
+      # tayanadi — yaʼni uni har soʻrovda qilishning maʼnosi yoʻq.
+      # Ilgari `/yonalishlar` aynan shuni har chaqiruvda bajarardi va
+      # **25 soniyada** javob berardi.
+      #
+      # Skreyper bilan birga, chunki ikkalasi ham bir xil roʻyxatga
+      # (`tracked_product`) tayanadi: kuzatuv oʻzgarsa, kesh ham
+      # oʻsha zahoti oʻzgarishi kerak.
+      #
+      # `if: always()` — oʻlchov qismi yiqilsa ham kesh yangilanadi.
+      # Kechagi keshni bugungi nosozlik tufayli eskitib yuborish
+      # foydalanuvchiga hech qanday foyda bermaydi.
+      - name: Yoʻnalish keshini yangilash
+        if: always()
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          javob=$(curl -sS --max-time 320 -X POST \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" -d '{}' \
+            "$URL/rest/v1/rpc/so_yonalish_yangila")
+          echo "$javob"
+          n=$(printf '%s' "$javob" | sed -n 's/.*"yozildi"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')
+          # Nol qator "turkum yoʻq" degani, "yangilandi" degani emas.
+          # Bunday holat yashil boʻlib koʻrinardi va kesh jimgina
+          # eskirib borardi (QOIDALAR.md §8).
+          if [ -z "$n" ] || [ "$n" -eq 0 ]; then
+            echo "::error::Kesh yangilanmadi — bitta ham turkum yozilmadi."
+            exit 1
+          fi
+          echo "Keshda $n ta turkum yangilandi."

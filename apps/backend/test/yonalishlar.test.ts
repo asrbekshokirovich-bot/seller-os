@@ -82,4 +82,16 @@ describe('/yonalishlar', () => {
     const res = await sora({ profil: { budgetUzs: 'ha', experience: 7, city: 42 } });
     expect(res.statusCode).toBe(200);
   });
+
+  it('kesh boʻsh boʻlsa BOSHQA sabab aytiladi', async () => {
+    // Uch uchta holatni ajratishi kerak:
+    //   baza javob bermadi        — ulanish yoʻq
+    //   nomzodlar hisoblanmadi    — kesh hali toʻldirilmagan
+    //   royxat: []                — hisoblandi, lekin mos turkum yoʻq
+    // Uchalasi ham boʻsh ekran koʻrsatadi, lekin javobi boshqa —
+    // va foydalanuvchi nima kutishini shundan biladi.
+    const res = await sora({ profil: {} });
+    expect(res.json().sabab).toBe('baza javob bermadi');
+    expect(res.json().sabab).not.toBe('nomzodlar hali hisoblanmadi');
+  });
 });

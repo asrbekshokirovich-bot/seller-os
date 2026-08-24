@@ -16,6 +16,37 @@ import { THRESHOLDS } from './thresholds.ts';
 const U = THRESHOLDS.usta;
 
 /** 2-qadam uchun turkum nomzodi — bazadan oʻlchangan holda keladi. */
+/**
+ * `so_yonalish_nomzodlari()` javobi.
+ *
+ * Massiv emas, OBYEKT — ataylab. Kesh oldindan hisoblanadi, yaʼni u
+ * eskirishi mumkin, va eskirganini foydalanuvchi bilishi kerak.
+ * Massiv qaytarilsa buni aytadigan joy qolmasdi: boʻsh massiv
+ * "sizga mos yoʻnalish yoʻq" degan DAʼVOga oʻxshab koʻrinardi,
+ * holbuki javob "hali hisoblanmadi" (QOIDALAR.md, 4-qoida).
+ */
+export interface NomzodJavobi {
+  /** Kesh oxirgi marta qachon hisoblangan. Boʻsh boʻlsa `null`. */
+  hisoblandi: string | null;
+  /** Necha soat oldin. Boʻsh boʻlsa `null`. */
+  yoshi_soat: number | null;
+  royxat: TurkumNomzodi[];
+}
+
+/**
+ * Kesh shundan keyin ESKI hisoblanadi (soat).
+ *
+ * Perepis 6 soatda bir aylanadi, yangilash esa skreyper bilan birga
+ * kuniga uch marta ketadi. Yaʼni normal holatda yosh 8 soatdan
+ * oshmaydi. 24 soat — "jadval ishlamay qolgan" chegarasi, "biroz
+ * eskirgan" emas.
+ *
+ * Eskirgan kesh JAVOBNI TOʻXTATMAYDI: kechagi raqam bugungi
+ * tavsiyani deyarli oʻzgartirmaydi, va "hech narsa" dan koʻra
+ * "kechagi maʼlumot" foydaliroq. Lekin u AYTILADI.
+ */
+export const KESH_ESKI_SOAT = 24;
+
 export interface TurkumNomzodi {
   categoryId: number;
   name: string;

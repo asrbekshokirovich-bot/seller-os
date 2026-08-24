@@ -16,12 +16,13 @@
  */
 import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.ts';
 import {
+  KESH_ESKI_SOAT,
   profilOqi,
   sohalar,
   yonalishlar,
+  type NomzodJavobi,
   type TovarHolati,
   type TurkumHolati,
-  type TurkumNomzodi,
 } from './shared/index.ts';
 
 const URL_ = Deno.env.get('SUPABASE_URL') ?? '';
@@ -97,19 +98,30 @@ Deno.serve(async (req: Request) => {
     }
     const profil = profilOqi((tana.profil as Record<string, unknown>) ?? {});
 
-    const nomzodlar = await rpc<TurkumNomzodi[]>('so_yonalish_nomzodlari', {});
-    if (nomzodlar === null) {
+    const kesh = await rpc<NomzodJavobi>('so_yonalish_nomzodlari', {});
+    if (kesh === null) {
       // Boʻsh roʻyxat "mos yoʻnalish yoʻq" degan daʼvo boʻlardi.
       return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
     }
+    if (!kesh.royxat.length) {
+      // Kesh hali toʻldirilmagan. Bu ham "yoʻq" emas, "hali yoʻq".
+      return javob({ olchov_yoq: true, sabab: 'nomzodlar hali hisoblanmadi' }, 503);
+    }
 
     const natija = yonalishlar(
-      nomzodlar,
+      kesh.royxat,
       profil.budgetUzs,
       sohalar(profil),
       hozirgiOy(),
     );
-    return javob({ olchov_yoq: false, nomzod_soni: nomzodlar.length, ...natija });
+    return javob({
+      olchov_yoq: false,
+      nomzod_soni: kesh.royxat.length,
+      hisoblandi: kesh.hisoblandi,
+      yoshi_soat: kesh.yoshi_soat,
+      kesh_eskirgan: kesh.yoshi_soat !== null && kesh.yoshi_soat > KESH_ESKI_SOAT,
+      ...natija,
+    });
   }
 
   return javob({ xato: 'topilmadi', yol }, 404);
