@@ -38,9 +38,36 @@ loyihaning bazasi. Yaʼni "maʼlumot yigʻiladi" degan daʼvo SellerOS uchun
 12 mahsulot, 12 kunlik qator, 12 oʻlchov. Yozish yoʻli uchidan-uchiga
 isbotlandi.
 
-**Qolgan qism:** Python skreyperning oʻzi hali toʻliq yurish qilmagan —
-buning uchun kalit kerak boʻlgan mashina kerak (Routine yoki
-foydalanuvchi kompyuteri).
+**Qolgan qism ham yopildi (2026-08-24).** Python skreyper GitHub
+Actions da oʻzi yurdi va oʻzi yozdi: `Skreyper — jonli sinov` ishi,
+yugurish #2 yashil.
+
+```
+selleros.sweep_log            0 → 2   (ochildi va yopildi)
+selleros.product             12 → 29
+selleros.shop                12 → 27
+selleros.product_observation 18 → 35
+  qoldigʻi oʻlchangan         6 → 23
+  qoldigʻi oʻlchanmagan (None)     12   ← eski, SQL bilan yozilgan qatorlar
+```
+
+Ishga tushirish yoʻli ochilgach uchta jim kamchilik koʻrindi. Uchalasi
+ham "testlar yashil, demak ishlaydi" degan xulosani buzadi:
+
+| Nima | Qanday koʻrindi |
+|---|---|
+| Ishga tushirish nuqtasi yoʻq edi (`__main__.py` ham, konsol skripti ham) | Hech qanday xato yoʻq — chaqirish mumkin emas edi, xolos |
+| `PRODUCT_QUERY_STOK` yozilgan, lekin chaqirilmagan | `stock` HAR DOIM `None`; sotuv baholash umuman ishlay olmasdi |
+| `next_delay()` chaqirilgan, qaytargan qiymati tashlangan | Paketda bitta ham `sleep` yoʻq edi — QOIDALAR §7 faqat qogʻozda |
+
+Toʻrtinchisi birinchi jonli yugurishda chiqdi: `so_sweep_close`
+`void` boʻlgani uchun PostgREST 204 va boʻsh tana qaytargan, kod esa
+har javobni JSON deb oʻqigan. Yozish **muvaffaqiyatli** boʻlgan,
+lekin buyruq qizil qaytgan — yaʼni xato natijani emas, xabarni
+buzgan. Bu ayniqsa chalgʻituvchi, chunki qizilga qarab "yozilmadi"
+deb xulosa qilish oson.
+
+Testlar 29 → 45.
 
 ### 1.2. Filtrlarni hech kim chaqirmaydi  ✅ YOPILDI
 

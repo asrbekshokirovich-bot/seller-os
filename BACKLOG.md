@@ -44,7 +44,9 @@ sotiladigan tovarlar tomon qiyshiq.
 
 Toʻliq hisobot: `docs/B1-TEKSHIRUV.md`.
 
-1. `selleros` sxemasi boʻsh — skreyper bazaga hech qachon yozmagan.
+1. ~~`selleros` sxemasi boʻsh — skreyper bazaga hech qachon yozmagan.~~
+   **✅ YOPILDI 2026-08-24** — skreyper GitHub Actions da oʻzi yurdi va
+   oʻzi yozdi. `docs/B1-TEKSHIRUV.md` §1.1 ga qarang.
 2. Filtrlarni ishlab chiqarish kodi chaqirmaydi; `TovarHolati` ni
    bazadan yigʻadigan qatlam yoʻq.
 3. Fikstura yasash skriptlari bazaga ulanmaydi — maʼlumot qoʻlda
