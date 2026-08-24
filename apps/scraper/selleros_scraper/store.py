@@ -53,7 +53,22 @@ class Store:
             # Kalit xato matniga tushib qolmasin.
             matn = response.text.replace(self.service_key, "<kalit>")[:300]
             raise StoreError(f"{nomi} bajarilmadi (HTTP {response.status_code}): {matn}")
-        return response.json()
+
+        # Hech narsa qaytarmaydigan RPC (`void`) PostgREST'da 204 va BO'SH
+        # tana bilan keladi. Ilgari bu yerda `response.json()` shartsiz
+        # chaqirilardi va `so_sweep_close` — aynan shunday funksiya —
+        # JSONDecodeError bilan yiqilardi. Yomon tomoni shundaki, yozish
+        # allaqachon MUVAFFAQIYATLI bo'lgan: baza yangilangan, sweep
+        # yopilgan, lekin buyruq qizil qaytgan. Ya'ni xato natijani emas,
+        # faqat xabarni buzgan — bu esa "yozilmadi" degan noto'g'ri
+        # xulosaga olib boradi.
+        if response.status_code == 204 or not response.content:
+            return None
+        try:
+            return response.json()
+        except ValueError:
+            matn = response.text.replace(self.service_key, "<kalit>")[:200]
+            raise StoreError(f"{nomi} JSON qaytarmadi (HTTP {response.status_code}): {matn}") from None
 
     def yoz(self, client: httpx.Client, partiya: list[dict[str, Any]]) -> dict[str, int]:
         """Partiyani atomik yozadi. Bo'sh partiya — bekorga so'rov emas."""
