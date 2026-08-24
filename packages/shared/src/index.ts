@@ -6,3 +6,5 @@ export * from './filtrlar/yopiq_brend.js';
 export * from './filtrlar/monopoliya.js';
 export * from './profil.js';
 export * from './filtrlar/sertifikat.js';
+export * from './qismlar.js';
+export * from './filtrlar/demping.js';
