@@ -197,9 +197,27 @@ Belgi ochiq turgan edi: test 1,5 soniya ishlagan. Sof funksiya uchun
 mumkin bo'lmagan vaqt.
 
 Qoida: **test o'z shartini o'zi qo'yadi.** Muhit o'zgaruvchisiga
-bog'liq test uni ataylab tozalaydi va tozalanganini **tekshiradi**
-(`expect(process.env.SUPABASE_URL).toBeUndefined()`). Muhitdan
-meros olingan shart — shart emas, tasodif.
+bog'liq test uni ataylab tozalaydi va tozalanganini **tekshiradi**.
+Muhitdan meros olingan shart — shart emas, tasodif.
+
+**f) Qorovul yangi faylni ko'rmaydi.** Sir qidiruvchi `git grep`
+ishlatardi, u esa faqat KUZATILAYOTGAN fayllarni o'qiydi. Yangi
+yaratilgan fayl unga umuman ko'rinmaydi — u faqat `git add` dan
+KEYIN paydo bo'ladi.
+
+Sir uchun bu tartib teskari: qorovul kalitni omborga tushishidan
+OLDIN ko'rishi kerak. Amalda mahalliy CI yashil chiqdi, o'sha
+commit esa GitHub da qizardi — ya'ni qorovul ishladi, lekin bir
+commit KECH. Haqiqiy kalit bo'lganida u allaqachon tarixda
+qolardi.
+
+Tuzatildi: `git grep --untracked`. `.gitignore` dagi fayllar
+baribir chetlab o'tiladi, ya'ni `ingest/.env` tegilmaydi.
+
+Umumiy shakl: **tekshiruvning ko'rish maydoni uning va'dasidan
+tor bo'lmasligi kerak.** (b) chegara qatorlarni kesardi, bu esa
+fayllarni. Ikkalasida ham vosita "hammasi" deb tushunilgan, aslida
+esa "kuzatilgani" yoki "birinchi 1000 tasi" degan.
 
 ## 9. Ushbu faylni o'zgartirish
 

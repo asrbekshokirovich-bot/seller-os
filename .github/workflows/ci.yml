@@ -85,7 +85,12 @@ jobs:
           fi
           echo "Naqsh soxta kalitni topdi — qorovul tirik."
 
-          if git grep -nIE "$NAQSH" -- ':!*.example' ':!.github/workflows/*'; then
+          # `--untracked` — mahalliy `scripts/ci.sh` bilan bir xil
+          # boʻlishi uchun. CI da hamma fayl commit qilingan, yaʼni
+          # bu yerda farq qilmaydi; lekin ikki tekshiruv bir xil
+          # buyruqni ishlatishi SHART — aks holda mahalliy yashil
+          # CI da qizil boʻlib chiqaveradi.
+          if git grep -nIE --untracked "$NAQSH" -- ':!*.example' ':!.github/workflows/*'; then
             echo "::error::Omborda sirga o'xshash matn topildi."
             exit 1
           fi

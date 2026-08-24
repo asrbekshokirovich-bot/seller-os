@@ -51,7 +51,18 @@ NAQSH="(sb_secret_[A-Za-z0-9_-]{12,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:sp
 SOXTA="sb_secret_$(printf 'A%.0s' $(seq 20))"
 printf '%s\n' "$SOXTA" | grep -qE "$NAQSH" || { echo "naqsh oʻlik"; exit 1; }
 echo "naqsh soxta kalitni topdi — qorovul tirik"
-if git grep -nIE "$NAQSH" -- ':!*.example' ':!.github/workflows/*' ':!scripts/*'; then
+# `--untracked` SHART.
+#
+# Oddiy `git grep` faqat kuzatilayotgan fayllarni koʻradi. Yaʼni
+# yangi yaratilgan fayl bu tekshiruvga umuman koʻrinmaydi — u faqat
+# `git add` dan KEYIN paydo boʻladi. 2026-08-24 da aynan shunday
+# boʻldi: mahalliy CI yashil chiqdi, commitdan keyingi yugurishda
+# esa oʻsha fayl qizardi.
+#
+# Sir uchun bu tartib teskari: qorovul kalitni omborga tushishidan
+# OLDIN koʻrishi kerak, keyin emas. `.gitignore` dagi fayllar
+# baribir chetlab oʻtiladi — `ingest/.env` shu yerda.
+if git grep -nIE --untracked "$NAQSH" -- ':!*.example' ':!.github/workflows/*' ':!scripts/*'; then
   echo "sirga oʻxshash matn topildi"; exit 1
 fi
 echo "sir topilmadi"
