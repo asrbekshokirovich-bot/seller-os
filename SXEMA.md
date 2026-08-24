@@ -120,8 +120,41 @@ Kategoriya talablari — **qo'lda to'ldiriladi** (B0 seed).
 `entry_weeks`, `optimal_entry_uzs`, `seasonality` (12 oylik massiv).
 
 ### `user_profiles`
-1-qadam javoblari: `experience`, `family_field`, `interest`, `budget_uzs`,
-`hours_per_week`, `city`, `answers` (jsonb — xom javoblar).
+
+1-qadam javoblari (`docs/1-QADAM-SAVOLLAR.md`, tasdiqlangan 2026-08-24).
+Oʻn ikki savolning har biri bitta ustun; `answers` (jsonb) xom javobni
+saqlaydi.
+
+| Savol | Ustun | Turi |
+|---|---|---|
+| 1 | `experience` | text[] |
+| 2 | `family_field` | text[] |
+| 3 | `interest` | text[] |
+| 4 | `budget_uzs` | bigint |
+| 5 | `capital_lock` | text (`3_oy`/`6_oy`/`1_yil`/`muddatsiz`) |
+| 6 | `hours_per_week` | integer (0–168) |
+| 7 | `city` | text |
+| 8 | `online_experience` | text (`yoq`/`biroz`/`tajribali`) |
+| 9 | `has_uzum_shop` | boolean |
+| 10 | `imported_from_china` | boolean |
+| 11 | `cert_experience` | boolean |
+| 12 | `risk_preference` | text (`ehtiyotkor`/`tavakkal`) |
+
+**Hech biri `NOT NULL DEFAULT` olmaydi — ataylab.** Ha/yoʻq
+savollarini `boolean not null default false` qilish oson va xato
+boʻlardi: javob bermagan odam "yoʻq" degan odamga aylanadi. Masalan
+11-savol `false` boʻlsa, sertifikat bilan ishlagan odam ishlamagan deb
+hisoblanadi va unga eng foydali yoʻnalish koʻrsatilmaydi.
+
+`budget_uzs` da nol **haqiqiy javob**: "hozircha pulim yoʻq". `null`
+esa "aytmadi". Boʻsh maydonni nolga aylantirish taqiqlanadi —
+`Number("")` nolga teng boʻlgani uchun bu eng oson tushib qolinadigan
+xato. Kod tomonida `packages/shared/src/profil.ts` va uning testlari
+shuni ushlab turadi.
+
+Oʻlchab tasdiqlangan (2026-08-24): hamma javobi `null` boʻlgan qator
+yoziladi; notanish qiymat va manfiy byudjet rad etiladi; byudjet noli
+qabul qilinadi.
 
 ### `recommendations`
 Har tavsiya logi: kimga, nima, qaysi ball va bayroq bilan, qachon.
