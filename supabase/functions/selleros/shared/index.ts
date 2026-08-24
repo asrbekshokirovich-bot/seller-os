@@ -8,3 +8,4 @@ export * from './profil.ts';
 export * from './filtrlar/sertifikat.ts';
 export * from './qismlar.ts';
 export * from './filtrlar/demping.ts';
+export * from './qadamlar.ts';

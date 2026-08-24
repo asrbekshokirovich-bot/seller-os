@@ -179,6 +179,52 @@ export const THRESHOLDS = {
     profileMatchBonus: 17,
   },
 
+  /**
+   * Usta qadamlari (reja, 2-bo'lim: "Sarmoya Ustasi — 6 qadamli yo'l").
+   */
+  usta: {
+    /** 2-qadamda nechta yo'nalish ko'rsatiladi. Rejada: 3–5 ta. */
+    minYonalish: 3,
+    maxYonalish: 5,
+
+    /**
+     * Byudjet turkumning optimal kirish summasidan shuncha barobar
+     * katta bo'lsa — bir necha yo'nalishga bo'lish taklif qilinadi.
+     *
+     * Rejada "≈2.5 barobar+" deb yozilgan. Sabab: butun pulni bitta
+     * tor turkumga tiqish zaxirani o'ldiradi — tovar sekin ketsa pul
+     * qotib qoladi va ikkinchi urinish uchun hech narsa qolmaydi.
+     *
+     * TAKLIF, majburiyat emas: tanlovni foydalanuvchi qiladi.
+     */
+    bolishChegarasi: 2.5,
+    /** Bo'linganda nechta yo'nalishga. Rejada: 2–3 ta. */
+    maxBolinma: 3,
+
+    /**
+     * Yangi sotuvchi turkum sotuvining qancha ulushini oladi.
+     *
+     * Rejadagi misol: "oyiga ~600 dona sotiladi, yangi sotuvchi odatda
+     * ~5% oladi → 30 dona".
+     *
+     * 5% — TAXMIN, o'lchov emas. Pilot boshlangach birinchi
+     * almashtiriladigan son shu bo'lishi kerak: u miqdor tavsiyasini
+     * to'g'ridan-to'g'ri belgilaydi va xato bo'lsa odam ortiqcha tovar
+     * sotib oladi.
+     */
+    yangiSotuvchiUlushi: 5,
+
+    /**
+     * Birinchi partiya necha kunlik zaxira bo'lsin.
+     *
+     * 30 kun — konservativ. Ko'proq olish arzonroq tushadi (kargo bir
+     * marta), lekin birinchi partiyada maqsad tejash emas, TEKSHIRISH:
+     * tovar ketadimi yoki yo'q. Ketmasa, 30 kunlik zaxira yo'qotish
+     * 90 kunlikdan uch barobar kichik.
+     */
+    zaxiraKun: 30,
+  },
+
   /** Ma'lumot yetarlimi. */
   data: {
     /**
