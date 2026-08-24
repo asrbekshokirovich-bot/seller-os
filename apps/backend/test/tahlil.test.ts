@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { tovarniTekshir, turkumniTekshir, xulosa } from '../src/tahlil.js';
-import type { TovarHolati, TurkumHolati } from '@selleros/shared';
+import { TRAP_LABEL } from '@selleros/shared';
+import type { Flag, TovarHolati, TrapKind, TurkumHolati } from '@selleros/shared';
 
 /**
  * Quvur testi: baza → `so_tovar_holati` → filtr.
@@ -58,5 +59,47 @@ describe('quvur: baza → filtr', () => {
     const x = xulosa(f.tovar.map(tovarniTekshir));
     expect(x.tekshirildi).toBe(f.tovar.length);
     expect(x.bayroqli + x.baholanmadi).toBeLessThanOrEqual(f.tovar.length);
+  });
+});
+
+/**
+ * Tuzoq turlari boʻyicha yigʻindi.
+ *
+ * `TRAP_LABEL` — oʻzbekcha nomlar jadvali — yozilgan, izohlangan va
+ * sinxronlik testi bilan qoplangan edi, lekin ishlab chiqarishda uni
+ * HECH KIM chaqirmasdi: API faqat mashina nomlarini (`closed_brand`)
+ * qaytarardi. Yaʼni foydalanuvchi uchun yozilgan matn foydalanuvchiga
+ * hech qachon yetib bormasdi.
+ *
+ * Buni oʻlik kod qorovuli topdi — lekin faqat nusxalar sanoqdan
+ * chiqarilgandan keyin. Undan oldin Edge Function nusxasi nomni
+ * ikkinchi marta uchratardi va eksport tirik koʻrinardi.
+ */
+describe('xulosa — turlar boʻyicha', () => {
+  const bayroq = (kind: TrapKind): Flag => ({
+    kind, severity: 'warn', reason: 'sinov', evidence: { x: 1 },
+  });
+  const natija = (...kinds: TrapKind[]) => ({
+    holat: null, bayroqlar: kinds.map(bayroq), baholanmadi: [],
+  });
+
+  it('har turga oʻzbekcha nom qoʻshiladi', () => {
+    const x = xulosa([natija('closed_brand')]);
+    expect(x.turlar).toEqual([
+      { kind: 'closed_brand', nom: TRAP_LABEL.closed_brand, soni: 1 },
+    ]);
+    expect(x.turlar[0]!.nom).not.toBe('closed_brand');
+  });
+
+  it('koʻpdan ozga tartiblanadi', () => {
+    const x = xulosa([natija('monopoly', 'monopoly'), natija('closed_brand')]);
+    expect(x.turlar.map((t) => t.kind)).toEqual(['monopoly', 'closed_brand']);
+    expect(x.turlar.map((t) => t.soni)).toEqual([2, 1]);
+  });
+
+  it('bayroq boʻlmasa boʻsh — nol koʻrsatilmaydi', () => {
+    // Boʻsh roʻyxat "tekshirilmagan turlar yoʻq" degani, har turga
+    // nol yozish esa "tekshirdim, topmadim" degan daʼvo boʻlardi.
+    expect(xulosa([natija()]).turlar).toEqual([]);
   });
 });

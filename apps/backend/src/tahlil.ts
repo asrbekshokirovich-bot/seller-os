@@ -1,5 +1,5 @@
-import { monopoliya, yopiqBrend } from '@selleros/shared';
-import type { Flag, TovarHolati, TurkumHolati } from '@selleros/shared';
+import { monopoliya, TRAP_LABEL, yopiqBrend } from '@selleros/shared';
+import type { Flag, TovarHolati, TrapKind, TurkumHolati } from '@selleros/shared';
 
 /**
  * Filtrlarni bazaga ulaydigan qatlam.
@@ -62,6 +62,18 @@ export interface Xulosa {
    * namuna). QOIDALAR.md, 8-boʻlim.
    */
   yetishmayotgan: Record<string, number>;
+  /**
+   * Tuzoq turlari boʻyicha yigʻindi — nomi oʻzbekcha bilan.
+   *
+   * Mijoz (web, bot, kengaytma) buni oʻzi yigʻa olardi, lekin
+   * uchalasi oʻzbekcha nomni oʻzida saqlashi kerak boʻlardi.
+   * Bir nom uch joyda — bu albatta ajralib ketadi va bittasi
+   * eskirganini hech narsa koʻrsatmaydi.
+   *
+   * Nom `TRAP_LABEL` da, bitta joyda. Sinxronlik testi uni har
+   * `TrapKind` uchun toʻlganini tekshiradi.
+   */
+  turlar: Array<{ kind: TrapKind; nom: string; soni: number }>;
   bayroqlar: Flag[];
 }
 
@@ -85,11 +97,19 @@ export function xulosa<T>(natijalar: Bayroqli<T>[]): Xulosa {
     }
   }
 
+  const sanoq = new Map<TrapKind, number>();
+  for (const b of bayroqlar) sanoq.set(b.kind, (sanoq.get(b.kind) ?? 0) + 1);
+
   return {
     tekshirildi: natijalar.length,
     bayroqli,
     baholanmadi: baholanmadiSoni,
     yetishmayotgan,
+    // Koʻpdan ozga — foydalanuvchi eng koʻp uchraganini birinchi
+    // koʻrsin. Teng boʻlsa nom boʻyicha, natija barqaror boʻlishi uchun.
+    turlar: [...sanoq.entries()]
+      .map(([kind, soni]) => ({ kind, nom: TRAP_LABEL[kind], soni }))
+      .sort((a, b) => b.soni - a.soni || a.kind.localeCompare(b.kind)),
     bayroqlar,
   };
 }

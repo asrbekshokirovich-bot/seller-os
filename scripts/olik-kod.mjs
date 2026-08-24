@@ -31,14 +31,18 @@
 
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { FAYLLAR } from '../supabase/functions/tayyorlash.mjs';
 
 /** Sabab bilan istisno qilinganlar: `nom -> nega`. */
 const ISTISNO = new Map([
-  // 1-qadam formasi hali yozilmagan (`apps/web` boʻsh). Bu uchtasi
+  // 1-qadam formasi hali yozilmagan (`apps/web` boʻsh). Bu ikkitasi
   // oʻsha forma bilan ulanadi. Ular hozircha OʻLIK va bu shu yerda
   // ochiq yozilgan — "jimgina oʻlik" bilan "bilib turib oʻlik"
   // orasidagi farq shu roʻyxat. BACKLOG.md da ham qayd etilgan.
-  ['profilOqi', '1-qadam formasi yozilgach ulanadi — BACKLOG.md'],
+  //
+  // `profilOqi` 2026-08-24 da roʻyxatdan chiqdi: `/yonalishlar`
+  // uchi uni chaqiradi. Chiqarishni qorovulning oʻzi talab qildi —
+  // istisno eskirganini u endi koʻradi.
   ['bosProfil', '1-qadam formasi yozilgach ulanadi — BACKLOG.md'],
   ['javobSoni', '1-qadam formasi yozilgach ulanadi — BACKLOG.md'],
 ]);
@@ -46,6 +50,45 @@ const ISTISNO = new Map([
 /** Test fayli — ham taʼrif, ham murojaat sifatida chetda qoladi. */
 function testFayli(f) {
   return /(^|\/)tests?\//.test(f) || /\.test\.[cm]?[jt]s$/.test(f);
+}
+
+/*
+ * MASHINA YOZGAN NUSXALAR ham chetda qoladi.
+ *
+ * `tayyorlash.mjs` `packages/shared` ni Edge Function papkasiga
+ * koʻchiradi. Nusxa manbaning aynan oʻzi, yaʼni undagi har bir nom
+ * ikki marta uchraydi — va shu bilan har qanday oʻlik eksport
+ * TIRIK koʻrinib qoladi.
+ *
+ * Bu testlar bilan bir xil kasallik (QOIDALAR.md §8-c): murojaat
+ * sanoqchisi oʻzi yaratgan murojaatni sanaydi. Nusxa "kimdir buni
+ * ishlatadi" degan dalil emas — nusxa hech kimning qarori emas.
+ *
+ * Roʻyxat `tayyorlash.mjs` dan IMPORT qilinadi. Takrorlansa ajralib
+ * ketardi va bu chetlatish jimgina kengayib borardi.
+ */
+const NUSXALAR = new Set(
+  FAYLLAR.map(([, nusxa]) => `supabase/functions/selleros/${nusxa}`),
+);
+function nusxaFayli(f) {
+  return NUSXALAR.has(f);
+}
+
+/*
+ * Qorovulning OʻZ daftari murojaat sanalmaydi.
+ *
+ * `ISTISNO` roʻyxati nomlarni matn sifatida saqlaydi. Bu fayl ham
+ * skanerlanadigan roʻyxatga kirgani uchun har istisno nomi "bir
+ * marta ishlatilgan" boʻlib chiqardi — yaʼni qorovul oʻz
+ * daftaridagi yozuvni dalil deb sanardi.
+ *
+ * Natijada uchala istisno "endi ishlatilmoqda" deb notoʻgʻri
+ * belgilandi. Testlar (§8-c) va nusxalar bilan bir xil kasallik:
+ * sanoqchi oʻzi yaratgan murojaatni sanaydi.
+ */
+const OZ_DAFTARI = 'scripts/olik-kod.mjs';
+function chetda(f) {
+  return testFayli(f) || nusxaFayli(f) || f === OZ_DAFTARI;
 }
 
 const fayllar = execSync(
@@ -61,23 +104,44 @@ const TS_EKSPORT = /^export\s+(?:async\s+)?(?:function|const|class|enum)\s+([A-Z
 const PY_EKSPORT = /^(?:([A-Z][A-Z0-9_]{2,})\s*[:=]|(?:async\s+)?def\s+([a-z_]\w*)|class\s+([A-Z]\w*))/gm;
 
 const olik = [];
+
+/*
+ * ESKIRGAN ISTISNOLAR.
+ *
+ * Istisno roʻyxati oʻzi ham jim oʻlim manbai: nom bir marta yozilsa,
+ * u kod TIRILGANDAN keyin ham chetda qolaveradi. Yaʼni roʻyxat
+ * vaqt oʻtishi bilan qorovulning koʻzini yumib boradi va buni hech
+ * narsa koʻrsatmaydi.
+ *
+ * Shuning uchun endi teskarisi ham tekshiriladi: istisnodagi nom
+ * ishlab chiqarishda ISHLATILSA — tekshiruv qizaradi va roʻyxatdan
+ * oʻchirishni talab qiladi. Istisno "hozircha" degan soʻzni
+ * bildiradi, "abadiy" ni emas.
+ */
+const eskirgan = [];
 for (const [fayl, matn] of manbalar) {
-  if (testFayli(fayl)) continue;
+  if (chetda(fayl)) continue;
   const py = fayl.endsWith('.py');
   for (const m of matn.matchAll(py ? PY_EKSPORT : TS_EKSPORT)) {
     const nom = m[1] ?? m[2] ?? m[3];
-    if (!nom || ISTISNO.has(nom)) continue;
+    if (!nom) continue;
     // Python ichki nomlari modul ichida ishlatilsa yetarli.
     if (py && nom.startsWith('_')) continue;
 
     let uchradi = 0;
     const nomNaqsh = new RegExp(`\\b${nom}\\b`, 'g');
     for (const [f2, m2] of manbalar) {
-      if (testFayli(f2)) continue;
+      if (chetda(f2)) continue;
       uchradi += (m2.match(nomNaqsh) ?? []).length;
     }
     // 1 = faqat oʻz taʼrifi, boshqa hech qayerda yoʻq.
-    if (uchradi <= 1) olik.push(`${fayl}: ${nom}`);
+    const oquv = uchradi <= 1;
+    if (ISTISNO.has(nom)) {
+      // Istisno endi kerak emasmi — shu yerda hal qilinadi.
+      if (!oquv) eskirgan.push(`${nom} — ${ISTISNO.get(nom)}`);
+      continue;
+    }
+    if (oquv) olik.push(`${fayl}: ${nom}`);
   }
 }
 
@@ -89,6 +153,16 @@ if (olik.length) {
     'yo oʻchiriladi, yo ISTISNO roʻyxatiga SABAB bilan qoʻshiladi.\n' +
     'Test ishlatishi yetarli emas — aynan shu holat 2026-08-24 gacha ' +
     'skreyperni butunlay ishlamay turishiga olib kelgan.',
+  );
+  process.exit(1);
+}
+if (eskirgan.length) {
+  console.error('ISTISNO roʻyxati eskirgan — bular endi ishlatilmoqda:\n');
+  for (const q of eskirgan) console.error(`  ${q}`);
+  console.error(
+    '\nYechim: shu nomlarni ISTISNO roʻyxatidan oʻchiring. Kerak ' +
+    'boʻlmagan istisno qorovulning koʻzini yumadi va buni hech narsa ' +
+    'koʻrsatmaydi.',
   );
   process.exit(1);
 }

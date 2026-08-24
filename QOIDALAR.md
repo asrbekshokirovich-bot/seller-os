@@ -219,6 +219,34 @@ tor bo'lmasligi kerak.** (b) chegara qatorlarni kesardi, bu esa
 fayllarni. Ikkalasida ham vosita "hammasi" deb tushunilgan, aslida
 esa "kuzatilgani" yoki "birinchi 1000 tasi" degan.
 
+**g) Sanoqchi o'zi yaratgan murojaatni sanaydi.** (c) ning ikkita
+yangi ko'rinishi topildi, ikkalasi ham `olik-kod.mjs` ning o'zida:
+
+1. **Mashina yozgan nusxa.** `tayyorlash.mjs` `packages/shared` ni
+   Edge Function papkasiga ko'chiradi. Nusxadagi har nom ikkinchi
+   marta uchraydi, ya'ni **har qanday o'lik eksport tirik ko'rinadi**.
+   Nusxa hech kimning qarori emas — u dalil bo'la olmaydi.
+2. **Qorovulning o'z daftari.** `ISTISNO` ro'yxati nomlarni matn
+   sifatida saqlaydi va o'sha fayl ham skanerlanardi. Ya'ni qorovul
+   o'z bookkeeping yozuvini "ishlatilgan" deb sanardi.
+
+Birinchisi tuzatilgach qorovul darhol haqiqiy nosozlik topdi:
+`TRAP_LABEL` — tuzoqlarning **o'zbekcha nomlari** — hech qayerdan
+chaqirilmasdi. API faqat mashina nomlarini qaytarardi, ya'ni
+foydalanuvchi uchun yozilgan matn foydalanuvchiga hech qachon yetib
+bormasdi. Endi `/tuzoqlar` javobida `turlar` maydoni bor.
+
+### Istisno "hozircha" degani, "abadiy" emas
+
+`ISTISNO` ro'yxatining o'zi ham jim o'lim manbai: nom bir marta
+yozilsa, kod TIRILGANDAN keyin ham chetda qolaveradi va ro'yxat
+vaqt o'tishi bilan qorovulning ko'zini yumib boradi.
+
+Shuning uchun teskarisi ham tekshiriladi: **istisnodagi nom ishlab
+chiqarishda ishlatilsa — CI qizaradi** va ro'yxatdan o'chirishni
+talab qiladi. Bugun aynan shunday bo'ldi: `profilOqi` `/yonalishlar`
+uchiga ulangach, uni ro'yxatdan chiqarishni qorovulning o'zi so'radi.
+
 ## 9. Ushbu faylni o'zgartirish
 
 Faqat nazoratchi tasdig'i bilan, alohida PR da, sababi yozilgan holda.

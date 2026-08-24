@@ -10,11 +10,12 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const ILDIZ = join(import.meta.dirname, '../..');
 const MAQSAD = join(ILDIZ, 'supabase/functions/selleros');
 
-const FAYLLAR = [
+export const FAYLLAR = [
   ['packages/shared/src/index.ts', 'shared/index.ts'],
   ['packages/shared/src/thresholds.ts', 'shared/thresholds.ts'],
   ['packages/shared/src/traps.ts', 'shared/traps.ts'],
@@ -30,6 +31,24 @@ const FAYLLAR = [
   ['apps/backend/src/tahlil.ts', 'tahlil.ts'],
 ];
 
+/*
+ * Fayl HAM skript, HAM modul.
+ *
+ * `scripts/olik-kod.mjs` yuqoridagi roʻyxatni import qiladi: nusxalar
+ * MASHINA yozgan fayllar va ular "bu eksportni kimdir ishlatadi"
+ * degan dalil emas. Roʻyxat ikki joyda takrorlansa u albatta
+ * ajralib ketadi, shuning uchun manba bitta.
+ *
+ * Import qilinganda skript qismi ishlamasligi kerak — shu tekshiruv
+ * oʻsha uchun.
+ */
+if (process.argv[1] !== fileURLToPath(import.meta.url)) {
+  // Modul sifatida chaqirilgan: faqat roʻyxat kerak.
+} else {
+  asosiy();
+}
+
+function asosiy() {
 const tekshirish = process.argv.includes('--tekshir');
 let farq = 0;
 
@@ -95,3 +114,4 @@ if (yetishmaydi.length) {
 }
 
 console.log(tekshirish ? 'Nusxalar manbaga mos.' : `${FAYLLAR.length} ta fayl tayyorlandi.`);
+}

@@ -64,11 +64,17 @@ keyin sotuv hisoblana boshlaydi.
 Kerak: 2-qatlam tsikli kuniga kamida 2 marta o'lchasin (`certainty`
 `o'rta` bo'lishi uchun), imkoni bo'lsa 3 marta (`yuqori`).
 
-## 1-qadam formasi — parser yozilgan, ulanmagan
+## 1-qadam formasi — parser ulandi, forma hali yoʻq
 
-`packages/shared/src/profil.ts` dagi `profilOqi`, `bosProfil`,
-`javobSoni` testlari bilan tayyor, lekin ishlab chiqarish kodida hech
-kim chaqirmaydi: forma yoʻq (`apps/web` boʻsh).
+*Yangilandi 2026-08-24.* `profilOqi` endi ishlab chiqarishda
+chaqiriladi: `/yonalishlar` uchi profilni soʻrov tanasidan oʻqiydi
+(`apps/backend/src/app.ts`, `supabase/functions/selleros/index.ts`).
+Uni `ISTISNO` roʻyxatidan chiqarish talabini qorovulning oʻzi
+qoʻydi.
+
+Qolgan ikkitasi — `bosProfil` va `javobSoni` — hamon oʻlik: ular
+formaning oʻziga (boʻsh holat va "profil qanchalik toʻliq"
+koʻrsatkichi) kerak, forma esa yoʻq (`apps/web` boʻsh).
 
 Bu OʻLIK KOD va u `scripts/olik-kod.mjs` ning `ISTISNO` roʻyxatida
 sababi bilan yozilgan. Roʻyxatga yozilishining maʼnosi shu: kod
