@@ -128,3 +128,33 @@ oʻzgartirmaydi), lekin u aytiladi.
 Qoladi: yangilash qadami `if: always()` bilan qoʻyilgan, yaʼni
 oʻlchov yiqilsa ham kesh yangilanadi. Bu ataylab — kechagi keshni
 bugungi nosozlik tufayli eskitib yuborishning foydasi yoʻq.
+
+## `optimal_entry_uzs` va `seasonality` — eshik ochildi, xona boʻsh
+
+*2026-08-24.* Bugungacha `category_requirements.csv` yozilgan va
+ustunlari hujjatlashtirilgan edi, lekin uni bazaga OLIB KIRADIGAN
+hech narsa yoʻq edi. Yaʼni odam bilimi uchun yoʻl umuman
+qurilmagan.
+
+Endi bor: `node supabase/seed/yukla.mjs`. CSV shakli har CI
+yugurishida tekshiriladi.
+
+**Lekin maʼlumotning oʻzi hamon yoʻq**, va buni oʻzim toʻldirib
+qoʻya olmayman:
+
+| Ustun | Nega boʻsh | Kim toʻldiradi |
+|---|---|---|
+| `optimal_entry_uzs` | "Turkumga kirish uchun normal summa" — bu **bozor bilimi**, oʻlchov emas. Uni oʻlchangan raqamdan chiqarish uchun 30 kunlik sotuv kerak, u esa hali yoʻq. | Nazoratchi |
+| `seasonality` | 12 oylik koeffitsient bir yillik tarix talab qiladi. Perepis 19-avgustda boshlangan. | Nazoratchi (yoki bir yildan keyin oʻlchov) |
+| `certificate_required` | Huquqiy hujjat kerak. Nom boʻyicha taxmin qilish 9 tadan 5 tasida notoʻgʻri chiqqan edi. | Nazoratchi |
+
+Shu sababdan `yetadi` maydoni hamon `null` va `mavsum` balli
+hamon hisoblanmaydi. Interfeys buni yashirmaydi: "Byudjet
+yetadimi — nomaʼlum" deb yozadi.
+
+**Bu raqamlarni oʻzim toʻqib qoʻyish oson boʻlardi va u eng
+zararli yechim boʻlardi:** taxminiy summa ishonchli koʻrinadi va
+odam unga qarab pul tikadi.
+
+Hozir CSV da 3 qator bor — VMQ 148 boʻyicha qoʻlda tekshirilgan
+markirovka talablari, huquqiy havolasi bilan.

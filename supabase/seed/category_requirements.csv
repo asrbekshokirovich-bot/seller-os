@@ -1,1 +1,4 @@
-category_external_id,marking_required,certificate_required,entry_cost_uzs,entry_weeks,optimal_entry_uzs,seasonality
+category_external_id,marking_required,certificate_required,entry_cost_uzs,entry_weeks,optimal_entry_uzs,seasonality,source,note
+12236,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 2-guruh","Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan."
+12601,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh","Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan."
+12894,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh","Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan."

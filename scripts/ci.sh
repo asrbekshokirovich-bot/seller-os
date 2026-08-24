@@ -48,6 +48,14 @@ node supabase/functions/tayyorlash.mjs --tekshir
 qadam "testlar (Python)"
 (cd apps/scraper && pip install -e '.[dev]' --quiet && python -m pytest -q)
 
+qadam "seed CSV shakli"
+# CSV ni odam toʻldiradi, yaʼni xato oʻsha yerdan keladi: ustun
+# tartibi buziladi, mavsumiylikka 11 ta son yoziladi, id
+# takrorlanadi. Ularning hammasi bazaga yozish paytida emas,
+# SHU YERDA ushlanishi kerak — yozish paytidagi xato yarim
+# yozilgan jadval qoldiradi.
+node supabase/seed/yukla.mjs --tekshir
+
 qadam "manba-haqiqat fayllari"
 for f in QOIDALAR.md SXEMA.md FORMULA.md TUZOQLAR.md BACKLOG.md; do
   test -f "$f" || { echo "$f yoʻq"; exit 1; }
