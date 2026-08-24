@@ -57,3 +57,54 @@ node supabase/functions/tayyorlash.mjs --tekshir
 
 Ikki nusxa bo'lgan joyda ular albatta bir kun farq qiladi. Bu tekshiruv
 shuni oldini oladi.
+
+---
+
+# Usta sahifasi (`apps/web`) — Vercel
+
+Edge Function API ni beradi, `apps/web` esa **odam koʻradigan
+sahifani**. Ikkalasi alohida joylanadi: API Supabase da, sahifa
+Vercel da.
+
+## Vercel loyihasini ulash (bir marta)
+
+1. vercel.com → **Add New** → **Project** → `asrbekshokirovich-bot/seller-os`
+2. **Root Directory**: `apps/web` ni tanlang.
+
+   *Bu qadam eng koʻp adashtiradigan joy.* Ildizni oʻzgartirmasangiz
+   Vercel monorepo ildizida `next` qidiradi va topmaydi.
+3. **Framework Preset**: Next.js (oʻzi aniqlaydi).
+4. **Build va Install buyruqlarini QOʻLDA OʻZGARTIRMANG.** Ular
+   `apps/web/vercel.json` da yozilgan: ikkalasi ham monorepo
+   ildiziga chiqadi, chunki `@selleros/shared` ishchi maydon paketi
+   va uni faqat ildizdan oʻrnatib boʻladi.
+
+## Muhit oʻzgaruvchilari
+
+Vercel → Project → **Settings** → **Environment Variables**:
+
+| Nomi | Qiymati | Nega |
+|---|---|---|
+| `SELLEROS_API_URL` | `https://duequijnnzcngzzvjqst.supabase.co/functions/v1/selleros` | API manzili |
+| `SELLEROS_API_KEY` | Supabase → Settings → API Keys → `anon` | Faqat oʻqish uchun |
+
+`service_role` kaliti **bu yerga qoʻyilmaydi**. Sahifa bazaga
+toʻgʻridan-toʻgʻri tegmaydi — hammasi Edge Function orqali
+(reja, 5-boʻlim).
+
+`NEXT_PUBLIC_` prefiksi ham **qoʻyilmaydi**: kalit server tomonda,
+`/api/yonalishlar` marshrutida ishlatiladi va brauzerga tushmaydi.
+
+## Sozlanmagan boʻlsa nima boʻladi
+
+Sahifa ochiladi va ishlaydi, lekin natija oʻrniga shunday deydi:
+
+```
+Hozircha koʻrsatadigan narsa yoʻq.
+Sabab: API manzili sozlanmagan.
+```
+
+Boʻsh roʻyxat koʻrsatilmaydi. Boʻsh roʻyxat "sizga mos yoʻnalish
+yoʻq" degan **daʼvo** boʻlardi, sozlanmaganlik esa boshqa narsa —
+va foydalanuvchi qaysi biri ekanini bilishi kerak (QOIDALAR.md,
+4-qoida).
