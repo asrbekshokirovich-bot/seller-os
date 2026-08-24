@@ -83,3 +83,22 @@ tashlanadi.
 
 Kerak: `apps/web` da 1-qadam formasi va javoblarni
 `selleros.user_profiles` ga yozadigan uch.
+
+## `/yonalishlar` 25 soniya ishlaydi
+
+Jonli oʻlchov (2026-08-24, staging): 300 turkum, javob 7 KB,
+**25.2 soniya**.
+
+Sabab: `so_yonalish_nomzodlari()` har chaqiruvda butun perepis
+kesimini qaytadan hisoblaydi — kuzatilayotgan 300 turkumdagi har
+tovarning oxirgi oʻlchovi, doʻkonlar boʻyicha yigʻindi, top-3.
+Foydalanuvchi uchun bu juda sekin.
+
+Vaqt byudjeti 120 s qoʻyilgani shu sababdan: 8 s lik standart
+chegara bilan u umuman ishlamasdi. Yaʼni hozirgi holat "ishlaydi",
+"tez" emas — va buni yashirmaslik kerak.
+
+Kerak: natijani kunlik jadvalda saqlash (`category_daily` yoki
+alohida `yonalish_nomzodi`), uchi esa tayyor qatorni oʻqisin.
+Perepis kuniga 4 marta yangilanadi, yaʼni real vaqtda hisoblashning
+maʼnosi yoʻq.
