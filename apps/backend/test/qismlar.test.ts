@@ -35,6 +35,7 @@ describe('talab', () => {
     // ya'ni "0 dona sotildi" degan xulosa asossiz bo'lardi.
     expect(talab(100, turkum, THRESHOLDS.data.minDaysForDemand - 1)).toBeNull();
     expect(talab(100, turkum, 0)).toBeNull();
+    expect(talab(100, turkum, null)).toBeNull();
   });
 
   it('turkum bo\'sh bo\'lsa null — solishtirish uchun narsa yo\'q', () => {
@@ -50,6 +51,30 @@ describe('talab', () => {
     // 0 dona sotilgani o'lchangan bo'lsa, bu javob.
     expect(talab(0, turkum, 30)).toBe(0);
   });
+
+  // Kun sharti ilgari chaqiruvchi chegaraning OʻZINI uzatishi bilan
+  // chetlab oʻtilgan edi. Endi chetlash OCHIQ — va faqat oʻzi
+  // uchun.
+  describe('oʻlchov manbasi', () => {
+    const turkum2 = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+    it('togridan-togri: kun soni SOʻRALMAYDI', () => {
+      expect(talab(100, turkum2, null, 'togridan-togri')).toBe(95);
+      expect(talab(100, turkum2, 0, 'togridan-togri')).toBe(95);
+    });
+
+    it('togridan-togri boʻlsa ham oʻlchovsiz ball yoʻq', () => {
+      expect(talab(null, turkum2, 30, 'togridan-togri')).toBeNull();
+      expect(talab(100, [], 30, 'togridan-togri')).toBeNull();
+    });
+
+    it('sukut boʻyicha stok-farqi — shart KUCHDA qoladi', () => {
+      // Yangi parametr eski chaqiruvlarni yumshatib yubormasligi kerak.
+      expect(talab(100, turkum2, 1)).toBeNull();
+      expect(talab(100, turkum2, 1, 'stok-farqi')).toBeNull();
+    });
+  });
+
 });
 
 describe('marja', () => {

@@ -15,7 +15,14 @@
  * tekshiradi.
  */
 import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.ts';
-import type { TovarHolati, TurkumHolati } from './shared/index.ts';
+import {
+  profilOqi,
+  sohalar,
+  yonalishlar,
+  type TovarHolati,
+  type TurkumHolati,
+  type TurkumNomzodi,
+} from './shared/index.ts';
 
 const URL_ = Deno.env.get('SUPABASE_URL') ?? '';
 const KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -76,5 +83,50 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // 2-qadam — yoʻnalish tanlash (reja B2).
+  //
+  // Bu uch `apps/backend` dagi `/yonalishlar` bilan bir xil javob
+  // berishi SHART: mantiq `shared/qadamlar.ts` da, ikkalasi ham
+  // shuni chaqiradi. Nusxa qoʻlda tahrirlanmaydi, CI tekshiradi.
+  if (yol === '/yonalishlar' && req.method === 'POST') {
+    let tana: Record<string, unknown> = {};
+    try {
+      tana = (await req.json()) as Record<string, unknown>;
+    } catch {
+      // Tanasiz soʻrov — boʻsh profil bilan davom etadi.
+    }
+    const profil = profilOqi((tana.profil as Record<string, unknown>) ?? {});
+
+    const nomzodlar = await rpc<TurkumNomzodi[]>('so_yonalish_nomzodlari', {});
+    if (nomzodlar === null) {
+      // Boʻsh roʻyxat "mos yoʻnalish yoʻq" degan daʼvo boʻlardi.
+      return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    }
+
+    const natija = yonalishlar(
+      nomzodlar,
+      profil.budgetUzs,
+      sohalar(profil),
+      hozirgiOy(),
+    );
+    return javob({ olchov_yoq: false, nomzod_soni: nomzodlar.length, ...natija });
+  }
+
   return javob({ xato: 'topilmadi', yol }, 404);
 });
+
+/**
+ * Toshkent vaqti boʻyicha oy raqami (1–12).
+ *
+ * Edge Function UTC da ishlaydi. Mavsum balli oyga bogʻliq, yaʼni
+ * yil oxirida server bir oy adashardi — foydalanuvchi esa
+ * Oʻzbekistonda.
+ */
+function hozirgiOy(): number {
+  return Number(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tashkent',
+      month: 'numeric',
+    }).format(new Date()),
+  );
+}

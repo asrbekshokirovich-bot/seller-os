@@ -35,7 +35,17 @@ export interface Score {
   /** 0–100. Hisoblab bo'lmasa `null`. */
   value: number | null;
   /** "Nega bu tovar?" tugmasi shuni ochadi. */
-  breakdown: Array<{ part: Part; score: number | null; weight: number; used: boolean }>;
+  breakdown: Array<{
+    part: Part;
+    score: number | null;
+    weight: number;
+    /** Ballga qo'shildimi. */
+    used: boolean;
+    /** Shu bosqichda umuman qo'llanadimi. `false` — "ma'lumot yo'q" EMAS. */
+    applicable: boolean;
+  }>;
+  /** Nechta qism shu bosqichda qo'llanmaydi. */
+  notApplicable: number;
   /** Nechta qism hisoblanmagan. */
   missing: number;
   version: string;
@@ -47,23 +57,48 @@ export interface Score {
  * `null` qism vazndan ham chiqariladi — nol deb sanalmaydi. Agar
  * `maxNullParts` dan ko'pi yo'q bo'lsa, natija `null`: tovarni hali
  * baholab bo'lmaydi va u tavsiyaga chiqmaydi.
+ *
+ * `qollanmaydi` — SHU BOSQICHDA umuman qo'llanmaydigan qismlar.
+ *
+ * Bu "ma'lumot yo'q" dan boshqa narsa va farqi hal qiluvchi.
+ * 2-qadamda (yo'nalish tanlash) `marja` hisoblanmaydi, chunki Xitoy
+ * narxi 4-qadamda keladi — bu ma'lumot yetishmovchiligi emas,
+ * bosqichlar tartibi. Uni "yo'q" deb sanasak, 2-qadam tuzilishi
+ * bo'yicha imkonsiz bo'lardi: bitta qism doim yo'q, ya'ni chegara
+ * doim bitta kamroq.
+ *
+ * Qo'llanmaydigan qism na vaznga, na "yo'q" hisobiga kiradi. U
+ * `breakdown` da ko'rinadi (`applicable: false`) — foydalanuvchi
+ * "nega bu ball" degan savolga to'liq javob olishi kerak.
  */
-export function score(parts: Parts, maxNullParts: number): Score {
+export function score(
+  parts: Parts,
+  maxNullParts: number,
+  qollanmaydi: readonly Part[] = [],
+): Score {
+  const chetda = new Set(qollanmaydi);
   const breakdown = PARTS.map((part) => {
     const raw = parts[part];
     const value = typeof raw === 'number' ? clamp(raw) : null;
-    return { part, score: value, weight: WEIGHTS[part], used: value !== null };
+    const applicable = !chetda.has(part);
+    return {
+      part,
+      score: applicable ? value : null,
+      weight: WEIGHTS[part],
+      used: applicable && value !== null,
+      applicable,
+    };
   });
 
-  const missing = breakdown.filter((b) => !b.used).length;
+  const missing = breakdown.filter((b) => b.applicable && !b.used).length;
   if (missing > maxNullParts) {
-    return { value: null, breakdown, missing, version: FORMULA_VERSION };
+    return { value: null, breakdown, missing, notApplicable: chetda.size, version: FORMULA_VERSION };
   }
 
   const used = breakdown.filter((b) => b.used);
   const weightSum = used.reduce((a, b) => a + b.weight, 0);
   if (weightSum === 0) {
-    return { value: null, breakdown, missing, version: FORMULA_VERSION };
+    return { value: null, breakdown, missing, notApplicable: chetda.size, version: FORMULA_VERSION };
   }
 
   const total = used.reduce((a, b) => a + (b.score as number) * b.weight, 0);
@@ -71,6 +106,7 @@ export function score(parts: Parts, maxNullParts: number): Score {
     value: Math.round((total / weightSum) * 100) / 100,
     breakdown,
     missing,
+    notApplicable: chetda.size,
     version: FORMULA_VERSION,
   };
 }

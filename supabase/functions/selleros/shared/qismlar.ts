@@ -16,7 +16,7 @@
  * (QOIDALAR.md, 4-qoida).
  */
 
-import { THRESHOLDS } from './thresholds.js';
+import { THRESHOLDS } from './thresholds.ts';
 
 const F = THRESHOLDS.formula;
 

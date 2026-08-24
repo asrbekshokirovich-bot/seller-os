@@ -167,6 +167,40 @@ Shuning uchun yana ikki qoida:
 Bularning ikkalasi ham CI qadami — eslash yoki ehtiyotkorlikka
 tayanmaydi.
 
+### Yana ikki shakl (2026-08-24, B2 ishida topildi)
+
+Yuqoridagi uch shaklga ikkitasi qo'shildi. Ikkalasi ham **tekshiruvning
+o'ziga** tegadi, ya'ni (c) ning qarindoshlari.
+
+**d) Shart o'z chegarasi bilan boqiladi.** `talab()` o'lchov kunini
+so'raydi va `< MIN_DAYS_FOR_DEMAND` bo'lsa `null` qaytaradi. Chaqiruvchi
+esa kun o'rniga `MIN_DAYS_FOR_DEMAND` ning **o'zini** uzatgan. Shart
+kodda turibdi, testi ham bor, lekin u hech qachon ishlamaydi — chunki
+kirish har doim aynan chegarada.
+
+Qoida: **shart qo'llanmasa, uni kirishni soxtalashtirib emas, ochiq
+aytish kerak.** Endi `talab(..., manba)` bor: `'stok-farqi'` da kun
+shart, `'togridan-togri'` da shart emas — va bu tanlov kodda ham,
+`FORMULA.md` da ham ko'rinib turadi.
+
+Bu shaklni topish oson: agar argument sifatida chegara konstantasi
+uzatilayotgan bo'lsa, o'sha shart o'lik.
+
+**e) Test o'zi qo'ymagan shartga tayanadi.** `/yonalishlar` uchining
+birinchi testi "baza ulanmagan bo'lsa bo'sh ro'yxat qaytarmaydi"
+deb yozilgan va yashil edi. Lekin muhitda `SUPABASE_*` **bor** edi
+— faqat boshqa loyihaga ishora qilardi. So'rov haqiqatan ketgan,
+404 olgan va uch "baza javob bermadi" degan. Test o'tdi, ammo o'zi
+tekshiraman degan sababdan emas; to'g'ri ulangan muhitda esa yiqilardi.
+
+Belgi ochiq turgan edi: test 1,5 soniya ishlagan. Sof funksiya uchun
+mumkin bo'lmagan vaqt.
+
+Qoida: **test o'z shartini o'zi qo'yadi.** Muhit o'zgaruvchisiga
+bog'liq test uni ataylab tozalaydi va tozalanganini **tekshiradi**
+(`expect(process.env.SUPABASE_URL).toBeUndefined()`). Muhitdan
+meros olingan shart — shart emas, tasodif.
+
 ## 9. Ushbu faylni o'zgartirish
 
 Faqat nazoratchi tasdig'i bilan, alohida PR da, sababi yozilgan holda.

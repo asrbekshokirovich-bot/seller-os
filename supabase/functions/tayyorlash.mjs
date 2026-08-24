@@ -22,6 +22,11 @@ const FAYLLAR = [
   ['packages/shared/src/filtrlar/turlar.ts', 'shared/filtrlar/turlar.ts'],
   ['packages/shared/src/filtrlar/yopiq_brend.ts', 'shared/filtrlar/yopiq_brend.ts'],
   ['packages/shared/src/filtrlar/monopoliya.ts', 'shared/filtrlar/monopoliya.ts'],
+  ['packages/shared/src/filtrlar/sertifikat.ts', 'shared/filtrlar/sertifikat.ts'],
+  ['packages/shared/src/filtrlar/demping.ts', 'shared/filtrlar/demping.ts'],
+  ['packages/shared/src/profil.ts', 'shared/profil.ts'],
+  ['packages/shared/src/qismlar.ts', 'shared/qismlar.ts'],
+  ['packages/shared/src/qadamlar.ts', 'shared/qadamlar.ts'],
   ['apps/backend/src/tahlil.ts', 'tahlil.ts'],
 ];
 

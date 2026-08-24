@@ -17,7 +17,7 @@ function turkum(u: Partial<TurkumNomzodi> = {}): TurkumNomzodi {
   return {
     categoryId: 1,
     name: 'Sinov turkumi',
-    bozorHajmi30k: 1000,
+    talabOlchovi: 1000,
     sotuvchiSoni: 20,
     top3Ulush: 30,
     optimalKirishSom: 5_000_000,
@@ -65,7 +65,7 @@ describe('2-qadam — yo\'nalishlar', () => {
 
   it('MA\'LUMOTI YETMAGAN turkum ro\'yxatga chiqmaydi va sanaladi', () => {
     const yomon = turkum({
-      categoryId: 9, bozorHajmi30k: null, top3Ulush: null,
+      categoryId: 9, talabOlchovi: null, top3Ulush: null,
       sotuvchiSoni: null, talablar: { markirovka: null, sertifikat: null, haftalar: null },
       mavsumiylik: null,
     });
@@ -146,5 +146,58 @@ describe('3-qadam — miqdor', () => {
 
   it('zaxira kuni ko\'paysa miqdor ham ko\'payadi', () => {
     expect(miqdor(600, 5, 90)!.dona).toBe(90);
+  });
+});
+
+/**
+ * Bazadagi HAQIQIY maʼlumot shakli — 2026-08-24 oʻlchovi:
+ *
+ *   300 turkum: talab ✓  raqobat ✓  profil ✓
+ *               kirish ✗ (category_requirements toʻldirilmagan)
+ *               mavsum ✗ (seasonality boʻsh)
+ *               marja  — 4-qadamda, 2-qadamda qoʻllanmaydi
+ *
+ * Bu test 2-qadam BUGUNGI maʼlumot bilan ishlashini qulflab qoʻyadi.
+ * Ilgari u boʻsh roʻyxat qaytargan: marja "yoʻq" deb sanalgani uchun
+ * yoʻq qismlar 3 ta boʻlib chegaradan (2) oshib ketardi — yaʼni
+ * bosqich TUZILISHI boʻyicha imkonsiz edi.
+ *
+ * Chegarani koʻtarish bilan "tuzatish" mumkin edi, lekin u boshqa
+ * har qanday maʼlumot yetishmovchiligini ham yashirardi.
+ */
+describe('2-qadam — bugungi maʼlumot bilan', () => {
+  const HOZIRGI: TurkumNomzodi[] = Array.from({ length: 300 }, (_, i) => ({
+    categoryId: i + 1,
+    name: `Turkum ${i + 1}`,
+    talabOlchovi: ((i * 37) % 900) + 10,
+    sotuvchiSoni: (i % 40) + 1,
+    top3Ulush: (i * 7) % 100,
+    optimalKirishSom: null,
+    talablar: { markirovka: null, sertifikat: null, haftalar: null },
+    mavsumiylik: null,
+  }));
+
+  it('BOʻSH roʻyxat qaytarmaydi', () => {
+    const r = yonalishlar(HOZIRGI, null, null, 8);
+    expect(r.baholanmadi).toBe(0);
+    expect(r.royxat.length).toBe(U.maxYonalish);
+  });
+
+  it('marja "qoʻllanmaydi", kirish va mavsum "yoʻq" deb koʻrsatiladi', () => {
+    const [eng] = yonalishlar(HOZIRGI, null, null, 8).royxat;
+    const q = Object.fromEntries(eng!.ball.breakdown.map((b) => [b.part, b]));
+    expect(q.marja).toMatchObject({ applicable: false });
+    expect(q.kirish).toMatchObject({ applicable: true, used: false });
+    expect(q.mavsum).toMatchObject({ applicable: true, used: false });
+    expect(eng!.ball.missing).toBe(2);
+    expect(eng!.ball.notApplicable).toBe(1);
+  });
+
+  it('yana bitta qism yoʻqolsa — jim oʻtmaydi, baholanmaydi', () => {
+    // Chegara hali ham ishlayotganining isboti: yumshatilgani yoʻq.
+    const kamroq = HOZIRGI.map((n) => ({ ...n, sotuvchiSoni: null }));
+    const r = yonalishlar(kamroq, null, null, 8);
+    expect(r.royxat).toHaveLength(0);
+    expect(r.baholanmadi).toBe(300);
   });
 });

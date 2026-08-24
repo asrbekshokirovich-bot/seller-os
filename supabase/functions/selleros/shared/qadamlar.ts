@@ -9,9 +9,9 @@
  * ham AI'siz yashil boʻladi.
  */
 
-import { kirish, mavsum, profil, raqobat, talab, type KirishTalabi } from './qismlar.js';
-import { score, type Parts, type Score } from './formula.js';
-import { THRESHOLDS } from './thresholds.js';
+import { kirish, mavsum, profil, raqobat, talab, type KirishTalabi } from './qismlar.ts';
+import { score, type Parts, type Score } from './formula.ts';
+import { THRESHOLDS } from './thresholds.ts';
 
 const U = THRESHOLDS.usta;
 

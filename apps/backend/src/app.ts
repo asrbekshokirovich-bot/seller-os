@@ -1,7 +1,14 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Sifat, holat } from './sifat.js';
 import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.js';
-import type { TovarHolati, TurkumHolati } from '@selleros/shared';
+import {
+  profilOqi,
+  sohalar,
+  yonalishlar,
+  type TovarHolati,
+  type TurkumHolati,
+  type TurkumNomzodi,
+} from '@selleros/shared';
 
 /**
  * Backend — yagona kirish nuqtasi.
@@ -67,7 +74,60 @@ export function build(): FastifyInstance {
     };
   });
 
+  /**
+   * 2-qadam — yoʻnalish tanlash (reja B2).
+   *
+   * Xom raqamlarni baza beradi (`so_yonalish_nomzodlari`), ballni
+   * `@selleros/shared` hisoblaydi. Ikkiga boʻlinishi ataylab: bir xil
+   * mantiq web, bot va kengaytmaga bitta joydan xizmat qiladi.
+   *
+   * Profil SOʻROV TANASIDA keladi, bazadan olinmaydi. Sabab: hozir
+   * autentifikatsiya yoʻq va foydalanuvchini aniqlaydigan narsa yoʻq.
+   * Uni "bor" deb koʻrsatish oʻrniga ochiq shunday qoldirilgan; auth
+   * ulangach shu yerga `user_profiles` oʻqishi qoʻshiladi.
+   */
+  app.post('/yonalishlar', async (request) => {
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const profil = profilOqi(
+      (tana.profil as Record<string, unknown>) ?? {},
+    );
+
+    const nomzodlar = await rpc<TurkumNomzodi[]>('so_yonalish_nomzodlari', {});
+    if (nomzodlar === null) {
+      // Boʻsh roʻyxat "mos yoʻnalish yoʻq" degan DAʼVO boʻlardi.
+      // Baza javob bermagani boshqa narsa va shunday aytiladi.
+      return { olchov_yoq: true, sabab: 'baza javob bermadi' };
+    }
+
+    const natija = yonalishlar(
+      nomzodlar,
+      profil.budgetUzs,
+      sohalar(profil),
+      hozirgiOy(),
+    );
+
+    return {
+      olchov_yoq: false,
+      nomzod_soni: nomzodlar.length,
+      ...natija,
+    };
+  });
+
   return app;
+}
+
+/**
+ * Toshkent vaqti boʻyicha oy raqami (1–12).
+ *
+ * Serverning oʻz mintaqasi emas: mavsum balli oyga bogʻliq va server
+ * UTC da tursa yil oxirida bir oy adashardi. Foydalanuvchi Oʻzbekistonda.
+ */
+function hozirgiOy(): number {
+  const matn = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tashkent',
+    month: 'numeric',
+  }).format(new Date());
+  return Number(matn);
 }
 
 /** Bazadagi funksiyani chaqiradi. `null` — ulanmagan yoki javob yoʻq. */

@@ -48,6 +48,22 @@ Ma'lumot yetarli bo'lmasa (< `MIN_DAYS_FOR_DEMAND` kunlik nuqta) — qism
 `null`, ball hisoblanmaydi va tovar "ma'lumot yig'ilmoqda" deb belgilanadi.
 Nol qo'yilmaydi: nol "talab yo'q" degan javob bo'lardi.
 
+**Kun sharti faqat stok farqiga tegishli** *(aniqlashtirish, 2026-08-24)*.
+U bitta o'lchovdan farq chiqmagani uchun qo'yilgan. Platformaning o'zi
+aytgan raqam (perepisdagi haftalik xaridorlar) bitta o'lchovda ham
+to'liq — unga bu shart tegishli emas va `talab(..., 'togridan-togri')`
+bilan ochiq chetlab o'tiladi.
+
+Chetlash **ochiq** bo'lishi shart. Ilgari chaqiruvchi kun soni o'rniga
+chegaraning O'ZINI (`MIN_DAYS_FOR_DEMAND`) uzatib, shartni jimgina
+bekor qilgan edi: kod tekshiruv bordek ko'rinardi, lekin u hech qachon
+ishlamasdi.
+
+Qism **persentil** bo'lgani uchun o'lchov BIRLIGI muhim emas — monoton
+bo'lsa kifoya. Shuning uchun 30 kunlik sotuv yig'ilgunicha uning
+o'rniga boshqa talab o'lchovi qo'yilishi mumkin va turkumlar tartibi
+o'zgarmaydi.
+
 ### 2. Marja — `marja`
 
 ```
@@ -114,6 +130,48 @@ ro'yxatga sirg'alib kirishi mumkin.
 Qism `null` bo'lsa u **vazndan ham chiqariladi** (nol deb sanalmaydi).
 Agar ikkitadan ko'p qism `null` bo'lsa — tovar "hali baholab bo'lmaydi"
 deb belgilanadi va tavsiyaga chiqmaydi.
+
+## «Qo'llanmaydi» — «yo'q» dan BOSHQA holat
+
+*Qo'shimcha, 2026-08-24. Yuqoridagi qoidani o'zgartirmaydi, chegarasini
+aniqlaydi.*
+
+Uchta holat bor, ikkitasi emas:
+
+| Holat | Ma'nosi | Vaznda | «Yo'q» hisobida |
+|---|---|---|---|
+| son | o'lchangan javob (0 ham javob) | ✅ | — |
+| `null` | **bilmayman** — o'lchanmagan | ❌ | ✅ sanaladi |
+| qo'llanmaydi | shu BOSQICHDA umuman so'ralmaydi | ❌ | ❌ sanalmaydi |
+
+Farq nima uchun kerak. 2-qadamda (yo'nalish tanlash) `marja` hech qachon
+ma'lum emas: Xitoy narxi 4-qadamda keladi. Uni «yo'q» deb sanasak,
+bitta qism **doim** yo'q bo'ladi — ya'ni 2-qadamda chegara amalda
+2 emas, 1. Bu bosqichni tuzilishi bo'yicha imkonsiz qiladi: bugungi
+ma'lumot bilan 300 turkumdan hech biri baholanmaydi va ro'yxat bo'sh
+chiqadi.
+
+Yechim chegarani ko'tarish EMAS. Chegarani ko'tarish har qanday boshqa
+ma'lumot yetishmovchiligini ham yashirardi — bugun `marja` ni, ertaga
+`talab` ni.
+
+Kodda: `score(parts, maxNullParts, qollanmaydi)`. Uchinchi argument —
+shu bosqichda qo'llanmaydigan qismlar ro'yxati. Ular vaznga ham,
+«yo'q» hisobiga ham kirmaydi, lekin `breakdown` da `applicable: false`
+bilan **ko'rinib turadi** — «Nega bu ball?» savoliga to'liq javob
+berilishi kerak.
+
+**Ro'yxat qisqa bo'lishi shart.** Bu yerga qism qo'shish — uni ballga
+ta'sirsiz qilish demak, ya'ni tekshiruvni yumshatishning eng oson
+yo'li. Har qo'shimcha shu hujjatda sababi bilan yozilishi kerak.
+
+| Bosqich | Qo'llanmaydi | Sabab |
+|---|---|---|
+| 2-qadam (yo'nalish) | `marja` | Xitoy narxi 4-qadamda keladi |
+
+`kirish` va `mavsum` bu ro'yxatda **yo'q**, garchi bugun ikkalasi ham
+bo'sh bo'lsa ham: ular to'planishi kerak bo'lgan ma'lumot, ya'ni
+`null` — «bilmayman». Bo'sh bo'lgani «qo'llanmaydi» degani emas.
 
 ## Versiya tarixi
 

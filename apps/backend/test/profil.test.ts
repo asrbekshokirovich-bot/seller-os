@@ -16,6 +16,7 @@ import {
   profilOqi,
   royxatdan,
   royxatga,
+  sohalar,
   songa,
 } from '@selleros/shared';
 
@@ -138,5 +139,22 @@ describe('profilOqi', () => {
     // `false` javob — u null EMAS va sanaladi.
     expect(p.hasUzumShop).toBe(false);
     expect(p.certExperience).toBe(false);
+  });
+});
+
+describe('sohalar', () => {
+  it('uch savolni birlashtiradi va TAKRORNI olib tashlaydi', () => {
+    const p = { ...bosProfil(), experience: ['avto'], familyField: ['Avto'], interest: ['sport'] };
+    expect(sohalar(p)?.sort()).toEqual(['avto', 'sport']);
+  });
+
+  it('hech biriga javob yoʻq boʻlsa null — boʻsh massiv emas', () => {
+    expect(sohalar(bosProfil())).toBeNull();
+  });
+
+  it('BOʻSH massiv javob deb saqlanadi', () => {
+    // "Hech qaysi sohada tajribam yoʻq" — bu javob, soʻralmagan emas.
+    const p = { ...bosProfil(), experience: [] };
+    expect(sohalar(p)).toEqual([]);
   });
 });
