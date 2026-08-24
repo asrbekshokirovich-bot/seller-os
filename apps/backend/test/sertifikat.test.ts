@@ -46,6 +46,22 @@ describe('bilinmagan holat', () => {
     expect(n).toEqual({ kind: 'baholanmadi', missing: ['certificateRequired'] });
   });
 
+  it('BILINGAN TALAB bilinmagan maydon tufayli YOʻQOLMAYDI', () => {
+    // Markirovka aniq kerak, sertifikat holati tekshirilmagan.
+    // Avval bu holat butunlay jim qolardi: funksiya ikkala maydonni
+    // ham talab qilgani uchun foydalanuvchi hech narsa koʻrmasdi.
+    // Yaʼni bilgan narsamizni bilmaganimiz tufayli yashirardik.
+    const n = bayroq(sertifikat(talab({ markingRequired: true, certificateRequired: null })));
+    expect(n.kind).toBe('certification');
+    expect(n.reason).toContain('markirovka');
+    expect(n.evidence.sertifikat).toBe('tekshirilmagan');
+  });
+
+  it('tekshirilmagan maydon matnda ochiq aytiladi', () => {
+    const n = bayroq(sertifikat(talab({ certificateRequired: true, markingRequired: null })));
+    expect(n.reason).toContain('markirovka holati tekshirilmagan');
+  });
+
   it('ikkalasi ham null — ikkalasi ham ro\'yxatda', () => {
     const n = sertifikat(talab({ markingRequired: null, certificateRequired: null }));
     expect(n).toEqual({

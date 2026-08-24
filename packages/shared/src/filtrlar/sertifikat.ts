@@ -47,24 +47,37 @@ export interface KirishTalablari {
  * qayerdan olingani bilinmasa, uni qayta tekshirib boʻlmaydi.
  */
 export function sertifikat(t: KirishTalablari): Flag | Baholanmadi | null {
-  const yetishmaydi: string[] = [];
-  if (t.markingRequired === null) yetishmaydi.push('markingRequired');
-  if (t.certificateRequired === null) yetishmaydi.push('certificateRequired');
-  if (yetishmaydi.length > 0) {
-    return { kind: 'baholanmadi', missing: yetishmaydi };
-  }
-  if (!t.source) {
-    return { kind: 'baholanmadi', missing: ['source'] };
-  }
+  // Manbasiz qatorga umuman tayanilmaydi.
+  if (!t.source) return { kind: 'baholanmadi', missing: ['source'] };
 
   const talablar: string[] = [];
   if (t.markingRequired) talablar.push('markirovka');
   if (t.certificateRequired) talablar.push('sertifikat');
-  if (talablar.length === 0) return null;
+
+  // BILINGAN TALAB BILINMAGAN MAYDON TUFAYLI YOʻQOLMAYDI.
+  //
+  // Avval bu funksiya ikkala maydon ham maʼlum boʻlishini talab
+  // qilardi. Amalda bu shuni anglatardi: markirovka aniq kerakligini
+  // bilsak-u, sertifikat holati tekshirilmagan boʻlsa, foydalanuvchi
+  // hech qanday ogohlantirish koʻrmasdi. Yaʼni bilgan narsamizni
+  // bilmagan narsamiz tufayli yashirardik — eng yomon yoʻnalish.
+  //
+  // Endi tartib boshqacha: bilingan talab har doim aytiladi, bilinmagan
+  // maydon esa matnda ochiq koʻrsatiladi.
+  if (talablar.length === 0) {
+    const yetishmaydi: string[] = [];
+    if (t.markingRequired === null) yetishmaydi.push('markingRequired');
+    if (t.certificateRequired === null) yetishmaydi.push('certificateRequired');
+    // Ikkalasi ham `false` — talab yoʻq, bu haqiqiy javob.
+    return yetishmaydi.length > 0 ? { kind: 'baholanmadi', missing: yetishmaydi } : null;
+  }
+
+  const holat = (q: boolean | null): string =>
+    q === null ? 'tekshirilmagan' : q ? 'kerak' : 'kerak emas';
 
   const evidence: Record<string, number | string> = {
-    markirovka: t.markingRequired ? 'kerak' : 'kerak emas',
-    sertifikat: t.certificateRequired ? 'kerak' : 'kerak emas',
+    markirovka: holat(t.markingRequired),
+    sertifikat: holat(t.certificateRequired),
     manba: t.source,
   };
 
@@ -72,6 +85,10 @@ export function sertifikat(t: KirishTalablari): Flag | Baholanmadi | null {
   // 0 hafta" degan xabar "arzon va tez" degan taassurot beradi, holbuki
   // aslida "bilmaymiz".
   const qismlar: string[] = [`Kirishdan oldin: ${talablar.join(' + ')}`];
+  // Qolgan maydon tekshirilmagan boʻlsa, buni ham aytamiz — "faqat
+  // markirovka kerak ekan" degan notoʻgʻri xotirjamlik tugʻilmasin.
+  if (t.markingRequired === null) qismlar.push('markirovka holati tekshirilmagan');
+  if (t.certificateRequired === null) qismlar.push('sertifikat holati tekshirilmagan');
   if (t.entryCostUzs !== null) {
     evidence.xarajat_som = t.entryCostUzs;
     qismlar.push(`~${t.entryCostUzs.toLocaleString('uz-UZ')} soʻm`);
