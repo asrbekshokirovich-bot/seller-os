@@ -63,3 +63,17 @@ keyin sotuv hisoblana boshlaydi.
 
 Kerak: 2-qatlam tsikli kuniga kamida 2 marta o'lchasin (`certainty`
 `o'rta` bo'lishi uchun), imkoni bo'lsa 3 marta (`yuqori`).
+
+## 1-qadam formasi — parser yozilgan, ulanmagan
+
+`packages/shared/src/profil.ts` dagi `profilOqi`, `bosProfil`,
+`javobSoni` testlari bilan tayyor, lekin ishlab chiqarish kodida hech
+kim chaqirmaydi: forma yoʻq (`apps/web` boʻsh).
+
+Bu OʻLIK KOD va u `scripts/olik-kod.mjs` ning `ISTISNO` roʻyxatida
+sababi bilan yozilgan. Roʻyxatga yozilishining maʼnosi shu: kod
+jimgina emas, bilib turib oʻlik. Forma yozilgach istisno olib
+tashlanadi.
+
+Kerak: `apps/web` da 1-qadam formasi va javoblarni
+`selleros.user_profiles` ga yozadigan uch.

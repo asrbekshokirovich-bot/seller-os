@@ -109,6 +109,64 @@ Shuning uchun:
 3. Filtr darvoza ro'yxatida kamida bir marta bayroq qo'yishi shart.
    Hech qachon ishlamaydigan filtr — o'lik kod.
 
+### Nega bu takrorlanaveradi (2026-08-24 tahlili)
+
+Bir kunda **yettita** jim kamchilik topildi. Yuqoridagi uchta qoida
+ularning bittasini ham ushlamagan bo'lardi. Demak qoidalar to'g'ri,
+lekin sabab chuqurroqda edi.
+
+Yettitasi:
+
+| # | Nima | Nima ko'ringan |
+|---|---|---|
+| 1 | `trackedProducts()` PostgREST 1000 qatorda kesilgan | Sweep "hammasini o'lchadim" degan, aslida 2% |
+| 2 | Skreyperning ishga tushirish nuqtasi yo'q | 29 test yashil, `selleros` bo'sh |
+| 3 | `PRODUCT_QUERY_STOK` chaqirilmagan | `stock` har doim `None`, sotuv baholash ishlamaydi |
+| 4 | `next_delay()` qaytargan qiymati tashlangan | Hurmat rejimi qog'ozda, so'rov to'liq tezlikda |
+| 5 | `so_sweep_close` bo'sh javob qaytargan | Yozish o'tgan, buyruq qizil — sabab chalg'itgan |
+| 6 | `category_requirements` `NOT NULL boolean` + bo'sh jadval | Har turkum "sertifikat kerak emas" |
+| 7 | `sertifikat()` ikkala maydonni ham talab qilgan | Bilingan talab yashiringan |
+
+**Umumiy sabab bitta: bu joylarda «hech narsa bo'lmadi» va «hammasi
+joyida» bir xil ko'rinadi.**
+
+Har birida tizim javob qaytargan — 200, `false`, bo'sh ro'yxat, yashil
+test. Javob bor bo'lgani uchun hech kim savol bermagan.
+
+Uchta shakl takrorlanadi:
+
+**a) Standart qiymat da'voga aylanadi.** `NOT NULL DEFAULT false`,
+`Number("")` → `0`. Tur tizimi qiymat talab qiladi, yo'qlik esa
+javobga aylanadi. (6-band, va bugun `user_profiles` da oldini oldik.)
+
+**b) Chegara jimgina kesadi.** PostgREST 1000 qatordan keyin to'xtaydi
+va 200 qaytaradi. Uning shartnomasi "mana ma'lumot", "mana
+BUTUN ma'lumot" emas. (1-band.)
+
+**c) Test o'lik kodni tirik ko'rsatadi.** Test funksiyani o'zi
+chaqiradi. Shuning uchun "uni hech kim chaqirmaydi" degan holat
+testda ham yashil bo'ladi. (2- va 3-bandlar.)
+
+Uchinchisi eng ayyori, chunki u tekshiruvning o'ziga tegadi. Buni
+o'lchab ko'rdik: `scripts/olik-kod.mjs` ning birinchi versiyasi
+testni ham sanardi va shu sababli 3-bandni ushlay olmadi — qorovulda
+u tekshiradigan kasallikning o'zi bor edi.
+
+Shuning uchun yana ikki qoida:
+
+4. **Eksport ishlab chiqarish kodida ishlatilishi shart. Test
+   sanalmaydi.** `npm run olik-kod` shuni tekshiradi. Ataylab hali
+   ulanmagan kod `ISTISNO` ro'yxatiga **sababi bilan** yoziladi —
+   "jimgina o'lik" bilan "bilib turib o'lik" orasidagi farq shu.
+
+5. **Ro'yxat qaytaradigan har bir chegara to'liqligi bilan
+   tekshiriladi.** Sahifalab o'qilsa — `count` bilan solishtiriladi;
+   yaxshirog'i, chegara umuman tegmaydigan shakl tanlanadi
+   (`so_select_tracked` bitta jsonb massiv qaytaradi, qator emas).
+
+Bularning ikkalasi ham CI qadami — eslash yoki ehtiyotkorlikka
+tayanmaydi.
+
 ## 9. Ushbu faylni o'zgartirish
 
 Faqat nazoratchi tasdig'i bilan, alohida PR da, sababi yozilgan holda.

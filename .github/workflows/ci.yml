@@ -23,6 +23,14 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npx vitest run
+
+      # Testi bor, lekin hech kim chaqirmaydigan kodni topadi.
+      # 2026-08-24 da shunday ikkita holat topilgan edi va ikkalasida
+      # ham testlar yashil turgan: test funksiyani OʻZI chaqiradi,
+      # shuning uchun "hech kim chaqirmaydi" degan holat testda ham
+      # yashil koʻrinadi (QOIDALAR.md §8, 4-qoida).
+      - name: Oʻlik kod yoʻqmi
+        run: npm run olik-kod
       # Edge Function nusxasi manbadan ajralib ketmasin. Ikki nusxa
       # boʻlgan joyda ular albatta bir kun farq qiladi va buni hech kim
       # sezmaydi — aynan shu naqshdan qochamiz.
