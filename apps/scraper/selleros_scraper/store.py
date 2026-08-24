@@ -76,6 +76,24 @@ class Store:
             return {"categories": 0, "shops": 0, "products": 0, "daily": 0, "observations": 0}
         return self._rpc(client, "so_ingest_batch", {"p_platform": self.platform, "p_batch": partiya})
 
+    def kuzatuv_royxati(self, client: httpx.Client, limit: int | None = None) -> list[int]:
+        """Qaysi tovarlar o'lchanadi.
+
+        Ro'yxat bazada turadi (`selleros.tracked_product`) va turkum
+        bo'yicha muvozanatli tanlangan — faqat eng ko'p sotiladiganlar
+        emas, aks holda turkum medianasi shishib ketardi.
+
+        RPC qator emas, bitta jsonb massiv qaytaradi. Bu ataylab:
+        PostgREST qator qaytaradigan so'rovni 1000 tada kesadi va xato
+        bermaydi. Aynan shu zumsavdo sweepini jimgina 2% ga tushirgan
+        edi. Bitta skalyar qiymatga bu chegara tegmaydi, ya'ni
+        sahifalashni unutish ham mumkin emas.
+        """
+        javob = self._rpc(client, "so_select_tracked", {"p_limit": limit})
+        if not isinstance(javob, list):
+            raise StoreError(f"so_select_tracked ro'yxat qaytarmadi: {type(javob).__name__}")
+        return [int(x) for x in javob]
+
     def sotuvni_hisobla(self, client: httpx.Client, kundan: str, kungacha: str) -> dict[str, Any]:
         return self._rpc(client, "so_rollup_sales", {"p_from": kundan, "p_to": kungacha})
 

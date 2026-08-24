@@ -80,3 +80,13 @@ def test_ogir_sorov_aynan_stok_query_si():
     sorov(c, {}, 1, stok=True)
     assert "sellerosProductStok" in yuborilgan[0]
     assert PRODUCT_QUERY_STOK.strip()[:40] in yuborilgan[0].replace("\\n", "\n")
+
+
+def test_kuzatuv_rejimida_id_oraligi_talab_qilinmaydi(monkeypatch, capsys):
+    """`--kuzatuv` da ro'yxat bazadan keladi, argumentdan emas."""
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    # Sir yo'q — 2 qaytaradi, ya'ni id oralig'i yo'qligidan EMAS,
+    # balki bazaga ulanib bo'lmaganidan to'xtadi.
+    assert main(["--kuzatuv"]) == 2
+    assert "quruq" in capsys.readouterr().err

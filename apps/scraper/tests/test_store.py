@@ -68,3 +68,27 @@ def test_bosh_partiya_sorov_yubormaydi():
     natija = s.yoz(c, [])
     assert not yuborildi, "bo'sh partiya uchun so'rov yuborilmasligi kerak"
     assert natija["observations"] == 0
+
+
+def test_KUZATUV_ROYXATI_KESILMAYDI():
+    """RPC bitta massiv qaytaradi — 1000 qatorlik chegara tegmaydi.
+
+    Zumsavdo sweepi aynan shu chegarada jimgina 2% ga tushib qolgan
+    edi. Bu yerda qator emas, skalyar qaytariladi, ya'ni sahifalash
+    kerak emas va shuning uchun uni unutish ham mumkin emas.
+    """
+    katta = list(range(1, 6001))
+    s, c = store_bilan(lambda r: httpx.Response(200, json=katta))
+    assert len(s.kuzatuv_royxati(c)) == 6000
+
+
+def test_bosh_kuzatuv_royxati_xato_emas():
+    s, c = store_bilan(lambda r: httpx.Response(200, json=[]))
+    assert s.kuzatuv_royxati(c) == []
+
+
+def test_royxat_ORNIGA_boshqa_narsa_kelsa_xato():
+    """Jimgina bo'sh ro'yxatga aylanmaydi."""
+    s, c = store_bilan(lambda r: httpx.Response(200, json={"xato": "yo'q"}))
+    with pytest.raises(StoreError, match="ro'yxat qaytarmadi"):
+        s.kuzatuv_royxati(c)

@@ -51,7 +51,7 @@ def id_lar(args: argparse.Namespace) -> list[int]:
     if args.id:
         return list(args.id)
     if args.dan is None or args.gacha is None:
-        raise SystemExit("--id yoki (--dan va --gacha) bering.")
+        raise SystemExit("--kuzatuv, --id yoki (--dan va --gacha) bering.")
     if args.gacha < args.dan:
         raise SystemExit("--gacha --dan dan kichik.")
     return list(range(args.dan, args.gacha + 1))
@@ -64,17 +64,20 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--gacha", type=int, help="Oraliq oxiri (kiradi).")
     p.add_argument("--stok", action="store_true",
                    help="Og'ir so'rov: qoldiqni ham oladi (javob ~16 barobar katta).")
+    p.add_argument("--kuzatuv", action="store_true",
+                   help="Id larni bazadagi kuzatuv ro'yxatidan oladi (turkum bo'yicha muvozanatli).")
     p.add_argument("--quruq", action="store_true",
                    help="Bazaga yozmaydi. Sir ham kerak emas.")
     p.add_argument("--rps", type=float, default=Limits.per_second,
                    help=f"So'rov/soniya (standart {Limits.per_second}).")
     args = p.parse_args(argv)
 
-    ids = id_lar(args)
     limits = Limits(per_second=args.rps)
 
     store: Store | None = None
-    if not args.quruq:
+    if not args.quruq or args.kuzatuv:
+        # `--kuzatuv` da baza kerak, hatto quruq yurishda ham: ro'yxat
+        # o'sha yerda turadi.
         try:
             store = Store.env_dan()
         except StoreError as xato:
@@ -86,7 +89,19 @@ def main(argv: list[str] | None = None) -> int:
 
     tokens = TokenProvider(user_agent=UA, installation_id=str(uuid.uuid4()))
     with httpx.Client(timeout=limits.timeout_s) as client:
-        hisobot = sweep(ids, client=client, tokens=tokens, store=store,
+        if args.kuzatuv:
+            assert store is not None
+            ids = store.kuzatuv_royxati(client)
+            if not ids:
+                print("XATO: kuzatuv ro'yxati bo'sh.", file=sys.stderr)
+                print("To'ldirish: select selleros.kuzatuv_yangilash();", file=sys.stderr)
+                return 1
+            print(f"Kuzatuv ro'yxati: {len(ids)} ta tovar.", file=sys.stderr)
+        else:
+            ids = id_lar(args)
+
+        hisobot = sweep(ids, client=client, tokens=tokens,
+                        store=None if args.quruq else store,
                         limits=limits, stok=args.stok)
 
     print(json.dumps({
