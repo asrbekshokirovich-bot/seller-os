@@ -57,4 +57,41 @@ if (tekshirish && farq) {
   console.error(`\n${farq} ta fayl eskirgan. Yechim: node supabase/functions/tayyorlash.mjs`);
   process.exit(1);
 }
+
+/*
+ * ROʻYXAT TOʻLIQMI.
+ *
+ * Yuqoridagi tekshiruv faqat roʻyxatDAGI fayllarni solishtiradi —
+ * yaʼni roʻyxatga qoʻshilMAGAN faylni u koʻrmaydi. Aynan shu
+ * 2026-08-24 da staging deployini uch marta qizil qilgan:
+ * `shared/index.ts` `./profil.js` ni eksport qilardi, roʻyxatda esa
+ * u yoʻq edi. CI yashil, deploy qizil, sabab esa boshqa joyda
+ * koʻringan ("Module not found").
+ *
+ * Endi import grafi kuzatiladi: nusxadagi har bir nisbiy import
+ * fayli haqiqatan bor boʻlishi shart. Bu Deno bundle qiladigan
+ * tekshiruvning oʻzi, faqat CI da va bir soniyada.
+ */
+const kutilgan = new Set(FAYLLAR.map(([, nusxa]) => nusxa));
+const yetishmaydi = [];
+
+for (const [, nusxa] of FAYLLAR) {
+  const yol = join(MAQSAD, nusxa);
+  if (!existsSync(yol)) continue;
+  const matn = readFileSync(yol, 'utf8');
+  for (const [, manzil] of matn.matchAll(/from '(\.[^']*\.ts)'/g)) {
+    const kerak = join(dirname(nusxa), manzil).replace(/\\/g, '/');
+    if (!kutilgan.has(kerak) && !existsSync(join(MAQSAD, kerak))) {
+      yetishmaydi.push(`${nusxa} → ${manzil}`);
+    }
+  }
+}
+
+if (yetishmaydi.length) {
+  console.error('\nNusxa roʻyxati TOʻLIQ EMAS. Quyidagi importlar fayli yoʻq:');
+  for (const q of yetishmaydi) console.error(`  ${q}`);
+  console.error('\nYechim: FAYLLAR roʻyxatiga manbani qoʻshing.');
+  process.exit(1);
+}
+
 console.log(tekshirish ? 'Nusxalar manbaga mos.' : `${FAYLLAR.length} ta fayl tayyorlandi.`);

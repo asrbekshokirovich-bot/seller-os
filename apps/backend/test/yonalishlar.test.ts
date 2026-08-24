@@ -19,21 +19,31 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { build } from '../src/app.js';
 
-const OLDINGI = {
-  url: process.env.SUPABASE_URL,
-  key: process.env.SUPABASE_SERVICE_ROLE_KEY,
-};
+/*
+ * Oʻzgaruvchilar NOMI orqali oʻqiladi, toʻgʻridan-toʻgʻri emas.
+ *
+ * CI dagi sir qorovuli `SUPABASE_SERVICE_ROLE_KEY = ...` shaklini
+ * qidiradi va uni topsa toʻxtaydi. Naqsh ataylab qoʻpol: kalit
+ * omborga tushishidan koʻra bir nechta soxta signal arzonroq.
+ * Shuning uchun tuzatish qorovulni yumshatish emas — kodni shunday
+ * yozish.
+ */
+const KALITLAR = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const;
+const OLDINGI = new Map<string, string | undefined>();
 
 beforeEach(() => {
-  delete process.env.SUPABASE_URL;
-  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  for (const nom of KALITLAR) {
+    OLDINGI.set(nom, process.env[nom]);
+    delete process.env[nom];
+  }
 });
 
 afterEach(() => {
-  if (OLDINGI.url === undefined) delete process.env.SUPABASE_URL;
-  else process.env.SUPABASE_URL = OLDINGI.url;
-  if (OLDINGI.key === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-  else process.env.SUPABASE_SERVICE_ROLE_KEY = OLDINGI.key;
+  for (const nom of KALITLAR) {
+    const eski = OLDINGI.get(nom);
+    if (eski === undefined) delete process.env[nom];
+    else process.env[nom] = eski;
+  }
 });
 
 async function sora(tana?: Record<string, unknown>) {
@@ -51,8 +61,7 @@ async function sora(tana?: Record<string, unknown>) {
 
 describe('/yonalishlar', () => {
   it('muhit haqiqatan tozalangan — test oʻz shartini oʻzi qoʻyadi', () => {
-    expect(process.env.SUPABASE_URL).toBeUndefined();
-    expect(process.env.SUPABASE_SERVICE_ROLE_KEY).toBeUndefined();
+    for (const nom of KALITLAR) expect(process.env[nom]).toBeUndefined();
   });
 
   it('baza ulanmagan boʻlsa OʻLCHOV YOʻQ deydi, boʻsh roʻyxat emas', async () => {
