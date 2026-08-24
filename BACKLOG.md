@@ -64,7 +64,29 @@ keyin sotuv hisoblana boshlaydi.
 Kerak: 2-qatlam tsikli kuniga kamida 2 marta o'lchasin (`certainty`
 `o'rta` bo'lishi uchun), imkoni bo'lsa 3 marta (`yuqori`).
 
-## 1-qadam formasi — parser ulandi, forma hali yoʻq
+## ~~1-qadam formasi~~ — YOZILDI, lekin javob SAQLANMAYDI
+
+*2026-08-24.* `apps/web` da Next.js sahifasi bor: 12 savol, natija
+roʻyxati va "Nega bu ball?" jadvali. Brauzerda tekshirildi —
+sahifa 2434 px, 12 ta savol, 5 ta natija kartochkasi, jadvalda
+uchala holat ham koʻrinadi (hisobga olindi / maʼlumot yoʻq /
+bu bosqichda hisoblanmaydi).
+
+**QOLADI: javoblar `selleros.user_profiles` ga yozilmaydi.**
+
+Hozir profil har soʻrovda tanadan keladi va soʻrov tugagach
+yoʻqoladi. Yaʼni foydalanuvchi sahifani yangilasa hammasini
+qaytadan toʻldiradi, va ikkinchi qadamga (miqdor, tovar tanlash)
+oʻtganda profil qayerdan olinishi noaniq.
+
+Buning sababi ochiq: **autentifikatsiya yoʻq.** Foydalanuvchini
+aniqlaydigan narsa boʻlmagani uchun javobni kimga bogʻlab yozish
+kerakligi ham maʼlum emas. Uni "bor" deb koʻrsatish oʻrniga
+shunday qoldirildi.
+
+Kerak: auth (B3), soʻng `/profil` uchi va sahifada saqlash.
+
+## 1-qadam parseri — ulandi
 
 *Yangilandi 2026-08-24.* `profilOqi` endi ishlab chiqarishda
 chaqiriladi: `/yonalishlar` uchi profilni soʻrov tanasidan oʻqiydi

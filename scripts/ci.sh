@@ -28,6 +28,14 @@ npm run lint
 qadam "typecheck"
 npm run typecheck
 
+qadam "qurish (web)"
+# Typecheck yetarli EMAS. `next build` boshqa narsalarni ham
+# tekshiradi: server/mijoz chegarasi ("use client" yoʻq komponentda
+# `useState`), sahifa marshrutlari, va bogʻliqliklarni bogʻlash.
+# Ular typecheckdan oʻtadi va faqat qurishda yiqiladi — yaʼni bu
+# qadam boʻlmasa, buzilgan sahifa CI dan yashil oʻtardi.
+npm run build --workspace @selleros/web
+
 qadam "testlar (Node)"
 npx vitest run
 

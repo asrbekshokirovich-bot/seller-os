@@ -9,3 +9,4 @@ export * from './filtrlar/sertifikat.ts';
 export * from './qismlar.ts';
 export * from './filtrlar/demping.ts';
 export * from './qadamlar.ts';
+export * from './savollar.ts';

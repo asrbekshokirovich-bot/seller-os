@@ -9,3 +9,4 @@ export * from './filtrlar/sertifikat.js';
 export * from './qismlar.js';
 export * from './filtrlar/demping.js';
 export * from './qadamlar.js';
+export * from './savollar.js';

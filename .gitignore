@@ -16,3 +16,7 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+
+# Mahalliy sozlamalar — omborga tushmaydi.
+.env.local
+.next/

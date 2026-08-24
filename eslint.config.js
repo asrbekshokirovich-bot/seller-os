@@ -13,7 +13,18 @@ import tseslint from 'typescript-eslint';
  * odat boʻlib qoladi. Bu yerdagilar bugungi haqiqiy xatolarga qarshi.
  */
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/*.js', '**/*.mjs'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/*.js',
+      '**/*.mjs',
+      // Next.js qurish paytida yozadigan turlar. Ular mashina
+      // yozgan va `any` bilan toʻla — ularni tekshirishning maʼnosi
+      // yoʻq, chunki tuzatib boʻlmaydi.
+      'apps/web/.next/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
