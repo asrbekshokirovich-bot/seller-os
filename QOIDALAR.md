@@ -236,6 +236,22 @@ chaqirilmasdi. API faqat mashina nomlarini qaytarardi, ya'ni
 foydalanuvchi uchun yozilgan matn foydalanuvchiga hech qachon yetib
 bormasdi. Endi `/tuzoqlar` javobida `turlar` maydoni bor.
 
+**h) Baza funksiyasining javob SHAKLI — shartnoma.**
+`so_yonalish_nomzodlari()` massiv qaytarardi, men uni obyektga
+o'zgartirdim va migratsiyani darhol qo'lladim. Uni O'QIYDIGAN kod
+esa hali eski edi: Edge Function massiv kutardi, obyekt oldi va
+**500 qaytardi**. To'rt daqiqa davomida uch ishlamadi.
+
+Migratsiya "faqat baza" emas. Uni o'qiydigan har bir joy — backend,
+Edge Function, skreyper, panel — o'sha shartnomaga bog'langan.
+
+Tartib: **avval kod (ikkala shaklni ham qabul qiladigan), keyin
+migratsiya, keyin eski shaklni olib tashlash.** Yoki, kichik
+loyihada — migratsiya va deploy bir commitda, va uzilish oynasi
+BILIB TURIB qabul qilinadi. Farqi: birinchisida uzilish yo'q,
+ikkinchisida u kutilgan va qisqa. Yomoni — uchinchisi: uzilish bor,
+lekin uni hech kim kutmagan.
+
 ### Istisno "hozircha" degani, "abadiy" emas
 
 `ISTISNO` ro'yxatining o'zi ham jim o'lim manbai: nom bir marta
