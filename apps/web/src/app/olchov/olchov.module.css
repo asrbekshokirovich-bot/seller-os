@@ -1,0 +1,520 @@
+/*
+ * Oʻlchov paneli uslubi.
+ *
+ * NEGA ALOHIDA PALITRA. `globals.css` — Usta formasining uslubi:
+ * oq fon, koʻk tugma, keng qator. Panel esa asbob: uni oʻqimaydilar,
+ * KOʻZDAN KECHIRADILAR. Shuning uchun zich jadval, tabular raqam va
+ * har qatorda holatni bildiruvchi chiziq.
+ *
+ * Tokenlar `:root` da EMAS, `.panel` da: ular Usta sahifasining
+ * ranglarini bosib ketmasligi kerak.
+ */
+
+.panel {
+  --ground: #f4f6f8;
+  --surface: #ffffff;
+  --surface2: #eaeff3;
+  --ink: #14191f;
+  --ink2: #55606d;
+  --ink3: #7c8794;
+  --line: #dce3e9;
+  --lineStrong: #c3cdd6;
+  --accent: #0e4c5c;
+  --good: #1f6b4e;
+  --goodSoft: #e1f0e8;
+  --warn: #855511;
+  --warnSoft: #f6ebd9;
+  --bad: #973830;
+  --badSoft: #f7e5e3;
+  --none: #6e7a87;
+  --noneSoft: #e9eef2;
+
+  background: var(--ground);
+  color: var(--ink);
+  min-height: 100vh;
+  font-family: var(--font-plex), system-ui, sans-serif;
+  font-size: clamp(0.9rem, 0.86rem + 0.2vw, 1rem);
+  line-height: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  .panel {
+    --ground: #0d1216;
+    --surface: #141b20;
+    --surface2: #1b232a;
+    --ink: #e6ecf0;
+    --ink2: #9daab5;
+    --ink3: #76838f;
+    --line: #242f38;
+    --lineStrong: #33414c;
+    --accent: #6fc0d0;
+    --good: #6fc79b;
+    --goodSoft: #112b21;
+    --warn: #d5a659;
+    --warnSoft: #2c2313;
+    --bad: #e08b82;
+    --badSoft: #2d1917;
+    --none: #7c8894;
+    --noneSoft: #1b232a;
+  }
+}
+
+.wrap {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 1rem + 2vw, 3.5rem) clamp(1rem, 0.5rem + 2vw, 2rem) 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 1.5rem + 1.5vw, 3.25rem);
+}
+
+.eyebrow {
+  font-family: var(--font-plex-cond), var(--font-plex), sans-serif;
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin: 0;
+}
+
+.head {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: clamp(1.25rem, 1rem + 1vw, 2rem);
+}
+
+.head h1 {
+  font-family: var(--font-plex-cond), var(--font-plex), sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.4rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  margin: 0.35rem 0 0;
+}
+
+.lede {
+  color: var(--ink2);
+  margin: 0.85rem 0 0;
+  max-width: 62ch;
+}
+
+.stamp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin: 1.15rem 0 0;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.74rem;
+  color: var(--ink3);
+}
+.stamp b {
+  color: var(--ink2);
+  font-weight: 500;
+}
+
+/* ---- Yigʻindi ---- */
+.tally {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.tally > div {
+  padding: 1.05rem 1.15rem 1.15rem;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.tally > div:last-child {
+  border-right: 0;
+}
+
+.tallyN {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.7rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.tallyN small {
+  font-size: 0.95rem;
+  color: var(--ink3);
+  font-weight: 400;
+}
+.tallyK {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.tallyYaxshi .tallyN { color: var(--good); }
+.tallyYomon .tallyN { color: var(--bad); }
+.tallyYoq .tallyN { color: var(--none); }
+
+/* ---- Bloklar ---- */
+.blok {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.blokHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.blokHead h2 {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0;
+}
+.blokHead span {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.74rem;
+  color: var(--ink3);
+}
+
+.qatorlar {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.qator {
+  display: grid;
+  grid-template-columns: 4px minmax(0, 1fr) 6.5rem 11.5rem;
+  align-items: start;
+  border-top: 1px solid var(--line);
+}
+.qator:first-child {
+  border-top: 0;
+}
+
+.stripe {
+  align-self: stretch;
+  background: var(--lineStrong);
+}
+.sYaxshi .stripe { background: var(--good); }
+.sYomon .stripe { background: var(--bad); }
+.sKichik .stripe { background: var(--warn); }
+.sYoq .stripe {
+  background: repeating-linear-gradient(180deg, var(--none) 0 4px, transparent 4px 9px);
+}
+
+.nom {
+  padding: 0.9rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.nom > b {
+  font-weight: 500;
+}
+
+.sabab {
+  color: var(--ink2);
+  font-size: 0.83rem;
+  line-height: 1.5;
+  max-width: 58ch;
+}
+
+.ogoh {
+  font-size: 0.83rem;
+  color: var(--warn);
+  background: var(--warnSoft);
+  border-left: 2px solid var(--warn);
+  padding: 0.45rem 0.65rem;
+  max-width: 58ch;
+}
+.ogoh b {
+  font-weight: 600;
+}
+
+.qiymat {
+  padding: 0.9rem 0.5rem 0.9rem 0;
+  text-align: right;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.28rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.qiymat u {
+  text-decoration: none;
+  font-size: 0.8rem;
+  color: var(--ink3);
+}
+.bosh {
+  color: var(--none);
+  font-size: 1.5rem;
+  line-height: 1.05;
+}
+.sYaxshi .qiymat { color: var(--good); }
+.sYomon .qiymat { color: var(--bad); }
+.sKichik .qiymat { color: var(--warn); }
+
+.oxirgi {
+  padding: 0.9rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+/*
+ * `nowrap` EMAS. Uzun maqsad matni ("tarif narxining <8% i",
+ * "<2–3 soniya") ustunga sigʻmay qirqilib ketardi va uni faqat
+ * ekran rasmida koʻrish mumkin edi — DOM tekshiruvi oʻtib ketadi.
+ */
+.maqsad {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--ink3);
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.chip {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  white-space: nowrap;
+  color: var(--none);
+  background: var(--noneSoft);
+}
+.cYaxshi { color: var(--good); background: var(--goodSoft); }
+.cYomon { color: var(--bad); background: var(--badSoft); }
+.cKichik { color: var(--warn); background: var(--warnSoft); }
+
+@media (max-width: 40rem) {
+  .qator {
+    grid-template-columns: 4px minmax(0, 1fr) auto;
+  }
+  .oxirgi {
+    grid-column: 2 / -1;
+    padding-top: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
+
+/* ---- Tarif ---- */
+.tarifHolati {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.78rem;
+  color: var(--ink2);
+}
+
+.bayroq {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  color: var(--none);
+  background: var(--noneSoft);
+}
+.bayroqYoq {
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+}
+
+.qadamlar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.qadam {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.qadamNo {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.72rem;
+  color: var(--ink3);
+}
+.qadamT {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+.qadamH {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.qadamOchiq {
+  border-color: var(--accent);
+}
+.qadamOchiq .qadamH {
+  color: var(--accent);
+}
+.qadamYopiq {
+  background: var(--surface2);
+}
+.qadamYopiq .qadamT,
+.qadamYopiq .qadamNo {
+  color: var(--ink3);
+}
+
+.qulf {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--surface);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.qulf h3 {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-size: 1.05rem;
+  margin: 0;
+}
+.qulf p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* ---- Izoh va xato ---- */
+.izoh {
+  border-top: 1px solid var(--line);
+  padding-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: var(--ink2);
+  font-size: 0.88rem;
+}
+.izoh b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.izoh ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.izoh p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.kod {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.85em;
+  background: var(--surface2);
+  padding: 0.05em 0.32em;
+  border-radius: 2px;
+}
+
+.xato {
+  border: 1px solid var(--bad);
+  border-left-width: 3px;
+  border-radius: 3px;
+  background: var(--badSoft);
+  color: var(--bad);
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.xato b {
+  font-weight: 600;
+}
+.xato p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* ---- Kirish ---- */
+.kirish {
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 4rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.kirish form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.kirish label {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.kirish input {
+  font: inherit;
+  font-family: var(--font-plex-mono), monospace;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--lineStrong);
+  border-radius: 3px;
+  padding: 0.6rem 0.7rem;
+}
+.kirish input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.kirish button {
+  font-family: var(--font-plex-cond), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ground);
+  background: var(--accent);
+  border: 0;
+  border-radius: 3px;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+}

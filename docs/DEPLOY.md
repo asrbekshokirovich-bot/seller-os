@@ -108,6 +108,7 @@ Vercel → Project → **Settings** → **Environment Variables**:
 |---|---|---|
 | `SELLEROS_API_URL` | `https://duequijnnzcngzzvjqst.supabase.co/functions/v1/selleros` | API manzili |
 | `SELLEROS_API_KEY` | Supabase → Settings → API Keys → `anon` | Faqat oʻqish uchun |
+| `PANEL_KALITI` | oʻzingiz yasagan uzun tasodifiy satr | `/olchov` panelini qulflaydi |
 
 `service_role` kaliti **bu yerga qoʻyilmaydi**. Sahifa bazaga
 toʻgʻridan-toʻgʻri tegmaydi — hammasi Edge Function orqali
@@ -129,3 +130,31 @@ Boʻsh roʻyxat koʻrsatilmaydi. Boʻsh roʻyxat "sizga mos yoʻnalish
 yoʻq" degan **daʼvo** boʻlardi, sozlanmaganlik esa boshqa narsa —
 va foydalanuvchi qaysi biri ekanini bilishi kerak (QOIDALAR.md,
 4-qoida).
+
+## Oʻlchov paneli — `/olchov`
+
+Reja 8-boʻlimidagi KPI lar. Sahifa **server komponenti**: API
+kaliti brauzerga tushmaydi va sahifada mijoz JS i yoʻq.
+
+### Panel qulflangan
+
+Panel foydalanuvchi sonini, konversiyani va obuna holatini
+koʻrsatadi — bular ichki raqamlar.
+
+`PANEL_KALITI` **boʻsh boʻlsa panel hech kimga ochilmaydi** va
+buni sahifaning oʻzi aytadi. Teskarisi — kalitsiz ochiq qolish —
+eng yomon yechim boʻlardi: sozlash esdan chiqsa panel jimgina
+omma uchun ochilib ketardi.
+
+Kirilgach cookie da kalitning oʻzi emas, `sha256` i saqlanadi
+(HttpOnly, `SameSite=Lax`, 12 soat, faqat `/olchov` yoʻlida).
+
+### Panel nimani koʻrsatadi
+
+Oʻn bitta KPI ning HAMMASI koʻrinadi. Oʻlchanmagani **nol emas** —
+chiziqcha va sabab bilan chiqadi. Qator jadvaldan tushib
+qolmaydi ham: yoʻqolgan qator "hammasi joyida" boʻlib koʻrinardi.
+
+API javob bermasa boʻsh jadval koʻrsatilmaydi — xato yoziladi.
+Boʻsh jadval "hamma KPI oʻlchanmagan" degan daʼvo boʻlardi,
+holbuki bu ulanish xatosi.
