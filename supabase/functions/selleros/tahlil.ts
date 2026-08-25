@@ -30,8 +30,22 @@ export interface Bayroqli<T> {
  * `new Date()` chaqirilmaydi: aks holda test natijasi qaysi oyda
  * ishlatilganiga bogʻliq boʻlardi va yilda bir marta sababsiz
  * qizarardi.
+ *
+ * NEGA OBYEKT, NEGA IKKINCHI ARGUMENT EMAS. Ilgari imzo
+ * `(t, oy?: number)` edi va uch joyda `tovarlar.map(tovarniTekshir)`
+ * deb yozilgandi. `map` ikkinchi argument sifatida INDEKSNI uzatadi,
+ * yaʼni birinchi tovar yanvar, ikkinchisi fevral… deb baholanardi va
+ * 13-tovardan keyin oy umuman notoʻgʻri boʻlardi. TypeScript buni
+ * koʻrmasdi, chunki indeks ham `number`.
+ *
+ * Obyekt bilan bu xato KOMPILYATSIYADA tutiladi: `map` uzatgan
+ * `number` `{ oy?: number }` ga toʻgʻri kelmaydi.
  */
-export function tovarniTekshir(t: TovarToliq, oy?: number): Bayroqli<TovarHolati> {
+export function tovarniTekshir(
+  t: TovarToliq,
+  sozlama: { oy?: number } = {},
+): Bayroqli<TovarHolati> {
+  const { oy } = sozlama;
   const bayroqlar: Flag[] = [];
   const baholanmadi: { filtr: string; missing: string[] }[] = [];
 

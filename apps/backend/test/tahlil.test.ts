@@ -50,15 +50,54 @@ describe('quvur: baza → filtr', () => {
   it('nima yetishmagani sanab koʻrsatiladi', () => {
     // Jim qolish taqiqlangan (QOIDALAR.md, 8-boʻlim): filtr baholay
     // olmasa, NIMA yetishmagani hisobotda chiqishi shart.
-    const x = xulosa(f.tovar.map(tovarniTekshir));
+    const x = xulosa(f.tovar.map((t) => tovarniTekshir(t, { oy: 6 })));
     expect(Object.keys(x.yetishmayotgan).length).toBeGreaterThan(0);
     expect(x.yetishmayotgan).toHaveProperty('soldUnits30d');
   });
 
   it('xulosa hamma tovarni sanaydi', () => {
-    const x = xulosa(f.tovar.map(tovarniTekshir));
+    const x = xulosa(f.tovar.map((t) => tovarniTekshir(t, { oy: 6 })));
     expect(x.tekshirildi).toBe(f.tovar.length);
     expect(x.bayroqli + x.baholanmadi).toBeLessThanOrEqual(f.tovar.length);
+  });
+
+  /*
+   * OY ROʻYXATDAGI OʻRINDAN OLINMASIN.
+   *
+   * Uch joyda `tovarlar.map(tovarniTekshir)` deb yozilgandi. `map`
+   * ikkinchi argument sifatida INDEKSNI uzatadi — yaʼni birinchi
+   * tovar yanvar, ikkinchisi fevral… deb baholanardi, 13-tovardan
+   * keyin esa oy chegaradan chiqib "baholanmadi" boʻlardi. Jonli
+   * oʻlchandi: 500 ta tovardan 41 tasida aynan shu sabab chiqqan.
+   *
+   * TypeScript buni koʻrmasdi, chunki indeks ham `number`. Endi
+   * ikkinchi argument obyekt — bunday chaqiruv KOMPILYATSIYADA
+   * yiqiladi va bu test buni hujjatlaydi.
+   */
+  it('bir xil tovar roʻyxatdagi oʻrniga qarab boshqacha baholanmaydi', () => {
+    const bitta = f.tovar[0];
+    if (bitta === undefined) throw new Error('fikstura boʻsh');
+    const royxat = Array.from({ length: 20 }, () => bitta);
+
+    const natijalar = royxat.map((t) => tovarniTekshir(t, { oy: 6 }));
+    const birinchi = JSON.stringify(natijalar[0]);
+    for (const n of natijalar) {
+      expect(JSON.stringify(n)).toBe(birinchi);
+    }
+  });
+
+  /*
+   * Asosiy qoʻriqchi — TIPDA.
+   *
+   * `@ts-expect-error` qatordan KEYIN xato boʻlishini TALAB qiladi:
+   * xato yoʻqolsa, `tsc` shu qatorning oʻzida yiqiladi. Yaʼni agar
+   * kimdir imzoni yana `(t, oy?: number)` ga qaytarsa, CI qizaradi.
+   */
+  it('`map(tovarniTekshir)` kompilyatsiyadan oʻtmaydi', () => {
+    // @ts-expect-error — `map` ikkinchi argument sifatida indeksni
+    // uzatadi; `number` `{ oy?: number }` ga toʻgʻri kelmaydi.
+    const notogri = () => f.tovar.map(tovarniTekshir);
+    expect(typeof notogri).toBe('function');
   });
 });
 

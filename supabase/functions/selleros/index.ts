@@ -139,7 +139,11 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     }
     return javob({
       olchov_yoq: false,
-      tovar: xulosa(tovarlar.map(tovarniTekshir)),
+      // `map(tovarniTekshir)` YOZMANG: `map` ikkinchi argument
+      // sifatida indeksni uzatadi. Aynan shu xato bu yerda turgan
+      // va mavsum filtri tovarning roʻyxatdagi oʻrniga qarab
+      // baholanardi.
+      tovar: xulosa(tovarlar.map((t) => tovarniTekshir(t, { oy: hozirgiOy() }))),
       turkum: xulosa(turkumlar.map(turkumniTekshir)),
     });
   }
@@ -233,7 +237,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     }
 
     const natija = tovarlar(kesh.royxat, (t) => {
-      const n = tovarniTekshir(t, hozirgiOy());
+      const n = tovarniTekshir(t, { oy: hozirgiOy() });
       return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
     });
 
@@ -268,7 +272,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
 
     const oy = hozirgiOy();
     const bayroqlar = tovarlar_.flatMap((t) =>
-      tovarniTekshir(t, oy).bayroqlar.map((b) => ({ ...b, productId: t.productId })));
+      tovarniTekshir(t, { oy }).bayroqlar.map((b) => ({ ...b, productId: t.productId })));
 
     // Bayroqsiz tovar ham YOZILADI (boʻsh yozuv sifatida emas —
     // eski bayroqlari oʻchiriladi). Aks holda tuzatilgan tovarning
