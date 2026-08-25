@@ -200,6 +200,43 @@ Deno.serve(async (req: Request) => {
     return javob({ tekshirildi: tovarlar_.length, ...natija });
   }
 
+  // ---- Sessiya va profil (reja B3, onboarding) ------------------
+  //
+  // Token soʻrov TANASIDA yoki SARLAVHASIDA yuriladi, manzilda
+  // EMAS: manzil server jurnaliga, brauzer tarixiga va Referer
+  // sarlavhasiga tushadi.
+  if (yol === '/sessiya' && req.method === 'POST') {
+    const s = await rpc<{ token: string; userId: string }>('so_sessiya_boshla', {});
+    if (s === null) return javob({ xato: 'sessiya ochilmadi' }, 503);
+    return javob(s);
+  }
+
+  if (yol === '/profil') {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+
+    if (req.method === 'GET') {
+      const p = await rpc<{ userId?: string; javoblar?: unknown; xato?: string }>(
+        'so_profil_oqi', { p_token: token });
+      if (p === null) return javob({ xato: 'baza javob bermadi' }, 503);
+      if (p.xato) return javob(p, 401);
+      return javob(p);
+    }
+
+    if (req.method === 'POST') {
+      let tana: Record<string, unknown> = {};
+      try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+      // Xom javob EMAS, `profilOqi` dan oʻtkazilgani yoziladi:
+      // boʻsh maydon nolga yoki `false` ga aylanmasin.
+      const profil = profilOqi((tana.profil as Record<string, unknown>) ?? {});
+      const n = await rpc<{ saqlandi?: boolean; xato?: string }>(
+        'so_profil_yoz', { p_token: token, p_javoblar: profil });
+      if (n === null) return javob({ xato: 'baza javob bermadi' }, 503);
+      if (n.xato) return javob(n, 401);
+      return javob(n);
+    }
+  }
+
   return javob({ xato: 'topilmadi', yol }, 404);
 });
 

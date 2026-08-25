@@ -203,6 +203,45 @@ export function build(): FastifyInstance {
     return { tekshirildi: royxat.length, ...natija };
   });
 
+  /**
+   * Sessiya va profil (reja B3, onboarding).
+   *
+   * Token sarlavhada (`x-sessiya`) yuriladi, manzilda emas: manzil
+   * server jurnaliga, brauzer tarixiga va `Referer` ga tushadi.
+   */
+  app.post('/sessiya', async (_soov, javob) => {
+    const s = await rpc<{ token: string; userId: string }>('so_sessiya_boshla', {});
+    if (s === null) return javob.code(503).send({ xato: 'sessiya ochilmadi' });
+    return s;
+  });
+
+  app.get('/profil', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const p = await rpc<{ xato?: string }>('so_profil_oqi', { p_token: token });
+    if (p === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (p.xato) return javob.code(401).send(p);
+    return p;
+  });
+
+  app.post('/profil', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    // Xom javob EMAS, `profilOqi` dan oʻtkazilgani yoziladi.
+    const profil = profilOqi((tana.profil as Record<string, unknown>) ?? {});
+    const n = await rpc<{ xato?: string }>('so_profil_yoz', {
+      p_token: token, p_javoblar: profil,
+    });
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(401).send(n);
+    return n;
+  });
+
   return app;
 }
 

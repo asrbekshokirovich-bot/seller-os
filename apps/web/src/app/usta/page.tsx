@@ -14,7 +14,7 @@
  * "hali hisoblanmadi" yoki "baza javob bermadi".
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SAVOLLAR, type Savol } from '@selleros/shared';
 
 type Javoblar = Record<string, unknown>;
@@ -88,6 +88,29 @@ export default function Usta() {
   const [tovarlar, setTovarlar] = useState<TovarNatija | null>(null);
   const [tovarYuklanmoqda, setTovarYuklanmoqda] = useState(false);
   const tovarBolimi = useRef<HTMLDivElement>(null);
+  const [tiklandi, setTiklandi] = useState(false);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+
+  // Oldingi javoblarni tiklaymiz.
+  //
+  // Ilgari sahifa yangilansa hammasi yoʻqolardi va odam oʻn ikki
+  // savolga qaytadan javob berardi. Endi javoblar sessiyaga
+  // bogʻlangan (HttpOnly cookie) va qaytib keladi.
+  useEffect(() => {
+    let bekor = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/profil');
+        const d = (await r.json()) as { javoblar?: Javoblar | null };
+        if (!bekor && d.javoblar) setJavoblar(d.javoblar);
+      } catch {
+        // Tiklab boʻlmadi — forma boʻsh boshlanadi. Bu xato emas.
+      } finally {
+        if (!bekor) setTiklandi(true);
+      }
+    })();
+    return () => { bekor = true; };
+  }, []);
 
   async function tovarlarniOl(y: Yonalish) {
     setTanlangan(y);
@@ -116,6 +139,24 @@ export default function Usta() {
     e.preventDefault();
     setYuklanmoqda(true);
     setXato(null);
+
+    // Javoblarni SAQLAYMIZ, keyin tavsiya soʻraymiz. Saqlash
+    // yiqilsa ham tavsiya beriladi: odam javob berdi, uni
+    // texnik nosozlik tufayli kutdirish notoʻgʻri.
+    setSaqlanmoqda(true);
+    try {
+      await fetch('/api/profil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profil: javoblar }),
+      });
+    } catch {
+      // Jim oʻtmaydi — pastda koʻrsatiladi.
+      setXato('Javoblar saqlanmadi (tavsiya baribir koʻrsatiladi).');
+    } finally {
+      setSaqlanmoqda(false);
+    }
+
     try {
       const r = await fetch('/api/yonalishlar', {
         method: 'POST',
@@ -139,14 +180,22 @@ export default function Usta() {
         javob bermasangiz, tizim taxmin qilmaydi.
       </p>
 
+      {tiklandi && Object.keys(javoblar).length > 0 && (
+        <p className="nega">
+          Oldingi javoblaringiz tiklandi. Oʻzgartirsangiz — saqlanadi.
+        </p>
+      )}
+
       <form onSubmit={yubor}>
         {SAVOLLAR.map((s) => (
           <SavolQismi key={s.raqam} savol={s} qiymat={javoblar[s.maydon]} yoz={yoz} />
         ))}
 
         <div className="qator">
-          <button type="submit" disabled={yuklanmoqda}>
-            {yuklanmoqda ? 'Hisoblanmoqda…' : 'Yoʻnalishlarni koʻrsat'}
+          <button type="submit" disabled={yuklanmoqda || saqlanmoqda}>
+            {saqlanmoqda ? 'Saqlanmoqda…'
+              : yuklanmoqda ? 'Hisoblanmoqda…'
+              : 'Yoʻnalishlarni koʻrsat'}
           </button>
           {natija && (
             <button type="button" className="ikkinchi" onClick={() => setNatija(null)}>
