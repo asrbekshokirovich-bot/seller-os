@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  KPI_MAQSAD, NAMUNA_ENG_KAM, kpiXulosa, kpilar,
+  KPI_MAQSAD, NAMUNA_ENG_KAM, YOSH_ENG_KOP_SOAT, kpiXulosa, kpilar,
   type Kpi, type KpiKalit, type KpiXom,
 } from '../src/kpi.js';
 
@@ -123,5 +123,66 @@ describe('kpiXulosa', () => {
     expect(x.jami).toBe(q.length);
     expect(x.olchandi).toBe(3); // usta_3_qadam + qamrov + xato
     expect(x.yomon).toBe(0);
+  });
+});
+
+/**
+ * Maʼlumot yoshi — panelning koʻr nuqtasi.
+ *
+ * NEGA BU QATOR BOR. Qolgan texnik KPI lar OXIRGI supurish haqida
+ * gapiradi. Supurish umuman toʻxtab qolsa, qamrov 99.9% va xato
+ * 0% boʻlib TURAVERADI — panel benuqson koʻrinadi, maʼlumot esa
+ * jimgina eskiradi. Bugun 12:00 dagi supurish 58 daqiqa kechikdi
+ * va buni faqat qoʻlda qarab bildim.
+ */
+describe('malumot_yoshi', () => {
+  const HOZIR = new Date('2026-08-25T12:00:00.000Z');
+  const sifat = (soat: number) => ({
+    coverage_percent: 99.9,
+    error_percent: 0,
+    last_sweep_at: new Date(HOZIR.getTime() - soat * 3_600_000).toISOString(),
+  });
+
+  it('yosh soatda oʻlchanadi', () => {
+    const k = ol(kpilar(XOM, sifat(3), HOZIR), 'malumot_yoshi');
+    expect(k.qiymat).toBe(3);
+    expect(k.birlik).toBe('soat');
+    expect(k.holat).toBe('yaxshi');
+  });
+
+  it('chegaradan katta yosh — YOMON', () => {
+    const k = ol(kpilar(XOM, sifat(YOSH_ENG_KOP_SOAT + 1), HOZIR), 'malumot_yoshi');
+    expect(k.holat).toBe('yomon');
+  });
+
+  it('chegaraning oʻzi hali yaxshi', () => {
+    const k = ol(kpilar(XOM, sifat(YOSH_ENG_KOP_SOAT), HOZIR), 'malumot_yoshi');
+    expect(k.holat).toBe('yaxshi');
+  });
+
+  /*
+   * ENG MUHIM TEKSHIRUV. Supurish toʻxtasa ham qamrov va xato
+   * yashil boʻlib qolaveradi — faqat shu qator qizaradi.
+   */
+  it('supurish toʻxtasa: qamrov yashil, yosh QIZIL', () => {
+    const q = kpilar(XOM, sifat(48), HOZIR);
+    expect(ol(q, 'skreyper_qamrovi').holat).toBe('yaxshi');
+    expect(ol(q, 'skreyper_xatosi').holat).toBe('yaxshi');
+    expect(ol(q, 'malumot_yoshi').holat).toBe('yomon');
+  });
+
+  it('sana yoʻq boʻlsa — oʻlchanmadi, NOL emas', () => {
+    const k = ol(kpilar(XOM, { coverage_percent: 99, error_percent: 0 }, HOZIR), 'malumot_yoshi');
+    expect(k.qiymat).toBeNull();
+    expect(k.holat).toBe('olchanmadi');
+    expect(k.sabab).toContain('sana yoʻq');
+  });
+
+  it('buzuq sana ham NOL boʻlmaydi', () => {
+    const k = ol(kpilar(XOM, {
+      coverage_percent: 99, error_percent: 0, last_sweep_at: 'sana emas',
+    }, HOZIR), 'malumot_yoshi');
+    expect(k.qiymat).toBeNull();
+    expect(k.holat).toBe('olchanmadi');
   });
 });

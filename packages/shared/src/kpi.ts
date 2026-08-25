@@ -32,8 +32,22 @@ export const NAMUNA_ENG_KAM = 20;
 
 export type KpiKalit =
   | 'usta_3_qadam' | 'tavsiya_qabul' | 'bepul_pullik' | 'ketish' | 'ai_xarajat'
+  | 'malumot_yoshi'
   | 'skreyper_qamrovi' | 'skreyper_xatosi' | 'tuzoq_testi' | 'eval'
   | 'qadam_tezligi' | 'avtoyechish';
+
+/**
+ * Maʼlumot shuncha soatdan eski boʻlsa — yiqilish.
+ *
+ * Supurish kuniga uch marta (04, 12, 20 UTC), yaʼni sogʻlom
+ * holatda yosh 8 soatdan oshmaydi. 12 — bitta supurish
+ * oʻtkazib yuborilishiga chidam, ikkitasiga emas.
+ *
+ * GitHub jadvali kafolatlangan emas: bugun 12:00 dagi supurish
+ * 58 daqiqa kechikdi. Shuning uchun chegara jadvalning oʻziga
+ * emas, natijaga bogʻlangan.
+ */
+export const YOSH_ENG_KOP_SOAT = 12;
 
 export interface KpiMaqsad {
   /** `yuqori` — koʻp boʻlgani yaxshi; `past` — kam; `yoq` — maqsadsiz. */
@@ -51,7 +65,7 @@ export interface Kpi {
   guruh: 'mahsulot' | 'texnik';
   /** `null` — oʻlchanmadi. NOL EMAS. */
   qiymat: number | null;
-  birlik: 'foiz' | 'soniya';
+  birlik: 'foiz' | 'soniya' | 'soat';
   maqsad: KpiMaqsad;
   holat: KpiHolat;
   /** `qiymat === null` boʻlganda — nega. Aks holda `null`. */
@@ -76,6 +90,9 @@ export const KPI_MAQSAD: Readonly<Record<KpiKalit, KpiMaqsad>> = {
   // koʻrinardi. 6 — intilish, 8 — yiqilish chizigʻi.
   ketish: { yonalish: 'past', chegara: 8, matn: '<6–8%' },
   ai_xarajat: { yonalish: 'past', chegara: 8, matn: 'tarif narxining <8% i' },
+  malumot_yoshi: {
+    yonalish: 'past', chegara: YOSH_ENG_KOP_SOAT, matn: `<${YOSH_ENG_KOP_SOAT} soat`,
+  },
   skreyper_qamrovi: { yonalish: 'yuqori', chegara: QAMROV_ENG_KAM, matn: '≥95%' },
   skreyper_xatosi: { yonalish: 'past', chegara: XATO_ENG_KOP, matn: '<2%' },
   tuzoq_testi: { yonalish: 'yuqori', chegara: 100, matn: '100% ushlanadi' },
@@ -126,6 +143,8 @@ export interface KpiXom {
 export interface KpiSifat {
   coverage_percent: number | null;
   error_percent: number | null;
+  /** Oxirgi supurish tugagan payt (ISO). `null` — hech qachon. */
+  last_sweep_at?: string | null;
 }
 
 const NOM: Readonly<Record<KpiKalit, string>> = {
@@ -134,6 +153,7 @@ const NOM: Readonly<Record<KpiKalit, string>> = {
   bepul_pullik: 'Bepul → pullik (30 kun ichida)',
   ketish: 'Mijoz ketishi (toʻlov davriga nisbatan)',
   ai_xarajat: 'AI xarajat / mijoz',
+  malumot_yoshi: 'Maʼlumot yoshi (oxirgi supurishdan beri)',
   skreyper_qamrovi: 'Skreyper qamrovi (kunlik yangilanish)',
   skreyper_xatosi: 'Skreyper xato darajasi',
   tuzoq_testi: 'Tuzoq testi (20→40+ tovar)',
@@ -145,6 +165,7 @@ const NOM: Readonly<Record<KpiKalit, string>> = {
 const GURUH: Readonly<Record<KpiKalit, Kpi['guruh']>> = {
   usta_3_qadam: 'mahsulot', tavsiya_qabul: 'mahsulot', bepul_pullik: 'mahsulot',
   ketish: 'mahsulot', ai_xarajat: 'mahsulot',
+  malumot_yoshi: 'texnik',
   skreyper_qamrovi: 'texnik', skreyper_xatosi: 'texnik', tuzoq_testi: 'texnik',
   eval: 'texnik', qadam_tezligi: 'texnik', avtoyechish: 'texnik',
 };
@@ -190,7 +211,11 @@ const foiz = (qism: number, jami: number): number =>
  * qaytadi, faqat hamma qatori "oʻlchanmadi": panelda yoʻqolib
  * ketgan qator "hammasi joyida" boʻlib koʻrinadi.
  */
-export function kpilar(xom: KpiXom | null, sifat: KpiSifat | null): Kpi[] {
+export function kpilar(
+  xom: KpiXom | null,
+  sifat: KpiSifat | null,
+  hozir: Date = new Date(),
+): Kpi[] {
   const q: Kpi[] = [];
 
   if (xom === null) {
@@ -241,6 +266,25 @@ export function kpilar(xom: KpiXom | null, sifat: KpiSifat | null): Kpi[] {
       // (toʻlov oqimi yoʻq), yaʼni sonni chiqarib boʻlmaydi.
       : yoq('ai_xarajat', 'tarif narxi belgilanmagan — foizning maxraji yoʻq'));
   }
+
+  /*
+   * MAʼLUMOT YOSHI — panelning eng muhim qatori.
+   *
+   * Qolgan texnik KPI lar OXIRGI supurish haqida gapiradi. Agar
+   * supurish umuman toʻxtab qolsa, qamrov 99.9% va xato 0% boʻlib
+   * TURAVERADI — panel benuqson koʻrinadi, maʼlumot esa jimgina
+   * chiriydi. Bu qator aynan shu koʻr nuqtani yopadi.
+   */
+  const oxirgi = sifat?.last_sweep_at ?? null;
+  const vaqt = oxirgi === null ? NaN : Date.parse(oxirgi);
+  q.push(!Number.isFinite(vaqt)
+    ? yoq('malumot_yoshi', 'supurish hech qachon tugamagan — sana yoʻq', 'soat')
+    : olchandi(
+        'malumot_yoshi',
+        Math.round(((hozir.getTime() - vaqt) / 3_600_000) * 10) / 10,
+        null,
+        'soat',
+      ));
 
   q.push(sifat === null || sifat.coverage_percent === null
     ? yoq('skreyper_qamrovi', 'sifat hisoboti boʻsh — supurish natijasi yoʻq')

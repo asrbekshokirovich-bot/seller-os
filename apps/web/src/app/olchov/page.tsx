@@ -263,7 +263,7 @@ function Qator({ k }: { k: Kpi }) {
         {k.qiymat === null ? '—' : (
           <>
             {k.qiymat}
-            <u>{k.birlik === 'foiz' ? '%' : ' s'}</u>
+            <u>{BIRLIK[k.birlik]}</u>
           </>
         )}
       </div>
@@ -283,6 +283,13 @@ function Qator({ k }: { k: Kpi }) {
  * boʻlardi — CSS moduli uni `undefined` qilib qaytaradi va xato
  * jimgina oʻtib ketardi.
  */
+/** Oʻlchov birligi — qiymat yonidagi kichik belgi. */
+const BIRLIK: Record<Kpi['birlik'], string> = {
+  foiz: '%',
+  soniya: ' s',
+  soat: ' soat',
+};
+
 const HOLAT: Record<Kpi['holat'], { qator: string; chip: string; matn: string }> = {
   yaxshi: { qator: kerak('sYaxshi'), chip: kerak('cYaxshi'), matn: 'Maqsadda' },
   yomon: { qator: kerak('sYomon'), chip: kerak('cYomon'), matn: 'Maqsaddan past' },

@@ -1,0 +1,40 @@
+# Qorovul — maʼlumot eskirib ketmadimi.
+#
+# Yigʻish allaqachon avtomatik (`skreyper.yml`, kuniga uch marta).
+# Bu ish boshqa savolga javob beradi: ishlamay qolsa kim sezadi?
+#
+# Mantiq `scripts/malumot-yoshi.mjs` da — u yerda nega kerakligi
+# batafsil yozilgan va uni mahalliy ishga tushirish ham mumkin.
+name: Qorovul (maʼlumot yoshi)
+
+on:
+  schedule:
+    # Har soatda. Supurish kuniga uch marta, yaʼni qorovul
+    # kechikishni bir soat ichida sezadi.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: qorovul
+  cancel-in-progress: false
+
+jobs:
+  yosh:
+    name: Maʼlumot yoshi chegarada
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Sir borligini tekshirish
+        run: |
+          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "::error::SUPABASE_ANON_KEY yoʻq — qorovul koʻr."
+            exit 1
+          fi
+
+      - name: Maʼlumot yoshi
+        env:
+          ANON: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node scripts/malumot-yoshi.mjs
