@@ -45,6 +45,47 @@ Shuning uchun:
   tashlanmaydi — aks holda "yozildi: 12" ko'rinardi, siz esa 15 ta
   qator yozgan bo'lardingiz.
 
+## Mavsumiylik — nima to'ldirilgan va nima yo'q
+
+*2026-08-25.* 31 turkumga mavsumiylik yozildi. **Bular o'lchov
+emas, asoslangan mulohaza** — va bu `source` ustunida har qatorda
+yozilgan.
+
+Mavsumiylikni o'lchash uchun bir yillik tarix kerak; perepis
+19-avgustda boshlangan. Ya'ni o'lchangan egri chiziq 2027-avgustdan
+oldin bo'lmaydi.
+
+**Faqat mavsumi jismonan yoki taqvim bo'yicha aniq turkumlar
+to'ldirildi:**
+
+| Guruh | Misol | Nega aniq |
+|---|---|---|
+| qish | isitgich, qishki kurtka, sharf | harorat |
+| kuz-qish | sviter, kardigan, uy shippagi | harorat |
+| yoz | ventilyator, shippak, quyoshdan himoya | harorat |
+| maktab | penal, daftar, ryukzak | 2-sentyabr |
+| Yangi yil | girlyanda, bayram dekori, sovg'a | 31-dekabr |
+| bahorgi ekish | urug' | ekish vaqti |
+| abituriyent | talabalar uchun adabiyot | hujjat topshirish |
+
+**To'ldirilmagani:** kiyim (umumiy), kosmetika, elektronika,
+kitoblar, o'yinchoqlar, sumkalar, taqinchoqlar, tozalash
+vositalari. Bularning mavsumi bir ma'noli emas — taxmin yozish
+noto'g'ri signal beradi.
+
+### Nima ishonchli, nima yo'q
+
+**Shakl ishonchli** — qaysi oy yuqori, qaysi past. Isitgich
+qishda ko'proq sotiladi va bu o'lchovsiz ham ma'lum.
+
+**Amplituda taxminiy** — dekabrda yozdagidan 6 barobar ko'pmi
+yoki 3 barobarmi, buni faqat o'lchov aytadi.
+
+Har egri chiziqning o'rtachasi roppa-rosa **1.0** ga teng
+(`1.0` = o'rtacha oy). O'rtacha 1.0 bo'lmasa, turkum boshqalarga
+nisbatan sun'iy ravishda yuqori yoki past chiqardi. Buni
+yuklashdan oldin tekshirish kerak.
+
 ## `category_requirements.csv` ustunlari
 
 - `category_external_id` — Uzumdagi kategoriya id si (**majburiy**)

@@ -11,6 +11,8 @@
  * kod bironta xato bermasdi.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error — `.mjs` skript, tur eʼloni yoʻq (ataylab: u
 // bitta joyda ishlatiladigan vosita, paket emas).
@@ -117,5 +119,47 @@ describe('seed CSV', () => {
   it('manba boʻsh boʻlsa null — matn sifatida "" emas', () => {
     const [q] = faylniOqi(`${SARLAVHA}\n123,1,,,,,,,`);
     expect(q.source).toBeNull();
+  });
+});
+
+/**
+ * Yuklangan mavsumiylik egri chiziqlari toʻgʻri shakldami.
+ *
+ * Koeffitsient "oʻrtacha oyga nisbatan" degani, yaʼni oʻrtachasi
+ * 1.0 boʻlishi SHART. Boʻlmasa turkum boshqalarga nisbatan
+ * sunʼiy ravishda yuqori yoki past chiqadi — va buni hech narsa
+ * koʻrsatmaydi, chunki egri chiziqning shakli baribir toʻgʻri
+ * koʻrinadi.
+ */
+describe('mavsumiylik egri chiziqlari', () => {
+  const CSV = join(import.meta.dirname, '../seed/category_requirements.csv');
+  const qatorlar = faylniOqi(readFileSync(CSV, 'utf8'));
+  const mavsumli = qatorlar.filter((q: { seasonality: number[] | null }) => q.seasonality);
+
+  it('kamida bitta turkumda mavsumiylik bor', () => {
+    // Boʻsh CSV bilan bu testlar jimgina oʻtib ketardi.
+    expect(mavsumli.length).toBeGreaterThan(0);
+  });
+
+  it('har biri roppa-rosa 12 ta koeffitsient', () => {
+    for (const q of mavsumli) {
+      expect(q.seasonality, `${q.category_external_id}`).toHaveLength(12);
+    }
+  });
+
+  it('har birining OʻRTACHASI 1.0', () => {
+    for (const q of mavsumli) {
+      const ortacha = q.seasonality.reduce((a: number, b: number) => a + b, 0) / 12;
+      expect(Math.abs(ortacha - 1), `${q.category_external_id}: oʻrtacha ${ortacha.toFixed(3)}`)
+        .toBeLessThan(0.01);
+    }
+  });
+
+  it('manba oʻlchov emasligini AYTADI', () => {
+    // Mavsumiylik oʻlchanmagan. Buni yashirish — taxminni
+    // oʻlchovdek koʻrsatish.
+    for (const q of mavsumli) {
+      expect(q.source, `${q.category_external_id}`).toMatch(/oʻlchov EMAS|mulohaza/i);
+    }
   });
 });

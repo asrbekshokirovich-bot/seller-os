@@ -145,7 +145,7 @@ qoʻya olmayman:
 | Ustun | Nega boʻsh | Kim toʻldiradi |
 |---|---|---|
 | `optimal_entry_uzs` | "Turkumga kirish uchun normal summa" — bu **bozor bilimi**, oʻlchov emas. Uni oʻlchangan raqamdan chiqarish uchun 30 kunlik sotuv kerak, u esa hali yoʻq. | Nazoratchi |
-| `seasonality` | 12 oylik koeffitsient bir yillik tarix talab qiladi. Perepis 19-avgustda boshlangan. | Nazoratchi (yoki bir yildan keyin oʻlchov) |
+| ~~`seasonality`~~ | **31 turkumga yozildi (2026-08-25)** — mulohaza, oʻlchov emas. Faqat mavsumi jismonan/taqvim boʻyicha aniq turkumlar. Oʻlchangan egri chiziq 2027-avgustdan oldin boʻlmaydi. | ✅ qisman |
 | `certificate_required` | Huquqiy hujjat kerak. Nom boʻyicha taxmin qilish 9 tadan 5 tasida notoʻgʻri chiqqan edi. | Nazoratchi |
 
 Shu sababdan `yetadi` maydoni hamon `null` va `mavsum` balli
