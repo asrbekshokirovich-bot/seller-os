@@ -36,6 +36,28 @@ interface Yonalish {
   dalil: { talabOlchovi: number | null; sotuvchiSoni: number | null; top3Ulush: number | null };
 }
 
+interface Tovar {
+  nomzod: {
+    productId: number; title: string; brand: string | null;
+    soldUnits30d: number | null; sotuvManbasi: 'olchandi' | 'taxmin' | null;
+    olchanganKun: number | null; shopName: string | null;
+    narxSom: number | null; qoldiq: number | null;
+    reyting: number | null; sharhSoni: number | null;
+  };
+  miqdor: { dona: number; hisob: string } | null;
+  miqdorSababi: string | null;
+  bayroqlar: Array<{ kind: string; severity: string; reason: string }>;
+  baholanmadi: Array<{ filtr: string; missing: string[] }>;
+}
+
+interface TovarNatija {
+  olchov_yoq: boolean;
+  sabab?: string;
+  turkum?: { categoryId: number; name: string } | null;
+  royxat?: Tovar[];
+  chiqarildi?: Array<{ productId: number; title: string; sabab: string }>;
+}
+
 interface Natija {
   olchov_yoq: boolean;
   sabab?: string;
@@ -61,6 +83,23 @@ export default function Usta() {
   const [natija, setNatija] = useState<Natija | null>(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState<string | null>(null);
+  const [tanlangan, setTanlangan] = useState<Yonalish | null>(null);
+  const [tovarlar, setTovarlar] = useState<TovarNatija | null>(null);
+  const [tovarYuklanmoqda, setTovarYuklanmoqda] = useState(false);
+
+  async function tovarlarniOl(y: Yonalish) {
+    setTanlangan(y);
+    setTovarlar(null);
+    setTovarYuklanmoqda(true);
+    try {
+      const r = await fetch(`/api/tovarlar?turkum=${y.categoryId}`);
+      setTovarlar((await r.json()) as TovarNatija);
+    } catch (q) {
+      setTovarlar({ olchov_yoq: true, sabab: `Soʻrov yuborilmadi: ${String(q)}` });
+    } finally {
+      setTovarYuklanmoqda(false);
+    }
+  }
 
   function yoz(maydon: string, qiymat: unknown) {
     setJavoblar((eski) => ({ ...eski, [maydon]: qiymat }));
@@ -111,7 +150,14 @@ export default function Usta() {
       </form>
 
       {xato && <p className="xato">{xato}</p>}
-      {natija && <Natijalar natija={natija} />}
+      {natija && <Natijalar natija={natija} tanla={tovarlarniOl} tanlangan={tanlangan} />}
+      {tanlangan && (
+        <Tovarlar
+          yonalish={tanlangan}
+          natija={tovarlar}
+          yuklanmoqda={tovarYuklanmoqda}
+        />
+      )}
     </main>
   );
 }
@@ -204,7 +250,13 @@ function SavolQismi({
   );
 }
 
-function Natijalar({ natija }: { natija: Natija }) {
+function Natijalar({
+  natija, tanla, tanlangan,
+}: {
+  natija: Natija;
+  tanla: (y: Yonalish) => void;
+  tanlangan: Yonalish | null;
+}) {
   if (natija.olchov_yoq) {
     return (
       <>
@@ -249,7 +301,14 @@ function Natijalar({ natija }: { natija: Natija }) {
         </p>
       )}
 
-      {royxat.map((y) => <Karta key={y.categoryId} y={y} />)}
+      {royxat.map((y) => (
+        <Karta
+          key={y.categoryId}
+          y={y}
+          tanla={tanla}
+          tanlangan={tanlangan?.categoryId === y.categoryId}
+        />
+      ))}
 
       {natija.bolishTaklifi && (
         <p className="ogoh">{natija.bolishTaklifi.sabab}</p>
@@ -258,7 +317,13 @@ function Natijalar({ natija }: { natija: Natija }) {
   );
 }
 
-function Karta({ y }: { y: Yonalish }) {
+function Karta({
+  y, tanla, tanlangan,
+}: {
+  y: Yonalish;
+  tanla: (y: Yonalish) => void;
+  tanlangan: boolean;
+}) {
   return (
     <article className="karta">
       <header>
@@ -299,6 +364,16 @@ function Karta({ y }: { y: Yonalish }) {
           </tbody>
         </table>
       </details>
+
+      <div className="qator" style={{ marginTop: '.8rem' }}>
+        <button
+          type="button"
+          className={tanlangan ? undefined : 'ikkinchi'}
+          onClick={() => tanla(y)}
+        >
+          {tanlangan ? 'Tovarlar koʻrsatilmoqda' : 'Shu yoʻnalishdagi tovarlar'}
+        </button>
+      </div>
     </article>
   );
 }
@@ -306,4 +381,120 @@ function Karta({ y }: { y: Yonalish }) {
 /** Oʻlchanmagan raqam NOL emas — chiziqcha. */
 function son(n: number | null): string {
   return n === null ? '—' : n.toLocaleString('uz-UZ');
+}
+
+/**
+ * 3-qadam — tanlangan yoʻnalishdagi tovarlar.
+ *
+ * Uch narsa ATAYLAB koʻrsatiladi:
+ *   1. Miqdor hisoblanmagan boʻlsa — NEGA hisoblanmagani;
+ *   2. Sotuv raqami qayerdan kelgani (oʻlchov yoki taxmin);
+ *   3. Tuzoq tufayli roʻyxatdan chiqarilgan tovarlar.
+ *
+ * Uchinchisi eng muhim: chiqarilgan tovarni koʻrsatmasak,
+ * foydalanuvchi uni oʻzi topib, "nega bu yoʻq?" deb oʻylaydi va
+ * tizimga ishonchi tushadi. Sababi bilan koʻrsatilsa — teskarisi.
+ */
+function Tovarlar({
+  yonalish, natija, yuklanmoqda,
+}: {
+  yonalish: Yonalish;
+  natija: TovarNatija | null;
+  yuklanmoqda: boolean;
+}) {
+  return (
+    <>
+      <h2>Tovarlar — {yonalish.name}</h2>
+
+      {yuklanmoqda && <p className="nega">Yuklanmoqda…</p>}
+
+      {natija?.olchov_yoq && (
+        <p className="xato">
+          Tovar roʻyxati koʻrsatilmadi.<br />
+          Sabab: {natija.sabab ?? 'nomaʼlum'}.
+        </p>
+      )}
+
+      {natija && !natija.olchov_yoq && (
+        <>
+          <p className="nega">
+            {natija.royxat?.length ?? 0} ta tovar
+            {natija.chiqarildi?.length
+              ? `, ${natija.chiqarildi.length} tasi tuzoq tufayli chiqarildi`
+              : ''}
+            .
+          </p>
+
+          {natija.royxat?.map((t) => <TovarKartasi key={t.nomzod.productId} t={t} />)}
+
+          {natija.chiqarildi?.length ? (
+            <details className="izohli" style={{ marginTop: '1rem' }}>
+              <summary>Roʻyxatdan chiqarilgan {natija.chiqarildi.length} ta tovar</summary>
+              <table className="qismlar">
+                <thead><tr><th>Tovar</th><th>Nega chiqarildi</th></tr></thead>
+                <tbody>
+                  {natija.chiqarildi.map((c) => (
+                    <tr key={c.productId}>
+                      <td>{c.title}</td>
+                      <td className="yoq">{c.sabab}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+function TovarKartasi({ t }: { t: Tovar }) {
+  const n = t.nomzod;
+  return (
+    <article className="karta">
+      <header>
+        <h3>{n.title}</h3>
+        <span className="ball">
+          {t.miqdor ? `${t.miqdor.dona} dona` : '—'}
+        </span>
+      </header>
+
+      <p className="nega">
+        {n.shopName ?? '—'} · {pul(n.narxSom)} · Qoldiq: {son(n.qoldiq)} ·{' '}
+        {n.reyting === null ? '—' : `★ ${n.reyting}`} ({son(n.sharhSoni)} sharh)
+      </p>
+
+      {t.miqdor ? (
+        <p className="nega">{t.miqdor.hisob}</p>
+      ) : (
+        <p className="ogoh">{t.miqdorSababi}</p>
+      )}
+
+      <p className="nega">
+        30 kunlik sotuv: {son(n.soldUnits30d)}
+        {n.sotuvManbasi === 'olchandi'
+          ? ` · oʻlchandi (${son(n.olchanganKun)} kun)`
+          : n.sotuvManbasi === 'taxmin'
+            ? ' · Uzum koʻrsatkichidan taxmin'
+            : ''}
+      </p>
+
+      {t.bayroqlar.map((b, i) => (
+        <p className="ogoh" key={i}>{b.reason}</p>
+      ))}
+
+      {t.baholanmadi.length > 0 && (
+        <p className="nega">
+          Baholanmagan filtrlar:{' '}
+          {t.baholanmadi.map((b) => `${b.filtr} (${b.missing.join(', ')} yoʻq)`).join(' · ')}
+        </p>
+      )}
+    </article>
+  );
+}
+
+/** Soʻm summasi. Oʻlchanmagan bo'lsa chiziqcha. */
+function pul(n: number | null): string {
+  return n === null ? '—' : `${n.toLocaleString('uz-UZ')} soʻm`;
 }

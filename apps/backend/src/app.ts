@@ -1,13 +1,21 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Sifat, holat } from './sifat.js';
 import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.js';
+
+/** `so_tovar_royxati()` javobi. */
+interface TovarJavobi {
+  turkum: { categoryId: number; name: string } | null;
+  royxat: TovarNomzodi[];
+}
 import {
   KESH_ESKI_SOAT,
   profilOqi,
   sohalar,
+  tovarlar,
   yonalishlar,
   type NomzodJavobi,
   type TovarHolati,
+  type TovarNomzodi,
   type TurkumHolati,
 } from '@selleros/shared';
 
@@ -119,6 +127,44 @@ export function build(): FastifyInstance {
       kesh_eskirgan: javob.yoshi_soat !== null && javob.yoshi_soat > KESH_ESKI_SOAT,
       ...natija,
     };
+  });
+
+  /**
+   * 3-qadam — turkum ichidagi tovarlar va miqdor (reja B2).
+   *
+   * Tuzoq filtrlari roʻyxatdan OLDIN ishlaydi: `block` darajali
+   * bayroqli tovar roʻyxatga umuman chiqmaydi, lekin `chiqarildi`
+   * da sababi bilan qaytariladi — jimgina yoʻqolmaydi.
+   */
+  app.get('/tovarlar', async (request) => {
+    const q = request.query as Record<string, string | undefined>;
+    const turkumId = Number(q.turkum);
+    if (!Number.isInteger(turkumId) || turkumId <= 0) {
+      return { xato: 'turkum — butun son boʻlishi kerak', berilgan: q.turkum ?? null };
+    }
+
+    const javob = await rpc<TovarJavobi>('so_tovar_royxati', {
+      p_category_external_id: turkumId,
+      p_limit: 50,
+    });
+    if (javob === null) {
+      return { olchov_yoq: true, sabab: 'baza javob bermadi' };
+    }
+    if (!javob.royxat.length) {
+      // Boʻsh roʻyxat "tovar yoʻq" degan daʼvo boʻlardi. Turkum
+      // topilmagani boshqa narsa.
+      return {
+        olchov_yoq: true,
+        sabab: javob.turkum === null ? 'bunday turkum yoʻq' : 'turkumda oʻlchangan tovar yoʻq',
+      };
+    }
+
+    const natija = tovarlar(javob.royxat, (t) => {
+      const n = tovarniTekshir(t);
+      return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
+    });
+
+    return { olchov_yoq: false, turkum: javob.turkum, ...natija };
   });
 
   return app;

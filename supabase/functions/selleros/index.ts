@@ -19,11 +19,19 @@ import {
   KESH_ESKI_SOAT,
   profilOqi,
   sohalar,
+  tovarlar,
   yonalishlar,
   type NomzodJavobi,
   type TovarHolati,
+  type TovarNomzodi,
   type TurkumHolati,
 } from './shared/index.ts';
+
+/** `so_tovar_royxati()` javobi. */
+interface TovarJavobi {
+  turkum: { categoryId: number; name: string } | null;
+  royxat: TovarNomzodi[];
+}
 
 const URL_ = Deno.env.get('SUPABASE_URL') ?? '';
 const KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -122,6 +130,37 @@ Deno.serve(async (req: Request) => {
       kesh_eskirgan: kesh.yoshi_soat !== null && kesh.yoshi_soat > KESH_ESKI_SOAT,
       ...natija,
     });
+  }
+
+  // 3-qadam — turkum ichidagi tovarlar va miqdor (reja B2).
+  //
+  // Tuzoq filtrlari roʻyxatdan OLDIN ishlaydi: `block` bayrogʻli
+  // tovar chiqmaydi, lekin `chiqarildi` da sababi bilan qaytadi.
+  if (yol === '/tovarlar') {
+    const turkumId = Number(new URL(req.url).searchParams.get('turkum'));
+    if (!Number.isInteger(turkumId) || turkumId <= 0) {
+      return javob({ xato: 'turkum — butun son boʻlishi kerak' }, 400);
+    }
+
+    const kesh = await rpc<TovarJavobi>('so_tovar_royxati', {
+      p_category_external_id: turkumId,
+      p_limit: 50,
+    });
+    if (kesh === null) {
+      return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    }
+    if (!kesh.royxat.length) {
+      return javob({
+        olchov_yoq: true,
+        sabab: kesh.turkum === null ? 'bunday turkum yoʻq' : 'turkumda oʻlchangan tovar yoʻq',
+      }, 404);
+    }
+
+    const natija = tovarlar(kesh.royxat, (t) => {
+      const n = tovarniTekshir(t);
+      return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
+    });
+    return javob({ olchov_yoq: false, turkum: kesh.turkum, ...natija });
   }
 
   return javob({ xato: 'topilmadi', yol }, 404);

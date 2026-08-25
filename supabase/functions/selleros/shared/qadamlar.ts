@@ -12,6 +12,8 @@
 import { kirish, mavsum, profil, raqobat, talab, type KirishTalabi } from './qismlar.ts';
 import { score, type Parts, type Score } from './formula.ts';
 import { THRESHOLDS } from './thresholds.ts';
+import type { Flag } from './traps.ts';
+import type { TovarHolati } from './filtrlar/turlar.ts';
 
 const U = THRESHOLDS.usta;
 
@@ -247,4 +249,121 @@ export function miqdor(
       `yangi sotuvchi odatda ~${ulushFoiz}% oladi → oyiga ~${Math.round(bizniki)} dona · ` +
       `${zaxiraKun} kunlik zaxira = ${dona} dona`,
   };
+}
+
+// ====================================================================
+// 3-QADAM — TOVAR ROʻYXATI
+// ====================================================================
+
+/** `so_tovar_royxati()` qaytaradigan bitta tovar. */
+export interface TovarNomzodi extends TovarHolati {
+  /** Sotuv raqami qayerdan: oʻlchangan qoldiq farqi yoki perepis taxmini. */
+  sotuvManbasi: 'olchandi' | 'taxmin' | null;
+  /** Qoldiq necha kun oʻlchangan. */
+  olchanganKun: number | null;
+  shopName: string | null;
+  narxSom: number | null;
+  qoldiq: number | null;
+  reyting: number | null;
+  sharhSoni: number | null;
+}
+
+export interface TovarTavsiyasi {
+  nomzod: TovarNomzodi;
+  /** Nechta olish. `null` — hisoblab boʻlmadi. */
+  miqdor: { dona: number; hisob: string } | null;
+  /** Miqdor hisoblanmagan boʻlsa — nega. */
+  miqdorSababi: string | null;
+  /** Tuzoq bayroqlari. Boʻsh boʻlishi mumkin. */
+  bayroqlar: Flag[];
+  /** Baholab boʻlmagan filtrlar va yetishmagan maydonlar. */
+  baholanmadi: Array<{ filtr: string; missing: string[] }>;
+}
+
+export interface TovarNatijasi {
+  royxat: TovarTavsiyasi[];
+  /** `block` darajali tuzoq tufayli roʻyxatga chiqmagan tovarlar. */
+  chiqarildi: Array<{ productId: number; title: string; sabab: string }>;
+}
+
+/**
+ * MIQDOR FAQAT OʻLCHANGAN SOTUVDAN hisoblanadi.
+ *
+ * Perepisdagi `buyers_per_week` raqami tartiblash uchun yaraydi
+ * (persentil monoton oʻlchovga bogʻliq), lekin MUTLAQ miqdor uchun
+ * yaramaydi — uning maʼnosi tasdiqlanmagan.
+ *
+ * Oʻlchov (2026-08-25, 1,47 mln tovar): Galaxy A16 uchun
+ * `buyers_per_week = 23 954`. Bu haftasiga deganda yiliga 1,2 mln
+ * dona boʻladi — Oʻzbekiston bozorida bitta model uchun imkonsiz.
+ * Sharh/xaridor nisbati ham barqaror emas (0.167 → 0.346 → 0.115),
+ * yaʼni "haftalik" ham, "jami" ham deb tasdiqlab boʻlmaydi.
+ *
+ * Shu raqamdan "shuncha dona sotib oling" degan tavsiya chiqarish —
+ * odamning pulini tasdiqlanmagan maydonga tikish. Qoldiq farqi esa
+ * bizning oʻlchovimiz va u tekshirilishi mumkin.
+ */
+const MIQDOR_UCHUN_MANBA = 'olchandi';
+
+/**
+ * 3-qadam: turkum ichidagi tovarlar va har biriga miqdor.
+ *
+ * TUZOQ FILTRLARI ROʻYXATDAN OLDIN ishlaydi (reja, 2-boʻlim, 3-qadam:
+ * "Roʻyxatga chiqishdan OLDIN har tovar hiyla-filtrlardan oʻtadi").
+ * `block` darajali bayroq tovarni roʻyxatdan butunlay chiqaradi va
+ * sababi bilan `chiqarildi` ga yoziladi — jimgina yoʻqolmaydi.
+ */
+export function tovarlar(
+  nomzodlar: TovarNomzodi[],
+  tekshir: (t: TovarHolati) => {
+    bayroqlar: Flag[];
+    baholanmadi: Array<{ filtr: string; missing: string[] }>;
+  },
+): TovarNatijasi {
+  const royxat: TovarTavsiyasi[] = [];
+  const chiqarildi: TovarNatijasi['chiqarildi'] = [];
+
+  for (const n of nomzodlar) {
+    const { bayroqlar, baholanmadi } = tekshir(n);
+
+    const toxtatuvchi = bayroqlar.find((b) => b.severity === 'block');
+    if (toxtatuvchi) {
+      chiqarildi.push({
+        productId: n.productId,
+        title: n.title,
+        sabab: toxtatuvchi.reason,
+      });
+      continue;
+    }
+
+    const { son, sabab } = sotuvOlchovi(n);
+    royxat.push({
+      nomzod: n,
+      miqdor: son === null ? null : miqdor(son),
+      miqdorSababi: sabab,
+      bayroqlar,
+      baholanmadi,
+    });
+  }
+
+  return { royxat, chiqarildi };
+}
+
+/** Miqdor uchun ishlatiladigan sotuv soni va — boʻlmasa — sababi. */
+function sotuvOlchovi(n: TovarNomzodi): { son: number | null; sabab: string | null } {
+  if (n.soldUnits30d === null) {
+    return { son: null, sabab: 'Sotuv hali oʻlchanmagan.' };
+  }
+  if (n.sotuvManbasi !== MIQDOR_UCHUN_MANBA) {
+    const kun = n.olchanganKun ?? 0;
+    const kerak = THRESHOLDS.data.minDaysForDemand;
+    return {
+      son: null,
+      sabab:
+        `Sotuv qoldiq farqidan hali oʻlchanmagan — ${kun} kun bor, ` +
+        `${kerak} kun kerak. Koʻrsatilgan raqam Uzumning oʻz koʻrsatkichidan ` +
+        'olingan taxmin: tartiblash uchun yetadi, miqdor hisoblash uchun emas.',
+    };
+  }
+  return { son: n.soldUnits30d, sabab: null };
 }
