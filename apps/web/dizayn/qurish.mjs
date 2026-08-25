@@ -350,14 +350,16 @@ function matnniTuzat(matn) {
 
   // ---- N. "Boshlash" tugmalari HECH QAYERGA olib bormasdi --------
   //
-  // Uchala tugmada ham `sc-camel-on-click="{{ startDemo }}"` turgan
-  // — bu dizayn vositasining bogʻlanishi va statik saytda u hech
-  // narsa qilmaydi. Yaʼni sotuv sahifasidagi ASOSIY tugma bosilganda
-  // hech nima boʻlmasdi.
+  // Tugmalarda `sc-camel-on-click="{{ startDemo }}"` turgan.
   //
-  // Bu eng zararli jim nosozlik turi: sahifa benuqson koʻrinadi,
-  // odam tugmani bosadi, hech nima boʻlmaydi va u ketadi. Hech
-  // qayerda xato yozilmaydi.
+  // TUZATILDI 2026-08-25: bu yerda ilgari "statik saytda u hech
+  // narsa qilmaydi" deb yozilgan edi va u NOTOʻGʻRI. React qadoq
+  // ichida ishlaydi, yaʼni tugma bosilganda dizayn qadogʻidagi
+  // WIREFRAME DEMO ochiladi: "5 ta savol beraman", raqamlari
+  // qoʻlda yozilgan.
+  //
+  // Yaʼni sahifadagi eng asosiy tugma odamni haqiqiy mahsulotga
+  // emas, soxta koʻrsatuvga olib borardi. Uni nazoratchi topdi.
   //
   // `<button>` oʻrniga havolaga oʻraladi, `onclick` emas: havolani
   // yangi oynada ochish, nusxalash va qidiruv tizimi koʻrishi
@@ -370,6 +372,41 @@ function matnniTuzat(matn) {
     'Boshlash tugmalari /usta ga ulanadi',
     3,
   );
+
+  /*
+   * Qolgan uchta CTA — "Demoni boshlash", "Bepul demoni boshlash
+   * — 2 daqiqa", "Bepul demoni boshlash".
+   *
+   * Yuqoridagi qoida faqat matni AYNAN "Boshlash" boʻlganini
+   * tutardi, shuning uchun sahifadagi eng koʻrinadigan uchta
+   * tugma soxta demoda qolib ketgan edi. Endi matn qanday
+   * boʻlishidan qatʼi nazar tutiladi.
+   */
+  matn = hammasini(
+    matn,
+    /<button sc-camel-on-click="\{\{ startDemo \}\}"([^>]*)>([^<]*)<\/button>/g,
+    '<a href="/usta" style="text-decoration:none;display:inline-block">'
+    + '<button$1>$2</button></a>',
+    'asosiy CTA tugmalari /usta ga ulanadi',
+    3,
+  );
+
+  /*
+   * "Demo" soʻzi olib tashlandi.
+   *
+   * Tugma endi haqiqiy Ustaga olib boradi — demoga emas. Uni
+   * "demo" deb atash odamni ikkinchi marta chalgʻitardi: u
+   * koʻrsatuv kutadi, mahsulotning oʻzi ochiladi.
+   *
+   * "Bepul" qoladi va u ROST: toʻlov oqimi yoʻq, tarif cheklovi
+   * oʻchiq, roʻyxatdan oʻtish talab qilinmaydi.
+   */
+  matn = hammasini(matn, />Demoni boshlash</g, '>Boshlash<',
+    'sarlavhadagi "Demoni boshlash"', 1);
+  matn = hammasini(matn, />Bepul demoni boshlash — 2 daqiqa</g,
+    '>Bepul boshlash — 2 daqiqa<', 'qahramon tugmasi', 1);
+  matn = hammasini(matn, />Bepul demoni boshlash</g, '>Bepul boshlash<',
+    'pastki tugma', 1);
 
   // ---- N+1. Sahifada <title> va tavsif YOʻQ EDI ------------------
   //
@@ -433,7 +470,38 @@ function matnniTuzat(matn) {
   );
 
   olikHavolalar(matn);
+  demogaKetmasin(matn);
   return matn;
+}
+
+/*
+ * HECH BIR TUGMA SOXTA DEMOGA OLIB BORMASIN.
+ *
+ * Qadoq ichida wireframe demo bor: "5 ta savol beraman", raqamlari
+ * qoʻlda yozilgan, 1688 doʻkoni taqlid qilingan. U dizayn vositasi
+ * uchun yasalgan va MIJOZGA koʻrsatilmasligi kerak — haqiqiy Usta
+ * oʻn ikki savol beradi va oʻlchangan maʼlumot bilan ishlaydi.
+ *
+ * 2026-08-25 da aynan shu boʻldi: uchta eng koʻrinadigan tugma
+ * demoni ochardi, chunki tuzatish faqat matni "Boshlash" boʻlgan
+ * tugmalarni tutardi. Nazoratchi topdi, testlar emas.
+ *
+ * Endi qoida matnga emas, HARAKATGA bogʻlangan: `startDemo` ni
+ * chaqiradigan tugma qolsa qurish toʻxtaydi.
+ */
+function demogaKetmasin(matn) {
+  const qolgan = matn.match(/<button[^>]*startDemo[^>]*>/g) ?? [];
+  if (qolgan.length > 0) {
+    throw new Error(
+      `${qolgan.length} ta tugma hamon soxta demoni ochadi.\n`
+      + 'Ular `/usta` ga — haqiqiy Ustaga — ulanishi kerak.',
+    );
+  }
+  const ustaga = (matn.match(/href="\/usta"/g) ?? []).length;
+  if (ustaga < 6) {
+    throw new Error(`Faqat ${ustaga} ta tugma /usta ga ketyapti, kamida 6 ta kutilgan.`);
+  }
+  console.log(`Usta tugmalari — ${ustaga} ta, demoga ketadigani yoʻq`);
 }
 
 /*
