@@ -400,7 +400,61 @@ function matnniTuzat(matn) {
   // Til belgisi — ekran oʻqigichlar va qidiruv tizimi uchun.
   matn = almashtir(matn, '<html><head>', '<html lang="uz"><head>',
     'html lang="uz"');
+
+  olikHavolalar(matn);
   return matn;
+}
+
+/*
+ * OʻLIK HAVOLALAR OʻSIB KETMASIN.
+ *
+ * Sahifada `href="#"` boʻlgan havolalar bor — bosilganda hech
+ * qayerga olib bormaydi. Ularning bir qismi dizayn qadogʻidagi
+ * 1688 SIMULATSIYASI ichida va u yerda oʻrinli: demo boshqa saytni
+ * koʻrsatadi, uning menyusi ishlashi shart emas.
+ *
+ * Lekin saytning OʻZIDA ham beshtasi bor: Kirish, Roʻyxatdan
+ * oʻtish, Oferta, Maxfiylik, Yordam. Ular haqiqiy sahifa kutadi va
+ * ularsiz sayt tugallanmagan.
+ *
+ * Bu qorovul ularni tuzatmaydi — SANAB turadi. Yangi oʻlik havola
+ * qoʻshilsa qurish toʻxtaydi va nomini aytadi. Aks holda roʻyxat
+ * jimgina oʻsib borardi va "keyin tuzatamiz" abadiy choʻzilardi.
+ */
+const KUTILGAN_OLIK = [
+  'Kirish', 'Roʻyxatdan oʻtish', 'Oferta', 'Maxfiylik', 'Yordam', 'ofertada',
+  // 1688 simulatsiyasi menyusi — boshqa saytning taqlidi.
+  'Bosh sahifa', 'Brend markazlari', 'Sanoat markazlari', 'Ishlab chiqaruvchilar',
+  'Yetkazib beruvchi', 'Yangi tovarlar', 'Chegirmalar', 'Koʻp sotilganlar',
+  // Simulatsiyadagi qidiruv taklifi.
+  'iPhone 15 gʻilof', 'Samsung A34 gʻilof', 'MagSafe', 'Shishaviy plyonka',
+];
+
+function olikHavolalar(matn) {
+  const topilgan = [...matn.matchAll(/<a[^>]*href="#"[^>]*>(.*?)<\/a>/gs)]
+    .map((m) => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
+    // Uzum va ZumSavdo apostrofi ikki xil yoziladi — bir shaklga keltiramiz.
+    .map((t) => t.replace(/['\u2019]/g, 'ʻ'))
+    .filter(Boolean);
+
+  const yangi = topilgan.filter((t) => !KUTILGAN_OLIK.includes(t));
+  if (yangi.length > 0) {
+    throw new Error(
+      `Yangi oʻlik havola (href="#"): ${[...new Set(yangi)].join(', ')}.\n`
+      + 'Yo haqiqiy manzil qoʻying, yo KUTILGAN_OLIK roʻyxatiga SABAB bilan qoʻshing.',
+    );
+  }
+
+  const oz = KUTILGAN_OLIK.filter((k) => !topilgan.includes(k));
+  if (oz.length > 0) {
+    // Roʻyxat ham eskiradi: havola tuzatilgach undan oʻchirilishi kerak.
+    throw new Error(
+      `KUTILGAN_OLIK roʻyxati eskirgan — bular endi oʻlik emas: ${oz.join(', ')}.\n`
+      + 'Ularni roʻyxatdan oʻchiring.',
+    );
+  }
+
+  console.log(`oʻlik havola — ${topilgan.length} ta, hammasi roʻyxatda`);
 }
 /**
  * `<div>` MUVOZANATI — tuzatishlardan keyin.
