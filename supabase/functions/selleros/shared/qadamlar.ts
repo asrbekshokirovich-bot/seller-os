@@ -13,7 +13,7 @@ import { kirish, mavsum, profil, raqobat, talab, type KirishTalabi } from './qis
 import { score, type Parts, type Score } from './formula.ts';
 import { THRESHOLDS } from './thresholds.ts';
 import type { Flag } from './traps.ts';
-import type { TovarHolati } from './filtrlar/turlar.ts';
+import type { TovarToliq } from './filtrlar/turlar.ts';
 
 const U = THRESHOLDS.usta;
 
@@ -256,7 +256,7 @@ export function miqdor(
 // ====================================================================
 
 /** `so_tovar_royxati()` qaytaradigan bitta tovar. */
-export interface TovarNomzodi extends TovarHolati {
+export interface TovarNomzodi extends TovarToliq {
   /** Sotuv raqami qayerdan: oʻlchangan qoldiq farqi yoki perepis taxmini. */
   sotuvManbasi: 'olchandi' | 'taxmin' | null;
   /** Qoldiq necha kun oʻlchangan. */
@@ -330,7 +330,7 @@ const MIQDOR_UCHUN_MANBA = 'olchandi';
  */
 export function tovarlar(
   nomzodlar: TovarNomzodi[],
-  tekshir: (t: TovarHolati) => {
+  tekshir: (t: TovarToliq) => {
     bayroqlar: Flag[];
     baholanmadi: Array<{ filtr: string; missing: string[] }>;
   },

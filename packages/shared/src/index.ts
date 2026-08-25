@@ -10,3 +10,7 @@ export * from './qismlar.js';
 export * from './filtrlar/demping.js';
 export * from './qadamlar.js';
 export * from './savollar.js';
+export * from './filtrlar/nakrutka.js';
+export * from './filtrlar/ogir.js';
+export * from './filtrlar/mavsum.js';
+export * from './filtrlar/hype.js';

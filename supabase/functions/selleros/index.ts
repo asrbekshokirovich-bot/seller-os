@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const natija = tovarlar(kesh.royxat, (t) => {
-      const n = tovarniTekshir(t);
+      const n = tovarniTekshir(t, hozirgiOy());
       return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
     });
     return javob({ olchov_yoq: false, turkum: kesh.turkum, ...natija });

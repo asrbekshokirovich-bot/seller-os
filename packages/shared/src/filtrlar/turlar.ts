@@ -95,3 +95,32 @@ export interface Baholanmadi {
   /** Qaysi maydonlar yetishmadi. */
   missing: string[];
 }
+
+/**
+ * `TovarHolati` + qolgan filtrlar talab qiladigan maydonlar.
+ *
+ * Alohida tur, chunki `TovarHolati` ni kengaytirish `so_tovar_holati`
+ * shartnomasini buzardi. Yangi maydonlar IXTIYORIY: berilmasa filtr
+ * "baholanmadi" qaytaradi va bu SONI bilan koʻrsatiladi.
+ *
+ * Yaʼni maʼlumot yetib kelmagani jimgina "tuzoq yoʻq" ga
+ * aylanmaydi — bu farq QOIDALAR.md 4-qoidasining oʻzagi.
+ */
+export interface TovarToliq extends TovarHolati {
+  /** 4-tuzoq. Sharhlar soni. */
+  sharhSoni?: number | null;
+  /** 4-tuzoq. Sotuv raqami qayerdan — taxminda filtr baholamaydi. */
+  sotuvManbasi?: 'olchandi' | 'taxmin' | null;
+  /** 4-tuzoq. Reyting, 0–5. */
+  reyting?: number | null;
+  /** 7-tuzoq. Ogʻirlik, gramm. */
+  weightG?: number | null;
+  /** 7-tuzoq. Hajm, ml. Uzum hozircha bermaydi. */
+  volumeMl?: number | null;
+  /** 2-tuzoq. Turkumning 12 oylik koeffitsienti. */
+  seasonality?: number[] | null;
+  /** 8-tuzoq. Tovar necha kundan beri Uzumda. */
+  productAgeDays?: number | null;
+  /** 8-tuzoq. Sotuvning qancha ulushi soʻnggi oynada (0–1). */
+  yangiSotuvUlushi?: number | null;
+}

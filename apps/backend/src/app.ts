@@ -160,7 +160,7 @@ export function build(): FastifyInstance {
     }
 
     const natija = tovarlar(javob.royxat, (t) => {
-      const n = tovarniTekshir(t);
+      const n = tovarniTekshir(t, hozirgiOy());
       return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
     });
 

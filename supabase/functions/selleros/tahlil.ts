@@ -1,5 +1,9 @@
-import { monopoliya, TRAP_LABEL, yopiqBrend } from './shared/index.ts';
-import type { Flag, TovarHolati, TrapKind, TurkumHolati } from './shared/index.ts';
+import {
+  hype, mavsumiy, monopoliya, nakrutka, ogir, TRAP_LABEL, yopiqBrend,
+} from './shared/index.ts';
+import type {
+  Baholanmadi, Flag, TovarHolati, TovarToliq, TrapKind, TurkumHolati,
+} from './shared/index.ts';
 
 /**
  * Filtrlarni bazaga ulaydigan qatlam.
@@ -19,17 +23,51 @@ export interface Bayroqli<T> {
   baholanmadi: { filtr: string; missing: string[] }[];
 }
 
-/** Bitta tovarni barcha tovar filtrlaridan oʻtkazadi. */
-export function tovarniTekshir(t: TovarHolati): Bayroqli<TovarHolati> {
+/**
+ * Bitta tovarni barcha tovar filtrlaridan oʻtkazadi.
+ *
+ * `oy` — mavsum filtri uchun. Argument sifatida uzatiladi, ichkarida
+ * `new Date()` chaqirilmaydi: aks holda test natijasi qaysi oyda
+ * ishlatilganiga bogʻliq boʻlardi va yilda bir marta sababsiz
+ * qizarardi.
+ */
+export function tovarniTekshir(t: TovarToliq, oy?: number): Bayroqli<TovarHolati> {
   const bayroqlar: Flag[] = [];
   const baholanmadi: { filtr: string; missing: string[] }[] = [];
 
-  const natija = yopiqBrend(t);
-  if (natija && natija.kind === 'baholanmadi') {
-    baholanmadi.push({ filtr: 'closed_brand', missing: natija.missing });
-  } else if (natija) {
-    bayroqlar.push(natija);
-  }
+  /** Filtr natijasini toʻgʻri roʻyxatga qoʻyadi. */
+  const yoz = (nom: string, natija: Flag | Baholanmadi | null) => {
+    if (!natija) return;
+    if (natija.kind === 'baholanmadi') {
+      baholanmadi.push({ filtr: nom, missing: natija.missing });
+    } else {
+      bayroqlar.push(natija);
+    }
+  };
+
+  yoz('closed_brand', yopiqBrend(t));
+
+  yoz('fake_sales', nakrutka({
+    soldUnits30d: t.soldUnits30d,
+    sotuvManbasi: t.sotuvManbasi ?? null,
+    reviews: t.sharhSoni ?? null,
+    rating: t.reyting ?? null,
+  }));
+
+  yoz('heavy', ogir({
+    weightG: t.weightG ?? null,
+    volumeMl: t.volumeMl ?? null,
+  }));
+
+  yoz('seasonal', mavsumiy({
+    seasonality: t.seasonality ?? null,
+    oy: oy ?? 0,
+  }));
+
+  yoz('hype', hype({
+    productAgeDays: t.productAgeDays ?? null,
+    yangiSotuvUlushi: t.yangiSotuvUlushi ?? null,
+  }));
 
   return { holat: t, bayroqlar, baholanmadi };
 }

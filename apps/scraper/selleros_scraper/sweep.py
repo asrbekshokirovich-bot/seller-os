@@ -149,5 +149,13 @@ def _qatorga(javob: Javob) -> dict:
         "reviews": k.reviews,
         "rating": k.rating,
         "buyers_per_week": k.buyers_per_week,
+        # Og'irlik 7-tuzoq (og'ir tovar) uchun. `skuList` dan keladi,
+        # ya'ni faqat og'ir so'rovda (`--stok`).
+        #
+        # 2026-08-25 gacha bu maydon YUBORILMASDI: uzum.py uni ajratib
+        # olardi, `Kuzatuv.weight_g` da saqlardi va shu yerda tashlab
+        # ketilardi. Natijada `product.weight_g` ustuni 0001-migratsiyadan
+        # beri bo'sh turgan va 7-tuzoq umuman ishlay olmasdi.
+        "weight_g": k.weight_g,
         "observed_at": _hozir(),
     }

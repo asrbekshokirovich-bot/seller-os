@@ -10,3 +10,7 @@ export * from './qismlar.ts';
 export * from './filtrlar/demping.ts';
 export * from './qadamlar.ts';
 export * from './savollar.ts';
+export * from './filtrlar/nakrutka.ts';
+export * from './filtrlar/ogir.ts';
+export * from './filtrlar/mavsum.ts';
+export * from './filtrlar/hype.ts';
