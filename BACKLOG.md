@@ -158,3 +158,33 @@ odam unga qarab pul tikadi.
 
 Hozir CSV da 3 qator bor — VMQ 148 boʻyicha qoʻlda tekshirilgan
 markirovka talablari, huquqiy havolasi bilan.
+
+## Boʻsh jadvallar — holat (2026-08-25)
+
+Reja bu jadvallarni majburiy deb yozgan. Qaysi biri toʻldi, qaysi
+biri nimani kutmoqda:
+
+| Jadval | Qator | Holat |
+|---|---|---|
+| `product_flags` | **319** | ✅ skreyper ishida hisoblanadi |
+| `sales_estimates` | **6 186** | ✅ skreyper ishida hisoblanadi |
+| `category_requirements` | **34** | ⚠️ mavsum 31, markirovka 3, qolgani boʻsh |
+| `yonalish_nomzodi` | **300** | ✅ kesh |
+| `recommendations` | 0 | ❌ **auth kerak** — "kimga" maydonini toʻldirib boʻlmaydi |
+| `user_profiles` | 0 | ❌ **auth kerak** |
+| `users` / `subscriptions` / `payments` | 0 | ❌ B3 |
+| `ai_usage` / `events` | 0 | ❌ `ANTHROPIC_API_KEY` kerak |
+
+`product_flags` yozilishi IDEMPOTENT: har hisobda oʻsha tovarlarning
+eski bayroqlari oldin oʻchiriladi. Tekshirildi — ikkinchi chaqiruvda
+319 oʻchirildi, 319 yozildi.
+
+Bugungi taqsimot:
+
+| Tuzoq | Daraja | Soni |
+|---|---|---|
+| `seasonal` | warn | 283 |
+| `closed_brand` | block | 36 |
+
+Qolgan olti filtr maʼlumot kutmoqda — nimani kutayotgani
+`/tuzoqlar` javobidagi `yetishmayotgan` da koʻrinadi.
