@@ -360,6 +360,18 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     return javob({ b2: d });
   }
 
+  /*
+   * Sotuv sahifasidagi "Bazamizda bugun" raqamlari.
+   *
+   * Ilgari ular `qurish.mjs` ichida qoʻlda yozilgan edi va bir
+   * kunda 320 000 ga eskirgandi.
+   */
+  if (yol === '/bazamiz') {
+    const b = await rpc<unknown>('so_bazamiz', {});
+    if (b === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    return javob({ olchov_yoq: false, bazamiz: b });
+  }
+
   // Amaldagi tarif — UI qulfni BOSISHDAN OLDIN koʻrsatishi uchun.
   if (yol === '/tarif') {
     const n = await rejaniOl(req.headers.get('x-sessiya'));

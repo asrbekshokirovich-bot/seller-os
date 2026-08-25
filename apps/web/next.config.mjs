@@ -29,29 +29,16 @@ const config = {
   transpilePackages: ['@selleros/shared'],
 
   /*
-   * `/` — sotuv sahifasi, `/usta` — forma.
+   * `/` uchun YOʻNALTIRISH YOʻQ — `src/app/route.ts` bor.
    *
-   * Sotuv sahifasi Next komponenti EMAS: u dizayn vositasidan
-   * chiqqan 177 KB lik tayyor HTML (`dizayn/qurish.mjs` yasaydi).
-   * Uni JSX ga koʻchirish mumkin edi, lekin keyin dizaynning har
-   * yangi versiyasi qoʻlda koʻchirishni talab qilardi — va oʻsha
-   * yerda matn jimgina eskirardi.
+   * Ilgari bu yerda `/` → `/sotuv.html` yoʻnaltirishi turardi va
+   * sahifa toʻgʻridan-toʻgʻri statik fayl sifatida berilardi.
+   * Endi uch shu faylni oʻqib, "Bazamizda bugun" raqamlarini
+   * jonli qiymatga almashtiradi (`route.ts` dagi izohga qarang).
    *
-   * Shuning uchun u `public/sotuv.html` da statik fayl boʻlib
-   * qoladi. Next `public/index.html` ni `/` da xizmat qilmaydi,
-   * shu sababdan yoʻnaltirish kerak.
-   *
-   * `beforeFiles` — fayl tizimidan OLDIN tekshiriladi, yaʼni
-   * kelajakda kimdir `app/page.tsx` yaratib qoʻysa ham sotuv
-   * sahifasi ustun qoladi va bu jimgina almashib ketmaydi.
+   * `public/sotuv.html` oʻz manzilida qolaveradi — u zaxira va
+   * uni brauzerda ochib solishtirish mumkin.
    */
-  async rewrites() {
-    return {
-      beforeFiles: [{ source: '/', destination: '/sotuv.html' }],
-      afterFiles: [],
-      fallback: [],
-    };
-  },
 
   webpack(webpackConfig) {
     webpackConfig.resolve.extensionAlias = {

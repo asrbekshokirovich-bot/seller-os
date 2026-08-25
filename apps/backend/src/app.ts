@@ -321,6 +321,24 @@ export function build(): FastifyInstance {
     return n;
   });
 
+
+  /**
+   * Sotuv sahifasidagi "Bazamizda bugun" raqamlari.
+   *
+   * Ilgari ular `qurish.mjs` ichida qoʻlda yozilgan edi va bir
+   * kunda 320 000 ga eskirgandi. Sahifa sarlavhasi esa "Har bir
+   * raqam oʻlchangan" deb turadi — qoʻlda yozilgan raqam bilan bu
+   * daʼvo yolgʻon boʻlardi.
+   */
+  app.get('/bazamiz', async () => {
+    const b = await rpc<unknown>('so_bazamiz', {});
+    // Baza javob bermasa NOL koʻrsatilmaydi: sahifa oʻzining
+    // qurish paytidagi raqamlarini saqlab qoladi va sanasi
+    // bilan koʻrsatadi.
+    if (b === null) return { olchov_yoq: true, sabab: 'baza javob bermadi' };
+    return { olchov_yoq: false, bazamiz: b };
+  });
+
   /** B2 darvozasi holati — nechta odam "mantiqli" dedi. */
   app.get('/darvoza', async () => {
     const d = await rpc<unknown>('so_darvoza_b2', {});

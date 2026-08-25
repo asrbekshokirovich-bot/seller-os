@@ -142,10 +142,22 @@ function matnniTuzat(matn) {
   if (boshi < 0 || oxiri < boshi) {
     throw new Error('Guvohliklar boʻlimi topilmadi — qurish toʻxtatildi.');
   }
-  const karta = (son, nom, izoh) =>
+  /*
+   * Raqam `data-bazamiz` bilan belgilanadi.
+   *
+   * Sahifa statik, raqamlar esa har kuni oʻzgaradi. Belgi
+   * boʻlmasa ularni almashtirish uchun HTML ni naqsh bilan
+   * qidirish kerak boʻlardi — dizayn oʻzgarganda u jimgina
+   * ishlamay qoʻyardi.
+   *
+   * Bu yerdagi son — ZAXIRA. Baza javob bermasa oʻsha koʻrinadi,
+   * va sana bilan koʻrsatiladi, yaʼni sahifa yolgʻon aytmaydi.
+   */
+  const karta = (kalit, son, nom, izoh) =>
     '<div style="background:#fff;border:1px solid #D9DFE8;border-radius:12px;padding:24px;' +
     'display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(10,26,52,.08)">' +
-    '<div style="font-size:34px;font-weight:800;letter-spacing:-.02em;color:#0A1A34;' +
+    '<div data-bazamiz="' + kalit + '" ' +
+    'style="font-size:34px;font-weight:800;letter-spacing:-.02em;color:#0A1A34;' +
     "font-family:'JetBrains Mono',monospace\">" + son + '</div>' +
     '<div style="font-size:15px;font-weight:600;color:#0A1A34">' + nom + '</div>' +
     '<div style="font-size:13px;line-height:1.5;color:#52627A">' + izoh + '</div></div>';
@@ -158,13 +170,14 @@ function matnniTuzat(matn) {
         <p style="margin:0;font-size:16px;color:#52627A">Har bir raqam oʻlchangan. Hisoblab chiqarilgani yoʻq.</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
-        ${karta('1 528 764', 'tovar kuzatilmoqda', 'Uzum katalogi id boʻyicha aylanib chiqiladi — namuna emas, butun katalog.')}
-        ${karta('82 684', 'doʻkon', 'Har biri qaysi turkumda sotishi bilan.')}
-        ${karta('5 244', 'turkum', 'Narx, qoldiq va sotuvchilar soni turkum kesimida.')}
-        ${karta('50 038', 'tovar kuniga oʻlchanadi', 'Kuniga uch marta. Qoldiq farqidan sotuv baholanadi.')}
+        ${karta('tovar', '1 850 863', 'tovar kuzatilmoqda', 'Uzum katalogi id boʻyicha aylanib chiqiladi — namuna emas, butun katalog.')}
+        ${karta('dokon', '85 866', 'doʻkon', 'Har biri qaysi turkumda sotishi bilan.')}
+        ${karta('turkum', '5 315', 'turkum', 'Narx, qoldiq va sotuvchilar soni turkum kesimida.')}
+        ${karta('kunlik', '50 038', 'tovar kuniga oʻlchanadi', 'Kuniga uch marta. Qoldiq farqidan sotuv baholanadi.')}
       </div>
       <p style="margin:28px 0 0;text-align:center;font-size:13px;color:#8494A8">
-        2026-08-24 holatiga. Raqamlar bazadan olinadi va har kuni oʻzgaradi.
+        <span data-bazamiz="olchandi">2026-08-25</span> holatiga.
+        Raqamlar bazadan olinadi va har kuni oʻzgaradi.
       </p>
     </div>
   </div>
@@ -471,7 +484,29 @@ function matnniTuzat(matn) {
 
   olikHavolalar(matn);
   demogaKetmasin(matn);
+  bazamizBelgilari(matn);
   return matn;
+}
+
+/*
+ * "Bazamizda bugun" raqamlari BELGILANGAN boʻlsin.
+ *
+ * `/` uchi shu belgilar boʻyicha raqamlarni jonli qiymatga
+ * almashtiradi. Belgi yoʻqolsa, sahifa qurish paytidagi eski
+ * raqamlar bilan chiqaveradi va buni HECH NARSA koʻrsatmasdi —
+ * aynan shu naqsh bugun uchinchi marta uchradi.
+ *
+ * Shuning uchun belgi yoʻqolsa qurish TOʻXTAYDI.
+ */
+function bazamizBelgilari(matn) {
+  const KUTILGAN = ['tovar', 'dokon', 'turkum', 'kunlik', 'olchandi'];
+  const yoq = KUTILGAN.filter((k) => !matn.includes(`data-bazamiz="${k}"`));
+  if (yoq.length > 0) {
+    throw new Error(
+      `"Bazamizda bugun" belgilari yoʻq: ${yoq.join(', ')}.\n`
+      + 'Ularsiz sahifa eski raqamlarda qotib qoladi.',
+    );
+  }
 }
 
 /*
