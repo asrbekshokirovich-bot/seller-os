@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from .hurmat import KillSwitch, Limits, next_delay
+from .hurmat import KillSwitch, Limits, Proksilar, next_delay
 from .manbalar.uzum_client import Javob, Natija, sorov
 from .store import Store
 from .token import TokenProvider
@@ -48,6 +48,9 @@ class Hisobot:
     yoq: int = 0
     xatolar: int = 0
     yozildi: dict[str, int] = field(default_factory=dict)
+    #: Proksi holati. To'xtagan manzil hisobotda KO'RINADI —
+    #: aks holda u jimgina yiqilib, yig'ish sekinlashardi.
+    proksi: dict | None = None
     toxtadi: str | None = None
 
     @property
@@ -74,6 +77,8 @@ def sweep(
     limits: Limits | None = None,
     stok: bool = False,
     uxla: Callable[[float], None] = time.sleep,
+    proksilar: Proksilar | None = None,
+    mijoz_yasa: Callable[[str], httpx.Client] | None = None,
 ) -> Hisobot:
     """Berilgan id lar bo'yicha bir aylanish.
 
@@ -84,9 +89,30 @@ def sweep(
     javobni ~16 barobar shishirgani uchun standart qiymat `False`.
     """
     limits = limits or Limits()
+    proksilar = proksilar or Proksilar()
     hisobot = Hisobot()
     partiya: list[dict] = []
     sweep_id = store.sweep_ochish(client) if store else None
+
+    # Har proksi uchun alohida mijoz — httpx da proksi mijozga
+    # bog'lanadi, so'rovga emas.
+    #
+    # BAZAGA YOZISH proksidan O'TMAYDI: `client` o'zgarmaydi va
+    # `store` o'shani ishlatadi. Proksi Uzumga chiqish uchun, o'z
+    # bazamizga emas.
+    mijozlar: dict[str, httpx.Client] = {}
+
+    def _mijoz_yasa(manzil: str) -> httpx.Client:
+        if mijoz_yasa is not None:
+            return mijoz_yasa(manzil)
+        return httpx.Client(timeout=limits.timeout_s, proxy=manzil)
+
+    def uzum_mijozi(manzil: str | None) -> httpx.Client:
+        if manzil is None:
+            return client
+        if manzil not in mijozlar:
+            mijozlar[manzil] = _mijoz_yasa(manzil)
+        return mijozlar[manzil]
 
     def yuborish() -> None:
         if store and partiya:
@@ -98,13 +124,22 @@ def sweep(
     token = tokens.get(client)
     for pid in ids:
         hisobot.sorovlar += 1
-        javob = sorov(client, tokens.headers(token), pid, stok=stok)
+        manzil = proksilar.keyingi()
+        c = uzum_mijozi(manzil)
+        javob = sorov(c, tokens.headers(token), pid, stok=stok)
 
         if javob.natija is Natija.TOKEN:
             # Token o'ldi — yangilaymiz va SHU id ni qayta so'raymiz.
             tokens.invalidate()
             token = tokens.get(client)
-            javob = sorov(client, tokens.headers(token), pid, stok=stok)
+            javob = sorov(c, tokens.headers(token), pid, stok=stok)
+
+        # Tarmoq xatosi proksining aybi bo'lishi mumkin; "tovar
+        # yo'q" esa emas — u to'g'ri javob.
+        if javob.natija in (Natija.XATO, Natija.TEZ):
+            proksilar.xato(manzil)
+        elif javob.natija is not Natija.TOKEN:
+            proksilar.yaxshi(manzil)
 
         if javob.natija is Natija.TOPILDI and javob.kuzatuv:
             hisobot.topildi += 1
@@ -117,7 +152,7 @@ def sweep(
             hisobot.xatolar += 1
 
         try:
-            kechikish = next_delay(limits, hisobot.xato_darajasi)
+            kechikish = next_delay(limits, hisobot.xato_darajasi, hisobot.sorovlar)
         except KillSwitch as toxtash:
             hisobot.toxtadi = str(toxtash)
             break
@@ -125,6 +160,9 @@ def sweep(
             uxla(kechikish)
 
     yuborish()
+    for m in mijozlar.values():
+        m.close()
+    hisobot.proksi = proksilar.holat()
     if store and sweep_id is not None:
         store.sweep_yopish(client, sweep_id, hisobot)
     return hisobot

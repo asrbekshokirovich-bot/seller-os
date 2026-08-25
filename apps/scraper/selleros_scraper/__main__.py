@@ -21,12 +21,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import uuid
 
 import httpx
 
-from .hurmat import Limits
+from .hurmat import Limits, proksilarni_oqi
 from .store import Store, StoreError
 from .sweep import sweep
 from .token import TokenProvider
@@ -62,6 +63,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--id", type=int, action="append", help="Bitta id (bir necha marta berish mumkin).")
     p.add_argument("--dan", type=int, help="Oraliq boshi.")
     p.add_argument("--gacha", type=int, help="Oraliq oxiri (kiradi).")
+    p.add_argument("--proksi",
+                   help="Vergul bilan ajratilgan proksi ro'yxati. "
+                        "Berilmasa SKREYPER_PROKSI muhit o'zgaruvchisi, "
+                        "u ham bo'lmasa to'g'ridan-to'g'ri.")
     p.add_argument("--stok", action="store_true",
                    help="Og'ir so'rov: qoldiqni ham oladi (javob ~16 barobar katta).")
     p.add_argument("--kuzatuv", action="store_true",
@@ -73,6 +78,8 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     limits = Limits(per_second=args.rps)
+    # Bayroq muhitdan ustun: bir marta sinab ko'rish oson bo'lsin.
+    proksilar = proksilarni_oqi(args.proksi or os.environ.get("SKREYPER_PROKSI"))
 
     store: Store | None = None
     if not args.quruq or args.kuzatuv:
@@ -102,7 +109,8 @@ def main(argv: list[str] | None = None) -> int:
 
         hisobot = sweep(ids, client=client, tokens=tokens,
                         store=None if args.quruq else store,
-                        limits=limits, stok=args.stok)
+                        limits=limits, stok=args.stok,
+                        proksilar=proksilar)
 
     print(json.dumps({
         "so'ralgan": hisobot.sorovlar,
@@ -112,6 +120,8 @@ def main(argv: list[str] | None = None) -> int:
         "xato_darajasi": round(hisobot.xato_darajasi, 4),
         "yozildi": hisobot.yozildi or None,
         "to'xtadi": hisobot.toxtadi,
+        # Proksi holati — to'xtagan manzil jimgina yo'qolmasin.
+        "proksi": hisobot.proksi,
         "quruq": args.quruq,
     }, ensure_ascii=False, indent=2))
 
