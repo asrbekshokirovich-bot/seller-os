@@ -143,22 +143,26 @@ function matnniTuzat(matn) {
     throw new Error('Guvohliklar boʻlimi topilmadi — qurish toʻxtatildi.');
   }
   /*
-   * Raqam `data-bazamiz` bilan belgilanadi.
+   * Statik faylda RAQAM YOʻQ — faqat chiziqcha.
    *
-   * Sahifa statik, raqamlar esa har kuni oʻzgaradi. Belgi
-   * boʻlmasa ularni almashtirish uchun HTML ni naqsh bilan
-   * qidirish kerak boʻlardi — dizayn oʻzgarganda u jimgina
-   * ishlamay qoʻyardi.
+   * Ilgari bu yerda qoʻlda yozilgan son turardi va u zaxira deb
+   * atalardi. Lekin zaxira ham eskiradi: bir kunda tovarlar soni
+   * 322 099 taga oʻzgardi. Yaʼni baza javob bermaganda sahifa
+   * eski raqamni YANGI qilib koʻrsatardi.
    *
-   * Bu yerdagi son — ZAXIRA. Baza javob bermasa oʻsha koʻrinadi,
-   * va sana bilan koʻrsatiladi, yaʼni sahifa yolgʻon aytmaydi.
+   * Notoʻgʻri raqam yoʻqligidan qimmat: odam unga qarab qaror
+   * qabul qiladi. Shuning uchun statik faylda oʻlchov umuman
+   * yoʻq — uni faqat `/` uchi jonli qiymat bilan toʻldiradi.
+   *
+   * Belgi `data-bazamiz` bilan qoʻyiladi; u yoʻqolsa qurish
+   * toʻxtaydi (`bazamizBelgilari`).
    */
-  const karta = (kalit, son, nom, izoh) =>
+  const karta = (kalit, nom, izoh) =>
     '<div style="background:#fff;border:1px solid #D9DFE8;border-radius:12px;padding:24px;' +
     'display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(10,26,52,.08)">' +
     '<div data-bazamiz="' + kalit + '" ' +
     'style="font-size:34px;font-weight:800;letter-spacing:-.02em;color:#0A1A34;' +
-    "font-family:'JetBrains Mono',monospace\">" + son + '</div>' +
+    "font-family:'JetBrains Mono',monospace\">—</div>" +
     '<div style="font-size:15px;font-weight:600;color:#0A1A34">' + nom + '</div>' +
     '<div style="font-size:13px;line-height:1.5;color:#52627A">' + izoh + '</div></div>';
 
@@ -170,15 +174,12 @@ function matnniTuzat(matn) {
         <p style="margin:0;font-size:16px;color:#52627A">Har bir raqam oʻlchangan. Hisoblab chiqarilgani yoʻq.</p>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
-        ${karta('tovar', '1 850 863', 'tovar kuzatilmoqda', 'Uzum katalogi id boʻyicha aylanib chiqiladi — namuna emas, butun katalog.')}
-        ${karta('dokon', '85 866', 'doʻkon', 'Har biri qaysi turkumda sotishi bilan.')}
-        ${karta('turkum', '5 315', 'turkum', 'Narx, qoldiq va sotuvchilar soni turkum kesimida.')}
-        ${karta('kunlik', '50 038', 'tovar kuniga oʻlchanadi', 'Kuniga uch marta. Qoldiq farqidan sotuv baholanadi.')}
+        ${karta('tovar', 'tovar kuzatilmoqda', 'Uzum katalogi id boʻyicha aylanib chiqiladi — namuna emas, butun katalog.')}
+        ${karta('dokon', 'doʻkon', 'Har biri qaysi turkumda sotishi bilan.')}
+        ${karta('turkum', 'turkum', 'Narx, qoldiq va sotuvchilar soni turkum kesimida.')}
+        ${karta('kunlik', 'tovar kuniga oʻlchanadi', 'Kuniga uch marta. Qoldiq farqidan sotuv baholanadi.')}
       </div>
-      <p style="margin:28px 0 0;text-align:center;font-size:13px;color:#8494A8">
-        <span data-bazamiz="olchandi">2026-08-25</span> holatiga.
-        Raqamlar bazadan olinadi va har kuni oʻzgaradi.
-      </p>
+      <p data-bazamiz="holat" style="margin:28px 0 0;text-align:center;font-size:13px;color:#8494A8">Raqamlar hozir olinmadi.</p>
     </div>
   </div>
 
@@ -499,13 +500,33 @@ function matnniTuzat(matn) {
  * Shuning uchun belgi yoʻqolsa qurish TOʻXTAYDI.
  */
 function bazamizBelgilari(matn) {
-  const KUTILGAN = ['tovar', 'dokon', 'turkum', 'kunlik', 'olchandi'];
+  const KUTILGAN = ['tovar', 'dokon', 'turkum', 'kunlik', 'holat'];
   const yoq = KUTILGAN.filter((k) => !matn.includes(`data-bazamiz="${k}"`));
   if (yoq.length > 0) {
     throw new Error(
       `"Bazamizda bugun" belgilari yoʻq: ${yoq.join(', ')}.\n`
       + 'Ularsiz sahifa eski raqamlarda qotib qoladi.',
     );
+  }
+
+  /*
+   * Belgilangan joyda RAQAM qolmasin.
+   *
+   * Statik faylga yozilgan har qanday son — eskiradigan son.
+   * Bir kunda 322 099 taga eskirgan edi va baza javob bermaganda
+   * u YANGI boʻlib koʻrinardi. Notoʻgʻri raqam yoʻqligidan
+   * qimmat: odam unga qarab qaror qabul qiladi.
+   *
+   * Bu qoʻriqchi shuni qaytadan yozib qoʻyishga yoʻl qoʻymaydi.
+   */
+  for (const m of matn.matchAll(/data-bazamiz="(\w+)"[^>]*>([^<]*)</g)) {
+    if (/\d/.test(m[2])) {
+      throw new Error(
+        `"${m[1]}" belgisida raqam yozib qoʻyilgan: "${m[2].trim()}".\n`
+        + 'Statik faylda oʻlchov boʻlmasligi kerak — u eskiradi va\n'
+        + 'baza javob bermaganda YANGI boʻlib koʻrinadi.',
+      );
+    }
   }
 }
 
