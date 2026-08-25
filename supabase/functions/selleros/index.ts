@@ -24,6 +24,7 @@ import {
   type NomzodJavobi,
   type TovarHolati,
   type TovarNomzodi,
+  type TovarToliq,
   type TurkumHolati,
 } from './shared/index.ts';
 
@@ -161,6 +162,42 @@ Deno.serve(async (req: Request) => {
       return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
     });
     return javob({ olchov_yoq: false, turkum: kesh.turkum, ...natija });
+  }
+
+  // Bayroqlarni hisoblab BAZAGA yozadi (reja: `product_flags`).
+  //
+  // NEGA KERAK. Filtrlar har soʻrovda xotirada ishlaydi va natijasi
+  // hech qayerga saqlanmaydi. Yaʼni "shu tovar qachondan beri
+  // bayroqli", "bugun nechta yangi tuzoq topildi" degan savollarga
+  // javob yoʻq — jadval rejada bor, lekin 0 qator.
+  //
+  // Jadval boʻyicha chaqiriladi (skreyper ishi), foydalanuvchi
+  // soʻrovida emas: hisob 6 000 tovarni aylanadi.
+  if (yol === '/bayroqlarni-hisobla' && req.method === 'POST') {
+    const tovarlar_ = await rpc<TovarToliq[]>('so_tovar_holati', {
+      p_platform: 'uzum',
+      p_limit: 10000,
+    });
+    if (tovarlar_ === null) {
+      return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    }
+
+    const oy = hozirgiOy();
+    const bayroqlar = tovarlar_.flatMap((t) =>
+      tovarniTekshir(t, oy).bayroqlar.map((b) => ({ ...b, productId: t.productId })));
+
+    // Bayroqsiz tovar ham YOZILADI (boʻsh yozuv sifatida emas —
+    // eski bayroqlari oʻchiriladi). Aks holda tuzatilgan tovarning
+    // eski bayrogʻi jadvalda abadiy qolib ketardi.
+    const tegilgan = tovarlar_.map((t) => ({ productId: t.productId }));
+
+    const natija = await rpc<{ tegilgan: number; ochirildi: number; yozildi: number }>(
+      'so_bayroq_yoz', { p_bayroqlar: [...bayroqlar, ...tegilgan] });
+    if (natija === null) {
+      return javob({ olchov_yoq: true, sabab: 'bayroqlar yozilmadi' }, 503);
+    }
+
+    return javob({ tekshirildi: tovarlar_.length, ...natija });
   }
 
   return javob({ xato: 'topilmadi', yol }, 404);

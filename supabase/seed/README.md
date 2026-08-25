@@ -11,8 +11,14 @@ mavsumiylik) qo'lda to'ldiriladi."
 
 | Fayl | Nima | Kim to'ldiradi |
 |---|---|---|
-| `category_requirements.csv` | Kategoriya talablari va mavsumiylik | Nazoratchi |
-| `traps.json` | 20+ ma'lum tuzoq tovar — CI testining asosi | Nazoratchi |
+| `category_requirements.csv` | Kategoriya talablari va mavsumiylik | Nazoratchi (qo'lda) |
+| `fikstura_yasash.py` | Darvoza ro'yxatlarini **bazadan** yasaydi | Skript |
+
+**`traps.json` bu papkada YO'Q va bo'lmasligi kerak.** U bir vaqtlar
+bo'sh fayl bo'lib turgan va "nazoratchi to'ldiradi" deb yozilgan edi
+— noto'g'ri: ro'yxat o'lchovdan yasaladi va
+`apps/backend/test/fixtures/` ga yoziladi. Bo'sh fayl esa uni
+qidirgan odamni chalg'itardi.
 
 ## Qanday yuklanadi
 

@@ -152,3 +152,32 @@ jobs:
             exit 1
           fi
           echo "$n ta sotuv bahosi yozildi."
+
+      # Tuzoq bayroqlarini qayta hisoblash.
+      #
+      # NEGA SHU YERDA. Filtrlar har soʻrovda xotirada ishlaydi va
+      # natijasi saqlanmasdi: `product_flags` jadvali rejada bor,
+      # bazada esa 0 qator edi. Yaʼni "shu tovar qachondan beri
+      # bayroqli" degan savolga javob yoʻq edi.
+      #
+      # Oʻlchovdan KEYIN: yangi narx va qoldiq yozilmaguncha
+      # bayroqlar oʻzgarmaydi.
+      - name: Tuzoq bayroqlarini hisoblash
+        if: always()
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          API: https://duequijnnzcngzzvjqst.supabase.co/functions/v1/selleros
+        run: |
+          javob=$(curl -sS --max-time 300 -X POST \
+            -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" -d '{}' \
+            "$API/bayroqlarni-hisobla")
+          echo "$javob"
+          n=$(printf '%s' "$javob" | sed -n 's/.*"tekshirildi"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')
+          # Nol tovar tekshirilgani "tuzoq yoʻq" degani EMAS.
+          if [ -z "$n" ] || [ "$n" -eq 0 ]; then
+            echo "::error::Bayroqlar hisoblanmadi — bitta ham tovar tekshirilmadi."
+            exit 1
+          fi
+          echo "$n ta tovar tekshirildi."

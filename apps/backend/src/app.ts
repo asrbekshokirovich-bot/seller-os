@@ -16,6 +16,7 @@ import {
   type NomzodJavobi,
   type TovarHolati,
   type TovarNomzodi,
+  type TovarToliq,
   type TurkumHolati,
 } from '@selleros/shared';
 
@@ -165,6 +166,41 @@ export function build(): FastifyInstance {
     });
 
     return { olchov_yoq: false, turkum: javob.turkum, ...natija };
+  });
+
+  /**
+   * Bayroqlarni hisoblab bazaga yozadi (`product_flags`).
+   *
+   * Filtrlar har soʻrovda xotirada ishlaydi va natijasi saqlanmaydi.
+   * Yaʼni "shu tovar qachondan beri bayroqli", "bugun nechta yangi
+   * tuzoq topildi" degan savollarga javob yoʻq edi — jadval rejada
+   * bor, lekin 0 qator.
+   *
+   * Jadval boʻyicha chaqiriladi, foydalanuvchi soʻrovida emas.
+   */
+  app.post('/bayroqlarni-hisobla', async () => {
+    const royxat = await rpc<TovarToliq[]>('so_tovar_holati', {
+      p_platform: 'uzum',
+      p_limit: 10000,
+    });
+    if (royxat === null) {
+      return { olchov_yoq: true, sabab: 'baza javob bermadi' };
+    }
+
+    const oy = hozirgiOy();
+    const bayroqlar = royxat.flatMap((t) =>
+      tovarniTekshir(t, oy).bayroqlar.map((b) => ({ ...b, productId: t.productId })));
+    // Bayroqsiz tovar ham roʻyxatga kiradi: uning eski bayroqlari
+    // oʻchirilishi kerak, aks holda tuzatilgan tovarning bayrogʻi
+    // jadvalda abadiy qolib ketardi.
+    const tegilgan = royxat.map((t) => ({ productId: t.productId }));
+
+    const natija = await rpc<{ tegilgan: number; ochirildi: number; yozildi: number }>(
+      'so_bayroq_yoz', { p_bayroqlar: [...bayroqlar, ...tegilgan] });
+    if (natija === null) {
+      return { olchov_yoq: true, sabab: 'bayroqlar yozilmadi' };
+    }
+    return { tekshirildi: royxat.length, ...natija };
   });
 
   return app;
