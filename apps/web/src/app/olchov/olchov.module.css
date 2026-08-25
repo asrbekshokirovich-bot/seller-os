@@ -19,7 +19,7 @@
   --ink3: #7c8794;
   --line: #dce3e9;
   --lineStrong: #c3cdd6;
-  --accent: #0e4c5c;
+  --accent: #1a3a6c;
   --good: #1f6b4e;
   --goodSoft: #e1f0e8;
   --warn: #855511;
@@ -47,7 +47,7 @@
     --ink3: #76838f;
     --line: #242f38;
     --lineStrong: #33414c;
-    --accent: #6fc0d0;
+    --accent: #8ab4e8;
     --good: #6fc79b;
     --goodSoft: #112b21;
     --warn: #d5a659;
@@ -69,7 +69,7 @@
 }
 
 .eyebrow {
-  font-family: var(--font-plex-cond), var(--font-plex), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-weight: 600;
   font-size: 0.7rem;
   letter-spacing: 0.14em;
@@ -84,7 +84,7 @@
 }
 
 .head h1 {
-  font-family: var(--font-plex-cond), var(--font-plex), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-weight: 600;
   font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.4rem);
   line-height: 1.12;
@@ -148,7 +148,7 @@
   font-weight: 400;
 }
 .tallyK {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -174,7 +174,7 @@
   flex-wrap: wrap;
 }
 .blokHead h2 {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-weight: 600;
   font-size: 1.15rem;
   margin: 0;
@@ -292,7 +292,7 @@
 }
 
 .chip {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -333,7 +333,7 @@
 }
 
 .bayroq {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -370,13 +370,13 @@
   color: var(--ink3);
 }
 .qadamT {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-weight: 600;
   font-size: 0.92rem;
   line-height: 1.2;
 }
 .qadamH {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -408,7 +408,7 @@
   gap: 0.55rem;
 }
 .qulf h3 {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-size: 1.05rem;
   margin: 0;
 }
@@ -485,7 +485,7 @@
   gap: 0.6rem;
 }
 .kirish label {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-weight: 600;
   font-size: 0.72rem;
   letter-spacing: 0.1em;
@@ -506,7 +506,7 @@
   outline-offset: 1px;
 }
 .kirish button {
-  font-family: var(--font-plex-cond), sans-serif;
+  font-family: var(--font-plex), sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.06em;

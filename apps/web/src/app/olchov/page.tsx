@@ -14,7 +14,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import type { Kpi, Reja } from '@selleros/shared';
 import { olib } from '@/lib/api';
 import { holat } from '@/lib/panel';
@@ -39,30 +39,29 @@ export const metadata: Metadata = {
 };
 
 /*
- * Shrift qurish paytida yuklab olinadi va oʻzimizdan beriladi.
- * Ish vaqtida Google ga soʻrov ketmaydi — panel tashqi xizmatga
- * bogʻlanib qolmasin.
+ * Shriftlar — dizayn qadogʻidagilar: Inter va JetBrains Mono.
+ *
+ * Ilgari bu yerda IBM Plex turardi. U notoʻgʻri edi: ZumSavdo va
+ * SellerOS bitta mahsulot, yaʼni panel ham ilovaning dizayn
+ * tizimida boʻlishi kerak (README, "ZumSavdo va SellerOS").
+ *
+ * Qurish paytida yuklab olinadi va oʻzimizdan beriladi — ish
+ * vaqtida Google ga soʻrov ketmaydi.
  */
-const plex = IBM_Plex_Sans({
+const plex = Inter({
   subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500', '600'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-plex',
   display: 'swap',
 });
-const plexCond = IBM_Plex_Sans_Condensed({
+const plexMono = JetBrains_Mono({
   subsets: ['latin', 'latin-ext'],
-  weight: ['500', '600'],
-  variable: '--font-plex-cond',
-  display: 'swap',
-});
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500'],
+  weight: ['400', '700'],
   variable: '--font-plex-mono',
   display: 'swap',
 });
 
-const SHRIFTLAR = `${plex.variable} ${plexCond.variable} ${plexMono.variable}`;
+const SHRIFTLAR = `${plex.variable} ${plexMono.variable}`;
 
 /** `GET /kpi` javobi. */
 interface KpiJavobi {

@@ -1,7 +1,12 @@
 'use client';
 
 /**
- * Usta — 1-qadam (savollar) va 2-qadam (yoʻnalishlar).
+ * Usta — chat koʻrinishida (dizayn qadogʻining 2-ekrani).
+ *
+ * NEGA CHAT. Nazoratchi bergan dizaynda Usta oqimi aynan shunday:
+ * tepada "QADAM" nuqtalari, oʻrtada pufakchalar, pastda javob
+ * tugmalari. Ilgari bu sahifa oʻn ikki savolli oddiy forma edi —
+ * yaʼni dizayn boʻyicha emas, oʻzim oʻylab topgan koʻrinishda.
  *
  * BALL BU YERDA HISOBLANMAYDI. Sahifa faqat javoblarni yigʻadi va
  * natijani koʻrsatadi; hisob `@selleros/shared` da, bitta joyda
@@ -12,10 +17,15 @@
  * sababi aynan shundayligicha yoziladi. Boʻsh roʻyxat "sizga mos
  * yoʻnalish yoʻq" degan DAʼVO boʻlardi — holbuki javob koʻpincha
  * "hali hisoblanmadi" yoki "baza javob bermadi".
+ *
+ * JAVOB BERMASLIK HAM JAVOB. Har savolda "Oʻtkazib yuborish" bor va
+ * u maydonni `undefined` qoldiradi, NOL qilmaydi: nol "pulim yoʻq"
+ * degan javob, boʻshliq esa "aytmadi".
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { SAVOLLAR, type Savol } from '@selleros/shared';
+import u from './usta.module.css';
 
 type Javoblar = Record<string, unknown>;
 
@@ -79,32 +89,48 @@ const QISM_NOMI: Record<string, string> = {
   profil: 'Sizga moslik',
 };
 
+/** Rejadagi Usta qadamlari — tepadagi nuqtalar shuncha. */
+const QADAM_SONI = 6;
+
 export default function Usta() {
   const [javoblar, setJavoblar] = useState<Javoblar>({});
+  const [joriy, setJoriy] = useState(0);
+  const [tiklandi, setTiklandi] = useState(false);
+  const [eskiTiklandi, setEskiTiklandi] = useState(false);
+
   const [natija, setNatija] = useState<Natija | null>(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState<string | null>(null);
+
   const [tanlangan, setTanlangan] = useState<Yonalish | null>(null);
   const [tovarlar, setTovarlar] = useState<TovarNatija | null>(null);
   const [tovarYuklanmoqda, setTovarYuklanmoqda] = useState(false);
-  const tovarBolimi = useRef<HTMLDivElement>(null);
-  const [tiklandi, setTiklandi] = useState(false);
-  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
 
-  // Oldingi javoblarni tiklaymiz.
-  //
-  // Ilgari sahifa yangilansa hammasi yoʻqolardi va odam oʻn ikki
-  // savolga qaytadan javob berardi. Endi javoblar sessiyaga
-  // bogʻlangan (HttpOnly cookie) va qaytib keladi.
+  const [matn, setMatn] = useState('');
+  const oxiri = useRef<HTMLDivElement>(null);
+
+  /*
+   * Oldingi javoblarni tiklaymiz.
+   *
+   * Ilgari sahifa yangilansa hammasi yoʻqolardi va odam oʻn ikki
+   * savolga qaytadan javob berardi. Endi javoblar sessiyaga
+   * bogʻlangan (HttpOnly cookie) va qaytib keladi.
+   */
   useEffect(() => {
     let bekor = false;
     (async () => {
       try {
         const r = await fetch('/api/profil');
         const d = (await r.json()) as { javoblar?: Javoblar | null };
-        if (!bekor && d.javoblar) setJavoblar(d.javoblar);
+        if (!bekor && d.javoblar && Object.keys(d.javoblar).length > 0) {
+          setJavoblar(d.javoblar);
+          // Javoblar bor — oʻn ikki savolni qaytadan soʻramaymiz.
+          setJoriy(SAVOLLAR.length);
+          setEskiTiklandi(true);
+        }
       } catch {
-        // Tiklab boʻlmadi — forma boʻsh boshlanadi. Bu xato emas.
+        // Tiklab boʻlmadi — suhbat boshidan boshlanadi. Bu xato emas.
       } finally {
         if (!bekor) setTiklandi(true);
       }
@@ -112,31 +138,45 @@ export default function Usta() {
     return () => { bekor = true; };
   }, []);
 
-  async function tovarlarniOl(y: Yonalish) {
-    setTanlangan(y);
-    setTovarlar(null);
-    setTovarYuklanmoqda(true);
-    try {
-      const r = await fetch(`/api/tovarlar?turkum=${y.categoryId}`);
-      setTovarlar((await r.json()) as TovarNatija);
-    } catch (q) {
-      setTovarlar({ olchov_yoq: true, sabab: `Soʻrov yuborilmadi: ${String(q)}` });
-    } finally {
-      setTovarYuklanmoqda(false);
-      // Boʻlim sahifaning eng pastida ochiladi (2-qadam roʻyxati
-      // uzun). Surmasak, foydalanuvchi tugmani bosadi va ekranda
-      // hech nima oʻzgarmagandek koʻrinadi.
-      requestAnimationFrame(() =>
-        tovarBolimi.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    }
-  }
+  // Yangi xabar kelganda oxiriga suramiz — aks holda javob
+  // qabul qilingandek koʻrinmaydi.
+  useEffect(() => {
+    oxiri.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [joriy, natija, tovarlar, tanlangan, yuklanmoqda, tovarYuklanmoqda]);
+
+  const savol: Savol | undefined = SAVOLLAR[joriy];
+  const qadam = tanlangan ? 3 : natija ? 2 : 1;
 
   function yoz(maydon: string, qiymat: unknown) {
     setJavoblar((eski) => ({ ...eski, [maydon]: qiymat }));
   }
 
-  async function yubor(e: React.FormEvent) {
-    e.preventDefault();
+  function keyingi() {
+    setJoriy((i) => i + 1);
+    setMatn('');
+  }
+
+  /** Javob berilmadi — maydon `undefined` boʻlib qoladi, NOL emas. */
+  function otkaz() {
+    if (savol) {
+      setJavoblar((eski) => {
+        const yangi = { ...eski };
+        delete yangi[savol.maydon];
+        return yangi;
+      });
+    }
+    keyingi();
+  }
+
+  function boshdan() {
+    setJoriy(0);
+    setNatija(null);
+    setTanlangan(null);
+    setTovarlar(null);
+    setEskiTiklandi(false);
+  }
+
+  async function yonalishlarniOl() {
     setYuklanmoqda(true);
     setXato(null);
 
@@ -151,7 +191,7 @@ export default function Usta() {
         body: JSON.stringify({ profil: javoblar }),
       });
     } catch {
-      // Jim oʻtmaydi — pastda koʻrsatiladi.
+      // Jim oʻtmaydi — suhbatda koʻrsatiladi.
       setXato('Javoblar saqlanmadi (tavsiya baribir koʻrsatiladi).');
     } finally {
       setSaqlanmoqda(false);
@@ -172,143 +212,329 @@ export default function Usta() {
     }
   }
 
+  async function tovarlarniOl(y: Yonalish) {
+    setTanlangan(y);
+    setTovarlar(null);
+    setTovarYuklanmoqda(true);
+    try {
+      const r = await fetch(`/api/tovarlar?turkum=${y.categoryId}`);
+      setTovarlar((await r.json()) as TovarNatija);
+    } catch (q) {
+      setTovarlar({ olchov_yoq: true, sabab: `Soʻrov yuborilmadi: ${String(q)}` });
+    } finally {
+      setTovarYuklanmoqda(false);
+    }
+  }
+
   return (
-    <main>
-      <h1>Nima sotish kerak?</h1>
-      <p className="izoh">
-        Oʻn ikki savol, ikki daqiqa. Hech biri majburiy emas —
-        javob bermasangiz, tizim taxmin qilmaydi.
-      </p>
+    <div className={u.ilova}>
+      <header className={u.tepa}>
+        <div className={u.belgi}>
+          <span className={u.nishon} aria-hidden="true">Z</span>
+          <span className={u.nom}>ZumSavdo<span>Usta</span></span>
+        </div>
 
-      {tiklandi && Object.keys(javoblar).length > 0 && (
-        <p className="nega">
-          Oldingi javoblaringiz tiklandi. Oʻzgartirsangiz — saqlanadi.
-        </p>
-      )}
+        <div className={u.qadamlar}>
+          <span className={u.qadamYorliq}>Qadam</span>
+          <div
+            className={u.nuqtalar}
+            role="img"
+            aria-label={`${QADAM_SONI} qadamdan ${qadam}-si`}
+          >
+            {Array.from({ length: QADAM_SONI }, (_, i) => i + 1).map((n) => (
+              <span
+                key={n}
+                className={[
+                  u.nuqta,
+                  n < qadam ? u.nuqtaOtildi : '',
+                  n === qadam ? u.nuqtaJoriy : '',
+                ].join(' ')}
+              />
+            ))}
+          </div>
+        </div>
 
-      <form onSubmit={yubor}>
-        {SAVOLLAR.map((s) => (
-          <SavolQismi key={s.raqam} savol={s} qiymat={javoblar[s.maydon]} yoz={yoz} />
-        ))}
+        <a className={u.chiqish} href="/">Chiqish</a>
+      </header>
 
-        <div className="qator">
-          <button type="submit" disabled={yuklanmoqda || saqlanmoqda}>
-            {saqlanmoqda ? 'Saqlanmoqda…'
-              : yuklanmoqda ? 'Hisoblanmoqda…'
-              : 'Yoʻnalishlarni koʻrsat'}
-          </button>
+      <div className={u.oqim}>
+        <div className={u.ichi}>
+          <Ai>
+            Salom! Men ZumSavdo Ustasiman. Uzumda nima sotish kerakligini
+            raqamlar bilan tanlab beraman.
+          </Ai>
+          <Ai>
+            Oʻn ikki savol beraman. Hech biri majburiy emas — javob
+            bermasangiz, tizim taxmin qilmaydi.
+          </Ai>
+
+          {eskiTiklandi && (
+            <Ai>
+              Oldingi javoblaringiz tiklandi. Oʻzgartirmoqchi boʻlsangiz —
+              &laquo;Javoblarni oʻzgartirish&raquo;.
+            </Ai>
+          )}
+
+          {!eskiTiklandi && SAVOLLAR.slice(0, joriy).map((s) => (
+            <Berilgan key={s.raqam} savol={s} qiymat={javoblar[s.maydon]} />
+          ))}
+
+          {savol !== undefined && !eskiTiklandi && (
+            <Ai nega={savol.nega}>{savol.raqam}. {savol.matn}</Ai>
+          )}
+
+          {savol === undefined && !natija && !yuklanmoqda && !saqlanmoqda && (
+            <Ai>Savollar tugadi. Yoʻnalishlarni hisoblab beraymi?</Ai>
+          )}
+
+          {(yuklanmoqda || saqlanmoqda) && (
+            <Ai>{saqlanmoqda ? 'Javoblarni saqlayapman…' : 'Hisoblayapman…'}</Ai>
+          )}
+
+          {xato !== null && (
+            <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+              <p className={u.xato}>{xato}</p>
+            </div>
+          )}
+
           {natija && (
-            <button type="button" className="ikkinchi" onClick={() => setNatija(null)}>
-              Javoblarni oʻzgartirish
-            </button>
+            <Yonalishlar natija={natija} tanla={tovarlarniOl} tanlangan={tanlangan} />
+          )}
+
+          {tanlangan && (
+            <Tovarlar
+              yonalish={tanlangan}
+              natija={tovarlar}
+              yuklanmoqda={tovarYuklanmoqda}
+            />
+          )}
+
+          <div ref={oxiri} />
+        </div>
+      </div>
+
+      <div className={u.past_}>
+        <div className={u.pastIchi}>
+          {!tiklandi ? (
+            <p className={u.holat}>Yuklanmoqda…</p>
+          ) : (
+            <Javoblash
+              savol={eskiTiklandi ? undefined : savol}
+              javoblar={javoblar}
+              yoz={yoz}
+              keyingi={keyingi}
+              otkaz={otkaz}
+              tugadi={savol === undefined || eskiTiklandi}
+              natija={natija}
+              band={yuklanmoqda || saqlanmoqda}
+              yonalishlarniOl={yonalishlarniOl}
+              boshdan={boshdan}
+              matn={matn}
+              setMatn={setMatn}
+            />
           )}
         </div>
-      </form>
-
-      {xato && <p className="xato">{xato}</p>}
-      {natija && <Natijalar natija={natija} tanla={tovarlarniOl} tanlangan={tanlangan} />}
-      {tanlangan && (
-        <div ref={tovarBolimi}>
-          <Tovarlar
-            yonalish={tanlangan}
-            natija={tovarlar}
-            yuklanmoqda={tovarYuklanmoqda}
-          />
-        </div>
-      )}
-    </main>
+      </div>
+    </div>
   );
 }
 
-function SavolQismi({
-  savol, qiymat, yoz,
-}: {
-  savol: Savol;
-  qiymat: unknown;
-  yoz: (maydon: string, q: unknown) => void;
-}) {
-  const m = savol.maydon;
+/* ------------------------------------------------------ pufakchalar */
+
+function Ai({ children, nega }: { children: React.ReactNode; nega?: string }) {
   return (
-    <fieldset>
-      <legend>{savol.raqam}. {savol.matn}</legend>
-      <p className="nega">{savol.nega}</p>
+    <div className={`${u.pufak} ${u.ai}`}>
+      {children}
+      {nega !== undefined && <span className={u.nega}>{nega}</span>}
+    </div>
+  );
+}
 
-      {savol.turi === 'kop' && (
-        <div className="variantlar">
-          {savol.variantlar?.map((v) => {
-            const tanlangan = Array.isArray(qiymat) && qiymat.includes(v.qiymat);
-            return (
-              <label className="tanlov" key={v.qiymat}>
-                <input
-                  type="checkbox"
-                  checked={tanlangan}
-                  onChange={(e) => {
-                    const bor = Array.isArray(qiymat) ? (qiymat as string[]) : [];
-                    yoz(m, e.target.checked
-                      ? [...bor, v.qiymat]
-                      : bor.filter((x) => x !== v.qiymat));
-                  }}
-                />
-                {v.nom}
-              </label>
-            );
-          })}
-        </div>
-      )}
+/** Berilgan savol va unga berilgan javob. */
+function Berilgan({ savol, qiymat }: { savol: Savol; qiymat: unknown }) {
+  const javob = javobMatni(savol, qiymat);
+  return (
+    <>
+      <div className={`${u.pufak} ${u.ai}`}>{savol.raqam}. {savol.matn}</div>
+      <div className={`${u.pufak} ${javob === null ? u.otkazdi : u.men}`}>
+        {javob ?? 'Oʻtkazib yuborildi'}
+      </div>
+    </>
+  );
+}
 
-      {savol.turi === 'bitta' && (
-        <select
-          value={typeof qiymat === 'string' ? qiymat : ''}
-          onChange={(e) => yoz(m, e.target.value === '' ? undefined : e.target.value)}
+/**
+ * Javobning koʻrinadigan matni. `null` — javob berilmagan.
+ *
+ * Boʻsh massiv ham "javob berilmagan": koʻp tanlovli savolda hech
+ * nima belgilanmasa, bu "hech biri" degan DAʼVO emas.
+ */
+function javobMatni(s: Savol, q: unknown): string | null {
+  if (q === undefined || q === null || q === '') return null;
+  if (Array.isArray(q)) {
+    if (q.length === 0) return null;
+    return q.map((x) => variantNomi(s, String(x))).join(', ');
+  }
+  if (s.turi === 'haYoq') return q === 'ha' ? 'Ha' : 'Yoʻq';
+  if (s.turi === 'son') {
+    const n = Number(q);
+    if (!Number.isFinite(n)) return null;
+    return s.maydon === 'budgetUzs' ? `${n.toLocaleString('uz-UZ')} soʻm` : String(n);
+  }
+  return variantNomi(s, String(q));
+}
+
+function variantNomi(s: Savol, qiymat: string): string {
+  return s.variantlar?.find((v) => v.qiymat === qiymat)?.nom ?? qiymat;
+}
+
+/* ------------------------------------------------------ javob paneli */
+
+function Javoblash({
+  savol, javoblar, yoz, keyingi, otkaz, tugadi, natija, band,
+  yonalishlarniOl, boshdan, matn, setMatn,
+}: {
+  savol: Savol | undefined;
+  javoblar: Javoblar;
+  yoz: (maydon: string, q: unknown) => void;
+  keyingi: () => void;
+  otkaz: () => void;
+  tugadi: boolean;
+  natija: Natija | null;
+  band: boolean;
+  yonalishlarniOl: () => void;
+  boshdan: () => void;
+  matn: string;
+  setMatn: (s: string) => void;
+}) {
+  if (tugadi) {
+    return (
+      <div className={u.chiplar}>
+        {!natija && (
+          <button
+            type="button"
+            className={`${u.chip} ${u.chipAsosiy}`}
+            onClick={yonalishlarniOl}
+            disabled={band}
+          >
+            {band ? 'Hisoblanmoqda…' : 'Yoʻnalishlarni koʻrsat'}
+          </button>
+        )}
+        <button
+          type="button"
+          className={`${u.chip} ${u.chipYengil}`}
+          onClick={boshdan}
+          disabled={band}
         >
-          {/* Boʻsh variant SHART: "aytmadi" ni tanlash mumkin
-              boʻlishi kerak, aks holda birinchi variant jimgina
-              javobga aylanadi. */}
-          <option value="">— javob bermayman —</option>
-          {savol.variantlar?.map((v) => (
-            <option key={v.qiymat} value={v.qiymat}>{v.nom}</option>
-          ))}
-        </select>
-      )}
+          Javoblarni oʻzgartirish
+        </button>
+      </div>
+    );
+  }
+  if (savol === undefined) return null;
 
-      {savol.turi === 'haYoq' && (
-        <div className="variantlar">
-          {[
-            { q: 'ha', n: 'Ha' },
-            { q: "yo'q", n: 'Yoʻq' },
-          ].map((v) => (
-            <label className="tanlov" key={v.q}>
-              <input
-                type="radio"
-                name={m}
-                checked={qiymat === v.q}
-                onChange={() => yoz(m, v.q)}
-              />
-              {v.n}
-            </label>
-          ))}
-        </div>
-      )}
+  const q = javoblar[savol.maydon];
 
-      {savol.turi === 'son' && (
+  if (savol.turi === 'kop') {
+    const belgilangan = Array.isArray(q) ? (q as string[]) : [];
+    return (
+      <div className={u.chiplar}>
+        {savol.variantlar?.map((v) => {
+          const bor = belgilangan.includes(v.qiymat);
+          return (
+            <button
+              key={v.qiymat}
+              type="button"
+              className={`${u.chip} ${bor ? u.chipTanlangan : ''}`}
+              aria-pressed={bor}
+              onClick={() => yoz(savol.maydon, bor
+                ? belgilangan.filter((x) => x !== v.qiymat)
+                : [...belgilangan, v.qiymat])}
+            >
+              {v.nom}
+            </button>
+          );
+        })}
+        {belgilangan.length > 0 ? (
+          <button type="button" className={`${u.chip} ${u.chipAsosiy}`} onClick={keyingi}>
+            Tayyor
+          </button>
+        ) : (
+          <button type="button" className={`${u.chip} ${u.chipYengil}`} onClick={otkaz}>
+            Oʻtkazib yuborish
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (savol.turi === 'bitta' || savol.turi === 'haYoq') {
+    const variantlar = savol.turi === 'haYoq'
+      ? [{ qiymat: 'ha', nom: 'Ha' }, { qiymat: "yo'q", nom: 'Yoʻq' }]
+      : (savol.variantlar ?? []);
+    return (
+      <div className={u.chiplar}>
+        {variantlar.map((v) => (
+          <button
+            key={v.qiymat}
+            type="button"
+            className={u.chip}
+            onClick={() => { yoz(savol.maydon, v.qiymat); keyingi(); }}
+          >
+            {v.nom}
+          </button>
+        ))}
+        <button type="button" className={`${u.chip} ${u.chipYengil}`} onClick={otkaz}>
+          Oʻtkazib yuborish
+        </button>
+      </div>
+    );
+  }
+
+  /*
+   * `son` — yagona tur, unda matn maydoni HAQIQATAN ishlaydi.
+   *
+   * Dizaynda maydon hamma savolda koʻrinadi ("Yoki oʻzingiz
+   * yozing…"). Bu yerda faqat shu turda koʻrsatiladi: yozilgani
+   * qabul qilinmaydigan maydon foydalanuvchini aldardi.
+   */
+  const son = () => {
+    const t = matn.trim();
+    const n = Number(t);
+    // Boʻsh maydon `undefined` boʻladi, NOL emas. Nol "pulim yoʻq"
+    // degan javob, boʻshliq esa "aytmadi".
+    if (t === '' || !Number.isFinite(n) || n < 0) { otkaz(); return; }
+    yoz(savol.maydon, n);
+    keyingi();
+  };
+
+  return (
+    <>
+      <div className={u.kiritish}>
         <input
           type="number"
           min={0}
-          placeholder={m === 'budgetUzs' ? 'masalan 30000000 (soʻm)' : 'masalan 10'}
-          value={typeof qiymat === 'number' || typeof qiymat === 'string' ? String(qiymat) : ''}
-          onChange={(e) => {
-            // Boʻsh maydon `undefined` boʻladi, NOL emas. Nol
-            // "pulim yoʻq" degan javob, boʻshliq esa "aytmadi".
-            const t = e.target.value.trim();
-            yoz(m, t === '' ? undefined : Number(t));
-          }}
+          inputMode="numeric"
+          aria-label={savol.matn}
+          placeholder={savol.maydon === 'budgetUzs' ? 'Masalan 30000000 (soʻm)' : 'Masalan 10'}
+          value={matn}
+          onChange={(e) => setMatn(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') son(); }}
         />
-      )}
-    </fieldset>
+        <button type="button" className={u.yubor} onClick={son}>Yuborish</button>
+      </div>
+      <div className={u.chiplar}>
+        <button type="button" className={`${u.chip} ${u.chipYengil}`} onClick={otkaz}>
+          Oʻtkazib yuborish
+        </button>
+      </div>
+    </>
   );
 }
 
-function Natijalar({
+/* ------------------------------------------------------ 2-qadam */
+
+function Yonalishlar({
   natija, tanla, tanlangan,
 }: {
   natija: Natija;
@@ -317,17 +543,15 @@ function Natijalar({
 }) {
   if (natija.olchov_yoq) {
     return (
-      <>
-        <h2>Yoʻnalishlar</h2>
-        <p className="xato">
-          Hozircha koʻrsatadigan narsa yoʻq.<br />
-          Sabab: {natija.sabab ?? 'nomaʼlum'}.
+      <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+        <p className={u.xato}>
+          Hozircha koʻrsatadigan narsa yoʻq. Sabab: {natija.sabab ?? 'nomaʼlum'}.
         </p>
-        <p className="nega">
-          Bu &laquo;sizga mos yoʻnalish yoʻq&raquo; degani EMAS. Maʼlumot
-          yetib kelmadi — biroz kutib qayta urinib koʻring.
-        </p>
-      </>
+        <span className={u.nega}>
+          Bu &laquo;sizga mos yoʻnalish yoʻq&raquo; degani EMAS. Maʼlumot yetib
+          kelmadi — biroz kutib qayta urinib koʻring.
+        </span>
+      </div>
     );
   }
 
@@ -335,47 +559,57 @@ function Natijalar({
 
   return (
     <>
-      <h2>Yoʻnalishlar</h2>
-
-      {natija.kesh_eskirgan && (
-        <p className="ogoh">
-          Raqamlar {natija.yoshi_soat} soat oldin hisoblangan. Tavsiya
-          baribir koʻrsatiladi, lekin yangilanish kechikkan.
-        </p>
-      )}
-
-      <p className="nega">
+      <div className={`${u.pufak} ${u.ai}`}>
         {natija.nomzod_soni} turkum tekshirildi
         {typeof natija.baholanmadi === 'number' && natija.baholanmadi > 0
           ? `, ${natija.baholanmadi} tasini maʼlumot yetishmagani uchun baholab boʻlmadi`
           : ''}
-        .
-      </p>
+        . Mana eng mos yoʻnalishlar:
+      </div>
 
-      {royxat.length === 0 && (
-        <p className="ogoh">
-          Turkumlar tekshirildi, lekin bittasi ham baholanmadi —
-          maʼlumot yetarli emas.
-        </p>
+      {natija.kesh_eskirgan && (
+        <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+          <p className={u.ogohlik}>
+            Raqamlar {natija.yoshi_soat} soat oldin hisoblangan. Tavsiya
+            baribir koʻrsatiladi, lekin yangilanish kechikkan.
+          </p>
+        </div>
       )}
 
-      {royxat.map((y) => (
-        <Karta
-          key={y.categoryId}
-          y={y}
-          tanla={tanla}
-          tanlangan={tanlangan?.categoryId === y.categoryId}
-        />
-      ))}
+      {royxat.length === 0 && (
+        <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+          <p className={u.ogohlik}>
+            Turkumlar tekshirildi, lekin bittasi ham baholanmadi — maʼlumot
+            yetarli emas.
+          </p>
+        </div>
+      )}
+
+      {royxat.length > 0 && (
+        <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+          <div className={u.qatorlar}>
+            {royxat.map((y) => (
+              <YonalishKartasi
+                key={y.categoryId}
+                y={y}
+                tanla={tanla}
+                tanlangan={tanlangan?.categoryId === y.categoryId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {natija.bolishTaklifi && (
-        <p className="ogoh">{natija.bolishTaklifi.sabab}</p>
+        <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+          <p className={u.ogohlik}>{natija.bolishTaklifi.sabab}</p>
+        </div>
       )}
     </>
   );
 }
 
-function Karta({
+function YonalishKartasi({
   y, tanla, tanlangan,
 }: {
   y: Yonalish;
@@ -383,13 +617,13 @@ function Karta({
   tanlangan: boolean;
 }) {
   return (
-    <article className="karta">
-      <header>
-        <h3>{y.name}</h3>
-        <span className="ball">{y.ball.value ?? '—'}</span>
+    <article className={u.karta}>
+      <header className={u.kartaBoshi}>
+        <h3 className={u.kartaNomi}>{y.name}</h3>
+        <span className={u.ball}>{y.ball.value ?? '—'}</span>
       </header>
 
-      <p className="nega">
+      <p className={u.dalil}>
         Sotuvchi: {son(y.dalil.sotuvchiSoni)} · Top-3 ulushi:{' '}
         {y.dalil.top3Ulush === null ? '—' : `${y.dalil.top3Ulush}%`} ·{' '}
         {y.yetadi === null
@@ -397,25 +631,30 @@ function Karta({
           : y.yetadi ? 'Byudjetingiz yetadi' : 'Byudjetingiz yetmaydi'}
       </p>
 
-      <details className="izohli">
+      <details className={u.tafsilot}>
         <summary>Nega bu ball?</summary>
-        <table className="qismlar">
+        <table className={u.jadval}>
           <thead>
-            <tr><th>Qism</th><th>Ball</th><th>Vazn</th><th>Holat</th></tr>
+            <tr>
+              <th>Qism</th>
+              <th className={u.son}>Ball</th>
+              <th className={u.son}>Vazn</th>
+              <th>Holat</th>
+            </tr>
           </thead>
           <tbody>
             {y.ball.breakdown.map((q) => (
               <tr key={q.part}>
                 <td>{QISM_NOMI[q.part] ?? q.part}</td>
-                <td className="son">
-                  {q.score === null ? <span className="yoq">—</span> : q.score.toFixed(0)}
+                <td className={u.son}>
+                  {q.score === null ? <span className={u.yoq}>—</span> : q.score.toFixed(0)}
                 </td>
-                <td className="son">{q.weight}</td>
+                <td className={u.son}>{q.weight}</td>
                 <td>
                   {!q.applicable
-                    ? <span className="yoq">bu bosqichda hisoblanmaydi</span>
+                    ? <span className={u.yoq}>bu bosqichda hisoblanmaydi</span>
                     : q.used ? 'hisobga olindi'
-                    : <span className="yoq">maʼlumot yoʻq</span>}
+                    : <span className={u.yoq}>maʼlumot yoʻq</span>}
                 </td>
               </tr>
             ))}
@@ -423,10 +662,10 @@ function Karta({
         </table>
       </details>
 
-      <div className="qator" style={{ marginTop: '.8rem' }}>
+      <div>
         <button
           type="button"
-          className={tanlangan ? undefined : 'ikkinchi'}
+          className={`${u.chip} ${tanlangan ? u.chipTanlangan : ''}`}
           onClick={() => tanla(y)}
         >
           {tanlangan ? 'Tovarlar koʻrsatilmoqda' : 'Shu yoʻnalishdagi tovarlar'}
@@ -436,13 +675,10 @@ function Karta({
   );
 }
 
-/** Oʻlchanmagan raqam NOL emas — chiziqcha. */
-function son(n: number | null): string {
-  return n === null ? '—' : n.toLocaleString('uz-UZ');
-}
+/* ------------------------------------------------------ 3-qadam */
 
 /**
- * 3-qadam — tanlangan yoʻnalishdagi tovarlar.
+ * Tanlangan yoʻnalishdagi tovarlar.
  *
  * Uch narsa ATAYLAB koʻrsatiladi:
  *   1. Miqdor hisoblanmagan boʻlsa — NEGA hisoblanmagani;
@@ -460,57 +696,66 @@ function Tovarlar({
   natija: TovarNatija | null;
   yuklanmoqda: boolean;
 }) {
+  if (yuklanmoqda) {
+    return <Ai>{yonalish.name} boʻyicha tovarlarni yigʻyapman…</Ai>;
+  }
+
+  if (natija?.olchov_yoq) {
+    return (
+      <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+        <p className={u.xato}>
+          Tovar roʻyxati koʻrsatilmadi. Sabab: {natija.sabab ?? 'nomaʼlum'}.
+        </p>
+      </div>
+    );
+  }
+
+  if (!natija) return null;
+
+  const royxat = natija.royxat ?? [];
+
   return (
     <>
-      <h2>Tovarlar — {yonalish.name}</h2>
+      <div className={`${u.pufak} ${u.ai}`}>
+        {yonalish.name} — {royxat.length} ta tovar
+        {natija.chiqarildi?.length
+          ? `, ${natija.chiqarildi.length} tasi tuzoq tufayli chiqarildi`
+          : ''}
+        .
+      </div>
 
-      {yuklanmoqda && <p className="nega">Yuklanmoqda…</p>}
+      <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+        <div className={u.qatorlar}>
+          <UmumiySabab royxat={royxat} />
+          {!xilmaXilBaholanmadi(royxat) && <BaholanmaganLar royxat={royxat} />}
 
-      {natija?.olchov_yoq && (
-        <p className="xato">
-          Tovar roʻyxati koʻrsatilmadi.<br />
-          Sabab: {natija.sabab ?? 'nomaʼlum'}.
-        </p>
-      )}
-
-      {natija && !natija.olchov_yoq && (
-        <>
-          <p className="nega">
-            {natija.royxat?.length ?? 0} ta tovar
-            {natija.chiqarildi?.length
-              ? `, ${natija.chiqarildi.length} tasi tuzoq tufayli chiqarildi`
-              : ''}
-            .
-          </p>
-
-          <UmumiySabab royxat={natija.royxat ?? []} />
-
-          {natija.royxat?.map((t) => (
+          {royxat.map((t) => (
             <TovarKartasi
               key={t.nomzod.productId}
               t={t}
-              sababniKorsat={xilmaXilSabab(natija.royxat ?? [])}
+              sababniKorsat={xilmaXilSabab(royxat)}
+              baholanmaganniKorsat={xilmaXilBaholanmadi(royxat)}
             />
           ))}
 
           {natija.chiqarildi?.length ? (
-            <details className="izohli" style={{ marginTop: '1rem' }}>
+            <details className={u.tafsilot}>
               <summary>Roʻyxatdan chiqarilgan {natija.chiqarildi.length} ta tovar</summary>
-              <table className="qismlar">
+              <table className={u.jadval}>
                 <thead><tr><th>Tovar</th><th>Nega chiqarildi</th></tr></thead>
                 <tbody>
                   {natija.chiqarildi.map((c) => (
                     <tr key={c.productId}>
                       <td>{c.title}</td>
-                      <td className="yoq">{c.sabab}</td>
+                      <td className={u.yoq}>{c.sabab}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </details>
           ) : null}
-        </>
-      )}
+        </div>
+      </div>
     </>
   );
 }
@@ -536,36 +781,37 @@ function UmumiySabab({ royxat }: { royxat: Tovar[] }) {
   if (!namuna) return null;
 
   return (
-    <p className="ogoh">
+    <p className={u.ogohlik}>
       <strong>{nechta} ta tovarda miqdor hisoblanmadi.</strong>{' '}
       {namuna.miqdorSababi}
     </p>
   );
 }
 
-function TovarKartasi({ t, sababniKorsat }: { t: Tovar; sababniKorsat: boolean }) {
+function TovarKartasi(
+  { t, sababniKorsat, baholanmaganniKorsat }:
+  { t: Tovar; sababniKorsat: boolean; baholanmaganniKorsat: boolean },
+) {
   const n = t.nomzod;
   return (
-    <article className="karta">
-      <header>
-        <h3>{n.title}</h3>
-        <span className="ball">
-          {t.miqdor ? `${t.miqdor.dona} dona` : '—'}
-        </span>
+    <article className={u.karta}>
+      <header className={u.kartaBoshi}>
+        <h3 className={u.kartaNomi}>{n.title}</h3>
+        <span className={u.ball}>{t.miqdor ? `${t.miqdor.dona} dona` : '—'}</span>
       </header>
 
-      <p className="nega">
+      <p className={u.dalil}>
         {n.shopName ?? '—'} · {pul(n.narxSom)} · Qoldiq: {son(n.qoldiq)} ·{' '}
         {n.reyting === null ? '—' : `★ ${n.reyting}`} ({son(n.sharhSoni)} sharh)
       </p>
 
       {t.miqdor ? (
-        <p className="nega">{t.miqdor.hisob}</p>
+        <p className={u.dalil}>{t.miqdor.hisob}</p>
       ) : sababniKorsat ? (
-        <p className="ogoh">{t.miqdorSababi}</p>
+        <p className={u.ogohlik}>{t.miqdorSababi}</p>
       ) : null}
 
-      <p className="nega">
+      <p className={u.dalil}>
         30 kunlik sotuv: {son(n.soldUnits30d)}
         {n.sotuvManbasi === 'olchandi'
           ? ` · oʻlchandi (${son(n.olchanganKun)} kun)`
@@ -575,20 +821,73 @@ function TovarKartasi({ t, sababniKorsat }: { t: Tovar; sababniKorsat: boolean }
       </p>
 
       {t.bayroqlar.map((b, i) => (
-        <p className="ogoh" key={i}>{b.reason}</p>
+        <p className={u.ogohlik} key={i}>{b.reason}</p>
       ))}
 
-      {t.baholanmadi.length > 0 && (
-        <p className="nega">
-          Baholanmagan filtrlar:{' '}
-          {t.baholanmadi.map((b) => `${b.filtr} (${b.missing.join(', ')} yoʻq)`).join(' · ')}
-        </p>
+      {baholanmaganniKorsat && t.baholanmadi.length > 0 && (
+        <BaholanmaganLar royxat={[t]} />
       )}
     </article>
   );
 }
 
-/** Soʻm summasi. Oʻlchanmagan bo'lsa chiziqcha. */
+/**
+ * Baholanmagan filtrlar — bir marta, yopiq holda.
+ *
+ * Ilgari har kartada bir xil uzun satr turardi: "closed_brand
+ * (brandSellersCount, sellersStableDays yoki brandAgeDays yoʻq) ·
+ * fake_sales (…) · heavy (…)". Yigirma kartada yigirma marta —
+ * va u kartadagi qolgan HAMMA narsadan koʻp joy egallardi.
+ *
+ * Bu maydon nomlari mijoz uchun emas, biz uchun. Shuning uchun
+ * yopiq: kerak boʻlsa ochiladi, lekin roʻyxatni bosib turmaydi.
+ * Yashirilmaydi ham — qaysi filtr ishlamagani koʻrinib turishi
+ * kerak, aks holda tovar "hamma tekshiruvdan oʻtgan" boʻlib
+ * koʻrinardi.
+ */
+function BaholanmaganLar({ royxat }: { royxat: Tovar[] }) {
+  const nomlar = [...new Set(royxat.flatMap((t) => t.baholanmadi.map((b) => b.filtr)))];
+  if (nomlar.length === 0) return null;
+  const namuna = royxat.find((t) => t.baholanmadi.length > 0);
+  return (
+    <details className={u.tafsilot}>
+      <summary>
+        {nomlar.length} ta filtr baholanmadi — maʼlumot yetishmadi
+      </summary>
+      <table className={u.jadval}>
+        <thead><tr><th>Filtr</th><th>Nima yetishmadi</th></tr></thead>
+        <tbody>
+          {namuna?.baholanmadi.map((b) => (
+            <tr key={b.filtr}>
+              <td>{b.filtr}</td>
+              <td className={u.yoq}>{b.missing.join(', ')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
+
+/**
+ * Baholanmagan filtrlar toʻplami tovardan tovarga farq qiladimi.
+ *
+ * Bir xil boʻlsa — bir marta, roʻyxat tepasida. Farq qilsa — har
+ * kartada, chunki unda u haqiqatan boshqacha.
+ */
+function xilmaXilBaholanmadi(royxat: Tovar[]): boolean {
+  const s = new Set(royxat.map((t) => t.baholanmadi.map((b) => b.filtr).sort().join('|')));
+  return s.size > 1;
+}
+
+/* ------------------------------------------------------ yordamchilar */
+
+/** Oʻlchanmagan raqam NOL emas — chiziqcha. */
+function son(n: number | null): string {
+  return n === null ? '—' : n.toLocaleString('uz-UZ');
+}
+
+/** Soʻm summasi. Oʻlchanmagan boʻlsa chiziqcha. */
 function pul(n: number | null): string {
   return n === null ? '—' : `${n.toLocaleString('uz-UZ')} soʻm`;
 }

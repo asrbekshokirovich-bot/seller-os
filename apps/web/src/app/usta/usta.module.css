@@ -1,0 +1,391 @@
+/*
+ * Usta — nazoratchi bergan dizayn boʻyicha (2-ekran, "Demo chat").
+ *
+ * Ranglar va shriftlar OʻYLAB TOPILMAGAN: ular
+ * `dizayn/ZumSavdo-standalone.html` dan olingan. Qadoqda eng koʻp
+ * ishlatilgan qiymatlar — koʻk `#1A3A6C` (68 marta), kul rang matn
+ * `#52627A` (128), chegara `#D9DFE8` (76), yashil `#D4E94C` (40),
+ * fon `#F3F5F7`. Shrift: Inter (154) va JetBrains Mono (72).
+ *
+ * QORONGʻI MAVZU YOʻQ — ATAYLAB. Dizaynda u yoʻq, yaʼni uni oʻzim
+ * oʻylab topishim kerak boʻlardi. Aynan shu — "oʻzim oʻylab topdim"
+ * — bu sahifada ikki marta xatoga olib kelgan. Shuning uchun har
+ * rang aniq yozilgan va mezbon mavzusidan qarz olinmaydi.
+ */
+
+.ilova {
+  --kok: #1a3a6c;
+  --kokToq: #132a4d;
+  --siyoh: #0a1a34;
+  --past: #52627a;
+  --past2: #8e9cb0;
+  --chegara: #d9dfe8;
+  --chegara2: #c3cddb;
+  --toldirish: #eff2f5;
+  --fon: #f3f5f7;
+  --yashil: #d4e94c;
+  --yashilToq: #b4cc19;
+  --yaxshi: #16a34a;
+  --ogoh: #f59e0b;
+  --yomon: #ef4444;
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--fon);
+  color: var(--siyoh);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Tepa panel ---- */
+.tepa {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem clamp(0.9rem, 2vw, 1.5rem);
+  background: #fff;
+  border-bottom: 1px solid var(--chegara);
+}
+
+.belgi {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.nishon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--kok);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.nom {
+  font-weight: 700;
+  color: var(--kok);
+  white-space: nowrap;
+}
+.nom span {
+  font-weight: 500;
+  color: var(--past2);
+  margin-left: 0.35rem;
+}
+
+.qadamlar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.qadamYorliq {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--past);
+}
+.nuqtalar {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+/*
+ * Nuqta uch holatda: oʻtilgan (yashil), joriy (koʻk), kelgusi
+ * (kul rang). Dizayndagi bilan aynan bir xil.
+ */
+.nuqta {
+  width: 22px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--chegara);
+}
+.nuqtaOtildi { background: var(--yashil); }
+.nuqtaJoriy { background: var(--kok); }
+
+.chiqish {
+  margin-left: 1rem;
+  flex: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--past);
+  background: #fff;
+  border: 1px solid var(--chegara);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.chiqish:hover { background: var(--toldirish); }
+.chiqish:focus-visible { outline: 2px solid var(--kok); outline-offset: 2px; }
+
+@media (max-width: 46rem) {
+  .qadamYorliq { display: none; }
+  .nuqta { width: 14px; }
+  .chiqish { margin-left: 0.5rem; padding: 7px 10px; }
+}
+
+/* ---- Suhbat oqimi ---- */
+.oqim {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(1rem, 3vw, 2rem) clamp(0.9rem, 2vw, 1.5rem);
+}
+
+.ichi {
+  max-width: 46rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pufak {
+  max-width: 34rem;
+  padding: 13px 18px;
+  border-radius: 14px;
+  overflow-wrap: break-word;
+}
+
+.ai {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--chegara);
+  box-shadow: 0 1px 2px rgba(10, 26, 52, 0.04);
+}
+
+.men {
+  align-self: flex-end;
+  background: var(--kok);
+  color: #fff;
+  font-weight: 600;
+  border: 1px solid var(--kok);
+}
+
+/* Savol tagidagi "nega soʻralyapti" satri. */
+.nega {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--past);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.otkazdi {
+  align-self: flex-end;
+  background: var(--toldirish);
+  color: var(--past);
+  border: 1px solid var(--chegara);
+  font-weight: 500;
+}
+
+/* ---- Natija kartalari (pufak ichida keng) ---- */
+.keng { max-width: 40rem; }
+
+.karta {
+  border: 1px solid var(--chegara);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.kartaBoshi {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.kartaNomi {
+  font-weight: 600;
+  font-size: 15px;
+  margin: 0;
+}
+.ball {
+  flex: none;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--kok);
+}
+.dalil {
+  color: var(--past);
+  font-size: 13px;
+  margin: 0;
+}
+.qatorlar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.jadval {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 0.5rem;
+}
+.jadval th,
+.jadval td {
+  text-align: left;
+  padding: 0.3rem 0.4rem;
+  border-top: 1px solid var(--chegara);
+}
+.jadval th {
+  color: var(--past);
+  font-weight: 600;
+}
+.son {
+  text-align: right;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+/* Oʻlchanmagan qiymat — chiziqcha, nol EMAS. */
+.yoq {
+  color: var(--past2);
+  font-style: italic;
+}
+
+.tafsilot > summary {
+  cursor: pointer;
+  color: var(--kok);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tafsilot > summary:focus-visible { outline: 2px solid var(--kok); outline-offset: 2px; }
+
+.ogohlik {
+  background: #fff8e8;
+  color: #7a5200;
+  border: 1px solid #f0dca8;
+  border-left: 3px solid var(--ogoh);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 13px;
+}
+
+.xato {
+  background: #fdecea;
+  color: #8c2f27;
+  border: 1px solid #f3c6c1;
+  border-left: 3px solid var(--yomon);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 13px;
+}
+
+/* ---- Pastki panel ---- */
+.past_ {
+  flex: none;
+  background: #fff;
+  border-top: 1px solid var(--chegara);
+  padding: 0.85rem clamp(0.9rem, 2vw, 1.5rem) 1rem;
+}
+
+.pastIchi {
+  max-width: 46rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.chiplar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kok);
+  background: #fff;
+  border: 1px solid var(--kok);
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+}
+.chip:hover { background: var(--toldirish); }
+.chip:focus-visible { outline: 2px solid var(--kok); outline-offset: 2px; }
+.chip:disabled { opacity: 0.5; cursor: progress; }
+
+/* Koʻp tanlovli savolda belgilangan variant. */
+.chipTanlangan {
+  background: var(--kok);
+  color: #fff;
+}
+.chipTanlangan:hover { background: var(--kokToq); }
+
+/* "Oʻtkazib yuborish" — javob bermaslik ham javob. */
+.chipYengil {
+  color: var(--past);
+  border-color: var(--chegara);
+  font-weight: 500;
+}
+
+/* Asosiy harakat — yashil, dizayndagi urgʻu rangi. */
+.chipAsosiy {
+  background: var(--yashil);
+  border-color: var(--yashilToq);
+  color: var(--siyoh);
+}
+.chipAsosiy:hover { background: var(--yashilToq); }
+
+.kiritish {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.kiritish input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--siyoh);
+  background: #fff;
+  border: 1px solid var(--chegara);
+  border-radius: 999px;
+  padding: 11px 18px;
+}
+.kiritish input::placeholder { color: var(--past2); }
+.kiritish input:focus-visible { outline: 2px solid var(--kok); outline-offset: 1px; }
+
+.yubor {
+  flex: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--kok);
+  border: 1px solid var(--kok);
+  border-radius: 999px;
+  padding: 11px 22px;
+  cursor: pointer;
+}
+.yubor:hover { background: var(--kokToq); }
+.yubor:disabled { opacity: 0.5; cursor: progress; }
+.yubor:focus-visible { outline: 2px solid var(--kok); outline-offset: 2px; }
+
+.holat {
+  color: var(--past);
+  font-size: 13px;
+  text-align: center;
+}

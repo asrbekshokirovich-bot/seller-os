@@ -31,6 +31,37 @@ supabase/        Migratsiyalar va seed
 Web, bot va kengaytma bazaga to'g'ridan-to'g'ri tegmaydi — hammasi
 backend API orqali. Sabab: tavsiya mantiqi bitta joyda tursin.
 
+## ZumSavdo va SellerOS — BITTA mahsulot
+
+Buni birinchi oʻqing. Agent bu yerda ikki marta adashgan
+(2026-08-24 va 2026-08-25) va ikkalasida ham xato bir xil boʻlgan:
+ikkita nom ikkita mahsulot deb tushunilgan.
+
+| Nom | Nima |
+|---|---|
+| **ZumSavdo** | Mahsulotning nomi. Foydalanuvchi shuni koʻradi. |
+| `seller-os` | Shu mahsulotning kod ombori. Ichki nom. |
+| `zumsavdo` sxemasi | Bazadagi Uzum xom oʻlchovi (~1,5 mln tovar) |
+| `selleros` sxemasi | Bazadagi Usta maʼlumoti — profil, tavsiya, obuna |
+
+**Bitta sayt, bitta Vercel loyihasi:** `apps/web`.
+`/` sotuv sahifasi · `/usta` Usta · `/olchov` ichki panel.
+Alohida "ZumSavdo sayti" degan narsa YOʻQ.
+
+### Dizayn — `apps/web/dizayn/`
+
+Nazoratchi bergan qadoq (`ZumSavdo-standalone.html`) **toʻrtta
+ekran**: `1 Landing`, `2 Demo chat`, `3 Marketpleys`, `4 1688 sim`.
+Bu **butun ilovaning** dizayni, faqat sotuv sahifasi emas.
+
+Yaʼni `/usta` ham, keyingi qadamlar ham shu koʻrinishda boʻlishi
+kerak: koʻk `#1A3A6C`, yashil `#D4E94C`, "QADAM" nuqtalari, chat
+pufakchalari. Oʻz uslubini oʻylab topish — xato.
+
+Ekranlarni koʻrish: `qurish.mjs` dagi 7-bosqich (ekran
+almashtirgichini olib tashlash) oʻtkazib yuborilsa, qadoq ichida
+toʻrtala ekran ham ochiladi.
+
 ## Ishga tushirish
 
 ```bash
