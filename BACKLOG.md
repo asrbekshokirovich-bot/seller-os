@@ -226,3 +226,57 @@ Yoqilishi uchun `TARIF_CHEKLOVI=1` kerak — **hozir oʻchiq va
 shunday qolishi kerak**: toʻlov oqimi yoʻq, yaʼni yoqilsa hech
 kim 3-qadamga oʻta olmasdi. Holati `/health` javobida
 `live.tarifCheklovi` da koʻrinadi.
+
+## Uzum sxemasi — nima BOR va nima YOʻQ (2026-08-25, introspeksiya)
+
+GraphQL introspeksiyasi ochiq. Quyidagilar OʻLCHANDI, taxmin emas.
+
+### `brand` — Uzumda umuman yoʻq
+
+`Product` turida brend maydoni YOʻQ. 15 ta tovarning
+`characteristics` ro'yxati ham qaraldi: faqat "Rang", "Razmer",
+"Erkaklar poyabzali oʻlchami EUR" chiqdi — brend hech qayerda yoʻq.
+
+Shuning uchun `product.brand` 6 025 tovardan atigi 10 tasida toʻlgan
+va `brend_topish()` (doʻkon nomi tovar sarlavhasida uchraydimi)
+181 tasini topadi — jami **3%**. 1-tuzoq (yopiq brend) shu 3% da
+ishlaydi, qolganida "baholanmadi".
+
+### `makeSearch` facets — brend roʻyxati SHU YERDA boʻlishi mumkin
+
+`makeSearch(query: MakeSearchQueryInput!)` uchi bor va u
+`facets { filter { id title type } buckets { total filterValue { id name } } }`
+qaytaradi. `categoryId` qabul qiladi. Soʻrov SHAKLI tekshirildi va
+toʻgʻri — u subgrafgacha yetdi.
+
+LEKIN maʼlumot olinmadi: `search-gateway` bizning mijozga **429
+Too Many Requests** qaytardi va 75 soniya kutgandan keyin ham
+qaytardi. Yaʼni qidiruv uchi mahsulot uchidan qattiqroq cheklangan.
+
+Kerak boʻlsa: soʻrovni `hurmat.py` orqali, sekin va kam sonli
+oʻtkazish — alohida ish sifatida, supurish bilan bir vaqtda emas.
+Ad-hoc urinish qilmang: bugun uchta ketma-ket soʻrovdan keyin
+qulf tushdi.
+
+Agar facet ochilsa, turkum boʻyicha HAQIQIY brend roʻyxati
+chiqadi va `brend_topish` taxminidan voz kechish mumkin boʻladi.
+
+### `makeSearchByImage` — B4 uchun tashqi kalit KERAK BOʻLMASLIGI mumkin
+
+`makeSearchByImage(queryByImage: MakeImageSearchInput!)` mavjud;
+kirishi `imageKey`, `pagination`, `filters`, `sort`.
+
+Reja B4 "rasm boʻyicha 1688 dan tovar topish" ni talab qiladi va u
+uchun tashqi rasm-qidiruv API kaliti kutilayotgan edi. Uzumning
+oʻzida rasm qidiruvi bor — yaʼni kamida "shu rasmdagi tovar
+Uzumda bormi va qanchaga sotilyapti" degan yarmi kalitsiz
+ishlashi mumkin.
+
+`imageKey` ni qanday olish kerakligi hali NOMAʼLUM — rasm avval
+Uzumga yuklanadi shekilli. Tekshirilmagan; 429 sababli
+toʻxtatildi.
+
+### `oversized` — ulandi (0031)
+
+Bu roʻyxatdagi yagona band bugun yopildi. Tafsilot: TUZOQLAR.md,
+7-tuzoq.
