@@ -117,3 +117,38 @@ jobs:
             exit 1
           fi
           echo "Keshda $n ta turkum yangilandi."
+
+      # Sotuv baholash — qoldiq farqidan.
+      #
+      # NEGA SHU YERDA. `so_rollup_sales` yozilgan va ishlaydi, lekin
+      # uni HECH KIM CHAQIRMASDI: `sales_estimates` bugungacha 0 qator
+      # edi. Qoʻlda chaqirilganda darhol 6 186 qator yozdi.
+      #
+      # Yaʼni sotuv baholash kodi bor, testi bor, hujjatda "tayyor"
+      # deb turadi — va bironta raqam hisoblanmagan. QOIDALAR.md
+      # §8 dagi naqshning oʻzi.
+      #
+      # Oʻlchovdan KEYIN chaqiriladi: yangi qoldiq yozilmaguncha
+      # hisoblaydigan farq yoʻq.
+      - name: Sotuvni hisoblash
+        if: always()
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          bugun=$(date -u -d '+5 hours' +%F)
+          kecha=$(date -u -d '+5 hours -3 days' +%F)
+          javob=$(curl -sS --max-time 320 -X POST \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"p_from\":\"$kecha\",\"p_to\":\"$bugun\"}" \
+            "$URL/rest/v1/rpc/so_rollup_sales")
+          echo "$javob"
+          n=$(printf '%s' "$javob" | sed -n 's/.*"yozildi"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')
+          # Nol qator "sotuv yoʻq" degani EMAS — "hisoblanmadi" degani.
+          # Ikkalasi bir xil koʻrinmasligi kerak.
+          if [ -z "$n" ] || [ "$n" -eq 0 ]; then
+            echo "::error::Sotuv baholanmadi — bitta ham qator yozilmadi."
+            exit 1
+          fi
+          echo "$n ta sotuv bahosi yozildi."
