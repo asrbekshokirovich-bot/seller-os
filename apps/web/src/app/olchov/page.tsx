@@ -405,12 +405,32 @@ function Tuzoqlar({ t }: { t: TuzoqJavobi | null }) {
  */
 const TUZOQ_QATORI: Array<{
   filtr: string; nom: string; qamrov: 'tovar' | 'turkum'; qadam: string;
+  /**
+   * Filtr ULANGAN, lekin maʼlumot hali yigʻilmagan boʻlsa — nima
+   * kutilayotgani.
+   *
+   * IKKI HOLATNI AJRATADI. "Oʻlik" — filtr chaqirilmaydi, uni
+   * TUZATISH kerak. "Kutilmoqda" — filtr chaqiriladi va ishlaydi,
+   * lekin kirish maʼlumoti hali toʻlmagan; hech narsa qilish
+   * shart emas, kutish kerak.
+   *
+   * Ikkalasi ham nol koʻrsatadi, shuning uchun raqamdan farqlab
+   * boʻlmaydi. Bu maydon — biz bilgan narsa, taxmin emas.
+   */
+  kutilmoqda?: string;
 }> = [
   { filtr: 'closed_brand', nom: 'Yopiq brend', qamrov: 'tovar', qadam: '3-qadam' },
   { filtr: 'seasonal', nom: 'Mavsumiy tovar', qamrov: 'tovar', qadam: '3-qadam' },
   { filtr: 'fake_sales', nom: "Sunʼiy sotuv", qamrov: 'tovar', qadam: '3-qadam' },
   { filtr: 'heavy', nom: "Ogʻir tovar", qamrov: 'tovar', qadam: '3-qadam' },
-  { filtr: 'hype', nom: 'Qisqa trend', qamrov: 'tovar', qadam: '3-qadam' },
+  {
+    filtr: 'hype',
+    nom: 'Qisqa trend',
+    qamrov: 'tovar',
+    qadam: '3-qadam',
+    kutilmoqda: 'ulangan, lekin 14+14 kunlik sotuv tarixi kerak — '
+      + 'tarix toʻlgach oʻzi ishlay boshlaydi',
+  },
   { filtr: 'monopoly', nom: 'Monopol turkum', qamrov: 'turkum', qadam: '2-qadam' },
 ];
 
@@ -440,37 +460,47 @@ const BOSHQA_QADAM: Array<{ nom: string; qadam: string; izoh: string }> = [
 
 function TuzoqQatori({ q }: {
   q: {
-    filtr: string; nom: string; qadam: string;
+    filtr: string; nom: string; qadam: string; kutilmoqda?: string;
     jami: number; baholandi: number; baholanmadi: number; bayroq: number;
   };
 }) {
-  const olik = q.jami > 0 && q.baholandi === 0;
+  const nol = q.jami > 0 && q.baholandi === 0;
+  // Nol koʻrsatkich ikki xil boʻladi va ular ARALASHMASLIGI kerak:
+  // biri tuzatishni talab qiladi, ikkinchisi kutishni.
+  const kutmoqda = nol && q.kutilmoqda !== undefined;
+  const olik = nol && !kutmoqda;
   const foiz = q.jami > 0 ? Math.round((100 * q.baholandi) / q.jami) : 0;
 
   return (
-    <div className={`${u.qator} ${olik ? kerak('sYomon') : q.baholandi < q.jami
-      ? kerak('sKichik') : kerak('sYaxshi')}`}
+    <div className={`${u.qator} ${olik ? kerak('sYomon')
+      : kutmoqda ? kerak('sYoq')
+      : q.baholandi < q.jami ? kerak('sKichik') : kerak('sYaxshi')}`}
     >
       <div className={u.stripe} />
       <div className={u.nom}>
         <b>{q.nom}</b>
         <span className={u.sabab}>
           {q.qadam}
-          {olik
-            ? ' · hech bir tovarda baholanmadi'
-            : q.baholanmadi > 0
-              ? ` · ${q.baholanmadi} tasida maʼlumot yetmadi`
-              : ' · hammasi baholandi'}
+          {kutmoqda
+            ? ` · ${q.kutilmoqda}`
+            : olik
+              ? ' · hech bir tovarda baholanmadi'
+              : q.baholanmadi > 0
+                ? ` · ${q.baholanmadi} tasida maʼlumot yetmadi`
+                : ' · hammasi baholandi'}
         </span>
       </div>
-      <div className={`${u.qiymat} ${olik ? u.bosh : ''}`}>
-        {foiz}<u>%</u>
+      <div className={`${u.qiymat} ${nol ? u.bosh : ''}`}>
+        {kutmoqda ? <>&mdash;</> : <>{foiz}<u>%</u></>}
       </div>
       <div className={u.oxirgi}>
         <span className={`${u.chip} ${olik ? kerak('cYomon')
+          : kutmoqda ? ''
           : q.baholanmadi > 0 ? kerak('cKichik') : kerak('cYaxshi')}`}
         >
-          {olik ? 'Oʻlik' : q.baholanmadi > 0 ? 'Qisman' : 'Ishlayapti'}
+          {olik ? 'Oʻlik'
+            : kutmoqda ? 'Tarix kutilmoqda'
+            : q.baholanmadi > 0 ? 'Qisman' : 'Ishlayapti'}
         </span>
         <span className={u.maqsad}>
           {q.bayroq} bayroq · {q.baholandi}/{q.jami}
