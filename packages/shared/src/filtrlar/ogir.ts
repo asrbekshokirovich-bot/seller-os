@@ -10,6 +10,23 @@ export interface OgirKirishi {
   weightG: number | null;
   /** Hajm, ml. Uzum bermaydi — hozircha doim `null`. */
   volumeMl: number | null;
+  /**
+   * Uzumning OʻZI "katta hajmli" deb belgilagan tovar
+   * (`Product.oversized`).
+   *
+   * NEGA KERAK. `volumeMl` hech qachon kelmaydi — Uzumda bunday
+   * maydon yoʻq. Yaʼni bu filtrning "katta hajm" tarmogʻi bir
+   * marta ham ishlamagan. `oversized` aynan shu boʻshliqni
+   * toʻldiradi: u hajm oʻlchovi emas, lekin Uzumning bezovtalik
+   * belgisi — jonli tekshirildi, 7 ta muzlatgichda `true`,
+   * 7 ta yengil tovarda `false`.
+   *
+   * `false` HECH NIMANI YOPMAYDI. U "katta emas" degani, "ogʻir
+   * emas" degani emas: 6 kg li ixcham tovar ham `false` boʻladi.
+   * Shuning uchun `false` ogʻirlik oʻrnini bosmaydi va filtr
+   * baribir "baholanmadi" deb qaytadi.
+   */
+  oversized: boolean | null;
 }
 
 /**
@@ -36,15 +53,23 @@ export interface OgirKirishi {
  * u toʻliq tannarxni koʻradi.
  */
 export function ogir(k: OgirKirishi): Flag | Baholanmadi | null {
-  // Ikkalasi ham nomaʼlum boʻlsa — baholanmadi. Bittasi maʼlum
-  // boʻlsa yetadi: ogʻirlik ham, hajm ham mustaqil sabab.
-  if (k.weightG === null && k.volumeMl === null) {
-    return { kind: 'baholanmadi', missing: ['weightG', 'volumeMl'] };
+  const kattaBelgi = k.oversized === true;
+
+  /*
+   * Oʻlchov umuman yoʻq boʻlsa — baholanmadi. Bittasi maʼlum
+   * boʻlsa yetadi: ogʻirlik, hajm va Uzum belgisi — uchalasi
+   * mustaqil sabab.
+   *
+   * `oversized === false` bu yerda "maʼlum" deb sanalmaydi:
+   * u ogʻirlik haqida hech nima demaydi.
+   */
+  if (k.weightG === null && k.volumeMl === null && !kattaBelgi) {
+    return { kind: 'baholanmadi', missing: ['weightG', 'volumeMl', 'oversized'] };
   }
 
   const ogirmi = k.weightG !== null && k.weightG >= H.heavyGrams;
   const kattami = k.volumeMl !== null && k.volumeMl >= H.bulkyVolumeMl;
-  if (!ogirmi && !kattami) return null;
+  if (!ogirmi && !kattami && !kattaBelgi) return null;
 
   const sabablar: string[] = [];
   if (ogirmi) {
@@ -52,6 +77,13 @@ export function ogir(k: OgirKirishi): Flag | Baholanmadi | null {
   }
   if (kattami) {
     sabablar.push(`${(k.volumeMl! / 1000).toFixed(0)} litr hajm`);
+  }
+  // Raqam toʻqilmaydi: Uzum necha litr ekanini aytmaydi, faqat
+  // "katta" deydi. Shuni aynan shunday yozamiz.
+  if (kattaBelgi && !ogirmi && !kattami) {
+    sabablar.push('Uzum «katta hajmli» deb belgilagan');
+  } else if (kattaBelgi) {
+    sabablar.push('Uzumda «katta hajmli»');
   }
 
   return {
@@ -65,6 +97,7 @@ export function ogir(k: OgirKirishi): Flag | Baholanmadi | null {
     evidence: {
       ...(k.weightG !== null ? { ogirlikGramm: k.weightG } : {}),
       ...(k.volumeMl !== null ? { hajmMl: k.volumeMl } : {}),
+      ...(k.oversized !== null ? { uzumKatta: k.oversized } : {}),
       ogirChegarasi: H.heavyGrams,
     },
   };

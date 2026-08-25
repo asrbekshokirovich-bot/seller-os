@@ -117,6 +117,8 @@ export interface TovarToliq extends TovarHolati {
   weightG?: number | null;
   /** 7-tuzoq. Hajm, ml. Uzum hozircha bermaydi. */
   volumeMl?: number | null;
+  /** 7-tuzoq. Uzumning oʻz «katta hajmli» belgisi. */
+  oversized?: boolean | null;
   /** 2-tuzoq. Turkumning 12 oylik koeffitsienti. */
   seasonality?: number[] | null;
   /** 8-tuzoq. Tovar necha kundan beri Uzumda. */

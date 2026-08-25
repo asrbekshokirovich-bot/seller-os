@@ -57,6 +57,7 @@ export function tovarniTekshir(t: TovarToliq, oy?: number): Bayroqli<TovarHolati
   yoz('heavy', ogir({
     weightG: t.weightG ?? null,
     volumeMl: t.volumeMl ?? null,
+    oversized: t.oversized ?? null,
   }));
 
   yoz('seasonal', mavsumiy({

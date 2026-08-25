@@ -36,8 +36,13 @@ export interface Flag {
    *
    * Sababsiz bayroq ishonchni yo'qotadi: foydalanuvchi "nega?" desa,
    * unga raqam ko'rsatilishi kerak, "tizim shunday dedi" emas.
+   *
+   * `boolean` ham dalil bo'la oladi: `oversized` kabi maydonlarda
+   * o'lchov raqam emas, platformaning O'Z belgisi. Uni matnga
+   * aylantirib yozish ("ha"/"yo'q") ma'lumotni yo'qotardi —
+   * o'qigan kod `null` bilan `false` ni farqlay olmay qolardi.
    */
-  evidence: Record<string, number | string>;
+  evidence: Record<string, number | string | boolean>;
 }
 
 /** Tuzoq nomlarining o'zbekcha ko'rinishi — UI va izohlar uchun. */

@@ -36,6 +36,15 @@ query sellerosProduct($id: Int!) {
       minSellPrice
       minFullPrice
       category { id title }
+      # Uzumning O'ZI "katta hajmli" deb belgilagan tovar. Bu bitta
+      # boolean — javobga deyarli hech narsa qo'shmaydi, lekin
+      # 7-tuzoqning "katta hajm" tarmog'i uchun YAGONA manba:
+      # `volumeMl` Uzumda umuman yo'q.
+      #
+      # `shop.official` dan farqli o'laroq bu maydon HAQIQATAN
+      # ishlaydi — jonli o'lchandi: 7 ta muzlatgichda `true`,
+      # 7 ta yengil tovarda `false`.
+      oversized
       # `official` so'raladi, lekin YOZILMAYDI — Uzum uni doim `false`
       # qaytaradi (parse() dagi izohga qarang). So'rovda qoldirilgan
       # sababi: Uzum to'ldira boshlasa, bir marta tekshirib bilamiz.
@@ -66,6 +75,7 @@ query sellerosProductStok($id: Int!) {
       minSellPrice
       minFullPrice
       category { id title }
+      oversized
       shop { id title official ordersQuantity }
       # Qoldiq variantlar bo'yicha keladi — tovar qoldig'i ularning
       # yig'indisi. `weight` 7-tuzoq (og'ir tovar) uchun ham keladi.
@@ -126,6 +136,12 @@ class Kuzatuv:
     stock: int | None = None
     """Og'irlik, gramm. 7-tuzoq (og'ir tovar) uchun."""
     weight_g: int | None = None
+    """Uzumning o'z "katta hajmli" belgisi. 7-tuzoq uchun.
+
+    `None` = so'ralmagan yoki kelmagan. `False` "og'ir emas" degani
+    EMAS — u faqat "katta emas" deydi.
+    """
+    oversized: bool | None = None
 
 
 def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
@@ -162,6 +178,7 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         buyers_per_week=buyers_per_week((node or {}).get("actions")),
         stock=_qoldiq(product.get("skuList")),
         weight_g=_ogirlik(product.get("skuList")),
+        oversized=_bool(product.get("oversized")),
     )
 
 
@@ -226,6 +243,15 @@ def _ogirlik(sku_list: list[dict[str, Any]] | None) -> int | None:
     # Bitta variantli tovarda mediana yordam bermaydi — u yerda
     # faqat shift qoladi.
     return None if mediana > OGIRLIK_SHIFTI_G else mediana
+
+
+def _bool(value: Any) -> bool | None:
+    """`None` va `False` ni ARALASHTIRMAYDI.
+
+    `bool(None)` `False` beradi va shu sababli "so'ralmagan" jimgina
+    "katta emas" ga aylanardi. Bu 4-qoidaning buzilishi bo'lardi.
+    """
+    return value if isinstance(value, bool) else None
 
 
 def _int(value: Any) -> int | None:

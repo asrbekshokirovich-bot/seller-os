@@ -195,5 +195,9 @@ def _qatorga(javob: Javob) -> dict:
         # ketilardi. Natijada `product.weight_g` ustuni 0001-migratsiyadan
         # beri bo'sh turgan va 7-tuzoq umuman ishlay olmasdi.
         "weight_g": k.weight_g,
+        # Uzumning o'z "katta hajmli" belgisi. Og'irlikdan farqli
+        # o'laroq u YENGIL so'rovda ham keladi, ya'ni og'irligi
+        # yo'q tovarlar uchun ham 7-tuzoq baholanadi.
+        "oversized": k.oversized,
         "observed_at": _hozir(),
     }
