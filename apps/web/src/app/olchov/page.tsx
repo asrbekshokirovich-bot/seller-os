@@ -80,6 +80,19 @@ interface TarifJavobi {
   qadamlar: { qadam: number; ochiq: boolean; rejada_ochiq: boolean }[];
 }
 
+/** `GET /darvoza` javobi. */
+interface DarvozaJavobi {
+  b2?: {
+    javob_bergan: number;
+    mantiqli: number;
+    mantiqsiz: number;
+    kerak: number;
+    ochiq: boolean;
+    izohlar: { mantiqli: boolean; matn: string | null }[];
+  };
+  olchov_yoq?: boolean;
+}
+
 /** Usta qadamlarining nomlari — reja, 2-boʻlim. */
 const QADAM_NOMI: Record<number, string> = {
   1: 'Profil',
@@ -100,9 +113,10 @@ export default async function OlchovSahifasi(
     return <Kirish xato={q.xato === '1'} />;
   }
 
-  const [kpi, tarif] = await Promise.all([
+  const [kpi, tarif, darvoza] = await Promise.all([
     olib<KpiJavobi>('/kpi'),
     olib<TarifJavobi>('/tarif'),
+    olib<DarvozaJavobi>('/darvoza'),
   ]);
 
   return (
@@ -146,6 +160,8 @@ export default async function OlchovSahifasi(
             />
           </>
         )}
+
+        <Darvoza d={darvoza} />
 
         <Tarif t={tarif} />
 
@@ -273,6 +289,74 @@ function kerak(nom: string): string {
 function maqsadMatni(k: Kpi): string {
   const asos = k.maqsad.yonalish === 'yoq' ? k.maqsad.matn : `maqsad ${k.maqsad.matn}`;
   return k.namuna === null ? asos : `${asos} · n=${k.namuna}`;
+}
+
+/**
+ * B2 darvozasi — "3 begona sotuvchi «mantiqli» dedi".
+ *
+ * NEGA PANELDA. Bu darvoza yagona KPI emas, DALIL asosida
+ * ochiladi. Dalil bazada: `so_darvoza_b2()` fikr bergan boshqa-
+ * boshqa odamlarni sanaydi (bir odam ikki marta aytsa — bir).
+ *
+ * Sanoq NOL boʻlsa ham qator koʻrsatiladi. Jimgina yashirilsa,
+ * darvoza "hali tekshirilmagan" emas, "muammosiz" boʻlib
+ * koʻrinardi.
+ */
+function Darvoza({ d }: { d: DarvozaJavobi | null }) {
+  const b2 = d?.b2;
+  if (!b2) {
+    return (
+      <section className={u.blok}>
+        <header className={u.blokHead}><h2>B2 darvozasi</h2></header>
+        <div className={u.xato}>
+          <b>Fikr hisobi olinmadi.</b>
+          <p>
+            &laquo;Darvoza ochiq&raquo; deb koʻrsatilmaydi: nol dalil —
+            yetarli dalil degani emas.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={u.blok}>
+      <header className={u.blokHead}>
+        <h2>B2 darvozasi</h2>
+        <span>GET /darvoza</span>
+      </header>
+
+      <p className={u.tarifHolati}>
+        <span className={`${u.bayroq} ${b2.ochiq ? '' : u.bayroqYoq}`}>
+          {b2.ochiq ? 'Ochiq' : 'Yopiq'}
+        </span>
+        <span>
+          {b2.mantiqli} / {b2.kerak} sotuvchi &laquo;mantiqli&raquo; dedi
+          {b2.mantiqsiz > 0 ? ` · ${b2.mantiqsiz} tasi «mantiqsiz» dedi` : ''}
+          {' · '}jami {b2.javob_bergan} javob
+        </span>
+      </p>
+
+      {b2.izohlar.length === 0 ? (
+        <p className={u.sabab}>
+          Izoh yozilmagan. Fikr Usta oqimining 3-qadamida soʻraladi —
+          tovar roʻyxati koʻrsatilgandan keyin.
+        </p>
+      ) : (
+        <div className={u.qatorlar}>
+          {b2.izohlar.map((i, n) => (
+            <div key={n} className={`${u.qator} ${i.mantiqli ? kerak('sYaxshi') : kerak('sYomon')}`}>
+              <div className={u.stripe} />
+              <div className={u.nom}>
+                <b>{i.matn}</b>
+                <span className={u.sabab}>{i.mantiqli ? 'mantiqli' : 'mantiqsiz'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function Tarif({ t }: { t: TarifJavobi | null }) {

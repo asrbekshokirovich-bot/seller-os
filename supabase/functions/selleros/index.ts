@@ -321,6 +321,40 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     }
   }
 
+  /*
+   * Usta haqidagi fikr — B2 darvozasining dalili.
+   *
+   * Reja: "begona 3 sotuvchi ... «mantiqli» deydi". Shu paytgacha
+   * buni yozib oladigan joy yoʻq edi va gap yoʻqolardi.
+   */
+  if (yol === '/fikr' && req.method === 'POST') {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+
+    // `undefined` va `false` farqlanadi: javob bermaslik fikr EMAS.
+    const mantiqli = typeof tana.mantiqli === 'boolean' ? tana.mantiqli : null;
+    const n = await rpc<{ xato?: string }>('so_fikr_yoz', {
+      p_token: token,
+      p_mantiqli: mantiqli,
+      p_matn: typeof tana.matn === 'string' ? tana.matn : null,
+      p_qadam: typeof tana.qadam === 'number' ? tana.qadam : 3,
+      p_turkum: typeof tana.turkum === 'number' ? tana.turkum : null,
+    });
+    if (n === null) return javob({ xato: 'baza javob bermadi' }, 503);
+    if (n.xato) return javob(n, 401);
+    return javob(n);
+  }
+
+  // B2 darvozasi holati — nechta odam "mantiqli" dedi.
+  if (yol === '/darvoza') {
+    const d = await rpc<unknown>('so_darvoza_b2', {});
+    if (d === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    return javob({ b2: d });
+  }
+
   // Amaldagi tarif — UI qulfni BOSISHDAN OLDIN koʻrsatishi uchun.
   if (yol === '/tarif') {
     const n = await rejaniOl(req.headers.get('x-sessiya'));

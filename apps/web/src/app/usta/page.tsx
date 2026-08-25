@@ -309,6 +309,18 @@ export default function Usta() {
             />
           )}
 
+          {/*
+            * Fikr faqat KOʻRSATILGAN roʻyxat haqida soʻraladi.
+            * Boʻsh roʻyxat yoki xato haqida "mantiqlimi?" deb
+            * soʻrash maʼnosiz — javob Usta hisobi haqida emas,
+            * nosozlik haqida boʻlardi.
+            */}
+          {tanlangan && !tovarYuklanmoqda
+            && tovarlar && !tovarlar.olchov_yoq
+            && (tovarlar.royxat?.length ?? 0) > 0 && (
+            <Fikr key={tanlangan.categoryId} turkum={tanlangan.categoryId} />
+          )}
+
           <div ref={oxiri} />
         </div>
       </div>
@@ -878,6 +890,162 @@ function BaholanmaganLar({ royxat }: { royxat: Tovar[] }) {
 function xilmaXilBaholanmadi(royxat: Tovar[]): boolean {
   const s = new Set(royxat.map((t) => t.baholanmadi.map((b) => b.filtr).sort().join('|')));
   return s.size > 1;
+}
+
+/* ------------------------------------------------------ fikr */
+
+/**
+ * "Bu roʻyxat sizga mantiqlimi?"
+ *
+ * NEGA BU SAVOL BOR. Reja B2 darvozasi: "begona 3 sotuvchi Ustadan
+ * MUSTAQIL oʻtib tovar roʻyxatiga yetadi va «mantiqli» deydi".
+ * Shu paytgacha bu javobni yozib oladigan joy yoʻq edi — sotuvchi
+ * "miqdor mantiqsiz" desa, gap suhbatda qolardi va uni yonida
+ * oʻtirib qogʻozga koʻchirish kerak boʻlardi.
+ *
+ * OVOZ DARROV YOZILADI. Chip bosilishi bilan soʻrov ketadi, matn
+ * kutilmaydi: odamlarning koʻpi izoh yozmaydi, lekin "ha/yoʻq"
+ * ning oʻzi ham darvoza uchun dalil. Izoh keyin yuborilsa,
+ * ustiga yoziladi (oxirgisi hisoblanadi).
+ *
+ * JAVOB BERMASLIK — FIKR EMAS. "Hozir emas" bosilsa hech narsa
+ * yozilmaydi va darvoza hisobi oʻzgarmaydi. Sukut "mantiqli"
+ * degani emas.
+ *
+ * Har yoʻnalish uchun alohida soʻraladi (`key={turkum}`): odam
+ * bir turkumni mantiqli, boshqasini mantiqsiz deb topishi mumkin.
+ */
+function Fikr({ turkum }: { turkum: number }) {
+  const [tanlov, setTanlov] = useState<boolean | null>(null);
+  const [izoh, setIzoh] = useState('');
+  const [band, setBand] = useState(false);
+  const [yashirildi, setYashirildi] = useState(false);
+  const [izohYuborildi, setIzohYuborildi] = useState(false);
+  const [xato, setXato] = useState<string | null>(null);
+  const langar = useRef<HTMLDivElement>(null);
+
+  /*
+   * Fikr blokining oʻz suruvchisi bor.
+   *
+   * Yuqoridagi umumiy `useEffect` faqat suhbat qadamlariga
+   * qaraydi. Fikr ichidagi oʻzgarish (izoh maydoni ochilishi)
+   * unga koʻrinmaydi va maydon ekran ostida qolib ketardi —
+   * odam nima yozishini KOʻRMASDAN yozishi kerak boʻlardi.
+   */
+  useEffect(() => {
+    langar.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [tanlov, izohYuborildi, xato]);
+
+  async function yubor(mantiqli: boolean, matn: string | null) {
+    setBand(true);
+    setXato(null);
+    try {
+      const r = await fetch('/api/fikr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mantiqli, matn, qadam: 3, turkum }),
+      });
+      if (!r.ok) setXato('Fikr saqlanmadi — keyinroq qayta urinib koʻring.');
+      return r.ok;
+    } catch {
+      // Jim oʻtmaydi: "yubordim" deb koʻrsatib, aslida
+      // yubormaslik eng yomon variant.
+      setXato('Fikr yuborilmadi — tarmoq javob bermadi.');
+      return false;
+    } finally {
+      setBand(false);
+    }
+  }
+
+
+  async function izohniYubor() {
+    const t = izoh.trim();
+    // Boʻsh matn yuborilmaydi: ovoz allaqachon yozilgan, boʻsh
+    // qator ustiga yozish faqat ortiqcha yozuv boʻlardi.
+    if (t === '') { setIzohYuborildi(true); return; }
+    if (tanlov !== null && await yubor(tanlov, t)) setIzohYuborildi(true);
+  }
+
+  if (yashirildi) return null;
+
+  if (tanlov === null) {
+    return (
+      <>
+        <Ai nega="Javobingiz Ustani tuzatish uchun ishlatiladi. Roʻyxat oʻzgarmaydi.">
+          Bu roʻyxat sizga mantiqlimi?
+        </Ai>
+        <div className={u.chiplar}>
+          <button
+            type="button"
+            className={u.chip}
+            disabled={band}
+            onClick={async () => { setTanlov(true); await yubor(true, null); }}
+          >
+            Ha, mantiqli
+          </button>
+          <button
+            type="button"
+            className={u.chip}
+            disabled={band}
+            onClick={async () => { setTanlov(false); await yubor(false, null); }}
+          >
+            Yoʻq, mantiqsiz
+          </button>
+          <button
+            type="button"
+            className={`${u.chip} ${u.chipYengil}`}
+            disabled={band}
+            onClick={() => setYashirildi(true)}
+          >
+            Hozir emas
+          </button>
+        </div>
+        <div ref={langar} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className={`${u.pufak} ${u.men}`}>
+        {tanlov ? 'Ha, mantiqli' : 'Yoʻq, mantiqsiz'}
+      </div>
+
+      {xato !== null && (
+        <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+          <p className={u.xato}>{xato}</p>
+        </div>
+      )}
+
+      {izohYuborildi ? (
+        <Ai>Rahmat — yozib oldim.</Ai>
+      ) : (
+        <>
+          <Ai>
+            {tanlov
+              ? 'Rahmat. Qaysi joyi foydali boʻldi? (majburiy emas)'
+              : 'Rahmat. Nimasi notoʻgʻri koʻrindi? (majburiy emas)'}
+          </Ai>
+          <div className={u.kiritish}>
+            <input
+              type="text"
+              maxLength={2000}
+              aria-label="Fikringiz"
+              placeholder="Masalan: miqdor juda katta koʻrindi"
+              value={izoh}
+              disabled={band}
+              onChange={(e) => setIzoh(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') izohniYubor(); }}
+            />
+            <button type="button" className={u.yubor} disabled={band} onClick={izohniYubor}>
+              Yuborish
+            </button>
+          </div>
+        </>
+      )}
+      <div ref={langar} />
+    </>
+  );
 }
 
 /* ------------------------------------------------------ yordamchilar */

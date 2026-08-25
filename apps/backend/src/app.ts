@@ -291,6 +291,39 @@ export function build(): FastifyInstance {
   });
 
   /**
+   * Usta haqidagi fikr — B2 darvozasining dalili (reja B2).
+   *
+   * "Begona 3 sotuvchi «mantiqli» deydi" degan shartni tekshirish
+   * uchun fikrni yozib olish kerak. Shu paytgacha u yoʻq edi.
+   */
+  app.post('/fikr', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    // `undefined` va `false` farqlanadi: javob bermaslik fikr EMAS.
+    const mantiqli = typeof tana.mantiqli === 'boolean' ? tana.mantiqli : null;
+    const n = await rpc<{ xato?: string }>('so_fikr_yoz', {
+      p_token: token,
+      p_mantiqli: mantiqli,
+      p_matn: typeof tana.matn === 'string' ? tana.matn : null,
+      p_qadam: typeof tana.qadam === 'number' ? tana.qadam : 3,
+      p_turkum: typeof tana.turkum === 'number' ? tana.turkum : null,
+    });
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(401).send(n);
+    return n;
+  });
+
+  /** B2 darvozasi holati — nechta odam "mantiqli" dedi. */
+  app.get('/darvoza', async () => {
+    const d = await rpc<unknown>('so_darvoza_b2', {});
+    if (d === null) return { olchov_yoq: true, sabab: 'baza javob bermadi' };
+    return { b2: d };
+  });
+
+  /**
    * Amaldagi tarif — UI qulfni bosishdan OLDIN koʻrsatishi uchun.
    *
    * "Bosdim — 402 keldi" yomon oqim: odam nima yopiqligini
