@@ -6,6 +6,8 @@
  * (reja, 5-boʻlim).
  */
 
+import { tokenYokiYangi } from '@/lib/sessiya';
+
 const API = process.env.SELLEROS_API_URL ?? '';
 const KEY = process.env.SELLEROS_API_KEY ?? '';
 
@@ -20,8 +22,12 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
+    const sessiya = await tokenYokiYangi();
     const r = await fetch(`${API}/tovarlar?turkum=${turkum}`, {
-      headers: { Authorization: `Bearer ${KEY}` },
+      headers: {
+        Authorization: `Bearer ${KEY}`,
+        ...(sessiya ? { 'x-sessiya': sessiya } : {}),
+      },
       cache: 'no-store',
     });
     return new Response(await r.text(), {

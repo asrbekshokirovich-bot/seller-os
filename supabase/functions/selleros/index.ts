@@ -16,6 +16,7 @@
  */
 import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.ts';
 import {
+  FORMULA_VERSION,
   KESH_ESKI_SOAT,
   profilOqi,
   sohalar,
@@ -123,7 +124,26 @@ Deno.serve(async (req: Request) => {
       sohalar(profil),
       hozirgiOy(),
     );
+
+    // Tavsiya JURNALGA yoziladi (reja: `recommendations`).
+    //
+    // Nega majburiy: "shu odamga nega aynan shu yoʻnalish
+    // koʻrsatilgan?" degan savolga bir oydan keyin ham javob
+    // boʻlishi kerak. Ball formulasi oʻzgaradi, chegaralar
+    // oʻzgaradi — oʻsha kungi qaror esa oʻzgarmasligi kerak.
+    //
+    // Yozish yiqilsa TAVSIYA BARIBIR BERILADI: odam javob berdi,
+    // uni jurnal nosozligi tufayli kutdirish notoʻgʻri. Lekin
+    // xato jim oʻtmaydi — javobda `jurnal` maydoni koʻrsatiladi.
+    const jurnal = await tavsiyaniYoz(req, 2, natija.royxat.map((y) => ({
+      categoryId: y.categoryId,
+      score: y.ball.value,
+      breakdown: y.ball.breakdown,
+      formulaVersion: y.ball.version,
+    })));
+
     return javob({
+      jurnal,
       olchov_yoq: false,
       nomzod_soni: kesh.royxat.length,
       hisoblandi: kesh.hisoblandi,
@@ -161,7 +181,16 @@ Deno.serve(async (req: Request) => {
       const n = tovarniTekshir(t, hozirgiOy());
       return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
     });
-    return javob({ olchov_yoq: false, turkum: kesh.turkum, ...natija });
+
+    const jurnal = await tavsiyaniYoz(req, 3, natija.royxat.map((t) => ({
+      productId: t.nomzod.productId,
+      categoryId: kesh.turkum?.categoryId ?? null,
+      score: null,
+      flags: t.bayroqlar,
+      formulaVersion: FORMULA_VERSION,
+    })));
+
+    return javob({ olchov_yoq: false, jurnal, turkum: kesh.turkum, ...natija });
   }
 
   // Bayroqlarni hisoblab BAZAGA yozadi (reja: `product_flags`).
@@ -254,4 +283,31 @@ function hozirgiOy(): number {
       month: 'numeric',
     }).format(new Date()),
   );
+}
+
+/**
+ * Tavsiyani jurnalga yozadi.
+ *
+ * Sessiya tokeni boʻlmasa — yozilmaydi va bu XATO EMAS: odam
+ * hali sahifaga birinchi marta kirgan boʻlishi mumkin.
+ * `'sessiyasiz'` deb qaytariladi, chunki "yozildi" deb koʻrsatish
+ * yolgʻon boʻlardi.
+ */
+async function tavsiyaniYoz(
+  req: Request,
+  qadam: number,
+  royxat: unknown[],
+): Promise<string> {
+  const token = req.headers.get('x-sessiya');
+  if (!token) return 'sessiyasiz';
+  if (!royxat.length) return 'boʻsh';
+
+  const n = await rpc<{ yozildi?: number; xato?: string }>('so_tavsiya_yoz', {
+    p_token: token,
+    p_step: qadam,
+    p_tavsiyalar: royxat,
+  });
+  if (n === null) return 'yozilmadi';
+  if (n.xato) return n.xato;
+  return `${n.yozildi} qator`;
 }

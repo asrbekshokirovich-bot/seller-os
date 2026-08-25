@@ -15,6 +15,8 @@
  * boʻsh roʻyxat "sizga mos yoʻnalish yoʻq" degan daʼvo boʻlardi.
  */
 
+import { tokenYokiYangi } from '@/lib/sessiya';
+
 const API = process.env.SELLEROS_API_URL ?? '';
 const KEY = process.env.SELLEROS_API_KEY ?? '';
 
@@ -35,11 +37,17 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
+    // Sessiya tokeni — tavsiya jurnali uchun. Boʻlmasa yangisi
+    // ochiladi: odam javob bergan boʻlsa, uni kim berganini
+    // bilishimiz kerak (reja: `recommendations`).
+    const sessiya = await tokenYokiYangi();
+
     const r = await fetch(`${API}/yonalishlar`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${KEY}`,
         'Content-Type': 'application/json',
+        ...(sessiya ? { 'x-sessiya': sessiya } : {}),
       },
       body: JSON.stringify(tana),
       // Har soʻrov yangi javob oladi: kesh yoshi javobning oʻzida
