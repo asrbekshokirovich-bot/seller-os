@@ -87,6 +87,27 @@ function nusxaFayli(f) {
  * sanoqchi oʻzi yaratgan murojaatni sanaydi.
  */
 const OZ_DAFTARI = 'scripts/olik-kod.mjs';
+
+/*
+ * FREYMVORK CHAQIRADIGAN FAYLLAR.
+ *
+ * Next.js `app/**\/route.ts` da `GET`/`POST` eksportlarini oʻzi
+ * topib chaqiradi — kodda ularga import yoʻq. Sanoqchi uchun ular
+ * "hech kim chaqirmaydi" boʻlib koʻrinadi.
+ *
+ * Bu chetlatish `ISTISNO` dan farq qiladi va shuning uchun alohida:
+ * istisno "hozircha ulanmagan" degani, bu esa "boshqa mexanizm
+ * chaqiradi" degani. Ikkalasini aralashtirsak, haqiqiy oʻlik kod
+ * istisno roʻyxatida yashirinib qolardi.
+ *
+ * Chegara tor: faqat `route.ts`/`page.tsx`/`layout.tsx` va faqat
+ * `app/` ichida. Boshqa har qanday eksport odatdagidek sanaladi.
+ */
+const FREYMVORK = /\/app\/.*\/(route|page|layout)\.tsx?$|\/app\/(page|layout)\.tsx?$/;
+function freymvorkFayli(f) {
+  return FREYMVORK.test(`/${f}`);
+}
+
 function chetda(f) {
   return testFayli(f) || nusxaFayli(f) || f === OZ_DAFTARI;
 }
@@ -120,7 +141,7 @@ const olik = [];
  */
 const eskirgan = [];
 for (const [fayl, matn] of manbalar) {
-  if (chetda(fayl)) continue;
+  if (chetda(fayl) || freymvorkFayli(fayl)) continue;
   const py = fayl.endsWith('.py');
   for (const m of matn.matchAll(py ? PY_EKSPORT : TS_EKSPORT)) {
     const nom = m[1] ?? m[2] ?? m[3];
