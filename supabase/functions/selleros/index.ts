@@ -23,6 +23,7 @@ import {
   kpiXulosa,
   kpilar,
   tannarxHisobi,
+  xatoniYubor,
   profilOqi,
   qadamOchiq,
   reja,
@@ -74,8 +75,41 @@ const javob = (data: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
 
+/*
+ * XATO JIM OʻTMAYDI.
+ *
+ * Ilgari uch ichida xato otsa, Deno uni 500 qilib qaytarardi va
+ * IZ HECH QAYERDA qolmasdi. Foydalanuvchi "ishlamadi" deb
+ * ketardi, biz esa nima singanini bilmasdik.
+ *
+ * Endi xato Sentry ga yuboriladi (`SENTRY_DSN` boʻlsa) va
+ * javobda hodisa raqami qaytadi — foydalanuvchi shu raqamni
+ * aytsa, aynan oʻsha xatoni topamiz.
+ *
+ * Yuborish soʻrovni TOʻSMAYDI: `xatoniYubor` hech qachon otmaydi
+ * va DSN yoʻq boʻlsa hech narsa qilmaydi.
+ */
 Deno.serve(async (req: Request) => {
   const yol = new URL(req.url).pathname.replace(/^\/selleros/, '') || '/';
+  try {
+    return await ishla(req, yol);
+  } catch (xato) {
+    const id = crypto.randomUUID().replace(/-/g, '');
+    await xatoniYubor(xato, {
+      qism: 'edge',
+      muhit: Deno.env.get('NODE_ENV') ?? 'production',
+      yol,
+    }, Deno.env.get('SENTRY_DSN'), fetch, new Date(), id);
+    console.error(`[${id}] ${yol}:`, xato);
+    return javob({
+      xato: 'ichki xato',
+      hodisa: id,
+      izoh: 'Shu raqamni aytsangiz, aynan bu xatoni topamiz.',
+    }, 500);
+  }
+});
+
+async function ishla(req: Request, yol: string): Promise<Response> {
 
   if (yol === '/' || yol === '/health') {
     return javob({
@@ -347,7 +381,7 @@ Deno.serve(async (req: Request) => {
   }
 
   return javob({ xato: 'topilmadi', yol }, 404);
-});
+}
 
 /**
  * Soʻrov tanasidan son. Boʻsh, matn yoki `NaN` — `null`.

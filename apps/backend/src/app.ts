@@ -14,6 +14,7 @@ import {
   kpiXulosa,
   kpilar,
   tannarxHisobi,
+  xatoniYubor,
   profilOqi,
   qadamOchiq,
   reja,
@@ -40,6 +41,30 @@ import {
  */
 export function build(): FastifyInstance {
   const app = Fastify({ logger: false });
+
+  /*
+   * XATO JIM OʻTMAYDI (reja, B0: Sentry).
+   *
+   * Fastify standart holatda 500 qaytaradi va iz faqat jurnalda
+   * qoladi — jurnal esa hech kim oʻqimaydigan joy. Endi xato
+   * Sentry ga ketadi va javobda hodisa raqami boʻladi.
+   *
+   * `SENTRY_DSN` boʻlmasa hech narsa yuborilmaydi va bu xato
+   * emas: mahalliy ishlashda u yoʻq.
+   */
+  app.setErrorHandler(async (xato, soov, javob) => {
+    const id = xatoId();
+    await xatoniYubor(xato, {
+      qism: 'backend',
+      muhit: process.env.NODE_ENV ?? 'development',
+      yol: soov.url,
+    }, process.env.SENTRY_DSN, fetch, new Date(), id);
+    javob.code(500).send({
+      xato: 'ichki xato',
+      hodisa: id,
+      izoh: 'Shu raqamni aytsangiz, aynan bu xatoni topamiz.',
+    });
+  });
 
   /** Staging tirikmi — deploy darvozasi shuni so'raydi. */
   app.get('/health', async () => ({
@@ -348,6 +373,11 @@ export function build(): FastifyInstance {
   });
 
   return app;
+}
+
+/** Hodisa raqami — foydalanuvchi aytadigan qisqa belgi. */
+function xatoId(): string {
+  return crypto.randomUUID().replace(/-/g, '');
 }
 
 /**
