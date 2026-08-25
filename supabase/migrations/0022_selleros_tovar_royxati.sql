@@ -12,25 +12,41 @@
 -- ikkala funksiya ham shundan oʻqiydi.
 
 create or replace view selleros.tovar_sotuvi as
-with olchangan as (
-  -- 1-manba: qoldiq farqidan OʻLCHANGAN sotuv, 30 kun.
-  select product_id, sum(sold_units)::int as sotuv
-  from selleros.sales_estimates
-  where date > (now() at time zone 'Asia/Tashkent')::date - 30
-    and sold_units is not null
-  group by product_id
-),
-kunlar as (
-  -- Nechta kun oʻlchangani. Bu raqam KOʻRSATILADI: 30 kunlik sotuv
-  -- 2 kunlik oʻlchovdan chiqarilgan boʻlsa, foydalanuvchi buni
-  -- bilishi kerak.
+with kunlar as (
+  -- Nechta kun oʻlchangani. Bu raqam KOʻRSATILADI ham: 30 kunlik
+  -- sotuv 2 kunlik oʻlchovdan chiqarilgan boʻlsa, foydalanuvchi
+  -- buni bilishi kerak.
   select product_id, count(distinct date)::int as kun
   from selleros.sales_estimates
   where date > (now() at time zone 'Asia/Tashkent')::date - 30
   group by product_id
 ),
+olchangan as (
+  -- 1-manba: qoldiq farqidan OʻLCHANGAN sotuv, 30 kun.
+  --
+  -- KUN SHARTI MAJBURIY. Busiz 1 kunlik oʻlchovdan "30 kunlik
+  -- sotuv = 0" chiqardi va bu "oʻlchanmadi" ni "sotilmaydi" ga
+  -- aylantirardi — QOIDALAR.md 4-qoidasi aynan shuni taqiqlaydi.
+  --
+  -- 7 = `THRESHOLDS.data.minDaysForDemand`
+  -- (`packages/shared/src/thresholds.ts`). Raqam ikki joyda
+  -- yozilgan, shuning uchun ular bir xilligi testda tekshiriladi:
+  -- `supabase/test/kun-sharti.test.ts`.
+  select e.product_id, sum(e.sold_units)::int as sotuv
+  from selleros.sales_estimates e
+  join kunlar k on k.product_id = e.product_id
+  where e.date > (now() at time zone 'Asia/Tashkent')::date - 30
+    and e.sold_units is not null
+    and k.kun >= 7
+  group by e.product_id
+),
 taxminiy as (
-  -- 2-manba: perepisdagi haftalik xaridorlar. Uzum oʻzi aytgan raqam.
+  -- 2-manba: perepisdagi haftalik xaridorlar. Uzum oʻzi aytgan
+  -- raqam, yaʼni bitta oʻlchovda ham butun davrni qamraydi.
+  --
+  -- OGOHLANTIRISH: bu raqamdan MIQDOR hisoblanmaydi. Maʼnosi
+  -- tasdiqlanmagan — batafsil `packages/shared/src/qadamlar.ts`,
+  -- `MIQDOR_UCHUN_MANBA` izohida.
   select distinct on (o.product_id) o.product_id,
          round(o.buyers_per_week * 4.3)::int as sotuv
   from selleros.product_observation o
