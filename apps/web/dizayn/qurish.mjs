@@ -401,6 +401,37 @@ function matnniTuzat(matn) {
   matn = almashtir(matn, '<html><head>', '<html lang="uz"><head>',
     'html lang="uz"');
 
+  // ---- N+2. Ishlamaydigan "Kirish" olib tashlandi ---------------
+  //
+  // Hisob tizimi YOʻQ: sessiya birinchi tashrifda avtomatik
+  // ochiladi va javoblar oʻshanga bogʻlanadi. Yaʼni "Kirish"
+  // tugmasi bosilsa koʻrsatadigan narsa yoʻq.
+  //
+  // Ishlamaydigan tugmani turgʻizib qoʻyish — sahifa benuqson
+  // koʻrinadi, odam bosadi, hech nima boʻlmaydi va u ketadi.
+  // Telegram ulanganda qaytariladi.
+  //
+  // DIQQAT: sahifada ikkita "Kirish" bor. Ikkinchisi — 1688
+  // simulatsiyasining menyusida (oq matn) va u OʻSHA YERDA
+  // qolishi kerak: demo boshqa saytni koʻrsatadi. Shuning uchun
+  // naqsh rangga ham bogʻlangan.
+  matn = hammasini(
+    matn,
+    /<a href="#" style="font-size:14px;font-weight:600;color:#1A3A6C">Kirish<\/a>/g,
+    '',
+    'saytning oʻz "Kirish" havolasi olib tashlandi',
+    1,
+  );
+
+  // ---- N+3. Maxfiylik sahifasi ----------------------------------
+  matn = hammasini(
+    matn,
+    /<a href="#">Maxfiylik<\/a>/g,
+    '<a href="/maxfiylik">Maxfiylik</a>',
+    'Maxfiylik havolasi ulandi',
+    1,
+  );
+
   olikHavolalar(matn);
   return matn;
 }
@@ -422,7 +453,9 @@ function matnniTuzat(matn) {
  * jimgina oʻsib borardi va "keyin tuzatamiz" abadiy choʻzilardi.
  */
 const KUTILGAN_OLIK = [
-  'Kirish', 'Roʻyxatdan oʻtish', 'Oferta', 'Maxfiylik', 'Yordam', 'ofertada',
+  // 'Kirish' va 'Roʻyxatdan oʻtish' — 1688 simulatsiyasining menyusida
+  // qolgani. Saytning oʻzinikisi olib tashlandi (N+2).
+  'Kirish', 'Roʻyxatdan oʻtish', 'Oferta', 'Yordam', 'ofertada',
   // 1688 simulatsiyasi menyusi — boshqa saytning taqlidi.
   'Bosh sahifa', 'Brend markazlari', 'Sanoat markazlari', 'Ishlab chiqaruvchilar',
   'Yetkazib beruvchi', 'Yangi tovarlar', 'Chegirmalar', 'Koʻp sotilganlar',

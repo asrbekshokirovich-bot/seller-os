@@ -33,7 +33,7 @@ import u from './olchov.module.css';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'SellerOS — Oʻlchov paneli',
+  title: 'ZumSavdo — Oʻlchov paneli',
   // Ichki panel qidiruvga tushmasin.
   robots: { index: false, follow: false },
 };
@@ -385,7 +385,7 @@ function Kirish({ xato }: { xato: boolean }) {
   return (
     <div className={`${u.panel} ${SHRIFTLAR}`}>
       <div className={u.kirish}>
-        <p className={u.eyebrow}>SellerOS · ichki panel</p>
+        <p className={u.eyebrow}>ZumSavdo · ichki panel</p>
         {xato && (
           <div className={u.xato}>
             <b>Kalit notoʻgʻri.</b>

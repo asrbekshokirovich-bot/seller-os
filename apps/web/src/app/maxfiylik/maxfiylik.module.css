@@ -1,0 +1,173 @@
+/*
+ * Hujjat sahifasi — dizayn qadogʻining rang va shriftlarida.
+ *
+ * Bu sahifa oʻqiladi, koʻzdan kechirilmaydi. Shuning uchun tor
+ * ustun (65 belgi atrofida) va katta qatorlar orasi.
+ *
+ * Qorongʻi mavzu yoʻq — dizaynda u yoʻq, va oʻzim oʻylab topishim
+ * kerak boʻlardi. Har rang shu yerda aniq yozilgan.
+ */
+
+.sahifa {
+  --kok: #1a3a6c;
+  --siyoh: #0a1a34;
+  --past: #52627a;
+  --past2: #8e9cb0;
+  --chegara: #d9dfe8;
+  --toldirish: #eff2f5;
+  --fon: #f3f5f7;
+  --yashil: #d4e94c;
+
+  min-height: 100vh;
+  background: var(--fon);
+  color: var(--siyoh);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tepa {
+  background: #fff;
+  border-bottom: 1px solid var(--chegara);
+  padding: 0.75rem clamp(0.9rem, 2vw, 1.5rem);
+}
+
+.tepaIchi {
+  max-width: 46rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.nishon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--kok);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.nom {
+  font-weight: 700;
+  color: var(--kok);
+  text-decoration: none;
+}
+
+.orqaga {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--past);
+  text-decoration: none;
+  border: 1px solid var(--chegara);
+  border-radius: 8px;
+  padding: 7px 13px;
+  background: #fff;
+}
+.orqaga:hover { background: var(--toldirish); }
+.orqaga:focus-visible { outline: 2px solid var(--kok); outline-offset: 2px; }
+
+.ichi {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: clamp(1.75rem, 4vw, 3.5rem) clamp(1rem, 3vw, 1.5rem) 5rem;
+}
+
+.ichi h1 {
+  font-size: clamp(1.7rem, 1.3rem + 1.5vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.sana {
+  color: var(--past2);
+  font-size: 14px;
+  margin: 0.5rem 0 0;
+}
+
+.ichi h2 {
+  font-size: 1.2rem;
+  line-height: 1.25;
+  margin: 2.5rem 0 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--chegara);
+}
+
+.ichi p {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+}
+
+.ichi ul {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: 62ch;
+}
+
+.ichi code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.87em;
+  background: var(--toldirish);
+  border-radius: 3px;
+  padding: 0.08em 0.35em;
+}
+
+.ichi strong { font-weight: 600; }
+
+/* Muhim jumla — yashil chiziq bilan. */
+.urgu {
+  border-left: 3px solid var(--yashil);
+  background: #fff;
+  border-radius: 0 8px 8px 0;
+  padding: 0.9rem 1.1rem;
+  margin: 0 0 1rem;
+}
+.urgu p:last-child { margin-bottom: 0; }
+
+/* Ochiq savol — hal qilinmagani yashirilmaydi. */
+.ochiq {
+  border: 1px solid var(--chegara);
+  border-left: 3px solid var(--past2);
+  background: #fff;
+  border-radius: 0 8px 8px 0;
+  padding: 0.9rem 1.1rem;
+  margin: 0 0 1rem;
+  color: var(--past);
+  font-size: 15px;
+}
+.ochiq p:last-child { margin-bottom: 0; }
+
+.jadval {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  margin: 0 0 1.25rem;
+}
+.jadval th,
+.jadval td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5rem 0.6rem;
+  border-top: 1px solid var(--chegara);
+}
+.jadval th {
+  color: var(--past);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.oralik { overflow-x: auto; }

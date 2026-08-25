@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SellerOS — Usta',
+  title: 'ZumSavdo — Usta',
   description: 'Uzumda nima sotishni raqamlar bilan tanlang.',
 };
 
