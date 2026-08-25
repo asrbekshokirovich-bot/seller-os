@@ -16,3 +16,4 @@ export * from './filtrlar/mavsum.ts';
 export * from './filtrlar/hype.ts';
 export * from './tarif.ts';
 export * from './kpi.ts';
+export * from './tannarx.ts';

@@ -219,6 +219,18 @@ tor bo'lmasligi kerak.** (b) chegara qatorlarni kesardi, bu esa
 fayllarni. Ikkalasida ham vosita "hammasi" deb tushunilgan, aslida
 esa "kuzatilgani" yoki "birinchi 1000 tasi" degan.
 
+**Bu shakl IKKINCHI marta takrorlandi (2026-08-25).** Sir
+qidiruvchi tuzatilgan edi, lekin `olik-kod.mjs` da xuddi shu
+`git ls-files` qolib ketgan. Yangi yozilgan `tannarx.ts` da o'lik
+eksport bor edi; `npm run olik-kod` **yashil** dedi, `git add`
+dan keyin esa o'shа buyruq uni topdi — ya'ni xato yana bir commit
+kechikardi.
+
+Xulosa: bitta qorovulni tuzatish yetarli emas. Bir vosita shu
+loyihada ishonchsiz chiqsa, uni ISHLATADIGAN HAMMA joy
+tekshirilishi kerak. Endi ikkala qorovul ham kuzatilmagan
+fayllarni ko'radi.
+
 **g) Sanoqchi o'zi yaratgan murojaatni sanaydi.** (c) ning ikkita
 yangi ko'rinishi topildi, ikkalasi ham `olik-kod.mjs` ning o'zida:
 

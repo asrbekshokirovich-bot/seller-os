@@ -112,10 +112,32 @@ function chetda(f) {
   return testFayli(f) || nusxaFayli(f) || f === OZ_DAFTARI;
 }
 
-const fayllar = execSync(
-  "git ls-files '*.ts' '*.mjs' '*.py' | grep -v node_modules | grep -v dist",
-  { encoding: 'utf8' },
-).trim().split('\n').filter(Boolean);
+/*
+ * KUZATILMAGAN FAYLLAR HAM SANALADI.
+ *
+ * `git ls-files` faqat KUZATILADIGAN fayllarni beradi. Yaʼni yangi
+ * yozilgan, hali `git add` qilinmagan fayl bu qorovulga umuman
+ * koʻrinmasdi: mahalliy tekshiruv yashil, CI esa (fayl commit
+ * boʻlgach) qizil.
+ *
+ * Oʻlchandi 2026-08-25: `packages/shared/src/tannarx.ts` yozildi,
+ * `npm run olik-kod` yashil dedi; `git add` dan keyin oʻsha buyruq
+ * oʻlik eksportni topdi. Yaʼni xato bir commit kechikardi.
+ *
+ * Aynan shu xato sirlarni tekshiruvchida ham boʻlgan (QOIDALAR.md
+ * §8-f) va u yerda `--untracked` bilan tuzatilgan. Bu ikkinchi
+ * marta — demak `git ls-files` ning oʻzi shu loyihada ishonchsiz.
+ */
+const royxat = (buyruq) =>
+  execSync(buyruq, { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+
+const fayllar = [...new Set([
+  ...royxat("git ls-files '*.ts' '*.mjs' '*.py' | grep -v node_modules | grep -v dist"),
+  ...royxat(
+    "git ls-files --others --exclude-standard '*.ts' '*.mjs' '*.py' "
+    + '| grep -v node_modules | grep -v dist || true',
+  ),
+])];
 
 const manbalar = fayllar.map((f) => [f, readFileSync(f, 'utf8')]);
 

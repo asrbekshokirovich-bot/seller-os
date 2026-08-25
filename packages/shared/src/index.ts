@@ -16,3 +16,4 @@ export * from './filtrlar/mavsum.js';
 export * from './filtrlar/hype.js';
 export * from './tarif.js';
 export * from './kpi.js';
+export * from './tannarx.js';

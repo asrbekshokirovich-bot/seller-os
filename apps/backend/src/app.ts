@@ -13,6 +13,7 @@ import {
   kerakliRejalar,
   kpiXulosa,
   kpilar,
+  tannarxHisobi,
   profilOqi,
   qadamOchiq,
   reja,
@@ -20,6 +21,7 @@ import {
   tovarlar,
   yonalishlar,
   type KpiXom,
+  type TannarxKirishi,
   type NomzodJavobi,
   type ObunaXom,
   type RejaNatijasi,
@@ -304,7 +306,62 @@ export function build(): FastifyInstance {
     };
   });
 
+  /**
+   * 4-qadam — bir dona tovarning haqiqiy tannarxi (reja B4).
+   *
+   * FORMULA.md, 2-boʻlim: sotuv narxi − Xitoy narxi − kargo −
+   * bojxona/QQS − komissiya.
+   *
+   * KIRISHLAR SOʻROV TANASIDA KELADI, bazadan olinmaydi. Sabab:
+   * 1688 narxi rasm-qidiruv provayderidan keladi va u hali
+   * ulanmagan (kalit kutilmoqda), stavkalar esa huquqiy hujjatdan
+   * olinishi kerak. Ikkalasi ham hali yoʻq.
+   *
+   * Ular kelgunicha uch shu koʻrinishda ishlaydi: narxni odam
+   * kiritadi, hisob esa bir joyda va testlangan boʻladi. Provayder
+   * ulanganda faqat kirish manbai almashadi, formula emas.
+   *
+   * Yetishmagan kirish NOLGA aylanmaydi — nomi bilan qaytadi.
+   */
+  app.post('/tannarx', async (request) => {
+    const tana = (request.body ?? {}) as Partial<TannarxKirishi>;
+    const natija = tannarxHisobi({
+      sotuvNarxiSom: raqam(tana.sotuvNarxiSom),
+      xitoyNarxiYuan: raqam(tana.xitoyNarxiYuan),
+      kursSomPerYuan: raqam(tana.kursSomPerYuan),
+      weightG: raqam(tana.weightG),
+      volumeMl: raqam(tana.volumeMl),
+      kargo: {
+        somPerKg: raqam(tana.kargo?.somPerKg),
+        somPerM3: raqam(tana.kargo?.somPerM3),
+      },
+      boj: {
+        bojFoizi: raqam(tana.boj?.bojFoizi),
+        qqsFoizi: raqam(tana.boj?.qqsFoizi),
+      },
+      komissiyaFoizi: raqam(tana.komissiyaFoizi),
+    });
+    return {
+      olchov_yoq: natija.sofFoydaSom === null,
+      ...natija,
+    };
+  });
+
   return app;
+}
+
+/**
+ * Soʻrov tanasidan son. Boʻsh, matn yoki `NaN` — `null`.
+ *
+ * `Number("")` NOLGA teng, shuning uchun boʻshliqni oddiy
+ * `Number()` bilan oʻgirish taqiqlanadi: nol "tekin" degan javob
+ * boʻlardi va u foydani oshirib koʻrsatardi.
+ */
+function raqam(q: unknown): number | null {
+  if (typeof q === 'number') return Number.isFinite(q) ? q : null;
+  if (typeof q !== 'string' || q.trim() === '') return null;
+  const n = Number(q);
+  return Number.isFinite(n) ? n : null;
 }
 
 /**

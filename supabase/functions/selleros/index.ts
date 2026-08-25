@@ -22,6 +22,7 @@ import {
   kerakliRejalar,
   kpiXulosa,
   kpilar,
+  tannarxHisobi,
   profilOqi,
   qadamOchiq,
   reja,
@@ -29,6 +30,7 @@ import {
   tovarlar,
   yonalishlar,
   type KpiXom,
+  type TannarxKirishi,
   type NomzodJavobi,
   type ObunaXom,
   type RejaNatijasi,
@@ -316,8 +318,50 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // 4-qadam — bir dona tovarning haqiqiy tannarxi (reja B4).
+  //
+  // Kirishlar soʻrov tanasida keladi: 1688 narxi rasm-qidiruv
+  // provayderidan kelishi kerak (kalit kutilmoqda), stavkalar esa
+  // huquqiy hujjatdan. Ikkalasi ham hali yoʻq, shuning uchun
+  // hozircha odam kiritadi — formula esa bir joyda va testlangan.
+  if (yol === '/tannarx' && req.method === 'POST') {
+    let tana: Partial<TannarxKirishi> = {};
+    try { tana = (await req.json()) as Partial<TannarxKirishi>; } catch { /* boʻsh */ }
+    const natija = tannarxHisobi({
+      sotuvNarxiSom: raqam(tana.sotuvNarxiSom),
+      xitoyNarxiYuan: raqam(tana.xitoyNarxiYuan),
+      kursSomPerYuan: raqam(tana.kursSomPerYuan),
+      weightG: raqam(tana.weightG),
+      volumeMl: raqam(tana.volumeMl),
+      kargo: {
+        somPerKg: raqam(tana.kargo?.somPerKg),
+        somPerM3: raqam(tana.kargo?.somPerM3),
+      },
+      boj: {
+        bojFoizi: raqam(tana.boj?.bojFoizi),
+        qqsFoizi: raqam(tana.boj?.qqsFoizi),
+      },
+      komissiyaFoizi: raqam(tana.komissiyaFoizi),
+    });
+    return javob({ olchov_yoq: natija.sofFoydaSom === null, ...natija });
+  }
+
   return javob({ xato: 'topilmadi', yol }, 404);
 });
+
+/**
+ * Soʻrov tanasidan son. Boʻsh, matn yoki `NaN` — `null`.
+ *
+ * `Number("")` NOLGA teng, shuning uchun boʻshliqni oddiy
+ * `Number()` bilan oʻgirish taqiqlanadi: nol "tekin" degan javob
+ * boʻlardi va u foydani oshirib koʻrsatardi.
+ */
+function raqam(q: unknown): number | null {
+  if (typeof q === 'number') return Number.isFinite(q) ? q : null;
+  if (typeof q !== 'string' || q.trim() === '') return null;
+  const n = Number(q);
+  return Number.isFinite(n) ? n : null;
+}
 
 /**
  * Tarif cheklovi yoqilganmi. Standart holat — OʻCHIQ.
