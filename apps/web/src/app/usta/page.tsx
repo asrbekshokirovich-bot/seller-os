@@ -14,7 +14,7 @@
  * "hali hisoblanmadi" yoki "baza javob bermadi".
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { SAVOLLAR, type Savol } from '@selleros/shared';
 
 type Javoblar = Record<string, unknown>;
@@ -46,6 +46,7 @@ interface Tovar {
   };
   miqdor: { dona: number; hisob: string } | null;
   miqdorSababi: string | null;
+  miqdorSababKodi: 'olchanmagan' | 'kun-yetmadi' | null;
   bayroqlar: Array<{ kind: string; severity: string; reason: string }>;
   baholanmadi: Array<{ filtr: string; missing: string[] }>;
 }
@@ -86,6 +87,7 @@ export default function Usta() {
   const [tanlangan, setTanlangan] = useState<Yonalish | null>(null);
   const [tovarlar, setTovarlar] = useState<TovarNatija | null>(null);
   const [tovarYuklanmoqda, setTovarYuklanmoqda] = useState(false);
+  const tovarBolimi = useRef<HTMLDivElement>(null);
 
   async function tovarlarniOl(y: Yonalish) {
     setTanlangan(y);
@@ -98,6 +100,11 @@ export default function Usta() {
       setTovarlar({ olchov_yoq: true, sabab: `Soʻrov yuborilmadi: ${String(q)}` });
     } finally {
       setTovarYuklanmoqda(false);
+      // Boʻlim sahifaning eng pastida ochiladi (2-qadam roʻyxati
+      // uzun). Surmasak, foydalanuvchi tugmani bosadi va ekranda
+      // hech nima oʻzgarmagandek koʻrinadi.
+      requestAnimationFrame(() =>
+        tovarBolimi.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
   }
 
@@ -152,11 +159,13 @@ export default function Usta() {
       {xato && <p className="xato">{xato}</p>}
       {natija && <Natijalar natija={natija} tanla={tovarlarniOl} tanlangan={tanlangan} />}
       {tanlangan && (
-        <Tovarlar
-          yonalish={tanlangan}
-          natija={tovarlar}
-          yuklanmoqda={tovarYuklanmoqda}
-        />
+        <div ref={tovarBolimi}>
+          <Tovarlar
+            yonalish={tanlangan}
+            natija={tovarlar}
+            yuklanmoqda={tovarYuklanmoqda}
+          />
+        </div>
       )}
     </main>
   );
@@ -425,7 +434,15 @@ function Tovarlar({
             .
           </p>
 
-          {natija.royxat?.map((t) => <TovarKartasi key={t.nomzod.productId} t={t} />)}
+          <UmumiySabab royxat={natija.royxat ?? []} />
+
+          {natija.royxat?.map((t) => (
+            <TovarKartasi
+              key={t.nomzod.productId}
+              t={t}
+              sababniKorsat={xilmaXilSabab(natija.royxat ?? [])}
+            />
+          ))}
 
           {natija.chiqarildi?.length ? (
             <details className="izohli" style={{ marginTop: '1rem' }}>
@@ -449,7 +466,35 @@ function Tovarlar({
   );
 }
 
-function TovarKartasi({ t }: { t: Tovar }) {
+/**
+ * Bir xil sabab har kartada takrorlanmasin.
+ *
+ * Ilgari "sotuv hali oʻlchanmagan" yozuvi yigirma marta koʻchirilardi
+ * va roʻyxatni oʻqib boʻlmasdi. Sabab bitta boʻlsa — bir marta, tepada.
+ * Turlicha boʻlsa — har kartada, chunki unda u haqiqatan boshqacha.
+ */
+function UmumiySabab({ royxat }: { royxat: Tovar[] }) {
+  const kodlar = new Set(
+    royxat.map((t) => t.miqdorSababKodi).filter((k): k is NonNullable<typeof k> => k !== null),
+  );
+  if (kodlar.size !== 1) return null;
+
+  // Kod bitta boʻlsa, matnni birinchi tovardan olamiz. Tafsilot
+  // (necha kun) tovardan tovarga farq qiladi, lekin SABAB bitta —
+  // va foydalanuvchiga kerak boʻlgani shu.
+  const namuna = royxat.find((t) => t.miqdorSababKodi !== null);
+  const nechta = royxat.filter((t) => t.miqdorSababKodi !== null).length;
+  if (!namuna) return null;
+
+  return (
+    <p className="ogoh">
+      <strong>{nechta} ta tovarda miqdor hisoblanmadi.</strong>{' '}
+      {namuna.miqdorSababi}
+    </p>
+  );
+}
+
+function TovarKartasi({ t, sababniKorsat }: { t: Tovar; sababniKorsat: boolean }) {
   const n = t.nomzod;
   return (
     <article className="karta">
@@ -467,9 +512,9 @@ function TovarKartasi({ t }: { t: Tovar }) {
 
       {t.miqdor ? (
         <p className="nega">{t.miqdor.hisob}</p>
-      ) : (
+      ) : sababniKorsat ? (
         <p className="ogoh">{t.miqdorSababi}</p>
-      )}
+      ) : null}
 
       <p className="nega">
         30 kunlik sotuv: {son(n.soldUnits30d)}
@@ -497,4 +542,17 @@ function TovarKartasi({ t }: { t: Tovar }) {
 /** Soʻm summasi. Oʻlchanmagan bo'lsa chiziqcha. */
 function pul(n: number | null): string {
   return n === null ? '—' : `${n.toLocaleString('uz-UZ')} soʻm`;
+}
+
+/**
+ * Sabab TURLARI xilma-xilmi — unda har kartada koʻrsatiladi.
+ *
+ * Guruhlash KOD boʻyicha, matn boʻyicha emas: "1 kun bor" va
+ * "2 kun bor" — bir xil sabab, boshqa satr. Matn boʻyicha
+ * guruhlaganda roʻyxatda yigirmata deyarli bir xil ogohlantirish
+ * chiqib, uni oʻqib boʻlmasdi.
+ */
+function xilmaXilSabab(royxat: Tovar[]): boolean {
+  const s = new Set(royxat.map((t) => t.miqdorSababKodi).filter(Boolean));
+  return s.size > 1;
 }

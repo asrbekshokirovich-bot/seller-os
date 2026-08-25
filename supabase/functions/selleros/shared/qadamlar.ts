@@ -268,12 +268,27 @@ export interface TovarNomzodi extends TovarHolati {
   sharhSoni: number | null;
 }
 
+/**
+ * Miqdor nega hisoblanmagani — KOD.
+ *
+ * Matnning oʻzi ham qaytariladi, lekin guruhlash uchun matn yaramaydi:
+ * "1 kun bor" va "2 kun bor" — bir xil sabab, boshqa satr. Ular matn
+ * boʻyicha guruhlansa, roʻyxatda yigirmata deyarli bir xil
+ * ogohlantirish chiqadi va uni oʻqib boʻlmaydi.
+ *
+ * Kod barqaror, matn esa tafsilotli. Bot va kengaytma ham shu kodga
+ * qarab oʻz matnini yozishi mumkin.
+ */
+export type MiqdorSababKodi = 'olchanmagan' | 'kun-yetmadi';
+
 export interface TovarTavsiyasi {
   nomzod: TovarNomzodi;
   /** Nechta olish. `null` — hisoblab boʻlmadi. */
   miqdor: { dona: number; hisob: string } | null;
-  /** Miqdor hisoblanmagan boʻlsa — nega. */
+  /** Miqdor hisoblanmagan boʻlsa — nega (odam oʻqiydigan matn). */
   miqdorSababi: string | null;
+  /** Oʻsha sabab, guruhlash uchun. */
+  miqdorSababKodi: MiqdorSababKodi | null;
   /** Tuzoq bayroqlari. Boʻsh boʻlishi mumkin. */
   bayroqlar: Flag[];
   /** Baholab boʻlmagan filtrlar va yetishmagan maydonlar. */
@@ -336,11 +351,12 @@ export function tovarlar(
       continue;
     }
 
-    const { son, sabab } = sotuvOlchovi(n);
+    const { son, sabab, kod } = sotuvOlchovi(n);
     royxat.push({
       nomzod: n,
       miqdor: son === null ? null : miqdor(son),
       miqdorSababi: sabab,
+      miqdorSababKodi: kod,
       bayroqlar,
       baholanmadi,
     });
@@ -350,20 +366,25 @@ export function tovarlar(
 }
 
 /** Miqdor uchun ishlatiladigan sotuv soni va — boʻlmasa — sababi. */
-function sotuvOlchovi(n: TovarNomzodi): { son: number | null; sabab: string | null } {
+function sotuvOlchovi(n: TovarNomzodi): {
+  son: number | null;
+  sabab: string | null;
+  kod: MiqdorSababKodi | null;
+} {
   if (n.soldUnits30d === null) {
-    return { son: null, sabab: 'Sotuv hali oʻlchanmagan.' };
+    return { son: null, sabab: 'Sotuv hali oʻlchanmagan.', kod: 'olchanmagan' };
   }
   if (n.sotuvManbasi !== MIQDOR_UCHUN_MANBA) {
     const kun = n.olchanganKun ?? 0;
     const kerak = THRESHOLDS.data.minDaysForDemand;
     return {
       son: null,
+      kod: 'kun-yetmadi',
       sabab:
         `Sotuv qoldiq farqidan hali oʻlchanmagan — ${kun} kun bor, ` +
         `${kerak} kun kerak. Koʻrsatilgan raqam Uzumning oʻz koʻrsatkichidan ` +
         'olingan taxmin: tartiblash uchun yetadi, miqdor hisoblash uchun emas.',
     };
   }
-  return { son: n.soldUnits30d, sabab: null };
+  return { son: n.soldUnits30d, sabab: null, kod: null };
 }

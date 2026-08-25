@@ -60,6 +60,7 @@ describe('3-qadam — tovarlar', () => {
       expect(r.royxat[0]!.miqdor).toBeNull();
       expect(r.royxat[0]!.miqdorSababi).toMatch(/1 kun bor/);
       expect(r.royxat[0]!.miqdorSababi).toMatch(/taxmin/);
+      expect(r.royxat[0]!.miqdorSababKodi).toBe('kun-yetmadi');
       // Raqamning oʻzi yoʻqolmaydi.
       expect(r.royxat[0]!.nomzod.soldUnits30d).toBe(17_286);
     });
@@ -68,6 +69,7 @@ describe('3-qadam — tovarlar', () => {
       const r = tovarlar([tovar({ soldUnits30d: null, sotuvManbasi: null })], toza);
       expect(r.royxat[0]!.miqdor).toBeNull();
       expect(r.royxat[0]!.miqdorSababi).toBe('Sotuv hali oʻlchanmagan.');
+      expect(r.royxat[0]!.miqdorSababKodi).toBe('olchanmagan');
     });
 
     it('NOL sotuv — javob, miqdor 1 dona', () => {
@@ -111,6 +113,23 @@ describe('3-qadam — tovarlar', () => {
         { filtr: 'closed_brand', missing: ['brand'] },
       ]);
     });
+  });
+
+  it('SABAB KODI matndan mustaqil — guruhlash uchun', () => {
+    // "1 kun bor" va "2 kun bor" — bir xil sabab, boshqa satr.
+    // Matn boʻyicha guruhlansa interfeysda yigirmata deyarli bir xil
+    // ogohlantirish chiqib ketardi.
+    const r = tovarlar(
+      [
+        tovar({ productId: 1, sotuvManbasi: 'taxmin', olchanganKun: 1 }),
+        tovar({ productId: 2, sotuvManbasi: 'taxmin', olchanganKun: 2 }),
+      ],
+      toza,
+    );
+    const kodlar = new Set(r.royxat.map((t) => t.miqdorSababKodi));
+    const matnlar = new Set(r.royxat.map((t) => t.miqdorSababi));
+    expect(kodlar.size).toBe(1);
+    expect(matnlar.size).toBe(2);
   });
 
   it('boʻsh kirish — boʻsh natija, xato emas', () => {
