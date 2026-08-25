@@ -167,6 +167,17 @@ Javobgarlik uchun ham, o'rganish uchun ham. `score_breakdown` (jsonb) —
 `ai_usage` — har LLM javobining narxi (maqsad: tarif narxining <8% i).
 `events` — mahsulot ichidagi harakatlar (KPI uchun).
 
+`subscriptions` qatori **YOʻQ boʻlishi odatiy hol**: hamma bepuldan
+boshlanadi va bu xato emas. `public.so_obuna(token)` shunchaki
+qatorni beradi; uni qaysi rejaga oʻgirishni baza HAL QILMAYDI —
+buni `packages/shared/src/tarif.ts` qiladi, chunki bir xil qoida
+web, bot va kengaytmaga bitta joydan xizmat qilishi kerak.
+
+`public.so_kpi_xom()` reja 8-boʻlimidagi KPI lar uchun XOM
+sanoqlarni beradi — foiz ham, "yaxshi/yomon" ham unda yoʻq.
+Sabab shu: bazada hisoblangan foizni testdan oʻtkazish uchun
+har safar baza kerak boʻlardi.
+
 ## 5. Yozish qoidasi
 
 - Yig'uvchi `service_role` bilan yozadi. Panel `anon` bilan **faqat

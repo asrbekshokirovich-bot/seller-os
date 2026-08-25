@@ -33,6 +33,8 @@ export const FAYLLAR = [
   ['packages/shared/src/qismlar.ts', 'shared/qismlar.ts'],
   ['packages/shared/src/qadamlar.ts', 'shared/qadamlar.ts'],
   ['packages/shared/src/savollar.ts', 'shared/savollar.ts'],
+  ['packages/shared/src/tarif.ts', 'shared/tarif.ts'],
+  ['packages/shared/src/kpi.ts', 'shared/kpi.ts'],
   ['apps/backend/src/tahlil.ts', 'tahlil.ts'],
 ];
 

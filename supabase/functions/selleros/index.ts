@@ -18,11 +18,20 @@ import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.ts';
 import {
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
+  REJA_QADAMI,
+  kerakliRejalar,
+  kpiXulosa,
+  kpilar,
   profilOqi,
+  qadamOchiq,
+  reja,
   sohalar,
   tovarlar,
   yonalishlar,
+  type KpiXom,
   type NomzodJavobi,
+  type ObunaXom,
+  type RejaNatijasi,
   type TovarHolati,
   type TovarNomzodi,
   type TovarToliq,
@@ -71,7 +80,12 @@ Deno.serve(async (req: Request) => {
       ok: true,
       service: 'selleros-api',
       // Jonli rejim flag bilan yoqiladi — reja, 5-boʻlim.
-      live: { payments: Deno.env.get('PAYMENTS_LIVE') === '1' },
+      live: {
+        payments: Deno.env.get('PAYMENTS_LIVE') === '1',
+        // Tarif cheklovi pilot davomida OʻCHIQ: toʻlov oqimi hali
+        // yoʻq, yoqilsa hech kim 3-qadamga oʻta olmasdi.
+        tarifCheklovi: tarifCheklovi(),
+      },
     });
   }
 
@@ -158,6 +172,11 @@ Deno.serve(async (req: Request) => {
   // Tuzoq filtrlari roʻyxatdan OLDIN ishlaydi: `block` bayrogʻli
   // tovar chiqmaydi, lekin `chiqarildi` da sababi bilan qaytadi.
   if (yol === '/tovarlar') {
+    // Tarif darvozasi roʻyxatdan OLDIN: qadam yopiq boʻlsa
+    // bazadan tovar tortishning maʼnosi yoʻq.
+    const ruxsat = await qadamRuxsati(req.headers.get('x-sessiya'), 3);
+    if (!ruxsat.ochiq) return javob(ruxsat.javob, 402);
+
     const turkumId = Number(new URL(req.url).searchParams.get('turkum'));
     if (!Number.isInteger(turkumId) || turkumId <= 0) {
       return javob({ xato: 'turkum — butun son boʻlishi kerak' }, 400);
@@ -266,8 +285,79 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // Amaldagi tarif — UI qulfni BOSISHDAN OLDIN koʻrsatishi uchun.
+  if (yol === '/tarif') {
+    const n = await rejaniOl(req.headers.get('x-sessiya'));
+    return javob({
+      ...n,
+      cheklov_yoqilgan: tarifCheklovi(),
+      qadamlar: [1, 2, 3, 4, 5, 6].map((qadam) => ({
+        qadam,
+        // Cheklov oʻchiq boʻlsa hamma qadam ochiq — panel
+        // haqiqatni koʻrsatsin, qoidani emas.
+        ochiq: !tarifCheklovi() || qadamOchiq(n.reja, qadam),
+        rejada_ochiq: qadamOchiq(n.reja, qadam),
+      })),
+    });
+  }
+
+  // KPI paneli — reja, 8-boʻlim. Oʻlchanmagan KPI NOL EMAS:
+  // har qatorda `qiymat: null` va sabab turadi.
+  if (yol === '/kpi') {
+    const xom = await rpc<KpiXom>('so_kpi_xom', {});
+    const sifat = await rpc<{
+      coverage_percent: number | null; error_percent: number | null; has_data: boolean;
+    }>('so_quality', { p_platform: 'uzum' });
+    const qatorlar = kpilar(xom, sifat && sifat.has_data ? sifat : null);
+    return javob({
+      olchandi: new Date().toISOString(),
+      xulosa: kpiXulosa(qatorlar),
+      kpi: qatorlar,
+    });
+  }
+
   return javob({ xato: 'topilmadi', yol }, 404);
 });
+
+/**
+ * Tarif cheklovi yoqilganmi. Standart holat — OʻCHIQ.
+ *
+ * Reja (B3) buni ataylab shunday qoʻygan: "pilot sinovi uchun flag
+ * bilan almashtiriladigan". Yoqilishi uchun aniq `TARIF_CHEKLOVI=1`
+ * kerak — tasodifan yoqilib qolmaydi.
+ */
+function tarifCheklovi(): boolean {
+  return Deno.env.get('TARIF_CHEKLOVI') === '1';
+}
+
+/** Sessiya tokenidan amaldagi rejani chiqaradi. */
+async function rejaniOl(token: string | null): Promise<RejaNatijasi> {
+  if (!token) return reja(null, new Date());
+  const j = await rpc<{ xato?: string; obuna: ObunaXom | null }>('so_obuna', { p_token: token });
+  if (j === null || j.xato) return reja(null, new Date());
+  return reja(j.obuna, new Date());
+}
+
+/** Qadam shu sessiyaga ochiqmi. Cheklov oʻchiq boʻlsa — doim ochiq. */
+async function qadamRuxsati(token: string | null, qadam: number): Promise<
+  { ochiq: true } | { ochiq: false; javob: Record<string, unknown> }
+> {
+  if (!tarifCheklovi()) return { ochiq: true };
+  const n = await rejaniOl(token);
+  if (qadamOchiq(n.reja, qadam)) return { ochiq: true };
+  return {
+    ochiq: false,
+    javob: {
+      cheklov: 'tarif',
+      qadam,
+      reja: n.reja,
+      reja_sababi: n.sabab,
+      ochadigan_rejalar: kerakliRejalar(qadam),
+      hozir_ochiq_qadam: REJA_QADAMI[n.reja],
+      izoh: 'Bu rejada bu qadam yopiq. Yoʻnalishlar (2-qadam) ochiq turadi.',
+    },
+  };
+}
 
 /**
  * Toshkent vaqti boʻyicha oy raqami (1–12).

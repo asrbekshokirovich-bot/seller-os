@@ -14,3 +14,5 @@ export * from './filtrlar/nakrutka.ts';
 export * from './filtrlar/ogir.ts';
 export * from './filtrlar/mavsum.ts';
 export * from './filtrlar/hype.ts';
+export * from './tarif.ts';
+export * from './kpi.ts';

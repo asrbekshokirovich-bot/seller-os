@@ -170,9 +170,10 @@ biri nimani kutmoqda:
 | `sales_estimates` | **6 186** | ✅ skreyper ishida hisoblanadi |
 | `category_requirements` | **34** | ⚠️ mavsum 31, markirovka 3, qolgani boʻsh |
 | `yonalish_nomzodi` | **300** | ✅ kesh |
-| `recommendations` | 0 | ❌ **auth kerak** — "kimga" maydonini toʻldirib boʻlmaydi |
-| `user_profiles` | 0 | ❌ **auth kerak** |
-| `users` / `subscriptions` / `payments` | 0 | ❌ B3 |
+| `recommendations` | **27** | ✅ anonim sessiya ulandi |
+| `user_profiles` | **3** | ✅ anonim sessiya ulandi |
+| `users` | **6** | ✅ birinchi tashrifda yaratiladi |
+| `subscriptions` / `payments` | 0 | ❌ **Payme/Click tasdigʻi kerak** |
 | `ai_usage` / `events` | 0 | ❌ `ANTHROPIC_API_KEY` kerak |
 
 `product_flags` yozilishi IDEMPOTENT: har hisobda oʻsha tovarlarning
@@ -188,3 +189,40 @@ Bugungi taqsimot:
 
 Qolgan olti filtr maʼlumot kutmoqda — nimani kutayotgani
 `/tuzoqlar` javobidagi `yetishmayotgan` da koʻrinadi.
+
+## KPI paneli — nimasi oʻlchanadi (2026-08-25)
+
+`GET /kpi` rejaning 8-boʻlimidagi oʻn bitta raqamni qaytaradi.
+Bugun ulardan **uchtasi** oʻlchanadi, sakkiztasi yoʻq — va
+har oʻlchanmagani `qiymat: null` va SABAB bilan qaytadi. Nol
+qoʻyilmaydi: "bepul → pullik 0%" mahsulot haqidagi daʼvo
+boʻlardi, holbuki bu kodning holati.
+
+| KPI | Bugun | Nega |
+|---|---|---|
+| Usta → 3-qadam | 3 tadan 0 | namuna kichik (<20), darvozaga hisoblanmaydi |
+| Skreyper qamrovi | oʻlchanadi | `so_quality` |
+| Skreyper xatosi | oʻlchanadi | `so_quality` |
+| Tavsiya qabuli | — | oqimda "tovar tanlandi" nuqtasi yoʻq (`events` boʻsh) |
+| Bepul → pullik | — | `payments` boʻsh — toʻlov oqimi ishlamagan |
+| Mijoz ketishi | — | toʻlov davri boshlanmagan |
+| AI xarajat | — | `ai_usage` boʻsh, tarif narxi ham belgilanmagan |
+| Tuzoq testi / Eval | — | CI da oʻlchanadi, ish vaqtida yozilmaydi |
+| Qadam tezligi | — | soʻrov vaqti hech qayerga yozilmaydi |
+| Avtoyechish | — | jonli rejim yoqilmagan |
+
+Bitta anomaliya koʻrindi va yashirilmadi: **1 foydalanuvchi
+3-qadamga profilsiz yetgan**. Sabab — `/tovarlar` profil talab
+qilmaydi. U nisbat maxrajiga kirmaydi, lekin javobda `ogoh`
+maydonida turadi.
+
+## Tarif limiti — qoida bor, yoqilmagan
+
+Reja (B3): "Bepulda Usta 2-qadamgacha, pullikda toʻliq — pilot
+sinovi uchun flag bilan almashtiriladigan".
+
+Qoida `packages/shared/src/tarif.ts` da va testlari yashil.
+Yoqilishi uchun `TARIF_CHEKLOVI=1` kerak — **hozir oʻchiq va
+shunday qolishi kerak**: toʻlov oqimi yoʻq, yaʼni yoqilsa hech
+kim 3-qadamga oʻta olmasdi. Holati `/health` javobida
+`live.tarifCheklovi` da koʻrinadi.

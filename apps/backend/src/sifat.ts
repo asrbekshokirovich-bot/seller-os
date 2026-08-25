@@ -7,6 +7,8 @@
  * u xato kabi koʻrinmaydi.
  */
 
+import { QAMROV_ENG_KAM, XATO_ENG_KOP } from '@selleros/shared';
+
 export interface Sifat {
   platform: string;
   last_sweep_at: string | null;
@@ -23,12 +25,18 @@ export interface Sifat {
   has_data: boolean;
 }
 
-/** Chegaralar — reja 8-boʻlim, "Texnik KPI lar". */
+/**
+ * Chegaralar — reja 8-boʻlim, "Texnik KPI lar".
+ *
+ * Sonlar `@selleros/shared/kpi` dan olinadi, bu yerda takrorlanmaydi:
+ * KPI paneli ham, sifat paneli ham AYNI chegarani koʻrsatishi kerak.
+ * Ikkita nusxa boʻlsa biri oʻzgarib, ikkinchisi eskirib qolardi.
+ */
 export const KPI = {
   /** Kunlik yangilanish qamrovi shundan past boʻlmasin. */
-  minCoveragePercent: 95,
+  minCoveragePercent: QAMROV_ENG_KAM,
   /** Xato darajasi shundan yuqori boʻlmasin. */
-  maxErrorPercent: 2,
+  maxErrorPercent: XATO_ENG_KOP,
 } as const;
 
 export type Holat = 'yaxshi' | 'ogohlantirish' | 'yomon' | 'olchov_yoq';

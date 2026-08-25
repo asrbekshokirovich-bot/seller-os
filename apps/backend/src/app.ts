@@ -9,11 +9,20 @@ interface TovarJavobi {
 }
 import {
   KESH_ESKI_SOAT,
+  REJA_QADAMI,
+  kerakliRejalar,
+  kpiXulosa,
+  kpilar,
   profilOqi,
+  qadamOchiq,
+  reja,
   sohalar,
   tovarlar,
   yonalishlar,
+  type KpiXom,
   type NomzodJavobi,
+  type ObunaXom,
+  type RejaNatijasi,
   type TovarHolati,
   type TovarNomzodi,
   type TovarToliq,
@@ -42,6 +51,13 @@ export function build(): FastifyInstance {
      */
     live: {
       payments: process.env.PAYMENTS_LIVE === '1',
+      /**
+       * Tarif cheklovi. Pilot davomida OʻCHIQ: toʻlov oqimi hali
+       * yoʻq, yaʼni yoqilsa hech kim 3-qadamga oʻta olmasdi.
+       * Qoida kodda tayyor turadi va toʻlov kelganda shu flag
+       * bilan yoqiladi (reja, B3).
+       */
+      tarifCheklovi: tarifCheklovi(),
     },
   }));
 
@@ -137,35 +153,40 @@ export function build(): FastifyInstance {
    * bayroqli tovar roʻyxatga umuman chiqmaydi, lekin `chiqarildi`
    * da sababi bilan qaytariladi — jimgina yoʻqolmaydi.
    */
-  app.get('/tovarlar', async (request) => {
+  app.get('/tovarlar', async (request, javob) => {
+    // Tarif darvozasi roʻyxatdan OLDIN: bepul rejada 3-qadam
+    // yopiq boʻlsa, bazadan tovar tortishning maʼnosi yoʻq.
+    const ruxsat = await qadamRuxsati(request.headers['x-sessiya'], 3);
+    if (!ruxsat.ochiq) return javob.code(402).send(ruxsat.javob);
+
     const q = request.query as Record<string, string | undefined>;
     const turkumId = Number(q.turkum);
     if (!Number.isInteger(turkumId) || turkumId <= 0) {
       return { xato: 'turkum — butun son boʻlishi kerak', berilgan: q.turkum ?? null };
     }
 
-    const javob = await rpc<TovarJavobi>('so_tovar_royxati', {
+    const xom = await rpc<TovarJavobi>('so_tovar_royxati', {
       p_category_external_id: turkumId,
       p_limit: 50,
     });
-    if (javob === null) {
+    if (xom === null) {
       return { olchov_yoq: true, sabab: 'baza javob bermadi' };
     }
-    if (!javob.royxat.length) {
+    if (!xom.royxat.length) {
       // Boʻsh roʻyxat "tovar yoʻq" degan daʼvo boʻlardi. Turkum
       // topilmagani boshqa narsa.
       return {
         olchov_yoq: true,
-        sabab: javob.turkum === null ? 'bunday turkum yoʻq' : 'turkumda oʻlchangan tovar yoʻq',
+        sabab: xom.turkum === null ? 'bunday turkum yoʻq' : 'turkumda oʻlchangan tovar yoʻq',
       };
     }
 
-    const natija = tovarlar(javob.royxat, (t) => {
+    const natija = tovarlar(xom.royxat, (t) => {
       const n = tovarniTekshir(t, hozirgiOy());
       return { bayroqlar: n.bayroqlar, baholanmadi: n.baholanmadi };
     });
 
-    return { olchov_yoq: false, turkum: javob.turkum, ...natija };
+    return { olchov_yoq: false, turkum: xom.turkum, ...natija };
   });
 
   /**
@@ -242,7 +263,97 @@ export function build(): FastifyInstance {
     return n;
   });
 
+  /**
+   * Amaldagi tarif — UI qulfni bosishdan OLDIN koʻrsatishi uchun.
+   *
+   * "Bosdim — 402 keldi" yomon oqim: odam nima yopiqligini
+   * urinib koʻrgandan keyin biladi. Shu uchi har qadam ochiqmi
+   * degan savolga oldindan javob beradi.
+   */
+  app.get('/tarif', async (request) => {
+    const n = await rejaniOl(request.headers['x-sessiya']);
+    return {
+      ...n,
+      cheklov_yoqilgan: tarifCheklovi(),
+      qadamlar: [1, 2, 3, 4, 5, 6].map((qadam) => ({
+        qadam,
+        // Cheklov oʻchiq boʻlsa hamma qadam ochiq — panel
+        // haqiqatni koʻrsatsin, qoidani emas.
+        ochiq: !tarifCheklovi() || qadamOchiq(n.reja, qadam),
+        rejada_ochiq: qadamOchiq(n.reja, qadam),
+      })),
+    };
+  });
+
+  /**
+   * KPI paneli — reja, 8-boʻlim.
+   *
+   * Oʻlchanmagan KPI **nol emas**: har qatorda `qiymat: null` va
+   * SABAB turadi. Nol bilan boʻshni aralashtirish shu panelda eng
+   * qimmat xato boʻlardi — darvozalar aynan shu raqamlarga
+   * bogʻlangan (QOIDALAR.md, 4-qoida).
+   */
+  app.get('/kpi', async () => {
+    const xom = await rpc<KpiXom>('so_kpi_xom', {});
+    const sifat = await sifatniOl();
+    const qatorlar = kpilar(xom, sifat.has_data ? sifat : null);
+    return {
+      olchandi: new Date().toISOString(),
+      xulosa: kpiXulosa(qatorlar),
+      kpi: qatorlar,
+    };
+  });
+
   return app;
+}
+
+/**
+ * Tarif cheklovi yoqilganmi.
+ *
+ * Standart holat — OʻCHIQ. Reja (B3) buni ataylab shunday qoʻygan:
+ * "pilot sinovi uchun flag bilan almashtiriladigan". Yoqilishi
+ * uchun aniq `TARIF_CHEKLOVI=1` kerak — yaʼni tasodifan yoqilib
+ * qolmaydi.
+ */
+function tarifCheklovi(): boolean {
+  return process.env.TARIF_CHEKLOVI === '1';
+}
+
+/** Sessiya tokenidan amaldagi rejani chiqaradi. */
+async function rejaniOl(token: unknown): Promise<RejaNatijasi> {
+  if (typeof token !== 'string' || !token) {
+    return reja(null, new Date());
+  }
+  const j = await rpc<{ xato?: string; obuna: ObunaXom | null }>('so_obuna', { p_token: token });
+  // Baza javob bermasa yoki sessiya topilmasa — `bepul`. Bu
+  // "ochiq qoldirish" dan xavfsizroq emas, ODILROQ: hech kim
+  // toʻlamagan holatda ham 3-qadam pilotda ochiq turadi, chunki
+  // cheklov flagi oʻchiq.
+  if (j === null || j.xato) return reja(null, new Date());
+  return reja(j.obuna, new Date());
+}
+
+/** Qadam shu sessiyaga ochiqmi. Cheklov oʻchiq boʻlsa — doim ochiq. */
+async function qadamRuxsati(token: unknown, qadam: number): Promise<
+  { ochiq: true } | { ochiq: false; javob: Record<string, unknown> }
+> {
+  if (!tarifCheklovi()) return { ochiq: true };
+  const n = await rejaniOl(token);
+  if (qadamOchiq(n.reja, qadam)) return { ochiq: true };
+  return {
+    ochiq: false,
+    javob: {
+      cheklov: 'tarif',
+      qadam,
+      reja: n.reja,
+      reja_sababi: n.sabab,
+      ochadigan_rejalar: kerakliRejalar(qadam),
+      // Nimagacha ochiqligini AYTIB qoʻyish kerak: odam nimani
+      // yoʻqotayotganini bilsin.
+      hozir_ochiq_qadam: REJA_QADAMI[n.reja],
+      izoh: 'Bu rejada bu qadam yopiq. Yoʻnalishlar (2-qadam) ochiq turadi.',
+    },
+  };
 }
 
 /**
