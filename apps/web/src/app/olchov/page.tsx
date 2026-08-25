@@ -80,6 +80,23 @@ interface TarifJavobi {
   qadamlar: { qadam: number; ochiq: boolean; rejada_ochiq: boolean }[];
 }
 
+/** `GET /tuzoqlar` javobi — faqat kerakli qismi. */
+interface TuzoqJavobi {
+  olchov_yoq?: boolean;
+  sabab?: string;
+  tovar?: TuzoqXulosa;
+  turkum?: TuzoqXulosa;
+}
+
+interface TuzoqXulosa {
+  tekshirildi: number;
+  bayroqli: number;
+  baholanmadi: number;
+  filtrlar: Record<string, number>;
+  yetishmayotgan: Record<string, number>;
+  turlar: Array<{ kind: string; nom: string; soni: number }>;
+}
+
 /** `GET /darvoza` javobi. */
 interface DarvozaJavobi {
   b2?: {
@@ -113,10 +130,11 @@ export default async function OlchovSahifasi(
     return <Kirish xato={q.xato === '1'} />;
   }
 
-  const [kpi, tarif, darvoza] = await Promise.all([
+  const [kpi, tarif, darvoza, tuzoqlar] = await Promise.all([
     olib<KpiJavobi>('/kpi'),
     olib<TarifJavobi>('/tarif'),
     olib<DarvozaJavobi>('/darvoza'),
+    olib<TuzoqJavobi>('/tuzoqlar'),
   ]);
 
   return (
@@ -160,6 +178,8 @@ export default async function OlchovSahifasi(
             />
           </>
         )}
+
+        <Tuzoqlar t={tuzoqlar} />
 
         <Darvoza d={darvoza} />
 
@@ -289,6 +309,200 @@ function kerak(nom: string): string {
 function maqsadMatni(k: Kpi): string {
   const asos = k.maqsad.yonalish === 'yoq' ? k.maqsad.matn : `maqsad ${k.maqsad.matn}`;
   return k.namuna === null ? asos : `${asos} · n=${k.namuna}`;
+}
+
+/**
+ * Tuzoq sogʻligi — qaysi filtr HAQIQATAN ishlayapti.
+ *
+ * NEGA BU BOR. Bu loyihada "yozilgan, sinalgan, lekin hech qachon
+ * chaqirilmagan filtr" naqshi UCH marta uchradi. Har safar u faqat
+ * qoʻlda tekshirganda topildi, chunki oʻlik filtr hech qanday xato
+ * bermaydi — u shunchaki "tuzoq topilmadi" deydi va bu toʻgʻri
+ * javobga oʻxshaydi.
+ *
+ * Shu blok aynan shuni koʻrsatadi: filtr nechta tovarda baholandi,
+ * nechtasida yoʻq va NEGA. Baholanmagani tekshirilganga TENG
+ * boʻlsa — tuzoq oʻlik, va bu qizil boʻlib turadi.
+ *
+ * Toʻrtinchi safar qoʻlda topishga urinmaymiz.
+ */
+function Tuzoqlar({ t }: { t: TuzoqJavobi | null }) {
+  if (t === null || t.olchov_yoq || !t.tovar) {
+    return (
+      <section className={u.blok}>
+        <header className={u.blokHead}><h2>Tuzoq sogʻligi</h2></header>
+        <div className={u.xato}>
+          <b>Tuzoq hisoboti olinmadi.</b>
+          <p>
+            {t?.sabab ?? 'Panel API ga ulanolmadi.'} Boʻsh jadval
+            koʻrsatilmaydi: u &laquo;hamma tuzoq ishlayapti&raquo; degan
+            daʼvo boʻlardi.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  const tovar = t.tovar;
+  const turkum = t.turkum;
+
+  /* Filtr → nechta tovarda BAHOLANDI. */
+  const qatorlar = TUZOQ_QATORI.map((q) => {
+    const jami = q.qamrov === 'turkum' ? (turkum?.tekshirildi ?? 0) : tovar.tekshirildi;
+    const manba = q.qamrov === 'turkum' ? turkum : tovar;
+    const baholanmadi = manba?.filtrlar[q.filtr] ?? 0;
+    const bayroq = manba?.turlar.find((x) => x.kind === q.filtr)?.soni ?? 0;
+    return { ...q, jami, baholanmadi, baholandi: jami - baholanmadi, bayroq };
+  });
+
+  return (
+    <section className={u.blok}>
+      <header className={u.blokHead}>
+        <h2>Tuzoq sogʻligi</h2>
+        <span>GET /tuzoqlar</span>
+      </header>
+
+      <p className={u.tarifHolati}>
+        <span>
+          namuna: <b>{tovar.tekshirildi}</b> tovar
+          {turkum ? <> · <b>{turkum.tekshirildi}</b> turkum</> : null}
+        </span>
+      </p>
+
+      <div className={u.qatorlar}>
+        {qatorlar.map((q) => (
+          <TuzoqQatori key={q.filtr} q={q} />
+        ))}
+      </div>
+
+      <div className={u.qatorlar}>
+        {BOSHQA_QADAM.map((b) => (
+          <div key={b.nom} className={`${u.qator} ${kerak('sYoq')}`}>
+            <div className={u.stripe} />
+            <div className={u.nom}>
+              <b>{b.nom}</b>
+              <span className={u.sabab}>{b.qadam} · {b.izoh}</span>
+            </div>
+            <div className={`${u.qiymat} ${u.bosh}`}>&mdash;</div>
+            <div className={u.oxirgi}>
+              <span className={u.chip}>Bu namunada emas</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <YetishmaganMaydonlar x={tovar} />
+    </section>
+  );
+}
+
+/**
+ * Sakkiz tuzoqning hammasi koʻrsatiladi — ishlamayotgani ham.
+ *
+ * Roʻyxatdan tushib qolgan tuzoq "muammosiz" boʻlib koʻrinardi.
+ * `qamrov` — filtr tovar boʻyichami yoki turkum boʻyicha ishlashini
+ * aytadi; `qadam` esa qaysi qadamda chaqirilishini.
+ */
+const TUZOQ_QATORI: Array<{
+  filtr: string; nom: string; qamrov: 'tovar' | 'turkum'; qadam: string;
+}> = [
+  { filtr: 'closed_brand', nom: 'Yopiq brend', qamrov: 'tovar', qadam: '3-qadam' },
+  { filtr: 'seasonal', nom: 'Mavsumiy tovar', qamrov: 'tovar', qadam: '3-qadam' },
+  { filtr: 'fake_sales', nom: "Sunʼiy sotuv", qamrov: 'tovar', qadam: '3-qadam' },
+  { filtr: 'heavy', nom: "Ogʻir tovar", qamrov: 'tovar', qadam: '3-qadam' },
+  { filtr: 'hype', nom: 'Qisqa trend', qamrov: 'tovar', qadam: '3-qadam' },
+  { filtr: 'monopoly', nom: 'Monopol turkum', qamrov: 'turkum', qadam: '2-qadam' },
+];
+
+/**
+ * Bu namunada baholanmaydigan tuzoqlar — lekin ROʻYXATDAN
+ * tushirilmaydi.
+ *
+ * Sakkiztadan oltitasi yuqorida. Qolgan ikkitasi shu yerda,
+ * chunki ular boshqa qadamda ishlaydi. Ularni koʻrsatmasak,
+ * panel &laquo;tizimda olti tuzoq bor&raquo; deb yolgʻon aytardi.
+ */
+const BOSHQA_QADAM: Array<{ nom: string; qadam: string; izoh: string }> = [
+  {
+    nom: 'Demping',
+    qadam: '4-qadam',
+    izoh: 'Toʻliq tannarx hisoblanganda baholanadi (POST /tannarx). '
+      + 'Bu namunada Xitoy narxi yoʻq, shuning uchun bu yerda chiqmaydi.',
+  },
+  {
+    nom: 'Sertifikat / markirovka',
+    qadam: '3-qadam',
+    izoh: 'Hali ulanmagan: `category_requirements.certification_required` '
+      + 'boʻsh. Bu maʼlumot huquqiy va uni taxmin qilib boʻlmaydi — '
+      + 'nazoratchi manba bilan toʻldirishi kerak.',
+  },
+];
+
+function TuzoqQatori({ q }: {
+  q: {
+    filtr: string; nom: string; qadam: string;
+    jami: number; baholandi: number; baholanmadi: number; bayroq: number;
+  };
+}) {
+  const olik = q.jami > 0 && q.baholandi === 0;
+  const foiz = q.jami > 0 ? Math.round((100 * q.baholandi) / q.jami) : 0;
+
+  return (
+    <div className={`${u.qator} ${olik ? kerak('sYomon') : q.baholandi < q.jami
+      ? kerak('sKichik') : kerak('sYaxshi')}`}
+    >
+      <div className={u.stripe} />
+      <div className={u.nom}>
+        <b>{q.nom}</b>
+        <span className={u.sabab}>
+          {q.qadam}
+          {olik
+            ? ' · hech bir tovarda baholanmadi'
+            : q.baholanmadi > 0
+              ? ` · ${q.baholanmadi} tasida maʼlumot yetmadi`
+              : ' · hammasi baholandi'}
+        </span>
+      </div>
+      <div className={`${u.qiymat} ${olik ? u.bosh : ''}`}>
+        {foiz}<u>%</u>
+      </div>
+      <div className={u.oxirgi}>
+        <span className={`${u.chip} ${olik ? kerak('cYomon')
+          : q.baholanmadi > 0 ? kerak('cKichik') : kerak('cYaxshi')}`}
+        >
+          {olik ? 'Oʻlik' : q.baholanmadi > 0 ? 'Qisman' : 'Ishlayapti'}
+        </span>
+        <span className={u.maqsad}>
+          {q.bayroq} bayroq · {q.baholandi}/{q.jami}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Qaysi maydon yetishmagani — sabab shu yerda.
+ *
+ * "Filtr qisman ishlayapti" degan xabar oʻzicha foydasiz: nima
+ * qilish kerakligini aytmaydi. Yetishmayotgan maydon nomi esa
+ * aynan keyingi ishni koʻrsatadi.
+ */
+function YetishmaganMaydonlar({ x }: { x: TuzoqXulosa }) {
+  const royxat = Object.entries(x.yetishmayotgan).sort((a, b) => b[1] - a[1]);
+  if (royxat.length === 0) return null;
+  return (
+    <details className={u.tafsilot}>
+      <summary>Yetishmayotgan maydonlar ({royxat.length} xil)</summary>
+      <ul className={u.maydonlar}>
+        {royxat.map(([nom, soni]) => (
+          <li key={nom}>
+            <code className={u.kod}>{nom}</code>
+            <span>{soni} tovarda</span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
 }
 
 /**

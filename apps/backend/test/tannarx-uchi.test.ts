@@ -93,3 +93,37 @@ describe('/tannarx', () => {
     expect(j.olchov_yoq).toBe(false);
   });
 });
+
+/**
+ * 3-tuzoq (demping) — uchga ulandi.
+ *
+ * Filtr yozilgan, sinalgan va hujjatlangan edi, lekin ishlab
+ * chiqarish kodi uni HECH QACHON chaqirmasdi. Bu B1 tekshiruvi
+ * ochgan naqshning uchinchi marta takrorlanishi: kutubxona
+ * toʻgʻri, mahsulot esa yoʻq.
+ */
+describe('/tannarx — demping filtri', () => {
+  it('marja yetarli boʻlsa bayroq yoʻq', async () => {
+    const j = (await soraw(TOLIQ)).json();
+    // TOʻLIQ da marja 23.4% — chegaradan yuqori.
+    expect(j.demping.bayroq).toBeNull();
+    expect(j.demping.baholanmadi).toBeNull();
+  });
+
+  it('zarariga sotilsa BLOCK qaytadi', async () => {
+    const j = (await soraw({ ...TOLIQ, sotuvNarxiSom: 40_000 })).json();
+    expect(j.demping.bayroq).toMatchObject({ kind: 'dumping', severity: 'block' });
+    expect(j.demping.bayroq.reason).toMatch(/zarar/i);
+  });
+
+  /*
+   * Maʼlumot yetmasa JIM QOLMAYDI. "Demping yoʻq" deb koʻrsatish
+   * tekshirilmagan daʼvo boʻlardi — va u aynan eng xavfli
+   * tovarlarda chiqardi.
+   */
+  it('kirish yetmasa nima yetishmagani aytiladi', async () => {
+    const j = (await soraw({})).json();
+    expect(j.demping.bayroq).toBeNull();
+    expect(j.demping.baholanmadi).toContain('sotuvNarxi');
+  });
+});

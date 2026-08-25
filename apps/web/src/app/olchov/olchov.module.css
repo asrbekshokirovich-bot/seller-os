@@ -518,3 +518,50 @@
   padding: 0.6rem 1rem;
   cursor: pointer;
 }
+
+/* --- Tuzoq sogʻligi --- */
+
+.tafsilot {
+  margin-top: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.tafsilot > summary {
+  cursor: pointer;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tafsilot > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.maydonlar {
+  margin: 0;
+  padding: 0 0.9rem 0.8rem;
+  list-style: none;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.maydonlar li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  border-bottom: 1px dotted var(--line);
+  padding-bottom: 0.28rem;
+}
+
+.maydonlar li > span {
+  color: var(--ink3);
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}

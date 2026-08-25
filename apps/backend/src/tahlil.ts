@@ -116,6 +116,19 @@ export interface Xulosa {
    */
   yetishmayotgan: Record<string, number>;
   /**
+   * Qaysi FILTR nechta tovarda baholanmadi.
+   *
+   * `yetishmayotgan` maydon nomlarini sanaydi, bu esa filtr
+   * nomlarini. Farqi muhim: maydon bir nechta filtrga tegishli
+   * boʻlishi mumkin, va "qaysi tuzoq oʻlik" degan savolga faqat
+   * shu jadval javob beradi.
+   *
+   * `tekshirildi` ga teng son — tuzoq UMUMAN ishlamayapti degani.
+   * Bu jimgina "tuzoq topilmadi" boʻlib koʻrinardi; bugun aynan
+   * shunday uchta filtr bor edi.
+   */
+  filtrlar: Record<string, number>;
+  /**
    * Tuzoq turlari boʻyicha yigʻindi — nomi oʻzbekcha bilan.
    *
    * Mijoz (web, bot, kengaytma) buni oʻzi yigʻa olardi, lekin
@@ -133,6 +146,7 @@ export interface Xulosa {
 /** Bir qancha natijadan hisobot yigʻadi. */
 export function xulosa<T>(natijalar: Bayroqli<T>[]): Xulosa {
   const yetishmayotgan: Record<string, number> = {};
+  const filtrlar: Record<string, number> = {};
   const bayroqlar: Flag[] = [];
   let bayroqli = 0;
   let baholanmadiSoni = 0;
@@ -144,6 +158,7 @@ export function xulosa<T>(natijalar: Bayroqli<T>[]): Xulosa {
     }
     if (n.baholanmadi.length) baholanmadiSoni += 1;
     for (const b of n.baholanmadi) {
+      filtrlar[b.filtr] = (filtrlar[b.filtr] ?? 0) + 1;
       for (const m of b.missing) {
         yetishmayotgan[m] = (yetishmayotgan[m] ?? 0) + 1;
       }
@@ -158,6 +173,7 @@ export function xulosa<T>(natijalar: Bayroqli<T>[]): Xulosa {
     bayroqli,
     baholanmadi: baholanmadiSoni,
     yetishmayotgan,
+    filtrlar,
     // Koʻpdan ozga — foydalanuvchi eng koʻp uchraganini birinchi
     // koʻrsin. Teng boʻlsa nom boʻyicha, natija barqaror boʻlishi uchun.
     turlar: [...sanoq.entries()]

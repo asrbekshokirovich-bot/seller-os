@@ -142,3 +142,51 @@ describe('xulosa — turlar boʻyicha', () => {
     expect(xulosa([natija()]).turlar).toEqual([]);
   });
 });
+
+/**
+ * Qaysi TUZOQ oʻlik — buni faqat filtr nomlari jadvali koʻrsatadi.
+ *
+ * `yetishmayotgan` maydon nomlarini sanaydi ("weightG", "oy"), lekin
+ * bir maydon bir nechta filtrga tegishli boʻlishi mumkin. "Qaysi
+ * tuzoq umuman ishlamayapti?" degan savolga faqat `filtrlar` javob
+ * beradi — va bugun bu savol uch marta kerak boʻldi:
+ *   `volumeMl` hech qachon toʻlmagan (Uzumda maydon yoʻq),
+ *   `weightG` bir oy boʻsh turgan,
+ *   `oy` roʻyxatdagi indeksdan olinardi.
+ */
+describe('filtr sogʻligi', () => {
+  it('baholanmagan filtrlar NOMI bilan sanaladi', () => {
+    const t = {
+      productId: 1, title: 'Sinov', brand: null,
+      soldUnits30d: null, sotuvManbasi: null,
+    } as unknown as Parameters<typeof tovarniTekshir>[0];
+
+    const x = xulosa([tovarniTekshir(t, { oy: 6 })]);
+    // Maʼlumot yoʻq — demak filtrlar baholay olmaydi va buni
+    // AYTISHI shart.
+    expect(Object.keys(x.filtrlar).length).toBeGreaterThan(0);
+    expect(x.filtrlar).toHaveProperty('heavy');
+  });
+
+  it('filtr soni tekshirilgan tovardan oshmaydi', () => {
+    const x = xulosa(f.tovar.map((tv) => tovarniTekshir(tv, { oy: 6 })));
+    for (const [nom, soni] of Object.entries(x.filtrlar)) {
+      expect(soni, `${nom} tekshirilgandan koʻp`).toBeLessThanOrEqual(x.tekshirildi);
+    }
+  });
+
+  /*
+   * OʻLIK TUZOQ KOʻRINIB TURSIN. Filtr HAMMA tovarda baholanmasa,
+   * u ishlamayapti. Bu test uni topmaydi — panel topadi; test esa
+   * hisobning shu savolga javob BERA OLISHINI qulflaydi.
+   */
+  it('hamma tovarda baholanmagan filtr aniqlanadi', () => {
+    const x = xulosa(f.tovar.map((tv) => tovarniTekshir(tv, { oy: 6 })));
+    const olik = Object.entries(x.filtrlar)
+      .filter(([, soni]) => soni === x.tekshirildi)
+      .map(([nom]) => nom);
+    // Fiksturada `yangiSotuvUlushi` yoʻq — `hype` hech qachon
+    // baholanmaydi va bu aynan koʻrinishi kerak.
+    expect(olik).toContain('hype');
+  });
+});

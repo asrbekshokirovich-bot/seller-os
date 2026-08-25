@@ -9,6 +9,7 @@ interface TovarJavobi {
 }
 import {
   KESH_ESKI_SOAT,
+  demping,
   REJA_QADAMI,
   kerakliRejalar,
   kpiXulosa,
@@ -403,9 +404,27 @@ export function build(): FastifyInstance {
       },
       komissiyaFoizi: raqam(tana.komissiyaFoizi),
     });
+    /*
+     * 3-tuzoq (demping) SHU YERDA baholanadi.
+     *
+     * Filtr yozilgan va sinalgan edi, lekin ishlab chiqarish kodi
+     * uni HECH QACHON chaqirmasdi — B1 tekshiruvi ochgan naqshning
+     * aynan oʻzi. Sababi tushunarli: dempingni bilish uchun toʻliq
+     * tannarx kerak, u esa faqat shu uchda hisoblanadi.
+     *
+     * `natija.tannarx` aynan filtr kutadigan shakl.
+     */
+    const dempingNatijasi = demping(natija.tannarx);
     return {
       olchov_yoq: natija.sofFoydaSom === null,
       ...natija,
+      // Baholanmagani ham koʻrsatiladi: jim qolish "demping yoʻq"
+      // degan daʼvo boʻlardi (QOIDALAR.md, 4-qoida).
+      demping: dempingNatijasi === null
+        ? { bayroq: null, baholanmadi: null }
+        : dempingNatijasi.kind === 'baholanmadi'
+          ? { bayroq: null, baholanmadi: dempingNatijasi.missing }
+          : { bayroq: dempingNatijasi, baholanmadi: null },
     };
   });
 

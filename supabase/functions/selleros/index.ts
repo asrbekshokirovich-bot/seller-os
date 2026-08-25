@@ -22,6 +22,7 @@ import {
   kerakliRejalar,
   kpiXulosa,
   kpilar,
+  demping,
   tannarxHisobi,
   xatoniYubor,
   profilOqi,
@@ -415,7 +416,26 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       },
       komissiyaFoizi: raqam(tana.komissiyaFoizi),
     });
-    return javob({ olchov_yoq: natija.sofFoydaSom === null, ...natija });
+    /*
+     * 3-tuzoq (demping) SHU YERDA baholanadi.
+     *
+     * Filtr yozilgan va sinalgan edi, lekin ishlab chiqarish kodi
+     * uni HECH QACHON chaqirmasdi — B1 tekshiruvi ochgan naqshning
+     * aynan oʻzi. Sababi tushunarli: dempingni bilish uchun toʻliq
+     * tannarx kerak, u esa faqat shu uchda hisoblanadi.
+     */
+    const d = demping(natija.tannarx);
+    return javob({
+      olchov_yoq: natija.sofFoydaSom === null,
+      ...natija,
+      // Baholanmagani ham koʻrsatiladi: jim qolish "demping yoʻq"
+      // degan daʼvo boʻlardi (QOIDALAR.md, 4-qoida).
+      demping: d === null
+        ? { bayroq: null, baholanmadi: null }
+        : d.kind === 'baholanmadi'
+          ? { bayroq: null, baholanmadi: d.missing }
+          : { bayroq: d, baholanmadi: null },
+    });
   }
 
   return javob({ xato: 'topilmadi', yol }, 404);
