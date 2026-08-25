@@ -4,7 +4,7 @@ Tarmoqqa chiqmaydi: javob shakli qotirilgan. Shakl o'zgarsa test
 yiqiladi va biz buni bilamiz — jimgina `None` qaytarib qolmaymiz.
 """
 
-from selleros_scraper.manbalar.uzum import PRODUCT_QUERY, buyers_per_week, parse
+from selleros_scraper.manbalar.uzum import PRODUCT_QUERY, buyers_per_week, parse, _ogirlik
 
 JAVOB = {
     "actions": [{"__typename": "MotivationAction", "text": "313 kishi shu hafta sotib oldi"}],
@@ -85,3 +85,47 @@ def test_product_ordersquantity_hech_qachon_soralmaydi():
 def test_skulist_soralmaydi():
     """16 barobar og'irroq javob. Variantlar 2-qatlamda olinadi."""
     assert "skuList" not in PRODUCT_QUERY
+
+
+# ------------------------------------------------- og'irlik: mediana
+
+
+def _sku(ogirliklar):
+    return [{"weight": w} for w in ogirliklar]
+
+
+def test_ogirlik_medianadan_olinadi():
+    """Eng kattasi bitta terish xatosidan buziladi.
+
+    O'lchandi 2026-08-25, "Campus krossovkalari" (63 variant):
+    571–820 g, ikkitasida 987455. Eng kattasi 987 kg krossovka
+    berardi; mediana 695 g va u to'g'ri.
+    """
+    krossovka = [655, 805, 720, 775, 655, 645, 750, 987455, 730, 660, 987445]
+    assert _ogirlik(_sku(krossovka)) < 1000
+
+
+def test_ogirlik_yarim_axlatgacha_chidaydi():
+    """Mediana variantlarning yarmi buzilmaguncha turadi."""
+    assert _ogirlik(_sku([300, 300, 300, 500000, 500000])) == 300
+
+
+def test_ogirlik_shiftdan_oshsa_olchanmagan():
+    """Bilmaslik va "juda og'ir" boshqa-boshqa javob.
+
+    Chegaradan oshgani `None` bo'ladi — filtr "baholanmadi" deydi,
+    tovarni ayblamaydi.
+    """
+    assert _ogirlik(_sku([987455])) is None
+
+
+def test_haqiqiy_ogir_tovar_otadi():
+    """Muzlatgich 64 kg — o'lchangan haqiqiy qiymat, u yo'qolmasin."""
+    assert _ogirlik(_sku([64000])) == 64000
+
+
+def test_ogirlik_yoq_bolsa_none():
+    assert _ogirlik(None) is None
+    assert _ogirlik([]) is None
+    # Nol og'irlik — "kiritilmagan" degani, nol emas.
+    assert _ogirlik(_sku([0, 0])) is None

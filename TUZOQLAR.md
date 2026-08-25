@@ -168,6 +168,42 @@ marja yo'qoladi.
 **Harakat:** real kargo tannarx hisobida **majburiy** qatnashadi. Marja
 chegaradan tushsa — `block`.
 
+### Og'irlik SOTUVCHI kiritadi va unga ishonib bo'lmaydi
+
+O'lchandi 2026-08-25, Uzumning 3 016 tovari bo'yicha. Taqsimot
+sog'lom ko'rinadi — mediana 226 g, p95 1 641 g — lekin uchi axlat:
+
+| Tovar | Yozilgan og'irlik |
+|---|---|
+| Campus krossovkalari | **987 kg** |
+| Mikrofiber sochiq | **500 kg** |
+| Aqlli soat, 45 mm | **20 kg** |
+| Muzlatgich Biryusa 139 | 64 kg — **to'g'ri** |
+
+Ya'ni raqamning o'zi haqiqiy og'irlikni ham, terish xatosini ham
+bildirishi mumkin, va ularni faqat qarab ajratib bo'lmaydi.
+
+**Nima qilindi.** Uzum har VARIANT uchun alohida og'irlik beradi.
+Krossovkada 63 ta variant bor: 571–820 g, va ikkitasida 987455.
+Skreyper ilgari eng kattasini olardi — bitta xato butun tovarni
+buzardi. Endi **mediana** olinadi: 695 g. Mikrofiber sochiqda ham
+xuddi shunday, 28 variantdan uchtasi buzuq, mediana 290 g.
+
+Mediana variantlarning yarmi buzilmaguncha turadi. Haqiqiy
+variantlar orasidagi farq kichik (krossovkada 44%), shuning uchun
+"eng og'irini olamiz, kargo shunga qarab" degan eski dalil xato
+xavfidan arzon turadi.
+
+Ustiga **150 kg shifti** qo'yildi: undan og'iri `null` bo'ladi —
+"juda og'ir" emas, **o'lchanmagan**. Filtr tovarni ayblamaydi,
+"baholanmadi" deydi.
+
+**Hal qilinmagan.** Bitta variantli tovarda mediana yordam
+bermaydi. "Aqlli soat 20 kg" hamon o'tadi, chunki 20 kg o'zi
+mumkin bo'lgan og'irlik — ofis kreslosi uchun u to'g'ri javob.
+Buni ajratish uchun TURKUM bo'yicha solishtirish kerak, u esa
+og'irlik qamrovi to'lgach mumkin bo'ladi.
+
 ## 8. Qisqa trend (hype) — `hype`
 
 **Nega jozibali:** hamma joyda ko'rinyapti (TikTok tovari).

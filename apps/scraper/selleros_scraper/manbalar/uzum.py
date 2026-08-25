@@ -183,12 +183,49 @@ def _qoldiq(sku_list: list[dict[str, Any]] | None) -> int | None:
     return jami if topildi else None
 
 
+#: Shundan og'ir tovar O'LCHANMAGAN deb hisoblanadi.
+#:
+#: Uzum posilka tashiydi. Eng og'ir haqiqiy tovarlar — muzlatgichlar,
+#: 40–64 kg (o'lchandi). 150 kg dan og'iri terish xatosi.
+#:
+#: Chegaradan oshgani `None` bo'ladi, "og'ir" emas: bilmaslik va
+#: "juda og'ir" boshqa-boshqa javob. Filtr "baholanmadi" deydi,
+#: tovarni ayblamaydi.
+OGIRLIK_SHIFTI_G = 150_000
+
+
 def _ogirlik(sku_list: list[dict[str, Any]] | None) -> int | None:
-    """Variantlarning eng katta og'irligi — kargo tannarxi shunga qarab."""
+    """Variantlarning MEDIANA og'irligi.
+
+    ENG KATTASI EMAS — o'lchov shuni ko'rsatdi (2026-08-25).
+
+    "Campus krossovkalari" da 63 ta variant bor: 571–820 g, va
+    ikkitasida 987455 g. Eng kattasini olsak — 987 kg krossovka.
+    Medianasi 695 g va u to'g'ri.
+
+    "Mikrofiber sochiq" da 28 variant: 200–748 g, uchtasida
+    500000. Mediana 290 g.
+
+    Ya'ni sotuvchi o'zi kiritadigan maydonda terish xatosi bo'ladi,
+    va u HAR DOIM yuqoriga qarab adashadi (nol qo'shib yuboradi).
+    Eng kattasi bitta xatodan buziladi, mediana esa variantlarning
+    yarmi buzilmaguncha turadi.
+
+    Haqiqiy variantlar orasidagi farq kichik (krossovkada 44%),
+    shuning uchun "eng og'irini olamiz, kargo shunga qarab" degan
+    eski dalil xato xavfidan ancha arzon turadi.
+    """
     if not sku_list:
         return None
-    ogirliklar = [w for w in (_int((s or {}).get("weight")) for s in sku_list) if w]
-    return max(ogirliklar) if ogirliklar else None
+    ogirliklar = sorted(
+        w for w in (_int((s or {}).get("weight")) for s in sku_list) if w
+    )
+    if not ogirliklar:
+        return None
+    mediana = ogirliklar[len(ogirliklar) // 2]
+    # Bitta variantli tovarda mediana yordam bermaydi — u yerda
+    # faqat shift qoladi.
+    return None if mediana > OGIRLIK_SHIFTI_G else mediana
 
 
 def _int(value: Any) -> int | None:
