@@ -115,7 +115,7 @@ export interface TovarToliq extends TovarHolati {
   reyting?: number | null;
   /** 7-tuzoq. Ogʻirlik, gramm. */
   weightG?: number | null;
-  /** 7-tuzoq. Hajm, ml. Uzum hozircha bermaydi. */
+  /** 7-tuzoq. Hajm, ml. Uzumda bunday maydon YOʻQ — boshqa bozor uchun. */
   volumeMl?: number | null;
   /** 7-tuzoq. Uzumning oʻz «katta hajmli» belgisi. */
   oversized?: boolean | null;

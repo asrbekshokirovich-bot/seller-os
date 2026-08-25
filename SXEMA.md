@@ -49,7 +49,15 @@ Sotuvchi. `(platform, external_id)`, `name`, `rating`, `official`.
 ### `product`
 Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,
 `category_id`, `brand` (**1-tuzoq uchun majburiy**), `weight_g`,
-`volume_ml`, `first_seen_at` (**8-tuzoq: tovar yoshi**).
+`volume_ml`, `oversized`, `first_seen_at` (**8-tuzoq: tovar yoshi**).
+
+> `volume_ml` Uzum manbasidan **hech qachon to'lmaydi**: `Product`
+> turida hajm maydoni umuman yo'q (introspeksiya bilan o'lchandi,
+> 2026-08-25). Ustun boshqa bozor uchun qoladi.
+>
+> `oversized` — Uzumning o'z "katta hajmli" belgisi, hajm o'rniga
+> ishlatiladigan yagona signal. `null` = o'lchanmagan; `false`
+> "og'ir emas" degani EMAS (TUZOQLAR.md, 7-tuzoq).
 
 ## 2. Kunlik tarix
 

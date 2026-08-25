@@ -183,6 +183,51 @@ sog'lom ko'rinadi — mediana 226 g, p95 1 641 g — lekin uchi axlat:
 Ya'ni raqamning o'zi haqiqiy og'irlikni ham, terish xatosini ham
 bildirishi mumkin, va ularni faqat qarab ajratib bo'lmaydi.
 
+**Qaror:** variantlar **medianasi** olinadi (eng kattasi emas) va
+**150 kg shifti** qo'yiladi. Bir sotuvchi 987455 deb yozsa, qolgan
+62 varianti 571–820 g bo'lsa — mediana 695 g beradi. Shift esa
+mediananing o'zi ham axlat bo'lgan holatni kesadi.
+
+Shift bazada ham turadi (trigger `ogirlik_shifti_trg`): tuzatish
+faqat kelajakni tuzatardi, chunki `so_ingest_batch` da
+`coalesce(excluded.weight_g, product.weight_g)` — yangi `null`
+eskisini o'chirmaydi va xato qiymat abadiy qolardi.
+
+### Hajm — Uzumda YO'Q, `oversized` esa BOR
+
+O'lchandi 2026-08-25, GraphQL sxemasi introspeksiyasi bilan.
+
+`Product` turida **hajm maydoni umuman yo'q**. Ya'ni `volume_ml`
+ustuni Uzum manbasidan hech qachon to'lmaydi va 7-tuzoqning "katta
+hajm" tarmog'i tug'ilganidan beri o'lik edi. Bu "hozircha yo'q"
+emas — qidirmang, yo'q.
+
+O'rniga `Product.oversized: Boolean` bor va u **haqiqatan
+o'zgaradi**:
+
+| Namuna | `oversized` |
+|---|---|
+| 7 ta muzlatgich / bolalar elektromobili | `true` |
+| 7 ta yengil tovar (sovun, qalamdon, linza) | `false` |
+
+Bu `shop.official` bilan ADASHTIRILMASIN: u ham xuddi shunday umid
+bergan, keyin 63 113 do'konda ham `false` chiqib yaroqsiz bo'lgan.
+
+**`false` hech nimani yopmaydi.** U "katta emas" degani, "og'ir
+emas" degani emas: 6 kg li ixcham tovar ham `false` bo'ladi.
+Filtr `false` da baribir "baholanmadi" qaytaradi.
+
+### Og'irlikning 19% i hech qachon to'lmaydi
+
+O'lchandi 2026-08-25: kuzatuvdagi 5 996 tovardan 4 874 tasida
+og'irlik bor (81.3%). Qolganini 40 ta namuna bilan tekshirdim —
+**hech birida** Uzum `skuList { weight }` ni to'ldirmagan. Og'irlikni
+sotuvchi kiritadi va ko'pchilik kiritmaydi.
+
+Ya'ni 81% — manbaning shifti, skreyperning kamchiligi emas.
+`oversized` aynan shu bo'shliqni qisman yopadi: u yengil so'rovda
+ham keladi, ya'ni og'irligi yo'q tovarda ham 7-tuzoq baholanadi.
+
 **Nima qilindi.** Uzum har VARIANT uchun alohida og'irlik beradi.
 Krossovkada 63 ta variant bor: 571–820 g, va ikkitasida 987455.
 Skreyper ilgari eng kattasini olardi — bitta xato butun tovarni

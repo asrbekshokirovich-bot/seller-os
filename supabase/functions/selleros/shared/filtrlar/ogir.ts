@@ -8,7 +8,11 @@ const H = THRESHOLDS.heavy;
 export interface OgirKirishi {
   /** Ogʻirlik, gramm. Uzum `skuList { weight }` dan keladi. */
   weightG: number | null;
-  /** Hajm, ml. Uzum bermaydi — hozircha doim `null`. */
+  /**
+   * Hajm, ml. Uzumda BUNDAY MAYDON YOʻQ — sxema introspeksiyasi
+   * bilan oʻlchandi (2026-08-25). "Hozircha yoʻq" emas: qidirmang.
+   * Maydon boshqa bozor uchun qoladi.
+   */
   volumeMl: number | null;
   /**
    * Uzumning OʻZI "katta hajmli" deb belgilagan tovar
