@@ -79,7 +79,11 @@ query sellerosProductStok($id: Int!) {
       shop { id title official ordersQuantity }
       # Qoldiq variantlar bo'yicha keladi — tovar qoldig'i ularning
       # yig'indisi. `weight` 7-tuzoq (og'ir tovar) uchun ham keladi.
-      skuList { id availableAmount sellPrice weight }
+      # `dimensions` — uzunlik/kenglik/balandlik, millimetrda.
+      # Uzum logistika yig'imi HAJM bo'yicha hisoblanadi:
+      # uzunlik × kenglik × balandlik / 1 000 000 = litr.
+      skuList { id availableAmount sellPrice weight
+                dimensions { length width height } }
     }
   }
 }
@@ -142,6 +146,8 @@ class Kuzatuv:
     EMAS — u faqat "katta emas" deydi.
     """
     oversized: bool | None = None
+    """Hajm, millilitrda. Uzum logistika yig'imi shunga bog'liq."""
+    volume_ml: int | None = None
 
 
 def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
@@ -179,6 +185,7 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         stock=_qoldiq(product.get("skuList")),
         weight_g=_ogirlik(product.get("skuList")),
         oversized=_bool(product.get("oversized")),
+        volume_ml=_hajm(product.get("skuList")),
     )
 
 
@@ -243,6 +250,41 @@ def _ogirlik(sku_list: list[dict[str, Any]] | None) -> int | None:
     # Bitta variantli tovarda mediana yordam bermaydi — u yerda
     # faqat shift qoladi.
     return None if mediana > OGIRLIK_SHIFTI_G else mediana
+
+
+# 2 m³. Undan katta narsa marketpleys posilkasi emas — bu terish
+# xatosi. Muzlatgich 675 l, divan ~1 000 l; 2 000 l chegara ularni
+# o'tkazadi va absurdni to'sadi.
+HAJM_SHIFTI_ML = 2_000_000
+
+
+def _hajm(sku_list: list[dict[str, Any]] | None) -> int | None:
+    """Hajm, millilitrda. Variantlar MEDIANASI.
+
+    Og'irlik bilan bir xil sabab: o'lcham ham sotuvchi qo'lida va
+    unga ishonib bo'lmaydi. Jonli o'lchandi — bolalar
+    elektromobilida bitta variant 88×47×26 mm (0,11 l), ikkinchisi
+    1150×650×450 mm (336 l) deb yozilgan. Ya'ni bir tovarning ikki
+    varianti ming barobar farq qiladi.
+
+    `max` olsak eng katta xato g'olib chiqardi, `min` olsak eng
+    kichigi. Mediana ikkalasidan ham himoya qiladi.
+    """
+    if not sku_list:
+        return None
+    hajmlar = []
+    for s in sku_list:
+        d = (s or {}).get("dimensions") or {}
+        u, k, b = _int(d.get("length")), _int(d.get("width")), _int(d.get("height"))
+        if not (u and k and b):
+            continue
+        # mm³ → ml: 1 ml = 1 000 mm³.
+        hajmlar.append(round(u * k * b / 1_000))
+    if not hajmlar:
+        return None
+    hajmlar.sort()
+    mediana = hajmlar[len(hajmlar) // 2]
+    return None if mediana > HAJM_SHIFTI_ML else mediana
 
 
 def _bool(value: Any) -> bool | None:

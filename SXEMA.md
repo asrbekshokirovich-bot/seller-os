@@ -51,9 +51,14 @@ Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,
 `category_id`, `brand` (**1-tuzoq uchun majburiy**), `weight_g`,
 `volume_ml`, `oversized`, `first_seen_at` (**8-tuzoq: tovar yoshi**).
 
-> `volume_ml` Uzum manbasidan **hech qachon to'lmaydi**: `Product`
-> turida hajm maydoni umuman yo'q (introspeksiya bilan o'lchandi,
-> 2026-08-25). Ustun boshqa bozor uchun qoladi.
+> `volume_ml` — `Sku.dimensions` medianasidan (mm → ml).
+>
+> 2026-08-25 da bu yerda "Uzum hech qachon bermaydi" deb yozgandim.
+> XATO edi: faqat `Product` turini qaraganman, o'lchamlar esa
+> `Sku` da. Ertasiga topildi va ustun to'la boshladi.
+>
+> Hajm Uzum logistika yig'imi uchun MAJBURIY: yig'im hajm bo'yicha
+> hisoblanadi (FORMULA.md, 2-bo'lim).
 >
 > `oversized` — Uzumning o'z "katta hajmli" belgisi, hajm o'rniga
 > ishlatiladigan yagona signal. `null` = o'lchanmagan; `false`

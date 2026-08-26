@@ -106,3 +106,62 @@ def test_oversized_notogri_tur_none():
     """Uzum kutilmagan qiymat bersa ham `False` ga aylanmaydi."""
     assert parse(_javob(oversized="ha")).oversized is None
     assert parse(_javob(oversized=1)).oversized is None
+
+
+# --- Hajm (`dimensions`) ---
+#
+# Uzum logistika yig'imi HAJM bo'yicha: uzunlik × kenglik ×
+# balandlik / 1 000 000 = litr. Ya'ni hajmsiz marja hisobi to'liq
+# emas.
+#
+# `Product` turida o'lcham yo'q, lekin `Sku.dimensions` da BOR —
+# buni topguncha "Uzum o'lcham bermaydi" deb o'ylagandim.
+
+
+def test_hajm_medianadan_olinadi():
+    """Bir tovarning ikki varianti ming barobar farq qilishi mumkin.
+
+    Jonli o'lchandi: bolalar elektromobilida bitta variant
+    88×47×26 mm (0,11 l), ikkinchisi 1150×650×450 mm (336 l).
+    `max` olsak eng katta xato g'olib chiqardi.
+    """
+    k = parse(_javob(skuList=[
+        {"dimensions": {"length": 258, "width": 101, "height": 151}},
+        {"dimensions": {"length": 286, "width": 157, "height": 103}},
+    ]))
+    # Mediana: ikkitadan ikkinchisi → 286×157×103 / 1000
+    assert k.volume_ml == 4625
+
+
+def test_hajm_mm_dan_ml_ga():
+    """1 ml = 1 000 mm³."""
+    k = parse(_javob(skuList=[{"dimensions": {"length": 100, "width": 100, "height": 100}}]))
+    assert k.volume_ml == 1000  # 1 litr
+
+
+def test_olchamsiz_tovar_none():
+    """`None` — nol EMAS. Nol "hajmi yo'q" degan da'vo bo'lardi."""
+    assert parse(_javob(skuList=[{"weight": 100}])).volume_ml is None
+    assert parse(_javob()).volume_ml is None
+
+
+def test_nolinchi_olcham_hisobga_olinmaydi():
+    """Bitta o'lcham nol bo'lsa hajm ham nol — bu o'lchov emas."""
+    k = parse(_javob(skuList=[{"dimensions": {"length": 100, "width": 0, "height": 50}}]))
+    assert k.volume_ml is None
+
+
+def test_hajm_shifti():
+    """2 m³ dan katta — terish xatosi, marketpleys posilkasi emas."""
+    k = parse(_javob(skuList=[
+        {"dimensions": {"length": 5000, "width": 5000, "height": 5000}},
+    ]))
+    assert k.volume_ml is None
+
+
+def test_hajm_ikkala_sorovda_ham_sorlamaydi():
+    """`dimensions` og'ir so'rovda, yengilida yo'q — javob shishmasin."""
+    from selleros_scraper.manbalar.uzum import PRODUCT_QUERY
+
+    assert "dimensions" in PRODUCT_QUERY_STOK
+    assert "dimensions" not in PRODUCT_QUERY

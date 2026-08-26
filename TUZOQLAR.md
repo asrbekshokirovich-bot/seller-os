@@ -197,10 +197,21 @@ eskisini o'chirmaydi va xato qiymat abadiy qolardi.
 
 O'lchandi 2026-08-25, GraphQL sxemasi introspeksiyasi bilan.
 
-`Product` turida **hajm maydoni umuman yo'q**. Ya'ni `volume_ml`
-ustuni Uzum manbasidan hech qachon to'lmaydi va 7-tuzoqning "katta
-hajm" tarmog'i tug'ilganidan beri o'lik edi. Bu "hozircha yo'q"
-emas — qidirmang, yo'q.
+`Product` turida hajm maydoni yo'q — va men shu yerda to'xtab,
+"Uzum hajm bermaydi" deb yozib qo'ygandim. **Xato edi.**
+
+O'lchamlar `Sku.dimensions` da: `length`, `width`, `height`,
+millimetrda. Hajm formulasi (Uzum sotuvchi materialidan):
+
+```
+uzunlik × kenglik × balandlik / 1 000 000 = litr
+```
+
+O'lchandi 2026-08-26: muzlatgich 1800×600×625 mm → 675 l,
+krossovka 286×157×103 mm → 4,6 l.
+
+Saboq: bitta turni qarab "maydon yo'q" degan xulosa chiqarmaslik
+kerak. Sxema kattaroq.
 
 O'rniga `Product.oversized: Boolean` bor va u **haqiqatan
 o'zgaradi**:

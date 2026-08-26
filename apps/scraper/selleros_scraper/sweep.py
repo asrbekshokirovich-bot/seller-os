@@ -199,5 +199,8 @@ def _qatorga(javob: Javob) -> dict:
         # o'laroq u YENGIL so'rovda ham keladi, ya'ni og'irligi
         # yo'q tovarlar uchun ham 7-tuzoq baholanadi.
         "oversized": k.oversized,
+        # Hajm — Uzum logistika yig'imi uchun. `dimensions` faqat
+        # og'ir so'rovda (`--stok`) keladi.
+        "volume_ml": k.volume_ml,
         "observed_at": _hozir(),
     }

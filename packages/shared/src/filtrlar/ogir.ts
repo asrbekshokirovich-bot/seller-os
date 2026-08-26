@@ -9,9 +9,11 @@ export interface OgirKirishi {
   /** Ogʻirlik, gramm. Uzum `skuList { weight }` dan keladi. */
   weightG: number | null;
   /**
-   * Hajm, ml. Uzumda BUNDAY MAYDON YOʻQ — sxema introspeksiyasi
-   * bilan oʻlchandi (2026-08-25). "Hozircha yoʻq" emas: qidirmang.
-   * Maydon boshqa bozor uchun qoladi.
+   * Hajm, ml. `Sku.dimensions` medianasidan.
+   *
+   * 2026-08-25 da bu yerda "Uzumda bunday maydon YOʻQ" deb
+   * yozgandim — XATO edi. Faqat `Product` turini qaraganman;
+   * oʻlchamlar `Sku.dimensions` da (`length`/`width`/`height`, mm).
    */
   volumeMl: number | null;
   /**
