@@ -373,6 +373,7 @@ function Tuzoqlar({ t }: { t: TuzoqJavobi | null }) {
         <span>
           namuna: <b>{tovar.tekshirildi}</b> tovar
           {turkum ? <> · <b>{turkum.tekshirildi}</b> turkum</> : null}
+          {' · '}id boʻyicha birinchilari
         </span>
       </p>
 
