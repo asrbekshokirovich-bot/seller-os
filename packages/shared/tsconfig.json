@@ -1,1 +1,9 @@
-{ "extends": "../../tsconfig.base.json", "include": ["src"] }
+{
+  "extends": "../../tsconfig.base.json",
+  // `test` ham kiradi. Ilgari faqat `src` edi va shuning uchun
+  // sinov fayllari umuman tekshirilmasdi: `TannarxKirishi` ga
+  // yangi MAJBURIY maydon qoʻshilganda `tsc` jim qoldi va xato
+  // faqat sinov yugurganda koʻrindi. `apps/backend` da sinovlar
+  // kiradi va u xatoni darhol koʻrsatdi — farq shundan edi.
+  "include": ["src", "test"]
+}

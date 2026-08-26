@@ -103,11 +103,62 @@ foydalanuvchiga aytish foydali:
 * Past reyting: qidiruvda pastroq, sotuv kamayadi, doʻkon
   bloklanishi mumkin.
 
+## 6. Ombor saqlash haqi (6.7-boʻlim)
+
+*Qoʻshildi 2026-08-26.* Ilgari bu yerda "qoʻllanmada raqam yoʻq"
+deb yozilgan edi. **Xato edi** — men faqat logistika boʻlimini
+(3.2) qaragandim, tarif esa butunlay boshqa boʻlimda turadi.
+Xatoning naqshi tanish: bitta joyni qarab "yoʻq" degan xulosa
+chiqarish. Hajm maydonida ham aynan shunday boʻlgan.
+
+Aylanma Uzumning oʻz taʼrifi boʻyicha:
+
+```
+Aylanma kunlarining soni =
+    oxirgi 15 kun ichidagi oʻrtacha kunlik qoldiq (dona)
+  / oxirgi 15 kun ichidagi oʻrtacha kunlik savdo (dona)
+```
+
+Tarif, 2026-yil 1-iyundan:
+
+| Aylanma | Odatiy | Imtiyozli turkumlar |
+|---|---|---|
+| ≤ 60 kun | bepul | bepul |
+| 61–180 kun | 1 litr / kuniga **12 soʻm** | 12 soʻm |
+| 181–360 kun | **18 soʻm** | 14 soʻm |
+| 361+ kun | **24 soʻm** | 18 soʻm |
+| Kunlik shift | 1 tovarga **5 000 soʻm** | 3 000 soʻm |
+
+Toʻlov sharti: aylanma 60 kundan yuqori **va** SKU sotuvda
+30 kundan koʻp turgan boʻlsa. Yangi SKU: kiyim/poyabzal va baʼzi
+FMCG — 60 kun bepul, qolganlari 30 kun.
+
+Hajm formulasi shu boʻlimda: `(uzunlik × eni × balandlik, mm)
+÷ 1 000 000` — kodimizdagi bilan bir xil.
+
+## 7. Qaytarish sotuvchiga PUL TURMAYDI
+
+*2026-08-26, manba: nazoratchi Uzumdan soʻradi.*
+
+Xaridor tovarni qaytarsa sotuvchi **qoʻshimcha hech narsa
+toʻlamaydi**. Boshida hisoblangan logistika yigʻimi toʻlangancha
+qoladi, xolos.
+
+**QOʻLLANMA BUNING TESKARISINI YOZADI.** 3-boʻlimda shunday
+jumla bor:
+
+> Agar tovar xaridor tomonidan qaytarilgan boʻlsa, logistika
+> yigʻimi qaytariladi
+
+Bu jumlaga ISHONMAYMIZ — jonli soʻrov boshqa javob berdi.
+Yozib qoʻyilishining sababi shu: kelajakda kimdir qoʻllanmani
+oʻqib "logistikani qaytarish kerak ekan" deb kodni "tuzatishi"
+mumkin. Tuzatmang. Avval qayta soʻrang.
+
+Amalda bu hisobga hech narsa qoʻshmaydi: logistika yigʻimi
+allaqachon bir marta chiqariladi va qaytarish uchun alohida
+qator yoʻq.
+
 ## Hali olinmagan
 
-* **Saqlash haqi.** Qoʻllanmaning logistika boʻlimida raqam yoʻq;
-  u Uzumning Google jadvalida bor (aylanuvchanlik guruhiga qarab,
-  1 litr uchun kunlik tarif). Jadvaldagi foizlar oʻnli kasr bilan
-  yozilgani uchun ehtiyotkorlik bilan olish kerak.
-* **Qaytarish narxi.** Sotuvchi qaytarish uchun qancha toʻlashi
-  qoʻllanmada koʻrsatilmagan.
+*(boʻsh — 6.7 va qaytarish yopildi)*

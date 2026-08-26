@@ -94,7 +94,10 @@ describe('xatoniYubor', () => {
     const natija = await xatoniYubor(new Error('e'), BELGI, DSN,
       yuborgich as unknown as typeof fetch, VAQT, ID);
     expect(natija).toBe(true);
-    const [url, sozlama] = yuborgich.mock.calls[0];
+    // `calls[0]` turi `undefined` ham boʻlishi mumkin — chaqiruv
+    // umuman boʻlmasa sinov shu yerda, sababi bilan yiqilsin.
+    expect(yuborgich).toHaveBeenCalledTimes(1);
+    const [url, sozlama] = yuborgich.mock.calls[0]!;
     expect(url).toContain('/api/4507/envelope/');
     expect(sozlama.headers['Content-Type']).toBe('application/x-sentry-envelope');
     expect(String(sozlama.body).split('\n')).toHaveLength(3);

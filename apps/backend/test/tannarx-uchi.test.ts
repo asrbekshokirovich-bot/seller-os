@@ -44,6 +44,9 @@ const TOLIQ = {
   kargo: { somPerKg: 30_000, somPerM3: 4_000_000 },
   boj: { bojFoizi: 10, qqsFoizi: 12 },
   komissiyaFoizi: 15,
+  // Bepul davr ichidagi aylanma — saqlash haqi 0, ya'ni bu
+  // fikstura saqlash qoʻshilishidan OLDINGI natijani saqlaydi.
+  aylanmaKun: 30,
 };
 
 describe('/tannarx', () => {
@@ -64,7 +67,16 @@ describe('/tannarx', () => {
     const j = (await soraw({})).json();
     expect(j.olchov_yoq).toBe(true);
     expect(j.sofFoydaSom).toBeNull();
-    expect(j.yetishmaydi.length).toBe(10);
+    /*
+     * Sonni emas, NOMLARNI tekshiramiz. Ilgari bu yerda `10` turardi
+     * va yangi kirish qoʻshilganda sinov "11 kutilmadi" deb
+     * yiqilardi — nima qoʻshilgani esa koʻrinmasdi.
+     */
+    expect(j.yetishmaydi).toEqual([
+      'sotuvNarxiSom', 'xitoyNarxiYuan', 'kursSomPerYuan',
+      'weightG', 'volumeMl', 'kargo.somPerKg', 'kargo.somPerM3',
+      'boj.bojFoizi', 'boj.qqsFoizi', 'komissiyaFoizi', 'aylanmaKun',
+    ]);
   });
 
   /*
@@ -187,5 +199,29 @@ describe('/tannarx — Uzum logistika yigʻimi', () => {
     const bilan = (await soraw({ ...TOLIQ, volumeMl: 900 })).json();
     // 900 ml = 1 litr → 5 250.
     expect(bilan.sofFoydaSom).toBe(23_400 - 5_250);
+  });
+});
+
+describe('/tannarx — ombor saqlash haqi (6.7)', () => {
+  it('sekin sotiladigan tovarda foyda kamayadi', async () => {
+    const tez = (await soraw({ ...TOLIQ, aylanmaKun: 30 })).json();
+    const sekin = (await soraw({ ...TOLIQ, aylanmaKun: 300 })).json();
+    expect(tez.tannarx.saqlash).toBe(0);
+    expect(sekin.tannarx.saqlash).toBeGreaterThan(0);
+    expect(sekin.sofFoydaSom).toBeLessThan(tez.sofFoydaSom);
+  });
+
+  it('aylanma oʻlchanmagan boʻlsa — chiziqcha, nol EMAS', async () => {
+    const j = (await soraw({ ...TOLIQ, aylanmaKun: null })).json();
+    expect(j.tannarx.saqlash).toBeNull();
+    expect(j.yetishmaydi).toContain('aylanmaKun');
+  });
+
+  it('imtiyozli turkumda tarif past', async () => {
+    const odatiy = (await soraw({ ...TOLIQ, aylanmaKun: 200 })).json();
+    const imtiyoz = (await soraw({
+      ...TOLIQ, aylanmaKun: 200, imtiyozliSaqlash: true,
+    })).json();
+    expect(imtiyoz.tannarx.saqlash).toBeLessThan(odatiy.tannarx.saqlash);
   });
 });

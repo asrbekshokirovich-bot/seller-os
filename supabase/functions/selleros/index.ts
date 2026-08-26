@@ -427,6 +427,15 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         qqsFoizi: raqam(tana.boj?.qqsFoizi),
       },
       komissiyaFoizi: raqam(tana.komissiyaFoizi),
+      /*
+       * Aylanma soʻrov tanasida keladi, `weightG`/`volumeMl` bilan
+       * bir xil yoʻldan: uni chaqiruvchi `aylanmaKun()` yordamchisi
+       * bilan oʻlchangan qoldiq va sotuvdan hisoblaydi. Formula
+       * bitta joyda (`@selleros/shared`) — web, bot va kengaytma
+       * uch xil aylanma chiqarmasligi kerak.
+       */
+      aylanmaKun: raqam(tana.aylanmaKun),
+      imtiyozliSaqlash: tana.imtiyozliSaqlash === true,
     });
     /*
      * 3-tuzoq (demping) SHU YERDA baholanadi.

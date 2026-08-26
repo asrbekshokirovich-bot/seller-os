@@ -18,7 +18,7 @@ import {
 
 const TANNARX: Tannarx = {
   sotuvNarxi: 100_000, xitoyNarxi: 40_000, kargo: 10_000,
-  bojxonaQqs: 5_000, komissiya: 15_000, uzumLogistika: 0,
+  bojxonaQqs: 5_000, komissiya: 15_000, uzumLogistika: 0, saqlash: 0,
 };
 
 describe('talab', () => {
@@ -87,7 +87,7 @@ describe('marja', () => {
     const { marginFloorPercent: pol, marginTargetPercent: nishon } = THRESHOLDS.formula;
     const bilan = (foiz: number) => marja({
       ...TANNARX, sotuvNarxi: 100, xitoyNarxi: 100 - foiz,
-      kargo: 0, bojxonaQqs: 0, komissiya: 0, uzumLogistika: 0,
+      kargo: 0, bojxonaQqs: 0, komissiya: 0, uzumLogistika: 0, saqlash: 0,
     });
     expect(bilan(pol)).toBe(0);
     expect(bilan(nishon)).toBe(100);

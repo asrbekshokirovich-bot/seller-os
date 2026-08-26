@@ -75,6 +75,16 @@ export interface TannarxKirishi {
   boj: Boj;
   /** Platforma komissiyasi, %. */
   komissiyaFoizi: number | null;
+  /**
+   * Omborda aylanma, kun. `aylanmaKun()` bilan hisoblanadi va
+   * oʻlchangan qoldiq/sotuvdan keladi.
+   *
+   * `null` boʻlsa saqlash haqi hisoblanmaydi va shu aytiladi —
+   * nolga tushirilmaydi.
+   */
+  aylanmaKun: number | null;
+  /** Imtiyozli saqlash turkumi (6.7). Bilinmasa `false`. */
+  imtiyozliSaqlash?: boolean;
 }
 
 export interface TannarxNatijasi {
@@ -95,7 +105,7 @@ export interface TannarxNatijasi {
 
 const BOSH: Tannarx = {
   sotuvNarxi: null, xitoyNarxi: null, kargo: null,
-  bojxonaQqs: null, komissiya: null, uzumLogistika: null,
+  bojxonaQqs: null, komissiya: null, uzumLogistika: null, saqlash: null,
 };
 
 /**
@@ -134,6 +144,105 @@ export function uzumLogistikaSom(volumeMl: number | null): number | null {
   const som = UZUM_LOGISTIKA.birinchiLitrSom
     + (litr - 1) * UZUM_LOGISTIKA.qoshimchaLitrSom;
   return Math.min(som, UZUM_LOGISTIKA.engKopSom);
+}
+
+/**
+ * Uzum ombori saqlash tarifi — 2026-yil 1-iyundan.
+ *
+ * Manba: seller.uzum.uz/manual/uz/6.product-preparation, 6.7-boʻlim.
+ * Logistika boʻlimida (3.2) bu raqam YOʻQ — men avval oʻsha yerni
+ * qarab "qoʻllanmada yozilmagan" degan xulosa chiqargan edim.
+ * Xato: u butunlay boshqa boʻlimda turadi.
+ *
+ * Yigʻim AYLANMAGA qarab oʻzgaradi: tovar qancha sekin sotilsa,
+ * shuncha qimmat. Aynan shuning uchun u tannarxda kerak —
+ * sekin sotiladigan katta tovar marjani jimgina yeb qoʻyadi.
+ */
+export const UZUM_SAQLASH = {
+  /** Shu kundan past aylanmada saqlash BEPUL. */
+  bepulAylanmaKun: 60,
+  /**
+   * Litr uchun kunlik soʻm, aylanma oraligʻiga qarab.
+   * `gacha` — shu kungacha (shu kun ichida) shu tarif.
+   */
+  bosqichlar: [
+    { gacha: 180, odatiy: 12, imtiyozli: 12 },
+    { gacha: 360, odatiy: 18, imtiyozli: 14 },
+    { gacha: Infinity, odatiy: 24, imtiyozli: 18 },
+  ],
+  /** Bir tovar uchun kunlik yuqori chegara. */
+  kunlikShiftOdatiy: 5_000,
+  kunlikShiftImtiyozli: 3_000,
+} as const;
+
+/**
+ * Aylanma — tovar omborda oʻrtacha necha kun turadi.
+ *
+ * Uzumning oʻz taʼrifi (6.7):
+ *
+ *   Aylanma kunlarining soni =
+ *     oxirgi 15 kun ichidagi oʻrtacha kunlik qoldiq (dona)
+ *     / oxirgi 15 kun ichidagi oʻrtacha kunlik savdo (dona)
+ *
+ * SOTUV NOL BOʻLSA — `null`, cheksizlik EMAS. Nolga boʻlish
+ * matematik jihatdan cheksizlik beradi, lekin maʼnosi boshqa:
+ * "15 kun ichida sotilmadi" degani "hech qachon sotilmaydi"
+ * degani emas. Cheksiz aylanma esa cheksiz saqlash haqiga
+ * aylanardi va tovar borib turib zararli deb koʻrsatilardi.
+ */
+export function aylanmaKun(
+  ortachaQoldiq: number | null,
+  ortachaKunlikSotuv: number | null,
+): number | null {
+  const q = son(ortachaQoldiq);
+  const st = son(ortachaKunlikSotuv);
+  if (q === null || st === null || st <= 0) return null;
+  return q / st;
+}
+
+/**
+ * Bir dona tovarning saqlash haqi.
+ *
+ * BU OʻLCHOV EMAS, MODEL. Uzum yigʻimni har kuni omborda qolgan
+ * HAR BIR donadan oladi. Bitta donaning umri davomida toʻlaydigan
+ * summasini shunday baholaymiz:
+ *
+ *   toʻlanadigan kun = aylanma − 60 (bepul davr)
+ *   bir dona uchun   = litr × kunlik tarif × toʻlanadigan kun
+ *
+ * Yaʼni "bu dona omborda aylanma qancha boʻlsa shuncha kun
+ * turadi" deb olinadi. Bu taxminiy, lekin kam baholaydigan
+ * tomonga emas: haqiqiy oʻrtacha turish vaqti aylanmadan
+ * kichikroq boʻlishi mumkin.
+ *
+ * Modelligi YASHIRILMAYDI — interfeysda "hisoblandi" deb turadi.
+ */
+export function saqlashSom(k: {
+  volumeMl: number | null;
+  aylanmaKun: number | null;
+  /** Imtiyozli turkum (6.7 dagi past tarif). Bilinmasa `false`. */
+  imtiyozli?: boolean;
+}): number | null {
+  const ml = son(k.volumeMl);
+  const kun = son(k.aylanmaKun);
+  if (ml === null || kun === null) return null;
+
+  const toladiganKun = kun - UZUM_SAQLASH.bepulAylanmaKun;
+  // Bepul davrga tushdi — bu OʻLCHANGAN nol, "bilmayman" emas.
+  if (toladiganKun <= 0) return 0;
+
+  const imtiyozli = k.imtiyozli === true;
+  const bosqich = UZUM_SAQLASH.bosqichlar.find((b) => kun <= b.gacha)
+    ?? UZUM_SAQLASH.bosqichlar[UZUM_SAQLASH.bosqichlar.length - 1]!;
+  const tarif = imtiyozli ? bosqich.imtiyozli : bosqich.odatiy;
+
+  // Litr yuqoriga yaxlitlanadi — logistika yigʻimidagi bilan bir xil.
+  const litr = Math.max(1, Math.ceil(ml / 1000));
+  const shift = imtiyozli
+    ? UZUM_SAQLASH.kunlikShiftImtiyozli
+    : UZUM_SAQLASH.kunlikShiftOdatiy;
+  const kunlik = Math.min(litr * tarif, shift);
+  return kunlik * toladiganKun;
 }
 
 /**
@@ -290,21 +399,34 @@ export function tannarxHisobi(k: TannarxKirishi): TannarxNatijasi {
 
   const uzumLog = olchamZid ? null : uzumLogistikaSom(k.volumeMl);
 
+  /*
+   * Saqlash haqi (6.7). Aylanma OʻLCHANADI — qoldiq va sotuv
+   * bizda bor — lekin u kelajakka qaraydi, shuning uchun natija
+   * "hisoblandi" deb belgilanadi, "oʻlchandi" deb emas.
+   */
+  if (son(k.aylanmaKun) === null) yetishmaydi.push('aylanmaKun');
+  const saqlash = olchamZid ? null : saqlashSom({
+    volumeMl: k.volumeMl,
+    aylanmaKun: k.aylanmaKun,
+    imtiyozli: k.imtiyozliSaqlash === true,
+  });
+
   const tannarx: Tannarx = yetishmaydi.length > 0
     ? {
         ...BOSH, sotuvNarxi, xitoyNarxi, kargo: kg?.som ?? null,
-        bojxonaQqs: bq, komissiya, uzumLogistika: uzumLog,
+        bojxonaQqs: bq, komissiya, uzumLogistika: uzumLog, saqlash,
       }
     : {
         sotuvNarxi, xitoyNarxi, kargo: kg?.som ?? null,
-        bojxonaQqs: bq, komissiya, uzumLogistika: uzumLog,
+        bojxonaQqs: bq, komissiya, uzumLogistika: uzumLog, saqlash,
       };
 
   const foiz = marjaFoizi(tannarx);
   const sofFoydaSom = foiz === null || sotuvNarxi === null || xitoyNarxi === null
     || kg === null || bq === null || komissiya === null || uzumLog === null
+    || saqlash === null
     ? null
-    : sotuvNarxi - xitoyNarxi - kg.som - bq - komissiya - uzumLog;
+    : sotuvNarxi - xitoyNarxi - kg.som - bq - komissiya - uzumLog - saqlash;
 
   return {
     tannarx,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bojxonaQqs, kargoNarxi, olchamIshonchlimi, tannarxHisobi,
-  type TannarxKirishi,
+  aylanmaKun, bojxonaQqs, kargoNarxi, olchamIshonchlimi, saqlashSom,
+  tannarxHisobi, UZUM_SAQLASH, type TannarxKirishi,
 } from '../src/tannarx.js';
 
 /**
@@ -20,6 +20,8 @@ const TOLIQ: TannarxKirishi = {
   kargo: { somPerKg: 30_000, somPerM3: 4_000_000 },
   boj: { bojFoizi: 10, qqsFoizi: 12 },
   komissiyaFoizi: 15,
+  // 30 kunlik aylanma — bepul davr ichida, saqlash haqi 0.
+  aylanmaKun: 30,
 };
 
 describe('kargoNarxi — ogʻirlik yoki hajm, qaysi biri QIMMAT', () => {
@@ -136,12 +138,12 @@ describe('tannarxHisobi — yetishmagan kirish NOLGA aylanmaydi', () => {
       weightG: null, volumeMl: null,
       kargo: { somPerKg: null, somPerM3: null },
       boj: { bojFoizi: null, qqsFoizi: null },
-      komissiyaFoizi: null,
+      komissiyaFoizi: null, aylanmaKun: null,
     });
     expect(n.yetishmaydi).toEqual([
       'sotuvNarxiSom', 'xitoyNarxiYuan', 'kursSomPerYuan',
       'weightG', 'volumeMl', 'kargo.somPerKg', 'kargo.somPerM3',
-      'boj.bojFoizi', 'boj.qqsFoizi', 'komissiyaFoizi',
+      'boj.bojFoizi', 'boj.qqsFoizi', 'komissiyaFoizi', 'aylanmaKun',
     ]);
     expect(n.sofFoydaSom).toBeNull();
   });
@@ -231,5 +233,95 @@ describe('tannarxHisobi — zid oʻlchov RAQAMGA aylanmaydi', () => {
     expect(n.yetishmaydi).toEqual([]);
     expect(n.tannarx.uzumLogistika).toBe(5_500);
     expect(n.sofFoydaSom).not.toBeNull();
+  });
+});
+
+describe('aylanmaKun — Uzumning 6.7 dagi taʼrifi', () => {
+  it('qoldiq / kunlik sotuv', () => {
+    // 300 dona qoldiq, kuniga 5 ta sotiladi → 60 kun.
+    expect(aylanmaKun(300, 5)).toBe(60);
+  });
+
+  it('sotuv NOL boʻlsa — `null`, cheksizlik EMAS', () => {
+    /*
+     * Nolga boʻlish cheksizlik berardi, u esa cheksiz saqlash
+     * haqiga aylanib har qanday tovarni "zararli" deb koʻrsatardi.
+     * "15 kun ichida sotilmadi" — "hech qachon sotilmaydi" emas.
+     */
+    expect(aylanmaKun(300, 0)).toBeNull();
+  });
+
+  it('qoldiq oʻlchanmagan boʻlsa — `null`', () => {
+    expect(aylanmaKun(null, 5)).toBeNull();
+  });
+});
+
+describe('saqlashSom — Uzum ombori tarifi (6.7)', () => {
+  it('aylanma 60 kungacha — BEPUL, va bu oʻlchangan nol', () => {
+    expect(saqlashSom({ volumeMl: 5_000, aylanmaKun: 60 })).toBe(0);
+    expect(saqlashSom({ volumeMl: 5_000, aylanmaKun: 10 })).toBe(0);
+  });
+
+  it('61—180 kun: litr uchun kuniga 12 soʻm', () => {
+    // 5 litr × 12 soʻm = 60 soʻm/kun, toʻlanadigan kun 120 − 60 = 60.
+    expect(saqlashSom({ volumeMl: 5_000, aylanmaKun: 120 })).toBe(60 * 60);
+  });
+
+  it('181—360 kun: 18 soʻm', () => {
+    // 2 litr × 18 = 36 soʻm/kun × (200 − 60) = 5 040.
+    expect(saqlashSom({ volumeMl: 2_000, aylanmaKun: 200 })).toBe(36 * 140);
+  });
+
+  it('361 kundan yuqori: 24 soʻm', () => {
+    expect(saqlashSom({ volumeMl: 1_000, aylanmaKun: 400 })).toBe(24 * 340);
+  });
+
+  it('imtiyozli turkumda tarif past', () => {
+    const odatiy = saqlashSom({ volumeMl: 2_000, aylanmaKun: 200 });
+    const imtiyoz = saqlashSom({ volumeMl: 2_000, aylanmaKun: 200, imtiyozli: true });
+    expect(imtiyoz).toBeLessThan(odatiy!);
+    expect(imtiyoz).toBe(28 * 140); // 2 litr × 14 soʻm
+  });
+
+  it('kunlik shift 5 000 soʻmdan oshmaydi', () => {
+    /*
+     * 675 litrlik muzlatgich: 675 × 12 = 8 100 soʻm/kun boʻlardi,
+     * lekin qoidada bir tovarga kunlik shift 5 000 soʻm.
+     */
+    const n = saqlashSom({ volumeMl: 675_000, aylanmaKun: 120 });
+    expect(n).toBe(UZUM_SAQLASH.kunlikShiftOdatiy * 60);
+  });
+
+  it('hajm yoki aylanma yoʻq boʻlsa — `null`, nol EMAS', () => {
+    // Nol "saqlash tekin" degan daʼvo boʻlardi.
+    expect(saqlashSom({ volumeMl: null, aylanmaKun: 120 })).toBeNull();
+    expect(saqlashSom({ volumeMl: 5_000, aylanmaKun: null })).toBeNull();
+  });
+});
+
+describe('tannarxHisobi — saqlash haqi foydadan chiqariladi', () => {
+  it('sekin sotiladigan tovarda foyda KAMAYADI', () => {
+    const tez = tannarxHisobi({ ...TOLIQ, aylanmaKun: 30 });
+    const sekin = tannarxHisobi({ ...TOLIQ, aylanmaKun: 300 });
+    expect(tez.tannarx.saqlash).toBe(0);
+    expect(sekin.tannarx.saqlash).toBeGreaterThan(0);
+    expect(sekin.sofFoydaSom!).toBeLessThan(tez.sofFoydaSom!);
+  });
+
+  it('aylanma oʻlchanmagan boʻlsa — sabab nomi bilan aytiladi', () => {
+    const n = tannarxHisobi({ ...TOLIQ, aylanmaKun: null });
+    expect(n.yetishmaydi).toContain('aylanmaKun');
+    expect(n.tannarx.saqlash).toBeNull();
+    expect(n.sofFoydaSom).toBeNull();
+  });
+
+  it('QOROVUL: saqlash hisobga kirmasa marja oshib koʻrsatilardi', () => {
+    /*
+     * 2 litrlik tovar, aylanma 300 kun → 2 × 18 × 240 = 8 640 soʻm.
+     * Bu 100 000 soʻmlik tovarda 8,6 punkt marja. Saqlash qatori
+     * hisobdan tushib qolsa shu sinov yiqiladi.
+     */
+    const n = tannarxHisobi({ ...TOLIQ, aylanmaKun: 300 });
+    expect(n.tannarx.saqlash).toBe(18 * 2 * 240);
   });
 });

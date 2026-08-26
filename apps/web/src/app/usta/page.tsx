@@ -24,7 +24,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { SAVOLLAR, type Savol } from '@selleros/shared';
+import { aylanmaKun, SAVOLLAR, type Savol } from '@selleros/shared';
 import u from './usta.module.css';
 
 type Javoblar = Record<string, unknown>;
@@ -1104,6 +1104,7 @@ interface TannarxJavobi {
     sotuvNarxi: number | null; xitoyNarxi: number | null;
     kargo: number | null; bojxonaQqs: number | null;
     komissiya: number | null; uzumLogistika: number | null;
+    saqlash: number | null;
   };
   demping?: {
     bayroq: { reason: string; severity: string } | null;
@@ -1181,6 +1182,24 @@ function Tannarx({ tovar, komissiyaFoizi, komissiyaManbasi, yop }: {
           },
           boj: { bojFoizi: kiritilganSon(soz.bojFoizi), qqsFoizi: kiritilganSon(soz.qqsFoizi) },
           komissiyaFoizi,
+          /*
+           * Aylanma — tovar omborda oʻrtacha necha kun turadi.
+           * Uzumning taʼrifi 15 kunlik oʻrtachaga tayanadi, bizda
+           * esa 30 kunlik oʻlchangan sotuv bor; oyna boshqa, oʻlchov
+           * bir xil. Farq izohlanmasa raqam Uzumnikidan biroz
+           * chetga chiqadi — shuning uchun natija "hisoblandi" deb
+           * belgilanadi.
+           *
+           * Ikkalasi ham OʻLCHANGAN: qoldiq va 30 kunlik sotuv.
+           * Bittasi yoʻq boʻlsa `aylanmaKun` `null` qaytaradi va
+           * saqlash haqi chiziqcha boʻlib qoladi.
+           */
+          aylanmaKun: aylanmaKun(
+            tovar.qoldiq ?? null,
+            tovar.soldUnits30d === null || tovar.soldUnits30d === undefined
+              ? null
+              : tovar.soldUnits30d / 30,
+          ),
         }),
       });
       setNatija((await r.json()) as TannarxJavobi);
@@ -1281,6 +1300,11 @@ function TannarxNatija({ n, manba }: { n: TannarxJavobi; manba: string | null })
     ['Bojxona + QQS', t.bojxonaQqs, 'siz kiritdingiz'],
     ['Uzum komissiyasi', t.komissiya, manba ? 'Uzum jadvali' : 'siz kiritdingiz'],
     ['Uzum logistikasi (xaridorgacha)', t.uzumLogistika, 'Uzum tarifi'],
+    // "hisoblandi" — "oʻlchandi" EMAS. Saqlash haqi tovar omborda
+    // necha kun turishiga bogʻliq, u esa kelajakdagi sotuv
+    // tezligiga bogʻliq. Farqni koʻrsatmasak, model oʻlchov
+    // qiyofasida chiqardi.
+    ['Ombor saqlash haqi', t.saqlash, 'hisoblandi'],
   ];
 
   return (
@@ -1309,6 +1333,19 @@ function TannarxNatija({ n, manba }: { n: TannarxJavobi; manba: string | null })
         <p className={u.ogohlik}>
           Hisob toʻliq emas. Yetishmayapti: {n.yetishmaydi.join(', ')}.
           Nol koʻrsatilmaydi — u &laquo;tekin&raquo; degan javob boʻlardi.
+        </p>
+      ) : n.sofFoydaSom < 0 ? (
+        /*
+         * ZARAR SOʻZ BILAN AYTILADI. Ilgari manfiy son ijobiysi
+         * bilan bir xil koʻrinardi — faqat oldida minus. Odam
+         * jadvalni tez oʻqiganda minusni sezmasligi mumkin, va
+         * aynan shu holatda u butun partiya pulini tikadi.
+         */
+        <p className={u.xato}>
+          <strong>
+            Har donada ZARAR: {Math.abs(n.sofFoydaSom).toLocaleString('uz-UZ')} soʻm
+            {n.marjaFoizi !== null && ` · marja ${n.marjaFoizi.toFixed(1)}%`}
+          </strong>
         </p>
       ) : (
         <p className={u.dalil}>

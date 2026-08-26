@@ -92,17 +92,35 @@ export interface Tannarx {
    * `null` — hajm oʻlchanmagan, yaʼni hisoblab boʻlmaydi.
    */
   uzumLogistika: number | null;
+  /**
+   * Uzum ombori SAQLASH haqi, bir dona uchun.
+   *
+   * Manba: seller.uzum.uz/manual/uz/6.product-preparation, 6.7-boʻlim.
+   *
+   * Bu OʻLCHOV EMAS, HISOB: yigʻim tovar omborda necha kun turishiga
+   * bogʻliq, u esa kelajakdagi sotuv tezligiga bogʻliq. Shuning
+   * uchun interfeysda manbasi «hisoblandi» deb koʻrsatiladi.
+   *
+   * `null` — aylanma yoki hajm oʻlchanmagan, yaʼni hisoblab
+   * boʻlmaydi. Nol EMAS: nol "saqlash tekin" degan daʼvo boʻlardi.
+   */
+  saqlash: number | null;
 }
 
 /** Marja foizi — ball emas, xom foiz. Tuzoq filtrlariga ham kerak. */
 export function marjaFoizi(t: Tannarx): number | null {
-  const { sotuvNarxi, xitoyNarxi, kargo, bojxonaQqs, komissiya, uzumLogistika } = t;
+  const {
+    sotuvNarxi, xitoyNarxi, kargo, bojxonaQqs, komissiya,
+    uzumLogistika, saqlash,
+  } = t;
   if (
     sotuvNarxi === null || xitoyNarxi === null || kargo === null ||
-    bojxonaQqs === null || komissiya === null || uzumLogistika === null
+    bojxonaQqs === null || komissiya === null || uzumLogistika === null ||
+    saqlash === null
   ) return null;
   if (sotuvNarxi <= 0) return null;
-  const sof = sotuvNarxi - xitoyNarxi - kargo - bojxonaQqs - komissiya - uzumLogistika;
+  const sof = sotuvNarxi - xitoyNarxi - kargo - bojxonaQqs - komissiya
+    - uzumLogistika - saqlash;
   return (100 * sof) / sotuvNarxi;
 }
 
