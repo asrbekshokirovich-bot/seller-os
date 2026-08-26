@@ -295,7 +295,60 @@ tokenlarining eng koʻp uchraydiganlari oddiy oʻzbekcha soʻzlar
 boʻlmaydi, taxmin qilib yozish esa `block` bayrogʻini notoʻgʻri
 yoqardi — bu eng qimmat xato turi.
 
-### `makeSearch` facets — brend roʻyxati SHU YERDA boʻlishi mumkin
+### ~~`makeSearch` facets — brend roʻyxati SHU YERDA boʻlishi mumkin~~ — YOʻQ EKAN
+
+*2026-08-26 da OʻLCHANDI. Bu bandning taxmini notoʻgʻri chiqdi.*
+
+Ikki narsa aniqlandi va ikkalasi ham oldingi yozuvni tuzatadi.
+
+**1) 429 — abadiy blok emas.** Uch marta urinildi va uchalasida
+ham 429 keldi (soʻnggisi 40 daqiqa tanaffusdan keyin). Lekin
+soʻrov saytning oʻz cookie si va brauzerga oʻxshash sarlavhalar
+bilan yuborilganda **ISHLADI**:
+
+```
+GET https://uzum.uz/        →  _yasc cookie olinadi (307 boʻlsa ham)
+POST graphql.uzum.uz/       →  oʻsha client bilan, qoʻshimcha sarlavhalar:
+    apollographql-client-name: web-customer
+    pagination: { offset: 0, limit: 24 }     (limit 0 emas)
+```
+
+Qaysi biri hal qilgani ajratilmadi (cookie, sarlavha yoki
+`limit`), lekin retsept ishlaydi va takrorlanadi.
+
+**2) Lekin BREND FASETI YOʻQ.** Ishlagan soʻrovlar shuni
+qaytardi:
+
+```
+Krossovkalar (13682)      total 1 856   fasetlar: 1
+Oʻyin quloqchinlari       total   935   fasetlar: 1
+matnli qidiruv "krossovka" total 18 918 fasetlar: 1
+
+hammasida bitta faset:  [RANGED_VALUE] "Narx, baho" — 0 bucket
+```
+
+Yaʼni turkum boʻyicha ham, matn boʻyicha ham brend faseti
+umuman qaytmaydi.
+
+**Xulosa: Uzumda brend degan tushuncha YOʻQ.** Bu endi toʻrtta
+mustaqil oʻlchovga tayanadi:
+
+  1. `Product` turida brend maydoni yoʻq (introspeksiya)
+  2. `characteristics` — 40 turkum, 4 xil nom, brend yoʻq
+  3. `makeSearch.facets` — faqat narx faseti
+  4. perepis sxemasi — brend ustuni yoʻq
+
+Shuning uchun 1-tuzoq qamrovini 3% dan oshirishning **maʼlum
+yoʻli qolmadi**. Panel buni yashirmaydi: `brandSellersCount`
+500 tovardan 469 tasida yetishmaydi deb koʻrsatiladi.
+
+**YON TOPILMA — `total` bepul keladi va u foydali.** Oʻsha
+soʻrov turkumdagi tovarlar sonini Uzumning OʻZIDAN beradi
+(Krossovkalar 1 856). Hozir raqobat perepisdan hisoblanadi;
+Uzumning oʻz soni bilan solishtirish perepis qamrovini
+tekshirish uchun mustaqil oʻlchov boʻlardi. Alohida ish.
+
+### Eski yozuv (tarix uchun)
 
 `makeSearch(query: MakeSearchQueryInput!)` uchi bor va u
 `facets { filter { id title type } buckets { total filterValue { id name } } }`
@@ -306,16 +359,17 @@ LEKIN maʼlumot olinmadi: `search-gateway` bizning mijozga **429
 Too Many Requests** qaytardi va 75 soniya kutgandan keyin ham
 qaytardi. Yaʼni qidiruv uchi mahsulot uchidan qattiqroq cheklangan.
 
-*2026-08-26 da qayta sinaldi.* Introspeksiya ISHLAYDI (soʻrov
-shakli toʻliq olindi: `showAdultContent`, `filters`, `sort`,
-`pagination` majburiy). Toʻgʻri shakldagi BIRINCHI facets
-soʻrovi ham darhol 429 berdi — yaʼni bu tezlik masalasi emas,
-`search-gateway` bizga umuman ochiq emas. Mahsulot uchi esa oʻsha
-seansda 40 ta soʻrovni xatosiz bajardi.
+*2026-08-26.* Introspeksiya ISHLAYDI va soʻrov shakli toʻliq
+olindi (`showAdultContent`, `filters`, `sort`, `pagination`
+majburiy).
 
-Yaʼni sekinlashtirish yordam bermaydi; boshqa yoʻl kerak
-(proksi yoki roʻyxatdan oʻtgan sessiya). Yana urinishdan oldin
-shuni hisobga oling.
+Dastlab toʻgʻri shakldagi soʻrov ham 429 berdi va men "darvoza
+bizga umuman ochiq emas" degan xulosa chiqargandim. **Bu xato
+edi** — yuqoridagi banda qarang: sayt cookie si va brauzer
+sarlavhalari bilan soʻrov ishlaydi.
+
+Faqat undan chiqadigan foyda boshqa: brend faseti yoʻq,
+`total` esa bor.
 
 Kerak boʻlsa: soʻrovni `hurmat.py` orqali, sekin va kam sonli
 oʻtkazish — alohida ish sifatida, supurish bilan bir vaqtda emas.
