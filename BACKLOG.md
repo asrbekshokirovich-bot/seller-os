@@ -280,3 +280,34 @@ toʻxtatildi.
 
 Bu roʻyxatdagi yagona band bugun yopildi. Tafsilot: TUZOQLAR.md,
 7-tuzoq.
+
+## Wildberries komissiya jadvali bor — B6 uchun tayyor tursin (2026-08-26)
+
+Nazoratchi `commission_1.xlsx` yubordi. U **Uzumniki emas,
+Wildberriesniki** — ustun nomlaridan aniq koʻrinadi:
+
+```
+Самовывоз из магазина продавца (C&C) | Витрина (DBS)/Курьер WB (DBW)
+Витрина экспресс (EDBS) | Маркетплейс (FBS) | Склад WB (FBW) | Бронирование
+```
+
+7 422 qator, 96 ta yuqori turkum, `Категория / Предмет` kesimida.
+
+**Uzum komissiyasi sifatida YUKLANMADI.** Sabab raqamda:
+
+| | Mediana | Oraliq |
+|---|---:|---:|
+| Uzum, FBO | 20% | 5 — 35 |
+| WB, Склад WB (FBW) | **34%** | 0,5 — 43,5 |
+
+Aralashtirsak har bir marja hisobi 14 punktga yanglishardi va
+demping filtri FOYDALI tovarlarni "zararli" deb bloklardi.
+
+**Qachon kerak boʻladi:** reja B6 — Wildberries va Yandex
+qoʻshilganda. Bu blokda tashqi kalit talab qilinmaydi, yaʼni uni
+istalgan payt boshlash mumkin. Jadval oʻsha kunga tayyor:
+fayl nazoratchida, tuzilishi shu yerda yozilgan.
+
+Yuklashda ikki shart: `platform = 'wildberries'` boʻlsin va
+qaysi ustun olinayotgani (FBW yoki FBS) manbada yozilsin — WB da
+ular 3—5 punktga farq qiladi.
