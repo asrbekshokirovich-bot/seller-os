@@ -75,16 +75,19 @@ describe('tannarxHisobi — toʻliq kirish', () => {
   it('sof foyda FORMULA.md dagi ayirma bilan bir xil', () => {
     // xitoy 35 000 · kargo: 0.5 kg → 15 000, 0.002 m³ → 8 000 ⇒ 15 000
     // boj asosi 50 000 → boj 5 000 → QQS 12% × 55 000 = 6 600 ⇒ 11 600
-    // komissiya 15 000 ⇒ 100 000 − 35 000 − 15 000 − 11 600 − 15 000 = 23 400
+    // komissiya 15 000
+    // Uzum logistikasi: 2 000 ml → 2 litr → 5 250 + 250 = 5 500
+    // 100 000 − 35 000 − 15 000 − 11 600 − 15 000 − 5 500 = 17 900
     expect(n.tannarx.xitoyNarxi).toBe(35_000);
     expect(n.tannarx.kargo).toBe(15_000);
     expect(n.tannarx.bojxonaQqs).toBe(11_600);
     expect(n.tannarx.komissiya).toBe(15_000);
-    expect(n.sofFoydaSom).toBe(23_400);
+    expect(n.tannarx.uzumLogistika).toBe(5_500);
+    expect(n.sofFoydaSom).toBe(17_900);
   });
 
   it('marja foizi sof foydadan chiqadi', () => {
-    expect(n.marjaFoizi).toBeCloseTo(23.4, 5);
+    expect(n.marjaFoizi).toBeCloseTo(17.9, 5);
   });
 
   it('kargo qaysi asosdan olingani koʻrsatiladi', () => {

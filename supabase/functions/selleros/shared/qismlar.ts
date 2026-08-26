@@ -77,20 +77,32 @@ export function talab(
 export interface Tannarx {
   sotuvNarxi: number | null;
   xitoyNarxi: number | null;
+  /** Xitoydan Oʻzbekistonga olib kelish. */
   kargo: number | null;
   bojxonaQqs: number | null;
   komissiya: number | null;
+  /**
+   * Uzumning MARKETPLEYS logistika yigʻimi — xaridorga yetkazish.
+   *
+   * Bu `kargo` dan BOSHQA narsa: kargo Xitoydan omborgacha, bu esa
+   * ombordan xaridorgacha. Ilgari u hisobda umuman yoʻq edi va
+   * shuning uchun har bir marja 5 250 — 50 000 soʻmga OSHIB
+   * koʻrsatilardi.
+   *
+   * `null` — hajm oʻlchanmagan, yaʼni hisoblab boʻlmaydi.
+   */
+  uzumLogistika: number | null;
 }
 
 /** Marja foizi — ball emas, xom foiz. Tuzoq filtrlariga ham kerak. */
 export function marjaFoizi(t: Tannarx): number | null {
-  const { sotuvNarxi, xitoyNarxi, kargo, bojxonaQqs, komissiya } = t;
+  const { sotuvNarxi, xitoyNarxi, kargo, bojxonaQqs, komissiya, uzumLogistika } = t;
   if (
     sotuvNarxi === null || xitoyNarxi === null || kargo === null ||
-    bojxonaQqs === null || komissiya === null
+    bojxonaQqs === null || komissiya === null || uzumLogistika === null
   ) return null;
   if (sotuvNarxi <= 0) return null;
-  const sof = sotuvNarxi - xitoyNarxi - kargo - bojxonaQqs - komissiya;
+  const sof = sotuvNarxi - xitoyNarxi - kargo - bojxonaQqs - komissiya - uzumLogistika;
   return (100 * sof) / sotuvNarxi;
 }
 

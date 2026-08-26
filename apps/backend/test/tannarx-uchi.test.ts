@@ -52,7 +52,10 @@ describe('/tannarx', () => {
     expect(res.statusCode).toBe(200);
     const j = res.json();
     expect(j.olchov_yoq).toBe(false);
-    expect(j.sofFoydaSom).toBe(23_400);
+    // 23 400 emas: Uzum marketpleys logistikasi (5 500) ham
+    // chiqariladi. Eski raqam shu xarajatni tashlab ketgani uchun
+    // foydani OSHIB koʻrsatardi.
+    expect(j.sofFoydaSom).toBe(23_400 - 5_500);
     expect(j.kargoAsosi).toBe('ogirlik');
     expect(j.yetishmaydi).toEqual([]);
   });
@@ -84,7 +87,7 @@ describe('/tannarx', () => {
 
   it('raqamli satr qabul qilinadi — forma matn yuboradi', async () => {
     const j = (await soraw({ ...TOLIQ, xitoyNarxiYuan: '20' })).json();
-    expect(j.sofFoydaSom).toBe(23_400);
+    expect(j.sofFoydaSom).toBe(23_400 - 5_500);
   });
 
   it('zararli tovarda manfiy foyda yashirilmaydi', async () => {
@@ -125,5 +128,58 @@ describe('/tannarx — demping filtri', () => {
     const j = (await soraw({})).json();
     expect(j.demping.bayroq).toBeNull();
     expect(j.demping.baholanmadi).toContain('sotuvNarxi');
+  });
+});
+
+/**
+ * Uzum MARKETPLEYS logistikasi — ilgari hisobda umuman yoʻq edi.
+ *
+ * Bu `kargo` dan boshqa xarajat: kargo Xitoydan omborgacha, bu esa
+ * ombordan XARIDORGACHA. Uni tashlab qoʻyganimiz uchun har bir
+ * marja 5 250 — 50 000 soʻmga OSHIB koʻrsatilardi — yaʼni
+ * foydasiz tovar foydali boʻlib chiqardi.
+ *
+ * Tarif: seller.uzum.uz/manual/uz/3.tariffs, 2026-06-01 dan.
+ */
+describe('/tannarx — Uzum logistika yigʻimi', () => {
+  it('1 litrgacha — 5 250 soʻm', async () => {
+    const j = (await soraw({ ...TOLIQ, volumeMl: 900 })).json();
+    expect(j.tannarx.uzumLogistika).toBe(5_250);
+  });
+
+  it('har qoʻshimcha litr — 250 soʻm', async () => {
+    // 2 000 ml = 2 litr → 5 250 + 250
+    const j = (await soraw({ ...TOLIQ, volumeMl: 2_000 })).json();
+    expect(j.tannarx.uzumLogistika).toBe(5_500);
+  });
+
+  it('boʻlmagan litr yuqoriga yaxlitlanadi', async () => {
+    // 1 001 ml ham 2 litr deb sanaladi.
+    const j = (await soraw({ ...TOLIQ, volumeMl: 1_001 })).json();
+    expect(j.tannarx.uzumLogistika).toBe(5_500);
+  });
+
+  it('yuqori chegara 50 000 soʻm', async () => {
+    const j = (await soraw({ ...TOLIQ, volumeMl: 900_000 })).json();
+    expect(j.tannarx.uzumLogistika).toBe(50_000);
+  });
+
+  /*
+   * Uzum qoidasida "oʻlchamsiz tovar — 50 000 soʻm" bandi bor,
+   * lekin u sotuvchi oʻlchamni koʻrsatmagani uchun JARIMA. Bizning
+   * hisobimizda hajm nomaʼlum boʻlsa javob "bilmayman" boʻlishi
+   * kerak: eng yomon holatni taxmin qilsak, foydali tovar zararli
+   * boʻlib chiqardi.
+   */
+  it('hajm oʻlchanmagan boʻlsa — `null`, 50 000 EMAS', async () => {
+    const j = (await soraw({ ...TOLIQ, volumeMl: null })).json();
+    expect(j.tannarx.uzumLogistika).toBeNull();
+    expect(j.yetishmaydi).toContain('volumeMl');
+  });
+
+  it('yigʻim foydadan CHIQARILADI', async () => {
+    const bilan = (await soraw({ ...TOLIQ, volumeMl: 900 })).json();
+    // 900 ml = 1 litr → 5 250.
+    expect(bilan.sofFoydaSom).toBe(23_400 - 5_250);
   });
 });

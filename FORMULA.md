@@ -69,11 +69,34 @@ o'zgarmaydi.
 ```
 sof_foyda_1_dona = sotuv_narxi
                  − xitoy_narxi
-                 − kargo(og'irlik, hajm)
+                 − kargo(og'irlik, hajm)          ← Xitoydan omborgacha
                  − bojxona/QQS
                  − platforma_komissiyasi
+                 − uzum_logistikasi(hajm)         ← ombordan xaridorgacha
 marja_% = sof_foyda_1_dona / sotuv_narxi
 ```
+
+**Ikkita logistika bor va ular ARALASHTIRILMAYDI.** `kargo` —
+Xitoydan O'zbekistondagi omborgacha, sotuvchi to'laydi. Uzum
+logistikasi — ombordan xaridorgacha, Uzum ushlab qoladi.
+
+Oxirgi qator 2026-08-26 da qo'shildi. Undan oldin u hisobda umuman
+yo'q edi va shuning uchun **har bir marja 5 250 — 50 000 so'mga
+oshib ko'rsatilardi** — ya'ni foydasiz tovar foydali bo'lib
+chiqardi.
+
+Uzum tarifi (seller.uzum.uz/manual/uz/3.tariffs, 2026-06-01 dan):
+
+| Hajm | Yig'im |
+|---|---:|
+| 1 litrgacha | 5 250 so'm |
+| har qo'shimcha litr | +250 so'm |
+| yuqori chegara | 50 000 so'm |
+
+Hajm o'lchanmagan bo'lsa qism `null` bo'ladi. Uzum qoidasida
+"o'lchamsiz tovar — 50 000 so'm" bandi bor, lekin u sotuvchi
+o'lchamni ko'rsatmagani uchun **jarima**; bizning hisobimizda
+noma'lum hajm "bilmayman" degani bo'lishi kerak.
 
 `marja_%` → ball chiziqli: `MARGIN_FLOOR` da 0, `MARGIN_TARGET` da 100.
 

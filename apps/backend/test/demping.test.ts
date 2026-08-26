@@ -12,7 +12,7 @@ import { demping, THRESHOLDS, type Flag, type Tannarx } from '@selleros/shared';
 /** Sog'lom tannarx: 30% marja. */
 const SOGLOM: Tannarx = {
   sotuvNarxi: 100_000, xitoyNarxi: 40_000, kargo: 10_000,
-  bojxonaQqs: 5_000, komissiya: 15_000,
+  bojxonaQqs: 5_000, komissiya: 15_000, uzumLogistika: 0,
 };
 
 function bayroq(n: ReturnType<typeof demping>): Flag {
@@ -30,7 +30,7 @@ describe('bayroq qo\'yilmaydi', () => {
     const chegara = THRESHOLDS.dumping.minMarginPercent;
     const t: Tannarx = {
       sotuvNarxi: 100, xitoyNarxi: 100 - chegara,
-      kargo: 0, bojxonaQqs: 0, komissiya: 0,
+      kargo: 0, bojxonaQqs: 0, komissiya: 0, uzumLogistika: 0,
     };
     expect(demping(t)).toBeNull();
   });

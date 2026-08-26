@@ -95,8 +95,46 @@ export interface TannarxNatijasi {
 
 const BOSH: Tannarx = {
   sotuvNarxi: null, xitoyNarxi: null, kargo: null,
-  bojxonaQqs: null, komissiya: null,
+  bojxonaQqs: null, komissiya: null, uzumLogistika: null,
 };
+
+/**
+ * Uzum marketpleys logistika tarifi — 2026-yil 1-iyundan.
+ *
+ * Manba: seller.uzum.uz/manual/uz/3.tariffs (3.2-boʻlim).
+ *
+ * Bu `kargo` dan BOSHQA xarajat: kargo Xitoydan omborgacha, bu esa
+ * ombordan XARIDORGACHA. Tannarx hisobida u umuman yoʻq edi va
+ * shuning uchun har bir marja 5 250 — 50 000 soʻmga oshib
+ * koʻrsatilardi.
+ */
+export const UZUM_LOGISTIKA = {
+  /** Birinchi litrgacha. */
+  birinchiLitrSom: 5_250,
+  /** Har qoʻshimcha litr. */
+  qoshimchaLitrSom: 250,
+  /** Yuqori chegara — bundan oshmaydi. */
+  engKopSom: 50_000,
+} as const;
+
+/**
+ * Hajmga qarab Uzum logistika yigʻimi.
+ *
+ * `null` — hajm oʻlchanmagan. Uzum qoidasida "oʻlchamsiz tovar —
+ * 50 000 soʻm" degan band bor, lekin uni bu yerda QOʻLLAMAYMIZ:
+ * u sotuvchi oʻlchamni koʻrsatmagan holat uchun jarima. Bizning
+ * hisobimizda hajm nomaʼlum boʻlsa, javob "bilmayman" boʻlishi
+ * kerak — eng yomon holatni taxmin qilsak, foydali tovar
+ * zararli boʻlib chiqardi.
+ */
+export function uzumLogistikaSom(volumeMl: number | null): number | null {
+  const ml = son(volumeMl);
+  if (ml === null) return null;
+  const litr = Math.max(1, Math.ceil(ml / 1000));
+  const som = UZUM_LOGISTIKA.birinchiLitrSom
+    + (litr - 1) * UZUM_LOGISTIKA.qoshimchaLitrSom;
+  return Math.min(som, UZUM_LOGISTIKA.engKopSom);
+}
 
 /** Musbat son boʻlsa oʻzini, aks holda `null`. Nol ham qabul qilinadi. */
 function son(n: number | null): number | null {
@@ -186,15 +224,23 @@ export function tannarxHisobi(k: TannarxKirishi): TannarxNatijasi {
     ? (sotuvNarxi * komF) / 100
     : null;
 
+  const uzumLog = uzumLogistikaSom(k.volumeMl);
+
   const tannarx: Tannarx = yetishmaydi.length > 0
-    ? { ...BOSH, sotuvNarxi, xitoyNarxi, kargo: kg?.som ?? null, bojxonaQqs: bq, komissiya }
-    : { sotuvNarxi, xitoyNarxi, kargo: kg?.som ?? null, bojxonaQqs: bq, komissiya };
+    ? {
+        ...BOSH, sotuvNarxi, xitoyNarxi, kargo: kg?.som ?? null,
+        bojxonaQqs: bq, komissiya, uzumLogistika: uzumLog,
+      }
+    : {
+        sotuvNarxi, xitoyNarxi, kargo: kg?.som ?? null,
+        bojxonaQqs: bq, komissiya, uzumLogistika: uzumLog,
+      };
 
   const foiz = marjaFoizi(tannarx);
   const sofFoydaSom = foiz === null || sotuvNarxi === null || xitoyNarxi === null
-    || kg === null || bq === null || komissiya === null
+    || kg === null || bq === null || komissiya === null || uzumLog === null
     ? null
-    : sotuvNarxi - xitoyNarxi - kg.som - bq - komissiya;
+    : sotuvNarxi - xitoyNarxi - kg.som - bq - komissiya - uzumLog;
 
   return {
     tannarx,
