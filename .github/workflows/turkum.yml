@@ -1,0 +1,62 @@
+# Turkum hajmi — Uzumning OʻZ soni.
+#
+# NEGA SUPURISHDAN ALOHIDA. Ikkalasi bir vaqtda Uzumga soʻrov
+# yuborsa ikkalasi ham sekinlashadi. Bundan tashqari turkum soni
+# tovar qoldigʻidek tez oʻzgarmaydi — kuniga bir marta yetadi.
+#
+# NEGA KERAK. Perepisdagi turkum soni Uzumdagi jonli son bilan
+# bir xil emas va farq ikki tomonga ham ketadi (oʻlchandi:
+# Smartfonlarda biz 5 barobar koʻp, Qoplamalarda 38% kam
+# koʻramiz). Farqning oʻzi qamrov qorovuli.
+
+name: Turkum hajmi (SellerOS)
+
+on:
+  schedule:
+    # 06:30 UTC — supurishlar (04, 12, 20) orasida, ustma-ust
+    # tushmaydi.
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: selleros-turkum
+  cancel-in-progress: false
+
+jobs:
+  yig:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - run: pip install -e '.[dev]'
+        working-directory: apps/scraper
+
+      - name: Yigʻish
+        working-directory: apps/scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # 300 turkum × 4 s ≈ 20 daqiqa.
+        run: python -m selleros_scraper.turkum --soni 300 --kechikish 4
+
+      - name: Qamrov hisoboti
+        if: always()
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          javob=$(curl -sS --max-time 60 -X POST \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" -d '{}' \
+            "$URL/rest/v1/rpc/so_qamrov_hisoboti")
+          echo "$javob"
+          # Hisobot boʻsh boʻlsa jim oʻtmaydi: qamrovni bilmaslik
+          # "qamrov yaxshi" degani emas.
+          if ! printf '%s' "$javob" | grep -q '"turkum"'; then
+            echo "::error::Qamrov hisoboti olinmadi."
+            exit 1
+          fi

@@ -94,6 +94,25 @@ class Store:
             raise StoreError(f"so_select_tracked ro'yxat qaytarmadi: {type(javob).__name__}")
         return [int(x) for x in javob]
 
+    def turkum_royxati(self, client: httpx.Client, limit: int) -> list[int]:
+        """Qaysi turkumlarning hajmi oʻlchanadi (talab boʻyicha).
+
+        `kuzatuv_royxati` bilan bir xil sababdan bitta jsonb massiv
+        qaytaradi: PostgREST qator qaytaradigan soʻrovni 1000 tada
+        JIMGINA kesadi.
+        """
+        javob = self._rpc(client, "so_turkum_royxati", {"p_limit": limit})
+        if not isinstance(javob, list):
+            raise StoreError(
+                f"so_turkum_royxati ro'yxat qaytarmadi: {type(javob).__name__}")
+        return [int(x) for x in javob]
+
+    def turkum_hajmini_yoz(
+        self, client: httpx.Client, royxat: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Uzum aytgan turkum hajmini yozadi."""
+        return self._rpc(client, "so_turkum_hajmi_yoz", {"p_royxat": royxat})
+
     def sotuvni_hisobla(self, client: httpx.Client, kundan: str, kungacha: str) -> dict[str, Any]:
         return self._rpc(client, "so_rollup_sales", {"p_from": kundan, "p_to": kungacha})
 
