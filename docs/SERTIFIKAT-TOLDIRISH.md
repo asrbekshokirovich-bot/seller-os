@@ -104,6 +104,83 @@ Birinchi oʻntalik (talab — oʻlchangan, taxmin emas):
 Hammasini toʻldirish shart emas. **Bittasini** toʻldirsangiz ham
 oʻsha turkum boʻyicha filtr darhol ishlay boshlaydi.
 
+## Nazoratchi aynan NIMA qilishi kerak
+
+> Qisqa javob: **huquqiy qaror qabul qilish shart emas.**
+> Menga roʻyxatning MATNI kerak, xulosa emas. Uzum turkumlariga
+> moslashtirishni oʻzim qilaman.
+
+### Nima allaqachon bor
+
+`VMQ 148, 02.04.2022` (lex.uz/docs/-5936141) dan 13 ta turkum
+olingan — hammasi maishiy texnika:
+
+| Guruh | Turkumlar |
+|---|---|
+| 1-guruh | muzlatgich, kir yuvish mashinasi, televizor, changyutgich |
+| 2-guruh | dazmol, gaz pechka, mikrotoʻlqinli pech |
+| 3-guruh | konditsioner, blender, mikser |
+
+### Nima yetishmayapti
+
+Foydalanuvchilarga eng koʻp tavsiya qilinadigan turkumlar bu
+roʻyxatda **umuman yoʻq**: smartfon, simsiz quloqchin, parfyum,
+kosmetika, krossovka, zargarlik.
+
+Yaʼni ular boshqa hujjatga tegishli yoki umuman talab yoʻq —
+va men buni bilmayman.
+
+### Uch manba, arzonidan boshlab
+
+**1. Uzumning oʻz sotuvchi hujjatlari — eng arzon va eng aniq.**
+
+Uzum sotuvchidan qaysi turkumlarda sertifikat soʻrashini oʻzi
+belgilaydi va buni sotuvchi kabinetida/qoʻllanmasida yozadi.
+Aynan shu narsa savdoni toʻxtatadi — qonun emas, platformaning
+talabi.
+
+Kerak: sotuvchi kabinetidagi yoki yordam boʻlimidagi
+&laquo;qanday turkumlarda sertifikat kerak&raquo; roʻyxati.
+Skrinshot ham boʻladi.
+
+**2. lex.uz — asosi.**
+
+Qidiruv soʻzlari: *majburiy sertifikatlashtirish*,
+*muvofiqlik sertifikati*, *majburiy sertifikatlash roʻyxati*.
+
+Kerak: hujjat nomi, sanasi, havolasi va **ilovadagi tovar
+roʻyxati matni**.
+
+**3. Sertifikatlashtirish organi yoki huquqshunos** — faqat
+`entry_cost_uzs` va `entry_weeks` uchun. Bu majburiy emas,
+filtr busiz ham ishlaydi.
+
+### Menga qanday yuborish kerak
+
+Quyidagilarning **istalgan bittasi** yetadi:
+
+* lex.uz sahifasiga havola,
+* roʻyxat matnini nusxalab tashlash,
+* skrinshot,
+* Uzum kabinetidagi roʻyxat rasmi.
+
+CSV ni oʻzingiz toʻldirishingiz **shart emas**. Roʻyxatni
+bersangiz, men uni Uzum turkumlariga moslashtirib, `source`
+maydonini toʻldirib, faylga yozaman va bazaga qoʻyaman.
+
+Bir shart bor: **xulosa emas, MANBA kerak.** &laquo;Menimcha
+parfyumga sertifikat kerak&raquo; degan gap yozilmaydi — chunki
+keyin uni hech kim qayta tekshira olmaydi va bir yildan keyin
+qoida oʻzgarsa, buni hech narsa koʻrsatmaydi.
+
+### Eng kichik foydali qadam
+
+Bittagina turkumni oling — masalan **Simsiz quloqchinlar**
+(talab 265 835). Uzum kabinetida yoki lex.uz da shu boʻyicha
+nima yozilganini toping va menga tashlang.
+
+Bitta turkum ham filtrni oʻsha yerda darhol ishga tushiradi.
+
 ## Toʻldirgandan keyin nima boʻladi
 
 1. Fayl `so_talablarni_yoz` orqali bazaga tushadi.
