@@ -85,7 +85,13 @@ export function yopiqBrend(t: TovarHolati): Flag | Baholanmadi | null {
     reason:
       'Bu brendni faqat egasi sotadi — bu imkoniyat emas, yopiq eshik. ' +
       `Sotuv katta, lekin hech kim kira olmagan: brendning butun ` +
-      `assortimentini ${brendDokonlari} ta doʻkon sotadi.`,
+      `assortimentini ${brendDokonlari} ta doʻkon sotadi. ` +
+      // Oqibat AYNAN nima ekani Uzumning oʻz qoidasidan olindi.
+      // "Yopiq brend" degan gap oʻzicha mavhum: sotuvchi nima
+      // boʻlishini bilmasa, ogohlantirishni jiddiy qabul qilmaydi.
+      'Uzum bunday tovarga huquq egasidan ruxsat hujjatini soʻraydi: ' +
+      'uch kun ichida topshirilmasa, kartochka bloklanadi ' +
+      '(Uzum sotuvchi qoʻllanmasi, 2-boʻlim).',
     evidence: {
       yangi_emasligi: tarixdan
         ? `sotuvchilar soni ${t.sellersStableDays} kun oʻzgarmagan`
