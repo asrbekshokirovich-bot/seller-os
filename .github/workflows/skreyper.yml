@@ -153,6 +153,37 @@ jobs:
           fi
           echo "$n ta sotuv bahosi yozildi."
 
+      # Brend qamrovi — PEREPISDAN, namunadan emas.
+      #
+      # NEGA SHU YERDA VA NEGA BAYROQLARDAN OLDIN. 1-tuzoq (yopiq
+      # brend) "brendni nechta doʻkon sotadi" degan savolga
+      # tayanadi. Javob eskirgan boʻlsa bayroq ham eskirgan
+      # boʻladi, shuning uchun bayroqlar hisoblanishidan OLDIN
+      # yangilanadi.
+      #
+      # Hisob 1,85 mln qatorni kechib oʻtadi (~31 s), shuning
+      # uchun u har soʻrovda emas, supurishdan keyin bir marta
+      # bajariladi — `so_yonalish_yangila` bilan bir xil naqsh.
+      - name: Brend qamrovini yangilash
+        if: always()
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          javob=$(curl -sS --max-time 320 -X POST \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" -d '{}' \
+            "$URL/rest/v1/rpc/so_brend_yangila")
+          echo "$javob"
+          n=$(printf '%s' "$javob" | sed -n 's/.*"brendlar"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p')
+          # Nol brend "brend yoʻq" degani EMAS — "hisoblanmadi" degani.
+          # Kesh eskirsa 1-tuzoq jimgina notoʻgʻri javob beradi.
+          if [ -z "$n" ] || [ "$n" -eq 0 ]; then
+            echo "::error::Brend qamrovi yangilanmadi — bitta ham brend yozilmadi."
+            exit 1
+          fi
+          echo "$n ta brend yangilandi."
+
       # Tuzoq bayroqlarini qayta hisoblash.
       #
       # NEGA SHU YERDA. Filtrlar har soʻrovda xotirada ishlaydi va

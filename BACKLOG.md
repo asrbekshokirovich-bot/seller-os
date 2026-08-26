@@ -258,16 +258,42 @@ kim 3-qadamga oʻta olmasdi. Holati `/health` javobida
 
 GraphQL introspeksiyasi ochiq. Quyidagilar OʻLCHANDI, taxmin emas.
 
-### `brand` — Uzumda umuman yoʻq
+### `brand` — Uzumda umuman yoʻq (2026-08-26 da QAYTA oʻlchandi)
 
-`Product` turida brend maydoni YOʻQ. 15 ta tovarning
-`characteristics` ro'yxati ham qaraldi: faqat "Rang", "Razmer",
-"Erkaklar poyabzali oʻlchami EUR" chiqdi — brend hech qayerda yoʻq.
+`Product` turida brend maydoni YOʻQ.
+
+Ilgari bu yerda "15 ta tovarning `characteristics` roʻyxati
+qaraldi" deb yozilgan edi. 15 ta — kam, va u turkumga bogʻliq:
+elektronikada bor, urugʻda yoʻq boʻlishi mumkin. Shuning uchun
+qayta oʻlchandi — **40 xil turkumdan bittadan, hammasi javob
+berdi**:
+
+  har xil xarakteristika nomi:  4
+  'Rang' (10×), "O'lcham" (2×), 'Kiyim oʻlchami' (2×),
+  'Kamar oʻlchami' (1×)
+
+Brend hech qayerda yoʻq. Endi bu xulosa 40 turkumga tayanadi.
+
+`makeSearch` facets ham tekshirildi (pastga qarang) — **429**.
+Perepisda ham brend ustuni yoʻq (`zumsavdo` sxemasining hamma
+jadvali qaraldi).
 
 Shuning uchun `product.brand` 6 025 tovardan atigi 10 tasida toʻlgan
 va `brend_topish()` (doʻkon nomi tovar sarlavhasida uchraydimi)
 181 tasini topadi — jami **3%**. 1-tuzoq (yopiq brend) shu 3% da
 ishlaydi, qolganida "baholanmadi".
+
+**LEKIN oʻsha 3% da ham javob NOTOʻGʻRI edi** — brendni sotuvchi
+doʻkonlar bizning 6 000 lik namunadan sanalardi. Tuzatildi
+(0039-migratsiya): endi perepisdan, 1,85 mln tovardan. Bayroq
+37 → 6 ga tushdi, yaʼni 31 ta tovar notoʻgʻri bloklanayotgan edi.
+
+Qamrovni 3% dan oshirish uchun brend LUGʻATI kerak va uni
+Uzumdan ololmadik. Sarlavhadan chiqarish ham sinaldi: lotin
+tokenlarining eng koʻp uchraydiganlari oddiy oʻzbekcha soʻzlar
+("uchun" 18 013 doʻkonda, "ayollar" 6 114). Lugʻatsiz ajratib
+boʻlmaydi, taxmin qilib yozish esa `block` bayrogʻini notoʻgʻri
+yoqardi — bu eng qimmat xato turi.
 
 ### `makeSearch` facets — brend roʻyxati SHU YERDA boʻlishi mumkin
 
@@ -279,6 +305,17 @@ toʻgʻri — u subgrafgacha yetdi.
 LEKIN maʼlumot olinmadi: `search-gateway` bizning mijozga **429
 Too Many Requests** qaytardi va 75 soniya kutgandan keyin ham
 qaytardi. Yaʼni qidiruv uchi mahsulot uchidan qattiqroq cheklangan.
+
+*2026-08-26 da qayta sinaldi.* Introspeksiya ISHLAYDI (soʻrov
+shakli toʻliq olindi: `showAdultContent`, `filters`, `sort`,
+`pagination` majburiy). Toʻgʻri shakldagi BIRINCHI facets
+soʻrovi ham darhol 429 berdi — yaʼni bu tezlik masalasi emas,
+`search-gateway` bizga umuman ochiq emas. Mahsulot uchi esa oʻsha
+seansda 40 ta soʻrovni xatosiz bajardi.
+
+Yaʼni sekinlashtirish yordam bermaydi; boshqa yoʻl kerak
+(proksi yoki roʻyxatdan oʻtgan sessiya). Yana urinishdan oldin
+shuni hisobga oling.
 
 Kerak boʻlsa: soʻrovni `hurmat.py` orqali, sekin va kam sonli
 oʻtkazish — alohida ish sifatida, supurish bilan bir vaqtda emas.
