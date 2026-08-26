@@ -1,5 +1,5 @@
 import {
-  hype, mavsumiy, monopoliya, nakrutka, ogir, TRAP_LABEL, yopiqBrend,
+  hype, mavsumiy, monopoliya, nakrutka, ogir, sertifikat, TRAP_LABEL, yopiqBrend,
 } from './shared/index.ts';
 import type {
   Baholanmadi, Flag, TovarHolati, TovarToliq, TrapKind, TurkumHolati,
@@ -72,6 +72,26 @@ export function tovarniTekshir(
     weightG: t.weightG ?? null,
     volumeMl: t.volumeMl ?? null,
     oversized: t.oversized ?? null,
+  }));
+
+  /*
+   * 5-tuzoq — sertifikat/markirovka.
+   *
+   * Filtr yozilgan va sinalgan edi, lekin ishlab chiqarish kodi uni
+   * HECH QACHON chaqirmasdi. Sababi bor edi: maʼlumot yoʻq boʻlsa
+   * u har tovarda "baholanmadi" deb qaytarardi va faqat shovqin
+   * qoʻshardi.
+   *
+   * 2026-08-26 da maʼlumot paydo boʻldi (VMQ 502, 4-ilova), yaʼni
+   * sabab yoʻqoldi.
+   */
+  yoz('certification', sertifikat({
+    categoryId: 0,
+    markingRequired: t.markingRequired ?? null,
+    certificateRequired: t.certificateRequired ?? null,
+    entryCostUzs: t.entryCostUzs ?? null,
+    entryWeeks: t.entryWeeks ?? null,
+    source: t.talabManbasi ?? null,
   }));
 
   yoz('seasonal', mavsumiy({

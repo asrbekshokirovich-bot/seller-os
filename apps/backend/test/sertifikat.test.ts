@@ -15,6 +15,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { sertifikat, type Flag, type KirishTalablari } from '@selleros/shared';
+import { tovarniTekshir } from '../src/tahlil.js';
 
 /** Natijani bayroq deb o'qiydi. Bayroq bo'lmasa test shu yerda yiqiladi. */
 function bayroq(n: ReturnType<typeof sertifikat>): Flag {
@@ -121,5 +122,55 @@ describe('talab bor', () => {
   it('dalilda manba doim bo\'ladi', () => {
     const n = bayroq(sertifikat(talab({ markingRequired: true, source: 'asilbelgi' })));
     expect(n.evidence.manba).toBe('asilbelgi');
+  });
+});
+
+/**
+ * 5-tuzoq UCHGA ULANDI (2026-08-26).
+ *
+ * Filtr yozilgan va sinalgan edi, lekin ishlab chiqarish kodi uni
+ * hech qachon chaqirmasdi — chunki maʼlumot yoʻq edi va u har
+ * tovarda "baholanmadi" deb shovqin qoʻshardi.
+ *
+ * Endi maʼlumot bor (VMQ 502, 4-ilova), yaʼni sabab yoʻqoldi.
+ */
+describe('tovarniTekshir — 5-tuzoq ulangan', () => {
+  const asos = {
+    productId: 1, title: 'Parfyum', brand: null,
+    soldUnits30d: null, sotuvManbasi: null,
+  } as unknown as Parameters<typeof tovarniTekshir>[0];
+
+  it('sertifikat talabi bayroq beradi', () => {
+    const n = tovarniTekshir({
+      ...asos,
+      certificateRequired: true,
+      talabManbasi: 'VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band',
+    }, { oy: 6 });
+    const b = n.bayroqlar.find((x) => x.kind === 'certification');
+    expect(b, 'sertifikat bayrogʻi berilmadi').toBeDefined();
+    expect(b?.severity).toBe('note');
+    expect(b?.reason).toContain('sertifikat');
+  });
+
+  /*
+   * MANBASIZ QATORGA TAYANILMAYDI. Huquqiy talab oʻzgaradi va
+   * qayerdan olingani bilinmasa uni qayta tekshirib boʻlmaydi.
+   */
+  it('manba boʻlmasa baholanmaydi', () => {
+    const n = tovarniTekshir({ ...asos, certificateRequired: true }, { oy: 6 });
+    expect(n.bayroqlar.find((x) => x.kind === 'certification')).toBeUndefined();
+    expect(n.baholanmadi.find((x) => x.filtr === 'certification')?.missing)
+      .toContain('source');
+  });
+
+  it('talab yoʻq — bayroq ham yoʻq, baholanmadi ham yoʻq', () => {
+    const n = tovarniTekshir({
+      ...asos,
+      markingRequired: false,
+      certificateRequired: false,
+      talabManbasi: 'VMQ 502, 4-ilova — roʻyxatda yoʻq',
+    }, { oy: 6 });
+    expect(n.bayroqlar.find((x) => x.kind === 'certification')).toBeUndefined();
+    expect(n.baholanmadi.find((x) => x.filtr === 'certification')).toBeUndefined();
   });
 });

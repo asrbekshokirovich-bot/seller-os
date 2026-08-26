@@ -121,6 +121,19 @@ export interface TovarToliq extends TovarHolati {
   oversized?: boolean | null;
   /** 2-tuzoq. Turkumning 12 oylik koeffitsienti. */
   seasonality?: number[] | null;
+  /**
+   * 5-tuzoq. Turkumga kirish talablari — `category_requirements` dan.
+   *
+   * Uchala maydon ham uch holatli: `true` / `false` / `null`.
+   * `source` boʻsh boʻlsa filtr qatorni umuman ishlatmaydi —
+   * huquqiy talab oʻzgaradi va manbasiz qiymatni qayta tekshirib
+   * boʻlmaydi.
+   */
+  markingRequired?: boolean | null;
+  certificateRequired?: boolean | null;
+  entryCostUzs?: number | null;
+  entryWeeks?: number | null;
+  talabManbasi?: string | null;
   /** 8-tuzoq. Tovar necha kundan beri Uzumda. */
   productAgeDays?: number | null;
   /** 8-tuzoq. Sotuvning qancha ulushi soʻnggi oynada (0–1). */
