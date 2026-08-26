@@ -55,14 +55,41 @@ Toʻliq hisobot: `docs/B1-TEKSHIRUV.md`.
 5. Eval testlari yoʻq (QOIDALAR §5 merge uchun talab qiladi).
 6. `minSellerCoveragePercent = 50` atigi 7 ta oʻlchov nuqtasiga tayanadi.
 
-## Qoldiq faqat 6 ta tovarda o'lchangan
+## ~~Qoldiq faqat 6 ta tovarda oʻlchangan~~ — YOPILDI, va ostidan xato chiqdi
 
-`so_rollup_days` ishlaydi, lekin hozircha 0 qator chiqaradi: har
-tovarda bitta qoldiq o'lchovi bor, farq yo'q. Ikkinchi o'lchovdan
-keyin sotuv hisoblana boshlaydi.
+*2026-08-26.* Oʻlchov endi 5 996 tovarda, kuniga 3—4 marta.
 
-Kerak: 2-qatlam tsikli kuniga kamida 2 marta o'lchasin (`certainty`
-`o'rta` bo'lishi uchun), imkoni bo'lsa 3 marta (`yuqori`).
+Lekin shu yerni tekshirayotib ASOSIY nosozlik topildi:
+`so_rollup_sales` qoldiq farqini oladigan `lag()` oynasi KUN
+BOʻYICHA boʻlingan edi, yaʼni kechagi oxirgi oʻlchov bilan
+bugungi birinchi oʻlchov orasidagi harakat butunlay yoʻqolardi.
+
+Oʻlchandi: harakatning **27,6%** i tashlanardi.
+
+  kun ichida        5 274 dona   sanaladi
+  kun chegarasida   1 615 dona   TASHLANARDI
+  uzoq tanaffusda     394 dona   TASHLANARDI
+
+Zanjir boʻylab kattalashardi: sotuv kam → aylanma katta → ombor
+saqlash haqi katta → FOYDALI tovar zararli deb koʻrsatilardi.
+
+Tuzatildi: 0038-migratsiya. Natija 08-25 da 955 → 2 308,
+08-26 da 142 → 798.
+
+Bu yerda ikkinchi bir narsa ham topildi: `so_rollup_days` —
+0010-migratsiyadagi ikkinchi hisoblovchi — **hech kim
+chaqirmasdi va chaqirilsa darhol yiqilardi** (`certainty` ga
+'yuqori'/'orta'/'past' yozardi, CHECK esa faqat 'exact'/'approx'
+ga ruxsat beradi). Oʻchirildi.
+
+`certainty` ustuni hamon 'approx': qoldiq farqi platformaning oʻz
+soni emas va 'exact' qilish yolgʻon boʻlardi. Yetishmayotgan
+maʼlumot — kuniga necha marta oʻlchagani — endi alohida
+ustunda (`olchov_soni`), yorliqqa tiqilmagan.
+
+Qoladi: `tovar_sotuvi` oʻlchangan sotuvni ishlatishi uchun 7 kun
+kerak (`THRESHOLDS.data.minDaysForDemand`). Bugun 3 kun bor,
+yaʼni 2026-08-30 atrofida oʻzi oʻtadi.
 
 ## ~~1-qadam formasi~~ — YOZILDI, lekin javob SAQLANMAYDI
 
