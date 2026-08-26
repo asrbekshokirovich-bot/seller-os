@@ -92,6 +92,7 @@ export function tovarniTekshir(
     entryCostUzs: t.entryCostUzs ?? null,
     entryWeeks: t.entryWeeks ?? null,
     source: t.talabManbasi ?? null,
+    izoh: t.talabIzohi ?? null,
   }));
 
   yoz('seasonal', mavsumiy({

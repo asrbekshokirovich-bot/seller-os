@@ -1,7 +1,7 @@
 category_external_id,marking_required,certificate_required,entry_cost_uzs,entry_weeks,optimal_entry_uzs,seasonality,source,note
-12236,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 2-guruh","Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan."
-12601,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh","Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan."
-12894,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh","Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan."
+12236,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 2-guruh",Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan.
+12601,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh",Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan.
+12894,1,,,,,,"VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh",Qoʻlda tekshirilgan. Sertifikat holati BILINMAYDI — boʻsh qoldirilgan.
 12585,,,,,,"1.9,1.7,1.1,0.6,0.4,0.3,0.3,0.3,0.6,1.1,1.6,2.1","Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.","Isitgichlar — qish oylarida. Shakl (qaysi oy yuqori) ishonchli, amplituda esa taxminiy."
 12608,,,,,,"1.9,1.7,1.1,0.6,0.4,0.3,0.3,0.3,0.6,1.1,1.6,2.1","Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.","Havo namlagichlar — isitish mavsumida havo quruq. Shakl (qaysi oy yuqori) ishonchli, amplituda esa taxminiy."
 14552,,,,,,"1.9,1.7,1.1,0.6,0.4,0.3,0.3,0.3,0.6,1.1,1.6,2.1","Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.","Puxli va qishki kurtkalar. Shakl (qaysi oy yuqori) ishonchli, amplituda esa taxminiy."
@@ -33,15 +33,19 @@ category_external_id,marking_required,certificate_required,entry_cost_uzs,entry_
 13407,,,,,,"0.5,0.6,0.9,0.6,0.6,0.6,0.6,0.6,0.7,0.8,1.4,4.1","Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.","Otkritkalar. Shakl (qaysi oy yuqori) ishonchli, amplituda esa taxminiy."
 10057,,,,,,"0.5,1.2,2.4,2.2,1.3,0.6,0.4,0.4,0.9,1.1,0.6,0.4","Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.","Urugʻlar — bahorgi ekish. Shakl (qaysi oy yuqori) ishonchli, amplituda esa taxminiy."
 13907,,,,,,"0.6,0.6,0.7,0.8,1,1.6,2,2.2,1,0.6,0.5,0.4","Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.","Abituriyentlarga — hujjat topshirish mavsumi. Shakl (qaysi oy yuqori) ishonchli, amplituda esa taxminiy."
-12648,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band","Parfyumlangan suv. Muvofiqlik SERTIFIKATI boʻlimi, 3301—3307 — parfyumeriya va kosmetika. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-12144,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band","Lab boʻyoqlari. Muvofiqlik SERTIFIKATI boʻlimi, 3301—3307 — pardoz-andoz vositalari. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-13694,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band","Blesklar. Muvofiqlik SERTIFIKATI boʻlimi, 3301—3307 — pardoz-andoz vositalari. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-12439,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band","Tonal kremlar. Muvofiqlik SERTIFIKATI boʻlimi, 3301—3307 — pardoz-andoz vositalari. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-11878,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band","Shampunlar. Muvofiqlik SERTIFIKATI boʻlimi, 3301—3307 — soch uchun vositalar (3305). Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-14251,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band","Kiprik uchun tushlar. Muvofiqlik SERTIFIKATI boʻlimi, 3301—3307 — pardoz-andoz vositalari (3304). Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-13983,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 43-band","Krossovkalar. Muvofiqlik SERTIFIKATI boʻlimi, 6401—6405 — tayyor oyoq kiyim. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-14237,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 43-band","Krossovkalar. Muvofiqlik SERTIFIKATI boʻlimi, 6401—6405 — tayyor oyoq kiyim. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-12336,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 62-band","Yumshoq oʻyinchoqlar. Muvofiqlik SERTIFIKATI boʻlimi, 9503 00 — oʻyinchoqlar. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-11956,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 40-band","Futbolkalar. Muvofiqlik SERTIFIKATI boʻlimi, 6205—6209 — maykalar va ichki fufaykalar. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-12147,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 40-band","Kalta yengli futbolkalar. Muvofiqlik SERTIFIKATI boʻlimi, 6205—6209 — maykalar va ichki fufaykalar. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
-12834,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 39-band","Pijamalar. Muvofiqlik SERTIFIKATI boʻlimi, 6105—6109 — pijamalar aynan sanab oʻtilgan. Markirovka holati bu hujjatda yoʻq — boʻsh qoldirildi."
+12648,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",muvofiqlik sertifikati
+12144,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",muvofiqlik sertifikati
+13694,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",muvofiqlik sertifikati
+12439,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",muvofiqlik sertifikati
+11878,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",muvofiqlik sertifikati
+14251,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",muvofiqlik sertifikati
+13983,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 43-band",muvofiqlik sertifikati
+14237,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 43-band",muvofiqlik sertifikati
+12336,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 62-band",muvofiqlik sertifikati
+11956,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 40-band",muvofiqlik sertifikati
+12147,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 40-band",muvofiqlik sertifikati
+12834,,1,,,,,"VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 39-band",muvofiqlik sertifikati
+13061,,,,,,,Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements),"TEKSHIRILDI: talab materialga bogʻliq. Qimmatbaho metallga Davlat probir nazorati ruxsatnomasi kerak, bijuteriyaga kerak emas. Turkum darajasida hal qilib boʻlmaydi."
+11894,,,,,,,Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements),TEKSHIRILDI: talab materialga bogʻliq — turkum darajasida hal qilib boʻlmaydi.
+11574,,,,,,,Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements),TEKSHIRILDI: talab materialga bogʻliq — turkum darajasida hal qilib boʻlmaydi.
+12476,,,,,,,Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements),TEKSHIRILDI: talab materialga bogʻliq — turkum darajasida hal qilib boʻlmaydi.

@@ -21,6 +21,18 @@ export interface KirishTalablari {
   entryWeeks: number | null;
   /** Maʼlumot qayerdan olindi. Manbasiz qator ishlatilmaydi. */
   source: string | null;
+  /**
+   * Talab AYNAN nima ekani — bir jumla.
+   *
+   * NEGA KERAK. `certificateRequired` faqat "hujjat kerak" deydi,
+   * qaysi hujjat ekanini aytmaydi. Amalda ular juda har xil:
+   * kosmetikaga muvofiqlik sertifikati, zargarlik buyumlariga esa
+   * Davlat probir nazorati inspeksiyasining RUXSATNOMASI kerak.
+   *
+   * Ikkalasini ham "sertifikat kerak" deb koʻrsatsak, sotuvchi
+   * notoʻgʻri joyga borardi va vaqtini yoʻqotardi.
+   */
+  izoh?: string | null;
 }
 
 /**
@@ -84,7 +96,9 @@ export function sertifikat(t: KirishTalablari): Flag | Baholanmadi | null {
   // Xarajat va muddat `null` boʻlsa — jimgina nol yozilmaydi. "0 soʻm,
   // 0 hafta" degan xabar "arzon va tez" degan taassurot beradi, holbuki
   // aslida "bilmaymiz".
-  const qismlar: string[] = [`Kirishdan oldin: ${talablar.join(' + ')}`];
+  const qismlar: string[] = [
+    t.izoh ? `Kirishdan oldin: ${t.izoh}` : `Kirishdan oldin: ${talablar.join(' + ')}`,
+  ];
   // Qolgan maydon tekshirilmagan boʻlsa, buni ham aytamiz — "faqat
   // markirovka kerak ekan" degan notoʻgʻri xotirjamlik tugʻilmasin.
   if (t.markingRequired === null) qismlar.push('markirovka holati tekshirilmagan');

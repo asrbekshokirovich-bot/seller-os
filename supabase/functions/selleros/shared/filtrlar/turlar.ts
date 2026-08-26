@@ -134,6 +134,8 @@ export interface TovarToliq extends TovarHolati {
   entryCostUzs?: number | null;
   entryWeeks?: number | null;
   talabManbasi?: string | null;
+  /** Talab aynan nima ekani — bir jumla. */
+  talabIzohi?: string | null;
   /** 8-tuzoq. Tovar necha kundan beri Uzumda. */
   productAgeDays?: number | null;
   /** 8-tuzoq. Sotuvning qancha ulushi soʻnggi oynada (0–1). */

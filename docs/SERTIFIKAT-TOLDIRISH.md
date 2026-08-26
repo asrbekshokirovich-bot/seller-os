@@ -181,6 +181,68 @@ nima yozilganini toping va menga tashlang.
 
 Bitta turkum ham filtrni oʻsha yerda darhol ishga tushiradi.
 
+## Topilgan manbalar (2026-08-26)
+
+### 1. VM qarori 502-son, 14.08.2024 — lex.uz/docs/-7080176
+
+**4-ilova: "Majburiy tartibda muvofiqligi baholanishi lozim boʻlgan
+mahsulotlar ROʻYXATI".** 15.11.2024 dan amalda. Bu bekor qilingan
+1513-hujjatning oʻrnini bosgan.
+
+108 ta band, ikki boʻlim:
+
+| Bandlar | Talab |
+|---|---|
+| 1—65 | muvofiqlik **sertifikati** |
+| 66—108 | muvofiqlik **deklaratsiyasi** (xavfi past) |
+
+Shu roʻyxatdan **12 ta turkum** toʻldirildi: parfyum va kosmetika
+(15-band), oyoq kiyim (43-band), oʻyinchoq (62-band), trikotaj
+kiyim (39/40-band).
+
+### 2. Uzum sotuvchi qoʻllanmasi — seller.uzum.uz/manual/uz/2.seller-requirements
+
+Platformaning OʻZ talabi. Savdoni aynan shu toʻxtatadi.
+
+| Toifa | Uzum talab qiladigan hujjat |
+|---|---|
+| Zargarlik buyumlari | Davlat probir nazorati inspeksiyasi **ruxsatnomasi** |
+| Oziq-ovqat | SES sertifikati + muvofiqlik sertifikati; yaroqlilik muddatining ≥60% yoki ≥6 oy qolgan boʻlishi |
+| BAD, vitamin, sport ovqati, tibbiy texnika | SES + muvofiqlik sertifikati |
+| Kosmetika, maishiy kimyo | muvofiqlik sertifikati |
+| Bolalar tovarlari | muvofiqlik sertifikati majburiy |
+| Kamerali dronlar | qonunchilik boʻyicha ruxsat |
+
+Hujjatlar **3 ish kuni** ichida qoʻlda tekshiriladi.
+
+### Zargarlik — turkum darajasida hal qilib BOʻLMAYDI
+
+Uzum zargarlik buyumlariga probir ruxsatnomasini talab qiladi.
+Lekin `Ziraklar`, `Uzuklar`, `Bilaguzuklar`, `Zanjirlar`
+turkumlaridagi tovarlarning koʻpi **bijuteriya**: "zanglamas
+poʻlat", "XUPING", "obmanka". Ular qimmatbaho metall emas.
+
+Yaʼni bitta turkum ichida talab bor tovar ham, yoʻq tovar ham bor.
+Turkumga `1` qoʻysak, bijuteriya sotmoqchi boʻlgan odamga yoʻq
+talabni koʻrsatardik.
+
+Shuning uchun bayroq **qoʻyilmadi**, lekin tekshirilgani yozib
+qoʻyildi — keyingi safar qaytadan qidirilmasin. Buni hal qilish
+uchun tovar darajasida material aniqlanishi kerak.
+
+### Hali toʻldirilmagan — va nega
+
+**Smartfon, simsiz quloqchin, soat, noutbuk, planshet** — VMQ 502
+roʻyxatida yoʻq. Bu "kerak emas" degani EMAS: alohida hujjatga
+tegishli boʻlishi mumkin. `0` yozish "tekshirdim, kerak emas"
+degan daʼvo boʻlardi.
+
+**Sumka, shim, palto** — VMQ 502 ning DEKLARATSIYA boʻlimida
+(77, 86, 87-bandlar). `certificate_required` ikki holatli,
+deklaratsiya esa sertifikat emas. Uni `1` deb yozish ham, `0` deb
+yozish ham notoʻgʻri. Sxemaga uchinchi qiymat kerak —
+nazoratchining qarori.
+
 ## Toʻldirgandan keyin nima boʻladi
 
 1. Fayl `so_talablarni_yoz` orqali bazaga tushadi.
