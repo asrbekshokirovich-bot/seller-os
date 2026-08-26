@@ -108,18 +108,34 @@ revoke all on function public.so_turkum_hajmi_yoz(jsonb) from public, anon, auth
 grant execute on function public.so_turkum_hajmi_yoz(jsonb) to service_role;
 
 -- Qamrov hisoboti: perepis Uzumda koʻringan tovarning qanchasini koʻradi.
+--
+-- Birinchi variantim PostgREST orqali YIQILDI (57014, statement
+-- timeout): har turkum uchun alohida `count(*)` qilardi — 300 ta
+-- bogʻlangan pastki soʻrov, har biri 1,85 mln qatorli jadvalga.
+-- Toʻgʻridan-toʻgʻri SQL da ishlardi, PostgREST da esa yoʻq —
+-- yaʼni "menda ishladi" yetarli emasligining yana bir misoli.
+--
+-- Endi perepis bir marta guruhlanadi: 2,0 s.
 create or replace function public.so_qamrov_hisoboti()
 returns jsonb
 language sql
 security definer
 set search_path to 'selleros', 'public'
+-- Chegara ATAYLAB yoziladi: sekinlashsa "javob yoʻq" emas,
+-- "vaqt tugadi" deb bilinsin.
+set statement_timeout to '60s'
 stable
 as $$
-  with juft as (
-    select h.category_external_id cid, h.uzum_total,
-           (select count(*) from zumsavdo.product p
-             where p.category_id = h.category_external_id)::int bizda
+  with perepis as (
+    select category_id, count(*)::int as bizda
+    from zumsavdo.product
+    where category_id is not null
+    group by category_id
+  ),
+  juft as (
+    select h.uzum_total, coalesce(p.bizda, 0) as bizda, h.olchandi
     from selleros.turkum_hajmi h
+    left join perepis p on p.category_id = h.category_external_id
     where h.uzum_total > 0
   )
   select jsonb_build_object(
@@ -133,11 +149,38 @@ as $$
         order by bizda::numeric / uzum_total)::numeric, 1),
     'kam_koradiganlar', count(*) filter (where bizda < uzum_total * 0.8),
     'kop_koradiganlar', count(*) filter (where bizda > uzum_total * 1.2),
-    'olchandi', max((select olchandi from selleros.turkum_hajmi h2
-                      where h2.category_external_id = juft.cid))
+    'olchandi', max(olchandi)
   )
   from juft;
 $$;
 
 revoke all on function public.so_qamrov_hisoboti() from public;
 grant execute on function public.so_qamrov_hisoboti() to anon, authenticated, service_role;
+
+-- ============================================================
+-- BIRINCHI TOʻLIQ OʻLCHOV — 2026-08-26, 300 turkum
+-- ============================================================
+--
+--   turkum                       300
+--   Uzumda jami              730 363
+--   bizda jami               991 847
+--   mediana nisbat             157,8%
+--   kam koʻradiganlar (<80%)      34
+--   koʻp koʻradiganlar (>120%)   210
+--
+-- Yaʼni 300 turkumdan 210 tasida biz Uzum koʻrsatganidan KOʻP
+-- sanaymiz. Sabab yuqorida: perepis roʻyxatdan olingan tovarni
+-- ham saqlaydi.
+--
+-- Lekin 34 tasida KAM koʻramiz va bu bizning boʻshligʻimiz:
+--
+--   Qoplamalar                        19 796 / 31 776   62%
+--   Avtomobil breloklari gʻiloflari     3 457 / 12 112   29%
+--   Quyoshdan himoya koʻzoynaklari      4 400 /  8 414   52%
+--   Futbolkalar                         7 702 / 11 959   64%
+--   Tungi kiyimlar                      1 882 /  3 898   48%
+--
+-- Bu roʻyxat keyingi ish uchun: perepis nima uchun bu
+-- turkumlarni toʻliq koʻrmayotganini aniqlash kerak. Bugun
+-- FAQAT OʻLCHANDI — sabab hali maʼlum emas va taxmin
+-- yozilmaydi.

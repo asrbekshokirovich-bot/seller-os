@@ -359,11 +359,39 @@ Shuning uchun 1-tuzoq qamrovini 3% dan oshirishning **maʼlum
 yoʻli qolmadi**. Panel buni yashirmaydi: `brandSellersCount`
 500 tovardan 469 tasida yetishmaydi deb koʻrsatiladi.
 
-**YON TOPILMA — `total` bepul keladi va u foydali.** Oʻsha
-soʻrov turkumdagi tovarlar sonini Uzumning OʻZIDAN beradi
-(Krossovkalar 1 856). Hozir raqobat perepisdan hisoblanadi;
-Uzumning oʻz soni bilan solishtirish perepis qamrovini
-tekshirish uchun mustaqil oʻlchov boʻlardi. Alohida ish.
+**YON TOPILMA — `total` bepul keladi va u foydali.** Bu ish
+qilindi (0040-migratsiya, `turkum.yml`). Birinchi toʻliq oʻlchov
+2026-08-26, 300 turkum:
+
+    Uzumda jami              730 363
+    bizda jami               991 847
+    mediana nisbat             157,8%
+    kam koʻradiganlar (<80%)      34
+    koʻp koʻradiganlar (>120%)   210
+
+## Perepis 34 turkumni toʻliq koʻrmayapti — sabab NOMAʼLUM
+
+*2026-08-26.* Yuqoridagi oʻlchovning ochiq qolgan qismi.
+
+300 turkumdan 210 tasida biz Uzum koʻrsatganidan koʻp sanaymiz
+va buning sababi maʼlum: perepis roʻyxatdan olingan tovarni ham
+saqlaydi (id boʻyicha topilgan hamma narsa).
+
+Lekin 34 tasida KAM koʻramiz va bu bizning boʻshligʻimiz:
+
+    Qoplamalar                        19 796 / 31 776   62%
+    Avtomobil breloklari gʻiloflari     3 457 / 12 112   29%
+    Quyoshdan himoya koʻzoynaklari      4 400 /  8 414   52%
+    Futbolkalar                         7 702 / 11 959   64%
+    Tungi kiyimlar                      1 882 /  3 898   48%
+
+Sabab hali aniqlanmagan. Ehtimollar tekshirilmagan, shuning
+uchun ular bu yerga YOZILMAYDI — taxmin hujjatda fakt boʻlib
+qolib ketadi.
+
+Kerak: shu turkumlardan bir nechta tovarni Uzumda topib, ular
+perepisda nega yoʻqligini aniqlash (id oraligʻidan tashqarimi,
+oʻtish tugamaganmi, turkum oʻzgarganmi).
 
 ### Eski yozuv (tarix uchun)
 
