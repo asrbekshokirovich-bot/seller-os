@@ -51,7 +51,24 @@ Toʻliq hisobot: `docs/B1-TEKSHIRUV.md`.
    bazadan yigʻadigan qatlam yoʻq.
 3. Fikstura yasash skriptlari bazaga ulanmaydi — maʼlumot qoʻlda
    koʻchirilgan, perepis tugagach yana qoʻlda yangilash kerak.
-4. `npm run lint` hech narsa qilmaydi — CI darvozasi boʻsh.
+4. ~~`npm run lint` hech narsa qilmaydi — CI darvozasi boʻsh.~~
+   **✅ YOPILDI.** Darvoza ishlaydi va 101 ta faylni tekshiradi.
+
+   *2026-08-26 da qamrov kengaytirildi.* Konfiguratsiya `**/*.mjs`
+   ni TASHLAB KETARDI, yaʼni 6 ta fayl va 1 387 satr operatsion
+   kod umuman tekshirilmasdi — Edge nusxasini yasovchi, seed
+   yuklovchi, oʻlik kod va maʼlumot yoshi qorovullari, dizayn
+   qurishi. Eng yomon joydagi boʻshliq: bu fayllar buzilsa CI
+   yashil qolaverardi.
+
+   Qamrovga qoʻshilgach `no-undef` shu zahoti haqiqiy topilma
+   berdi — `malumot-yoshi.mjs` da `AbortSignal` eʼlon
+   qilinmagan edi.
+
+   `no-console` `.mjs` uchun oʻchirildi va bu yon berish emas:
+   ular buyruq satri vositalari, ekranga chiqarish ularning
+   vazifasi. Qolgan qoidalar kuchda — teskari tomondan
+   tekshirildi (sinov xatosi kiritilganda toʻrtta qoida yondi).
 5. Eval testlari yoʻq (QOIDALAR §5 merge uchun talab qiladi).
 6. `minSellerCoveragePercent = 50` atigi 7 ta oʻlchov nuqtasiga tayanadi.
 
