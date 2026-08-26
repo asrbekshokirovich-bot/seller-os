@@ -243,6 +243,64 @@ deklaratsiya esa sertifikat emas. Uni `1` deb yozish ham, `0` deb
 yozish ham notoʻgʻri. Sxemaga uchinchi qiymat kerak —
 nazoratchining qarori.
 
+## Uzum jadvallari — komissiya va logistika (2026-08-26)
+
+Nazoratchi ikkita Google jadval berdi. Ular sertifikat haqida
+emas, lekin boshqa boʻshliqni yopadi.
+
+### 1. "Новые комиссии c калькулятором"
+
+`category ID` → komissiya foizi. Id fazosi bizniki bilan bir xil
+(2607 "Soatlar", 2615 "Boshqa avtomobil aksessuarlari" toʻgʻri
+keldi).
+
+Uch ustun: **FBO / FBS / DBS** — uch xil bajarish modeli (Uzum
+ombori / sotuvchi ombori / sotuvchi yetkazishi). 223 tadan 221
+tasida uchalasi bir xil. FBO olindi: yangi boshlovchi Uzum
+omborini ishlatadi.
+
+**Qamrov cheklangan va bu ochiq yozilgan:**
+
+| | |
+|---|---:|
+| jadvalda turkum | 223 |
+| bizda topilgani | **19** |
+| qamragan tovar | **343** / 6 025 |
+
+Sabab: jadvaldagi id lar 11—2799, Uzumning hozirgi turkumlari esa
+16 000 gacha. Jadval eski id fazosini ishlatadi.
+
+**Nom boʻyicha moslashtirish QILINMADI.** Turkum nomiga qarab
+taxmin qilish bu loyihada 9 tadan 5 tasida notoʻgʻri chiqqan.
+Komissiya marjaga, marja demping bayrogʻiga ulanadi — notoʻgʻri
+komissiya foydali tovarni "zararli" deb bloklardi.
+
+### 2. "Kalkulyator: Logistika va saqlash"
+
+Kecha yangilangan (a.yermakova@uzum.com). Ichida uch narsa bor:
+
+* **komissiya** — chegirmadan oldin va keyin (masalan 32,50% →
+  chegirma 2,50% → 30,00%);
+* **logistika** — HAJM boʻyicha: uzunlik×kenglik×balandlik → litr
+  → yigʻim;
+* **saqlash** — aylanuvchanlik guruhiga qarab, 1 litr uchun kunlik
+  tarif.
+
+Birinchi jadvaldagi qatʼiy logistika yigʻimlari:
+
+| Gabarit guruhi | Yigʻim |
+|---|---:|
+| KGT, narx 99 999 soʻmgacha | 4 000 |
+| KGT, narx 100 000 va yuqori | 6 000 |
+| OʻGT | 8 000 |
+| YGT, sim-kartalar | 20 000 |
+
+**Bu ikkinchi jadval hali OLINMADI.** Sababi: undagi foizlar
+oʻnli kasr bilan berilgan va varaqda ustunlarga boʻlinib ketgan
+("10,00%" ikki katakka tushadi). Ehtiyotsiz oʻqisam, 10% oʻrniga
+1 000% yozib qoʻyish mumkin edi. Uni alohida, tekshiruv bilan
+olish kerak.
+
 ## Toʻldirgandan keyin nima boʻladi
 
 1. Fayl `so_talablarni_yoz` orqali bazaga tushadi.
