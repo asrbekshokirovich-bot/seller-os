@@ -389,3 +389,41 @@
   font-size: 13px;
   text-align: center;
 }
+
+/* --- 4-qadam: tannarx maydonlari --- */
+
+.maydon {
+  display: grid;
+  grid-template-columns: 1fr minmax(8rem, 12rem);
+  gap: 0.75rem;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dotted var(--chegara);
+}
+
+.maydon > span {
+  font-size: 0.92rem;
+  color: var(--past);
+}
+
+.maydon input {
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--chegara);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--siyoh);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.maydon input::placeholder { color: var(--past2); text-align: right; }
+.maydon input:focus-visible { outline: 2px solid var(--kok); outline-offset: 1px; }
+
+@media (max-width: 30rem) {
+  .maydon { grid-template-columns: 1fr; gap: 0.3rem; }
+  .maydon input { text-align: left; }
+  .maydon input::placeholder { text-align: left; }
+}

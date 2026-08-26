@@ -108,6 +108,8 @@ export default function Usta() {
   const [tovarYuklanmoqda, setTovarYuklanmoqda] = useState(false);
 
   const [matn, setMatn] = useState('');
+  /** 4-qadam qaysi tovar uchun ochilgan. `null` — yopiq. */
+  const [tannarxTovari, setTannarxTovari] = useState<Tovar | null>(null);
   const oxiri = useRef<HTMLDivElement>(null);
 
   /*
@@ -145,7 +147,7 @@ export default function Usta() {
   }, [joriy, natija, tovarlar, tanlangan, yuklanmoqda, tovarYuklanmoqda]);
 
   const savol: Savol | undefined = SAVOLLAR[joriy];
-  const qadam = tanlangan ? 3 : natija ? 2 : 1;
+  const qadam = tannarxTovari ? 4 : tanlangan ? 3 : natija ? 2 : 1;
 
   function yoz(maydon: string, qiymat: unknown) {
     setJavoblar((eski) => ({ ...eski, [maydon]: qiymat }));
@@ -306,6 +308,23 @@ export default function Usta() {
               yonalish={tanlangan}
               natija={tovarlar}
               yuklanmoqda={tovarYuklanmoqda}
+              tannarx={setTannarxTovari}
+            />
+          )}
+
+          {tannarxTovari && (
+            <Tannarx
+              key={tannarxTovari.nomzod.productId}
+              tovar={tannarxTovari.nomzod}
+              komissiyaFoizi={
+                (tannarxTovari.nomzod as { komissiyaFoizi?: number | null })
+                  .komissiyaFoizi ?? null
+              }
+              komissiyaManbasi={
+                (tannarxTovari.nomzod as { komissiyaManbasi?: string | null })
+                  .komissiyaManbasi ?? null
+              }
+              yop={() => setTannarxTovari(null)}
             />
           )}
 
@@ -702,11 +721,12 @@ function YonalishKartasi({
  * tizimga ishonchi tushadi. Sababi bilan koʻrsatilsa — teskarisi.
  */
 function Tovarlar({
-  yonalish, natija, yuklanmoqda,
+  yonalish, natija, yuklanmoqda, tannarx,
 }: {
   yonalish: Yonalish;
   natija: TovarNatija | null;
   yuklanmoqda: boolean;
+  tannarx: (t: Tovar) => void;
 }) {
   if (yuklanmoqda) {
     return <Ai>{yonalish.name} boʻyicha tovarlarni yigʻyapman…</Ai>;
@@ -747,6 +767,7 @@ function Tovarlar({
               t={t}
               sababniKorsat={xilmaXilSabab(royxat)}
               baholanmaganniKorsat={xilmaXilBaholanmadi(royxat)}
+              tannarx={tannarx}
             />
           ))}
 
@@ -801,8 +822,11 @@ function UmumiySabab({ royxat }: { royxat: Tovar[] }) {
 }
 
 function TovarKartasi(
-  { t, sababniKorsat, baholanmaganniKorsat }:
-  { t: Tovar; sababniKorsat: boolean; baholanmaganniKorsat: boolean },
+  { t, sababniKorsat, baholanmaganniKorsat, tannarx }:
+  {
+    t: Tovar; sababniKorsat: boolean; baholanmaganniKorsat: boolean;
+    tannarx: (t: Tovar) => void;
+  },
 ) {
   const n = t.nomzod;
   return (
@@ -839,6 +863,12 @@ function TovarKartasi(
       {baholanmaganniKorsat && t.baholanmadi.length > 0 && (
         <BaholanmaganLar royxat={[t]} />
       )}
+
+      <div>
+        <button type="button" className={u.chip} onClick={() => tannarx(t)}>
+          Tannarxni hisoblash
+        </button>
+      </div>
     </article>
   );
 }
@@ -1046,6 +1076,268 @@ function Fikr({ turkum }: { turkum: number }) {
       <div ref={langar} />
     </>
   );
+}
+
+/* ------------------------------------------------------ 4-qadam */
+
+/** 4-qadam sozlamalari — bir marta kiritiladi, tovardan tovarga oʻzgarmaydi. */
+interface Sozlama {
+  kursSomPerYuan: string;
+  kargoSomPerKg: string;
+  kargoSomPerM3: string;
+  bojFoizi: string;
+  qqsFoizi: string;
+}
+
+const SOZLAMA_BOSH: Sozlama = {
+  kursSomPerYuan: '', kargoSomPerKg: '', kargoSomPerM3: '',
+  bojFoizi: '', qqsFoizi: '',
+};
+
+interface TannarxJavobi {
+  olchov_yoq: boolean;
+  sofFoydaSom: number | null;
+  marjaFoizi: number | null;
+  kargoAsosi: 'ogirlik' | 'hajm' | null;
+  yetishmaydi: string[];
+  tannarx: {
+    sotuvNarxi: number | null; xitoyNarxi: number | null;
+    kargo: number | null; bojxonaQqs: number | null;
+    komissiya: number | null; uzumLogistika: number | null;
+  };
+  demping?: {
+    bayroq: { reason: string; severity: string } | null;
+    baholanmadi: string[] | null;
+  };
+}
+
+/**
+ * 4-qadam — bitta tovarning haqiqiy tannarxi.
+ *
+ * NEGA ALOHIDA QADAM. 1—3-qadam BOZOR haqida: nima sotiladi, kim
+ * sotadi, qancha. 4-qadam esa SIZNING pulingiz haqida va u
+ * boshqa turdagi maʼlumot talab qiladi — Xitoy narxi, kargo
+ * tarifingiz, bojxona stavkasi. Bularni biz oʻlchay olmaymiz.
+ *
+ * SHUNING UCHUN IKKI TURDAGI RAQAM ANIQ AJRATILGAN:
+ *
+ *   oʻlchandi   — biz bilamiz (narx, ogʻirlik, hajm)
+ *   Uzum        — Uzumning oʻz jadvalidan (komissiya, logistika)
+ *   siz aytdingiz — foydalanuvchi kiritgan taxmin
+ *
+ * Uchalasini bir xil koʻrsatsak, natija "hisoblab chiqarilgan
+ * haqiqat" boʻlib koʻrinardi. Aslida uning yarmi taxmin va
+ * foydalanuvchi buni bilishi kerak.
+ */
+function Tannarx({ tovar, komissiyaFoizi, komissiyaManbasi, yop }: {
+  tovar: Tovar['nomzod'] & { weightG?: number | null; volumeMl?: number | null };
+  komissiyaFoizi: number | null;
+  komissiyaManbasi: string | null;
+  yop: () => void;
+}) {
+  const [xitoy, setXitoy] = useState('');
+  const [soz, setSoz] = useState<Sozlama>(SOZLAMA_BOSH);
+  const [ochiq, setOchiq] = useState(true);
+  const [natija, setNatija] = useState<TannarxJavobi | null>(null);
+  const [band, setBand] = useState(false);
+  const [xato, setXato] = useState<string | null>(null);
+  const langar = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    langar.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [natija, ochiq]);
+
+  /* Sozlamalarni brauzerda saqlaymiz: ular tovardan tovarga
+     oʻzgarmaydi va har safar qaytadan yozdirish ortiqcha. */
+  useEffect(() => {
+    try {
+      const eski = localStorage.getItem('so_tannarx_sozlama');
+      if (eski) setSoz({ ...SOZLAMA_BOSH, ...JSON.parse(eski) });
+    } catch { /* saqlangan qiymat yoʻq — bu xato emas */ }
+  }, []);
+
+  function sozla(maydon: keyof Sozlama, q: string) {
+    const yangi = { ...soz, [maydon]: q };
+    setSoz(yangi);
+    try { localStorage.setItem('so_tannarx_sozlama', JSON.stringify(yangi)); } catch { /* jim */ }
+  }
+
+  async function hisobla() {
+    setBand(true);
+    setXato(null);
+    try {
+      const r = await fetch('/api/tannarx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sotuvNarxiSom: tovar.narxSom,
+          xitoyNarxiYuan: kiritilganSon(xitoy),
+          kursSomPerYuan: kiritilganSon(soz.kursSomPerYuan),
+          weightG: tovar.weightG ?? null,
+          volumeMl: tovar.volumeMl ?? null,
+          kargo: {
+            somPerKg: kiritilganSon(soz.kargoSomPerKg),
+            somPerM3: kiritilganSon(soz.kargoSomPerM3),
+          },
+          boj: { bojFoizi: kiritilganSon(soz.bojFoizi), qqsFoizi: kiritilganSon(soz.qqsFoizi) },
+          komissiyaFoizi,
+        }),
+      });
+      setNatija((await r.json()) as TannarxJavobi);
+      setOchiq(false);
+    } catch (q) {
+      setXato(`Soʻrov yuborilmadi: ${String(q)}`);
+    } finally {
+      setBand(false);
+    }
+  }
+
+  return (
+    <>
+      <Ai nega="Bu raqamlar SIZNING xaridingiz haqida. Biz ularni oʻlchay olmaymiz — kiritishingiz kerak.">
+        {tovar.title} — tannarxni hisoblaymiz.
+      </Ai>
+
+      {ochiq && (
+        <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+          <div className={u.qatorlar}>
+            <Maydon nom="1688 dagi narx (yuan)" qiymat={xitoy} oz={setXitoy}
+                    joy="Masalan 20" />
+            <Maydon nom="Yuan kursi (soʻm)" qiymat={soz.kursSomPerYuan}
+                    oz={(q) => sozla('kursSomPerYuan', q)} joy="Masalan 1750" />
+            <Maydon nom="Kargo — soʻm/kg" qiymat={soz.kargoSomPerKg}
+                    oz={(q) => sozla('kargoSomPerKg', q)} joy="Masalan 30000" />
+            <Maydon nom="Kargo — soʻm/m³" qiymat={soz.kargoSomPerM3}
+                    oz={(q) => sozla('kargoSomPerM3', q)} joy="Masalan 4000000" />
+            <Maydon nom="Bojxona boji (%)" qiymat={soz.bojFoizi}
+                    oz={(q) => sozla('bojFoizi', q)} joy="Masalan 10" />
+            <Maydon nom="QQS (%)" qiymat={soz.qqsFoizi}
+                    oz={(q) => sozla('qqsFoizi', q)} joy="Masalan 12" />
+            <p className={u.dalil}>
+              Kurs, kargo va bojxona bir marta kiritiladi — keyingi
+              tovarlarda saqlanib qoladi.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {xato !== null && (
+        <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+          <p className={u.xato}>{xato}</p>
+        </div>
+      )}
+
+      {natija && <TannarxNatija n={natija} manba={komissiyaManbasi} />}
+
+      <div className={u.chiplar}>
+        {!ochiq && (
+          <button type="button" className={`${u.chip} ${u.chipYengil}`}
+                  onClick={() => setOchiq(true)}>
+            Raqamlarni oʻzgartirish
+          </button>
+        )}
+        {ochiq && (
+          <button type="button" className={`${u.chip} ${u.chipAsosiy}`}
+                  onClick={hisobla} disabled={band}>
+            {band ? 'Hisoblanmoqda…' : 'Hisoblash'}
+          </button>
+        )}
+        <button type="button" className={`${u.chip} ${u.chipYengil}`} onClick={yop}>
+          Yopish
+        </button>
+      </div>
+      <div ref={langar} />
+    </>
+  );
+}
+
+function Maydon({ nom, qiymat, oz, joy }: {
+  nom: string; qiymat: string; oz: (q: string) => void; joy: string;
+}) {
+  return (
+    <label className={u.maydon}>
+      <span>{nom}</span>
+      <input type="number" min={0} inputMode="decimal" value={qiymat}
+             placeholder={joy} onChange={(e) => oz(e.target.value)} />
+    </label>
+  );
+}
+
+/**
+ * Natija — har qator MANBASI bilan.
+ *
+ * Eng muhim ustun raqam emas, "qayerdan" ustuni. Foydalanuvchi
+ * qaysi raqam oʻlchangani va qaysi biri uning oʻz taxmini
+ * ekanini koʻrmasa, butun hisob "tizim shunday dedi" boʻlib
+ * qoladi va xato joyini topib boʻlmaydi.
+ */
+function TannarxNatija({ n, manba }: { n: TannarxJavobi; manba: string | null }) {
+  const t = n.tannarx;
+  const qatorlar: Array<[string, number | null, string]> = [
+    ['Uzumdagi sotuv narxi', t.sotuvNarxi, 'oʻlchandi'],
+    ['1688 narxi (soʻmda)', t.xitoyNarxi, 'siz kiritdingiz'],
+    ['Kargo (Xitoydan omborgacha)', t.kargo,
+      n.kargoAsosi === 'hajm' ? 'hajm boʻyicha' : n.kargoAsosi === 'ogirlik' ? 'ogʻirlik boʻyicha' : '—'],
+    ['Bojxona + QQS', t.bojxonaQqs, 'siz kiritdingiz'],
+    ['Uzum komissiyasi', t.komissiya, manba ? 'Uzum jadvali' : 'siz kiritdingiz'],
+    ['Uzum logistikasi (xaridorgacha)', t.uzumLogistika, 'Uzum tarifi'],
+  ];
+
+  return (
+    <div className={`${u.pufak} ${u.ai} ${u.keng}`}>
+      <table className={u.jadval}>
+        <thead>
+          <tr><th>Nima</th><th className={u.son}>Soʻm</th><th>Qayerdan</th></tr>
+        </thead>
+        <tbody>
+          {qatorlar.map(([nom, q, qayerdan]) => (
+            <tr key={nom}>
+              <td>{nom}</td>
+              <td className={u.son}>
+                {q === null ? <span className={u.yoq}>—</span> : q.toLocaleString('uz-UZ')}
+              </td>
+              {/* Raqam yoʻq boʻlsa MANBA ham yozilmaydi: "Uzum jadvali"
+                  degan yozuv boʻsh katak yonida turgan raqam bor,
+                  faqat koʻrsatilmagan degan taassurot beradi. */}
+              <td className={u.yoq}>{q === null ? '—' : qayerdan}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {n.sofFoydaSom === null ? (
+        <p className={u.ogohlik}>
+          Hisob toʻliq emas. Yetishmayapti: {n.yetishmaydi.join(', ')}.
+          Nol koʻrsatilmaydi — u &laquo;tekin&raquo; degan javob boʻlardi.
+        </p>
+      ) : (
+        <p className={u.dalil}>
+          <strong>
+            Sof foyda: {n.sofFoydaSom.toLocaleString('uz-UZ')} soʻm
+            {n.marjaFoizi !== null && ` · marja ${n.marjaFoizi.toFixed(1)}%`}
+          </strong>
+        </p>
+      )}
+
+      {n.demping?.bayroq && (
+        <p className={u.xato}>{n.demping.bayroq.reason}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Matndan son. Boʻsh matn NOL emas — `null`.
+ *
+ * Nomi `son` emas: bu faylda allaqachon `son(number)` bor va u
+ * teskari ish qiladi (sonni matnga). Ikkalasi bir nom bilan
+ * turganda TypeScript ularni ajratardi, odam esa yoʻq.
+ */
+function kiritilganSon(s: string): number | null {
+  const t = s.trim();
+  if (t === '') return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 /* ------------------------------------------------------ yordamchilar */
