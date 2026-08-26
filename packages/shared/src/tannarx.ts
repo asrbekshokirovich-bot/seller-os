@@ -136,6 +136,54 @@ export function uzumLogistikaSom(volumeMl: number | null): number | null {
   return Math.min(som, UZUM_LOGISTIKA.engKopSom);
 }
 
+/**
+ * Chakana tovar uchun fizik jihatdan mumkin boʻlgan zichlik, g/ml.
+ *
+ * NEGA KERAK. Ogʻirlik va hajmni sotuvchi Uzumga QOʻLDA yozadi va
+ * ikkalasi bir-biriga zid chiqishi mumkin. Oʻlchangan namunalar:
+ *
+ *   "To'q ko'k mini ko'ylak"      25 g  →  122 500 ml   (0,0002)
+ *   "Radio boshqariladigan ..." 12 000 g →       5 ml   (2 400)
+ *
+ * Ikkalasi ham imkonsiz. Lekin ikkalasi ham hisobga jimgina kiradi:
+ * birinchisida Uzum logistikasi 5 250 oʻrniga 35 750 soʻm chiqadi
+ * (foydali tovar zararli koʻrinadi), ikkinchisida esa teskarisi.
+ *
+ * CHEGARALAR FOIZDAN EMAS, FIZIKADAN olingan:
+ *
+ *   past   0,005 g/ml = 5 kg/m³ — koʻpikli plastmassadan (11–30)
+ *                       ham yengil. Qadoq bunchalik yengil boʻlmaydi.
+ *   baland 4 g/ml     — shishadan (2,5) va alyuminiydan (2,7) zich.
+ *                       Faqat quyma metall shundan oshadi, u ham
+ *                       qadoqsiz joʻnatilmaydi.
+ *
+ * Oraliq ATAYLAB keng: chegara ichidagi shubhali qiymatni qoldirish,
+ * haqiqiy qiymatni tashlab yuborishdan yaxshiroq. Oʻlchangan
+ * namunada 720 juftlikdan 11 tasi (1,5%) chetda qoldi.
+ */
+export const ZICHLIK_ORALIGI = { past: 0.005, baland: 4 } as const;
+
+/**
+ * Ogʻirlik va hajm bir-biriga mos keladimi.
+ *
+ * `null` — TEKSHIRIB BOʻLMADI (biri yoki ikkalasi yoʻq). Bu "mos"
+ * degani emas: yoʻq maʼlumotni "toʻgʻri" deb belgilash aynan shu
+ * fayl qarshi turadigan xato.
+ */
+export function olchamIshonchlimi(
+  weightG: number | null,
+  volumeMl: number | null,
+): boolean | null {
+  const g = son(weightG);
+  const ml = son(volumeMl);
+  if (g === null || ml === null) return null;
+  // Nol hajm yoki nol ogʻirlik — oʻlchov emas, boʻsh maydon oʻrniga
+  // yozilgan nol. Bu ham ishonchsiz.
+  if (g === 0 || ml === 0) return false;
+  const zichlik = g / ml;
+  return zichlik >= ZICHLIK_ORALIGI.past && zichlik <= ZICHLIK_ORALIGI.baland;
+}
+
 /** Musbat son boʻlsa oʻzini, aks holda `null`. Nol ham qabul qilinadi. */
 function son(n: number | null): number | null {
   return n !== null && Number.isFinite(n) && n >= 0 ? n : null;
@@ -210,9 +258,25 @@ export function tannarxHisobi(k: TannarxKirishi): TannarxNatijasi {
 
   if (son(k.weightG) === null) yetishmaydi.push('weightG');
   if (son(k.volumeMl) === null) yetishmaydi.push('volumeMl');
+
+  /*
+   * OGʻIRLIK VA HAJM BIR-BIRIGA ZID BOʻLSA — IKKALASI HAM ISHLATILMAYDI.
+   *
+   * Qaysi biri notoʻgʻri ekanini bilib boʻlmaydi: 25 grammlik
+   * koʻylak 122 litr qutida — ogʻirlik ham, hajm ham haqiqatga
+   * oʻxshamaydi. Bittasini tanlab olish TAXMIN boʻlardi.
+   *
+   * Shuning uchun javob "bilmayman": kargo ham, Uzum logistikasi
+   * ham `null`. Bu tovar uchun marja koʻrsatilmaydi va sabab
+   * yoziladi — jimgina notoʻgʻri raqam koʻrsatishdan koʻra
+   * "hisoblay olmadim" deyish arzon.
+   */
+  const olchamZid = olchamIshonchlimi(k.weightG, k.volumeMl) === false;
+  if (olchamZid) yetishmaydi.push('olcham — ogʻirlik va hajm bir-biriga zid');
+
   if (son(k.kargo.somPerKg) === null) yetishmaydi.push('kargo.somPerKg');
   if (son(k.kargo.somPerM3) === null) yetishmaydi.push('kargo.somPerM3');
-  const kg = kargoNarxi(k.weightG, k.volumeMl, k.kargo);
+  const kg = olchamZid ? null : kargoNarxi(k.weightG, k.volumeMl, k.kargo);
 
   if (son(k.boj.bojFoizi) === null) yetishmaydi.push('boj.bojFoizi');
   if (son(k.boj.qqsFoizi) === null) yetishmaydi.push('boj.qqsFoizi');
@@ -224,7 +288,7 @@ export function tannarxHisobi(k: TannarxKirishi): TannarxNatijasi {
     ? (sotuvNarxi * komF) / 100
     : null;
 
-  const uzumLog = uzumLogistikaSom(k.volumeMl);
+  const uzumLog = olchamZid ? null : uzumLogistikaSom(k.volumeMl);
 
   const tannarx: Tannarx = yetishmaydi.length > 0
     ? {

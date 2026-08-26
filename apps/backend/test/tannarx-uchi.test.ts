@@ -160,7 +160,13 @@ describe('/tannarx — Uzum logistika yigʻimi', () => {
   });
 
   it('yuqori chegara 50 000 soʻm', async () => {
-    const j = (await soraw({ ...TOLIQ, volumeMl: 900_000 })).json();
+    /*
+     * Ogʻirlik ham oshiriladi: 900 litrlik tovar 500 gramm
+     * boʻlmaydi va zid oʻlchov qorovuli uni haqli ravishda rad
+     * etardi. 80 kg — shu oʻlchamdagi muzlatgichning ogʻirligi
+     * (jonli bazada: 675 l / 64 kg).
+     */
+    const j = (await soraw({ ...TOLIQ, volumeMl: 900_000, weightG: 80_000 })).json();
     expect(j.tannarx.uzumLogistika).toBe(50_000);
   });
 

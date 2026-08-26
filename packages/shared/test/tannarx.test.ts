@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { bojxonaQqs, kargoNarxi, tannarxHisobi, type TannarxKirishi } from '../src/tannarx.js';
+import {
+  bojxonaQqs, kargoNarxi, olchamIshonchlimi, tannarxHisobi,
+  type TannarxKirishi,
+} from '../src/tannarx.js';
 
 /**
  * Sonlar SINOV uchun, stavka sifatida emas.
@@ -159,5 +162,74 @@ describe('tannarxHisobi — zararli tovar', () => {
     const n = tannarxHisobi({ ...TOLIQ, sotuvNarxiSom: 40_000 });
     expect(n.sofFoydaSom).toBeLessThan(0);
     expect(n.marjaFoizi).toBeLessThan(0);
+  });
+});
+
+describe('olchamIshonchlimi — ogʻirlik va hajm zid boʻlsa', () => {
+  /*
+   * Uchala son ham JONLI bazadan olingan (2026-08-26), toʻqilgan
+   * emas. Shuning uchun ular chegara tanlashning oqlanishi ham.
+   */
+  it('25 g li koʻylak 122 500 ml da — ishonchsiz', () => {
+    expect(olchamIshonchlimi(25, 122_500)).toBe(false);
+  });
+
+  it('12 kg li mashinacha 5 ml da — ishonchsiz', () => {
+    expect(olchamIshonchlimi(12_000, 5)).toBe(false);
+  });
+
+  it('5 g li qalam 612 ml qutida — ISHONCHLI, qadoq havodan iborat', () => {
+    expect(olchamIshonchlimi(5, 612)).toBe(true);
+  });
+
+  it('64 kg li muzlatgich 675 l — ishonchli', () => {
+    expect(olchamIshonchlimi(64_000, 675_000)).toBe(true);
+  });
+
+  it('bittasi yoʻq boʻlsa — `null`, `true` EMAS', () => {
+    // Yoʻq maʼlumotni "toʻgʻri" deb belgilash aynan shu qorovul
+    // qarshi turadigan xato.
+    expect(olchamIshonchlimi(null, 1_000)).toBeNull();
+    expect(olchamIshonchlimi(500, null)).toBeNull();
+  });
+
+  it('nol hajm — oʻlchov emas, ishonchsiz', () => {
+    expect(olchamIshonchlimi(500, 0)).toBe(false);
+  });
+});
+
+describe('tannarxHisobi — zid oʻlchov RAQAMGA aylanmaydi', () => {
+  const ZID: TannarxKirishi = { ...TOLIQ, weightG: 25, volumeMl: 122_500 };
+
+  it('kargo ham, Uzum logistikasi ham `null`', () => {
+    const n = tannarxHisobi(ZID);
+    expect(n.tannarx.kargo).toBeNull();
+    expect(n.tannarx.uzumLogistika).toBeNull();
+    expect(n.kargoAsosi).toBeNull();
+  });
+
+  it('sabab nomi bilan aytiladi va foyda koʻrsatilmaydi', () => {
+    const n = tannarxHisobi(ZID);
+    expect(n.yetishmaydi).toContain('olcham — ogʻirlik va hajm bir-biriga zid');
+    expect(n.sofFoydaSom).toBeNull();
+  });
+
+  it('QOROVUL: zid oʻlchovda logistika 5 250 dan OSHIB ketardi', () => {
+    /*
+     * Qorovulsiz 122 500 ml → 5 250 + 121 × 250 = 35 500 soʻm.
+     * Yaʼni koʻylakning marjasi 30 ming soʻmga pasayib
+     * koʻrsatilardi va foydali tovar zararli boʻlib chiqardi.
+     * Shu qator oʻsha xato qaytib kelsa yiqiladi.
+     */
+    const n = tannarxHisobi(ZID);
+    expect(n.tannarx.uzumLogistika).not.toBe(35_500);
+    expect(n.tannarx.uzumLogistika).toBeNull();
+  });
+
+  it('oʻlchov mos boʻlsa hisob ishlaydi — qorovul ortiqcha ushlamaydi', () => {
+    const n = tannarxHisobi(TOLIQ);
+    expect(n.yetishmaydi).toEqual([]);
+    expect(n.tannarx.uzumLogistika).toBe(5_500);
+    expect(n.sofFoydaSom).not.toBeNull();
   });
 });

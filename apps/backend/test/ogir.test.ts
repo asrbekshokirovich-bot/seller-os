@@ -27,7 +27,14 @@ describe('ogir', () => {
   });
 
   it('hajm ham mustaqil sabab', () => {
-    const n = ogir({ weightG: 100, volumeMl: H.bulkyVolumeMl, oversized: null });
+    /*
+     * Ogʻirlik 700 g — yostiq yoki katta yumshoq oʻyinchoq. Ilgari
+     * bu yerda 100 g turardi, lekin 30 litrlik qadoq 100 gramm
+     * boʻlmaydi (koʻpikdan ham yengil) va zid oʻlchov qorovuli uni
+     * haqli ravishda rad etadi. Sinovning maqsadi oʻzgarmadi:
+     * ogʻirlik chegaradan PAST boʻlsa ham, hajmning oʻzi yetadi.
+     */
+    const n = ogir({ weightG: 700, volumeMl: H.bulkyVolumeMl, oversized: null });
     expect(n?.kind).toBe('heavy');
   });
 
@@ -95,6 +102,35 @@ describe('ogir', () => {
 
     it('yengil va Uzum katta demasa — bayroq yoʻq', () => {
       expect(ogir({ weightG: 900, volumeMl: null, oversized: false })).toBeNull();
+    });
+  });
+
+  describe('zid oʻlchov — raqam sababga yozilmaydi', () => {
+    /*
+     * Jonli bazadan (2026-08-26): 25 grammlik koʻylakka 122 500 ml
+     * yozilgan. Qorovulsiz filtr "122 litr hajm" deb ogohlantirardi
+     * — koʻrinib turgan bemaʼnilik butun roʻyxatga ishonchni buzadi.
+     */
+    it('25 g / 122 500 ml — bayroq emas, baholanmadi', () => {
+      const n = ogir({ weightG: 25, volumeMl: 122_500, oversized: null });
+      expect(n).toMatchObject({ kind: 'baholanmadi' });
+    });
+
+    it('QOROVUL: eski xatti-harakatda sababda "122 litr" chiqardi', () => {
+      const n = ogir({ weightG: 25, volumeMl: 122_500, oversized: null });
+      expect((n as { reason?: string }).reason ?? '').not.toContain('122 litr');
+    });
+
+    it('Uzum «katta» desa — uning belgisi mustaqil, bayroq qoladi', () => {
+      // `oversized` sotuvchining raqamlaridan olinmaydi, shuning
+      // uchun ular zid boʻlishi uni bekor qilmaydi.
+      const n = ogir({ weightG: 25, volumeMl: 122_500, oversized: true });
+      expect(n?.kind).toBe('heavy');
+    });
+
+    it('mos oʻlchovda katta hajm baribir bayroq beradi', () => {
+      const n = ogir({ weightG: 64_000, volumeMl: 675_000, oversized: null });
+      expect(n?.kind).toBe('heavy');
     });
   });
 });

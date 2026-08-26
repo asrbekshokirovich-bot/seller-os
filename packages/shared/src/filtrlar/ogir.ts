@@ -1,3 +1,4 @@
+import { olchamIshonchlimi } from '../tannarx.js';
 import { THRESHOLDS } from '../thresholds.js';
 import type { Flag } from '../traps.js';
 import type { Baholanmadi } from './turlar.js';
@@ -20,12 +21,15 @@ export interface OgirKirishi {
    * Uzumning OʻZI "katta hajmli" deb belgilagan tovar
    * (`Product.oversized`).
    *
-   * NEGA KERAK. `volumeMl` hech qachon kelmaydi — Uzumda bunday
-   * maydon yoʻq. Yaʼni bu filtrning "katta hajm" tarmogʻi bir
-   * marta ham ishlamagan. `oversized` aynan shu boʻshliqni
-   * toʻldiradi: u hajm oʻlchovi emas, lekin Uzumning bezovtalik
-   * belgisi — jonli tekshirildi, 7 ta muzlatgichda `true`,
-   * 7 ta yengil tovarda `false`.
+   * NEGA KERAK. `volumeMl` HAR DOIM ham kelmaydi: `dimensions`
+   * ni sotuvchi toʻldirmagan boʻlishi mumkin, toʻldirgani esa
+   * ogʻirlikka zid chiqishi mumkin (pastga qarang). `oversized`
+   * shu boʻshliqni toʻldiradi: u hajm oʻlchovi emas, lekin
+   * Uzumning oʻz belgisi va MUSTAQIL manba — jonli tekshirildi,
+   * 7 ta muzlatgichda `true`, 7 ta yengil tovarda `false`.
+   *
+   * (2026-08-25 da bu izohda "Uzumda bunday maydon yoʻq" deb
+   * yozilgan edi — xato, `Sku.dimensions` da bor.)
    *
    * `false` HECH NIMANI YOPMAYDI. U "katta emas" degani, "ogʻir
    * emas" degani emas: 6 kg li ixcham tovar ham `false` boʻladi.
@@ -60,6 +64,24 @@ export interface OgirKirishi {
  */
 export function ogir(k: OgirKirishi): Flag | Baholanmadi | null {
   const kattaBelgi = k.oversized === true;
+
+  /*
+   * OGʻIRLIK VA HAJM BIR-BIRIGA ZID BOʻLSA — IKKALASI HAM RAD ETILADI.
+   *
+   * Oʻlchangan namuna: 25 grammlik koʻylakka 122 500 ml hajm
+   * yozilgan. Bu filtr uni "122 litr hajm" deb yozib
+   * ogohlantirardi — raqamning oʻzi koʻrinib turgan bemaʼnilik va
+   * u butun roʻyxatga boʻlgan ishonchni buzadi.
+   *
+   * Qaysi biri notoʻgʻri ekanini bilib boʻlmaydi, shuning uchun
+   * bittasini tanlab olinmaydi — javob "baholanmadi".
+   *
+   * `oversized` BU YERGA KIRMAYDI: u Uzumning oʻz belgisi, yaʼni
+   * mustaqil manba va sotuvchining raqamlariga bogʻliq emas.
+   */
+  if (!kattaBelgi && olchamIshonchlimi(k.weightG, k.volumeMl) === false) {
+    return { kind: 'baholanmadi', missing: ['weightG', 'volumeMl'] };
+  }
 
   /*
    * Oʻlchov umuman yoʻq boʻlsa — baholanmadi. Bittasi maʼlum
