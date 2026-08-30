@@ -216,22 +216,61 @@ export function mavsum(koeffitsientlar: number[] | null, oy: number): number | n
 /**
  * Profil sohalarini turkum nomiga bogʻlaydigan jadval.
  *
- * v0 — qoʻlda tuzilgan va ataylab kichik. Har qator "shu sohada
- * tajriba yoki tanish yetkazuvchi bor" degan foydani beradi.
+ * v1 — kuzatilgan turkum nomlaridan chiqarilgan (2026-08-30).
+ * Har kalit soʻz turkum nomining *kichik harfli* substring i —
+ * `profil()` `nom.includes(k)` bilan solishtiradi.
  *
- * Kengaytirish oson, lekin buni oʻlchovsiz kengaytirmaslik kerak:
- * har yangi qator tavsiyani siljitadi va uni pilot maʼlumotisiz
- * tekshirib boʻlmaydi.
+ * Yangi turkum qoʻshilganda shu roʻyxatni ham tekshirish kerak:
+ * mos kelmagan turkum profil ballini jimgina neytralda qoldiradi
+ * va buni hech narsa koʻrsatmaydi.
  */
 export const SOHA_TURKUM: Record<string, string[]> = {
   avto: ['avto', 'moto', 'shina', 'ehtiyot qism'],
-  kiyim: ['kiyim', 'poyabzal', 'trikotaj', 'ust-bosh'],
-  bolalar: ['bola', 'chaqaloq', 'oʻyinchoq', "o'yinchoq"],
-  elektronika: ['telefon', 'kompyuter', 'noutbuk', 'audio', 'gadjet'],
-  maishiy: ['maishiy', 'texnika', 'oshxona', 'muzlatgich'],
-  qurilish: ['qurilish', 'asbob', 'santexnika', 'elektr'],
-  kosmetika: ['kosmetika', 'parfyum', 'goʻzallik', "go'zallik"],
-  sport: ['sport', 'fitnes', 'velosiped', 'turizm'],
+  kiyim: [
+    'kiyim', 'poyabzal', 'trikotaj', 'ust-bosh',
+    'futbolka', 'shim', 'krossovka', 'libos', 'jinsi',
+    'bluzka', 'sviter', 'jemper', 'pullover', 'kardigan',
+    "ko'ylak", 'koʻylak', 'pijama', 'kurtka', 'kostyum',
+    'yubka', 'polo', 'longsiv', 'bodi', 'kombinezon',
+    'byustgalter', 'ichki kiyim', 'trusik', 'tungi kiyim',
+    'kepka', 'balet', 'keda', 'lofer', 'mokasin',
+    'bosonojka', 'shlepans', 'slans', 'butsi', 'uy shippak',
+    'kamar', 'sharflar', 'paypoq', 'upalar',
+  ],
+  bolalar: [
+    'bola', 'chaqaloq', 'oʻyinchoq', "o'yinchoq",
+    'emizgich', 'aravach', 'elektromobil',
+  ],
+  elektronika: [
+    'telefon', 'kompyuter', 'noutbuk', 'audio', 'gadjet',
+    'smartfon', 'quloqchin', 'planshet', 'televizor',
+    'akustika', 'zaryadlovchi', 'akkumulyator', 'router',
+    'printer', 'mikrofon', 'sichqoncha', 'klaviatura',
+    'kabel va adapter', 'xotira karta', 'flesh-disk',
+    'aqlli soat',
+  ],
+  maishiy: [
+    'maishiy', 'texnika', 'oshxona', 'muzlatgich',
+    'changyutgich', 'dazmol', 'choynak', 'sovutgich',
+    'isitgich', 'namlagich', 'tozalagich', 'quritgich',
+    'krujka', 'finjon', 'kostryulka', 'tova', 'pichoq',
+    'shvabra', 'likopcha', 'idish', 'sochiq', 'choyshab',
+    'ventilyator',
+  ],
+  qurilish: [
+    'qurilish', 'asbob', 'santexnika', 'elektr',
+    'shurup buragich', 'bolgarka',
+  ],
+  kosmetika: [
+    'kosmetika', 'parfyum', 'goʻzallik', "go'zallik",
+    'krem', 'shampun', 'atir', 'losyon', 'zardoba',
+    'niqob', 'tonal', 'makiyaj', 'kiprik', 'lab boʻyoq',
+    "lab bo'yoq", 'podvodka', 'balzam', 'skrab', 'piling',
+    'sovun', 'gel', 'sponj', 'dezodorant', 'antiperspirant',
+    'tush', 'rumyana', 'bronzer', 'konturlar',
+    'xushboʻy', "xushbo'y", 'patchalar',
+  ],
+  sport: ['sport', 'fitnes', 'velosiped', 'turizm', 'futbol forma'],
   dala: ['bogʻ', "bog'", 'dala', 'urugʻ', "urug'", 'oʻgʻit', "o'g'it"],
 };
 
