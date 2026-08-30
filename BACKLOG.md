@@ -369,7 +369,7 @@ qilindi (0040-migratsiya, `turkum.yml`). Birinchi toʻliq oʻlchov
     kam koʻradiganlar (<80%)      34
     koʻp koʻradiganlar (>120%)   210
 
-## Perepis 34 turkumni toʻliq koʻrmayapti — sabab NOMAʼLUM
+## Perepis 34 turkumni toʻliq koʻrmayapti — SABAB ANIQLANDI
 
 *2026-08-26.* Yuqoridagi oʻlchovning ochiq qolgan qismi.
 
@@ -385,13 +385,55 @@ Lekin 34 tasida KAM koʻramiz va bu bizning boʻshligʻimiz:
     Futbolkalar                         7 702 / 11 959   64%
     Tungi kiyimlar                      1 882 /  3 898   48%
 
-Sabab hali aniqlanmagan. Ehtimollar tekshirilmagan, shuning
-uchun ular bu yerga YOZILMAYDI — taxmin hujjatda fakt boʻlib
-qolib ketadi.
+### Diagnostika natijasi (2026-08-30, turkum 13309 ustida)
 
-Kerak: shu turkumlardan bir nechta tovarni Uzumda topib, ular
-perepisda nega yoʻqligini aniqlash (id oraligʻidan tashqarimi,
-oʻtish tugamaganmi, turkum oʻzgarganmi).
+Uzumdan `makeSearch` orqali 500 ta natija olindi (offset 0, 100,
+200, 400, 800). 500 tadan **305 ta noyob ID** — qolgani dublikat.
+
+| Guruh | Soni | Izoh |
+|---|---:|---|
+| Censusda BOR | 219 (72%) | tovar topildi |
+| Census oraligʻida YOQQ | 77 (25%) | id ≤ 3 250 285 lekin bazada umuman yoʻq |
+| Census max dan YUQORI | 9 (3%) | id > 3 250 285, censusdan keyin qoʻshilgan |
+
+77 ta yoʻq ID butun diapazonda TEKIS tarqalgan (914K — 2.8M) —
+bu census boʻshligi emas. Ular crawl vaqtida **yashirin/unlisted**
+boʻlgan, keyin qayta faollashtirilgan tovarlar. Boshqa turkumda
+ham emas — `zumsavdo.product` da umuman yoʻq.
+
+### Ikkita sabab
+
+**1) `total` SKU variantlarini hisoblaydi, noyob tovarlarni emas.**
+500 natija → 305 noyob (61%). Eng koʻp takrorlangan ID 13 marta
+qaytgan. Tuzatilgan noyob tovarlar: 12 127 × 0,61 ≈ **7 400**.
+
+**2) Tovar aylanmasi (churn).** Tovarlar list → unlist → relist
+boʻladi. Census nuqtaviy suratga oladi, yaʼni crawl vaqtida
+yashirin tovarni koʻrmaydi. Bu 25% boʻshliqni tushuntiradi.
+
+Tuzatilgan qamrov: 3 457 / 7 400 ≈ **47%** (xom 29% emas).
+
+### Amaliy oqibati
+
+`turkum_hajmi` dagi `uzum_total` variant-inflated. Bu HAMMA
+turkumga tegishli — koʻp SKU li turkumlarda (telefon gʻiloflari,
+kiyim) qamrov sunʼiy past koʻrinadi.
+
+`so_qamrov_hisoboti` nisbatlari notoʻgʻri katta koʻrinadi (>100%)
+aynan shu sababdan: perepis noyob tovarlarni sanaydi, `total`
+esa variantlarni.
+
+### Nima qilish mumkin
+
+- **Eng yaxshi:** `turkum_hajmi` yigʻayotganda birinchi sahifadagi
+  noyob IDlar nisbatini hisoblash va `uzum_total` ni shunga
+  koʻpaytirish. Qoʻshimcha soʻrov talab qilmaydi — bitta sahifa
+  (24 natija) yetadi.
+- **Alternativ:** Hech narsa qilmaslik — nisbatni NISBIY ko'rsatkich
+  sifatida ishlatish (mutlaq emas). Panel "farqi 3×" deb koʻrsatsa
+  ham, turkumlar oʻrtasidagi TARTIBLASH toʻgʻri qoladi.
+- **Qimmat:** Hamma sahifani aylanib noyob IDlarni sanash. Amaliy
+  emas — minglab soʻrov kerak.
 
 ### Eski yozuv (tarix uchun)
 
