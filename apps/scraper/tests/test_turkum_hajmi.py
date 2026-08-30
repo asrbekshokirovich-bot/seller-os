@@ -40,7 +40,9 @@ def javob(status: int, body) -> httpx.Response:
 def test_total_oqiladi():
     c = SoxtaClient(javob(200, {"data": {"makeSearch": {"total": 8163}}}))
     h = sorov(c, {}, 13983)
-    assert h == Hajm(13983, 8163)
+    assert h.category_id == 13983
+    assert h.total == 8163
+    assert h.noyob_nisbat is None  # items yo'q
 
 
 def test_429_alohida_ajratiladi():
@@ -89,4 +91,39 @@ def test_sarlavhada_client_nomi_bor():
 def test_soqrov_matni_faqat_total_soraydi():
     """Ortiqcha maydon soʻrash javobni shishiradi va e'tiborni tortadi."""
     assert "total" in QUERY
+    assert "productId" in QUERY
     assert "facets" not in QUERY
+
+
+def test_noyob_nisbat_hisoblanadi():
+    """24 ta natijadan 12 ta noyob → 0.5."""
+    items = [{"catalogCard": {"productId": i % 12}} for i in range(24)]
+    ms_body = {"total": 1000, "items": items}
+    c = SoxtaClient(javob(200, {"data": {"makeSearch": ms_body}}))
+    h = sorov(c, {}, 555)
+    assert h.total == 1000
+    assert h.noyob_nisbat == pytest.approx(0.5)
+
+
+def test_noyob_nisbat_hammasi_noyob():
+    """Hamma ID farqli — nisbat 1.0."""
+    items = [{"catalogCard": {"productId": i}} for i in range(24)]
+    ms_body = {"total": 500, "items": items}
+    c = SoxtaClient(javob(200, {"data": {"makeSearch": ms_body}}))
+    h = sorov(c, {}, 100)
+    assert h.noyob_nisbat == pytest.approx(1.0)
+
+
+def test_noyob_nisbat_items_bosh():
+    """Items bo'sh massiv — nisbat None."""
+    ms_body = {"total": 100, "items": []}
+    c = SoxtaClient(javob(200, {"data": {"makeSearch": ms_body}}))
+    h = sorov(c, {}, 100)
+    assert h.noyob_nisbat is None
+
+
+def test_noyob_nisbat_items_yoq():
+    """Javobda items yo'q — nisbat None."""
+    c = SoxtaClient(javob(200, {"data": {"makeSearch": {"total": 100}}}))
+    h = sorov(c, {}, 100)
+    assert h.noyob_nisbat is None
