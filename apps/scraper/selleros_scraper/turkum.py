@@ -101,7 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     with httpx.Client(timeout=60.0) as yozuvchi:
         yozildi = store.turkum_hajmini_yoz(
             yozuvchi,
-            [{"category_id": h.category_id, "total": h.total} for h in olchandi],
+            [{"category_id": h.category_id, "total": h.total,
+              "noyob_nisbat": h.noyob_nisbat} for h in olchandi],
         )
     print(f"Bazaga: {yozildi}")
     # Nol qator "turkum yoʻq" degani EMAS — "yigʻilmadi" degani.

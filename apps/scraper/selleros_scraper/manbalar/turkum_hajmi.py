@@ -50,7 +50,10 @@ SAYT = "https://uzum.uz/"
 
 QUERY = """
 query selleroaTurkumHajmi($q: MakeSearchQueryInput!) {
-  makeSearch(query: $q) { total }
+  makeSearch(query: $q) {
+    total
+    items { catalogCard { productId } }
+  }
 }
 """
 
@@ -60,6 +63,9 @@ class Hajm:
     category_id: int
     #: `None` — oʻlchanmadi. NOL EMAS: nol "turkum boʻsh" degan javob.
     total: int | None
+    #: Birinchi sahifadagi noyob tovar IDlar / jami natijalar.
+    #: `total` variant-inflated — shu nisbat tuzatadi.
+    noyob_nisbat: float | None = None
     sabab: str = ""
 
 
@@ -108,22 +114,43 @@ def sorov(
     try:
         r = client.post(ENDPOINT, json=tana, headers=headers)
     except httpx.HTTPError as exc:
-        return Hajm(category_id, None, f"tarmoq: {str(exc)[:80]}")
+        return Hajm(category_id, None, sabab=f"tarmoq: {str(exc)[:80]}")
 
     if r.status_code != 200:
-        return Hajm(category_id, None, f"HTTP {r.status_code}")
+        return Hajm(category_id, None, sabab=f"HTTP {r.status_code}")
     try:
         body = r.json()
     except ValueError:
-        return Hajm(category_id, None, "JSON emas")
+        return Hajm(category_id, None, sabab="JSON emas")
 
     if errors := body.get("errors"):
         matn = str(errors)
         if "429" in matn:
-            return Hajm(category_id, None, "429")
-        return Hajm(category_id, None, matn[:80])
+            return Hajm(category_id, None, sabab="429")
+        return Hajm(category_id, None, sabab=matn[:80])
 
     ms = (body.get("data") or {}).get("makeSearch")
     if ms is None or ms.get("total") is None:
-        return Hajm(category_id, None, "total yoʻq")
-    return Hajm(category_id, int(ms["total"]))
+        return Hajm(category_id, None, sabab="total yoʻq")
+    total = int(ms["total"])
+
+    noyob_nisbat = _noyob_nisbat(ms)
+    return Hajm(category_id, total, noyob_nisbat=noyob_nisbat)
+
+
+def _noyob_nisbat(ms: dict) -> float | None:
+    """Birinchi sahifadagi noyob productId / jami natijalar."""
+    try:
+        items = ms["items"]
+    except (KeyError, TypeError):
+        return None
+    if not items:
+        return None
+    idlar = []
+    for item in items:
+        pid = (item.get("catalogCard") or {}).get("productId")
+        if pid is not None:
+            idlar.append(pid)
+    if not idlar:
+        return None
+    return len(set(idlar)) / len(idlar)
