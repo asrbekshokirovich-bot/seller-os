@@ -1,0 +1,222 @@
+{
+  "izoh": [
+    "7-tuzoq: ogʻir/katta hajmli tovar fiksturasi.",
+    "Bazadan olingan haqiqiy oʻlchovlar: product_flags.evidence.",
+    "`kirish` — OgirKirishi formati: {weightG, volumeMl, oversized}.",
+    "Chegaralar: ogʻirlik ≥5000g, hajm ≥30000ml, yoki Uzum belgisi.",
+    "`expect: 'heavy'` — ogʻir/katta tovar.",
+    "`expect: 'baholanmadi'` — oʻlchov maʼlumoti yoʻq."
+  ],
+  "elementlar": [
+    {
+      "platform": "uzum", "external_id": 47546,
+      "expect": "heavy",
+      "title": "Televizor Xiaomi Mi TV P1 43",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": true },
+      "note": "faqat Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 107186,
+      "expect": "heavy",
+      "title": "Chelak bilan shvabra Vileda, Ultramax",
+      "kirish": { "weightG": 1660, "volumeMl": 30841, "oversized": false },
+      "note": "hajm=30841 ≥ 30000"
+    },
+    {
+      "platform": "uzum", "external_id": 107248,
+      "expect": "heavy",
+      "title": "Kreslo FB-88, plastik ramkali",
+      "kirish": { "weightG": 11200, "volumeMl": 250000, "oversized": true },
+      "note": "ogʻirlik=11.2kg, hajm=250L, Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 112949,
+      "expect": "heavy",
+      "title": "Bolalar aravachasi Luluhu A6",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": true },
+      "note": "faqat Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 139723,
+      "expect": "heavy",
+      "title": "Tozalash toʻplami Parex Spinner 360, 20 l",
+      "kirish": { "weightG": 2270, "volumeMl": 35040, "oversized": false },
+      "note": "hajm=35040 ≥ 30000"
+    },
+    {
+      "platform": "uzum", "external_id": 141718,
+      "expect": "heavy",
+      "title": "Ikki kamerali muzlatgich Biryusa 139, 320 L",
+      "kirish": { "weightG": 64000, "volumeMl": 675000, "oversized": true },
+      "note": "64kg, 675L, Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 144242,
+      "expect": "heavy",
+      "title": "Aravacha Didit A-321",
+      "kirish": { "weightG": 5, "volumeMl": 24, "oversized": true },
+      "note": "ogʻirlik/hajm past, lekin Uzum belgisi bor"
+    },
+    {
+      "platform": "uzum", "external_id": 462643,
+      "expect": "heavy",
+      "title": "Pazl-oʻyin Hatber Premium Puant, 5 ta rasm",
+      "kirish": { "weightG": 1592, "volumeMl": 43610, "oversized": false },
+      "note": "hajm=43610 ≥ 30000"
+    },
+    {
+      "platform": "uzum", "external_id": 290279,
+      "expect": "heavy",
+      "title": "Kreslo ofis uchun LAGUNA",
+      "kirish": { "weightG": 11000, "volumeMl": 246400, "oversized": true },
+      "note": "11kg, 246L, Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 332398,
+      "expect": "heavy",
+      "title": "Televizor Artel UA50H3502 50, 4K",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": true },
+      "note": "faqat Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 420777,
+      "expect": "heavy",
+      "title": "Major 2 simli qulochinlari, studiya, stereo",
+      "kirish": { "weightG": 7878, "volumeMl": 2643, "oversized": false },
+      "note": "ogʻirlik=7878 ≥ 5000"
+    },
+    {
+      "platform": "uzum", "external_id": 276372,
+      "expect": "heavy",
+      "title": "Ofis kreslosi 4504",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": true },
+      "note": "faqat Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 312166,
+      "expect": "heavy",
+      "title": "Sovutgich SSMART SN252W",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": true },
+      "note": "faqat Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 285445,
+      "expect": "heavy",
+      "title": "Televizor JVC LT-43N5105, smart TV",
+      "kirish": { "weightG": 14000, "volumeMl": 293700, "oversized": true },
+      "note": "14kg, 294L, Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 396054,
+      "expect": "heavy",
+      "title": "Televizor 43 Smart TV Android",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": true },
+      "note": "faqat Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 364478,
+      "expect": "heavy",
+      "title": "Musiqali quticha Marine Shoal",
+      "kirish": { "weightG": 280, "volumeMl": 54300, "oversized": false },
+      "note": "hajm=54300 ≥ 30000"
+    },
+    {
+      "platform": "uzum", "external_id": 366518,
+      "expect": "heavy",
+      "title": "Idishlarni yuvish uchun gel, 5 L",
+      "kirish": { "weightG": 5015, "volumeMl": 9681, "oversized": false },
+      "note": "ogʻirlik=5015 ≥ 5000"
+    },
+    {
+      "platform": "uzum", "external_id": 656349,
+      "expect": "heavy",
+      "title": "Oʻyinchoqlar uchun organayzer",
+      "kirish": { "weightG": 191, "volumeMl": 31022, "oversized": false },
+      "note": "hajm=31022 ≥ 30000"
+    },
+    {
+      "platform": "uzum", "external_id": 672381,
+      "expect": "heavy",
+      "title": "Sovutgich Toshiba GR-RF610WE",
+      "kirish": { "weightG": 50000, "volumeMl": 102675, "oversized": true },
+      "note": "50kg, 103L, Uzum belgisi"
+    },
+    {
+      "platform": "uzum", "external_id": 792965,
+      "expect": "heavy",
+      "title": "Artel VCB0316, 1600 Vt changyutgich",
+      "kirish": { "weightG": 6000, "volumeMl": 49451, "oversized": false },
+      "note": "6kg, 49L — ikkala chegara ham oshgan"
+    },
+    {
+      "platform": "uzum", "external_id": 267450,
+      "expect": "baholanmadi",
+      "title": "Russko-Litovskiy Razgovornik",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 259593,
+      "expect": "baholanmadi",
+      "title": "Kreda Prime-gel oziq-ovqat boʻyoqlari",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 250745,
+      "expect": "baholanmadi",
+      "title": "Rumyana ixcham Pupa extreme blush duo",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 151483,
+      "expect": "baholanmadi",
+      "title": "Makiyaj uchun kosmetik choʻtkalari, 8 dona",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 270669,
+      "expect": "baholanmadi",
+      "title": "Sahihi Buxoriy sharhi 1, 2 - jildlar",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 84765,
+      "expect": "baholanmadi",
+      "title": "Samyye vazhnyye gody: 4-5 let",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 224466,
+      "expect": "baholanmadi",
+      "title": "Quvvat manbai iPhone type-c uchun, 20 Vt",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 257210,
+      "expect": "baholanmadi",
+      "title": "Gʻilof Binafsha rang iPhone 13 14 Pro uchun",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 156624,
+      "expect": "baholanmadi",
+      "title": "Tashqi akkumulyator BASEUS Adaman, 10000 mAh",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 205685,
+      "expect": "baholanmadi",
+      "title": "Tri sestry i odin muzh, Mariya Zhukova",
+      "kirish": { "weightG": null, "volumeMl": null, "oversized": null },
+      "note": "oʻlchov maʼlumoti yoʻq"
+    }
+  ]
+}

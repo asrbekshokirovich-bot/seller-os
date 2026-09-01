@@ -139,3 +139,10 @@ class Store:
                 "p_stopped_reason": hisobot.toxtadi,
             },
         )
+
+    def frontier_yoz(self, client: httpx.Client, max_id: int, steps: int) -> None:
+        self._rpc(client, "frontier_yoz", {
+            "p_platform": self.platform,
+            "p_max_id": max_id,
+            "p_steps": steps,
+        })

@@ -60,6 +60,8 @@ def id_lar(args: argparse.Namespace) -> list[int]:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="selleros_scraper", description="Uzum o'lchovi.")
+    p.add_argument("buyruq", nargs="?", default=None,
+                   help="Subbuyruq: 'frontier' — eng katta id zondi.")
     p.add_argument("--id", type=int, action="append", help="Bitta id (bir necha marta berish mumkin).")
     p.add_argument("--dan", type=int, help="Oraliq boshi.")
     p.add_argument("--gacha", type=int, help="Oraliq oxiri (kiradi).")
@@ -76,6 +78,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--rps", type=float, default=Limits.per_second,
                    help=f"So'rov/soniya (standart {Limits.per_second}).")
     args = p.parse_args(argv)
+
+    if args.buyruq == "frontier":
+        from .frontier import main as frontier_main
+        frontier_argv = []
+        if args.quruq:
+            frontier_argv.append("--quruq")
+        if args.rps != Limits.per_second:
+            frontier_argv.extend(["--rps", str(args.rps)])
+        return frontier_main(frontier_argv)
 
     limits = Limits(per_second=args.rps)
     # Bayroq muhitdan ustun: bir marta sinab ko'rish oson bo'lsin.

@@ -1,0 +1,352 @@
+{
+  "izoh": [
+    "2-tuzoq: mavsumiy tovar fiksturasi.",
+    "Bazadan olingan haqiqiy koeffitsientlar: category_requirements.seasonality.",
+    "Barcha qatorlar oy=9 (sentyabr) da test qilinadi.",
+    "`expect: null` — hozir mavsum yaxshi va tez tugamaydi.",
+    "`expect: 'seasonal'` — mavsum tugayapti yoki hozir mavsumdan tashqari."
+  ],
+  "elementlar": [
+    {
+      "platform": "uzum",
+      "category_external_id": 82,
+      "expect": null,
+      "turkum": "Sovutgichlar",
+      "kirish": {
+        "seasonality": [0.7, 0.7, 0.8, 1, 1.2, 1.4, 1.5, 1.4, 1.1, 0.8, 0.7, 0.7],
+        "oy": 9
+      },
+      "note": "sentyabr=1.1, hech qachon <0.7 — mavsumiy emas"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 2614,
+      "expect": null,
+      "turkum": "Penallar",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.7, 0.6, 0.6, 0.8, 2.6, 2.2, 0.9, 0.8, 0.9],
+        "oy": 9
+      },
+      "note": "sentyabr=2.2, keyingi <0.7 yanvarda (4 oy=17 hafta) — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 10057,
+      "expect": null,
+      "turkum": "Urugʻlar",
+      "kirish": {
+        "seasonality": [0.5, 1.2, 2.4, 2.2, 1.3, 0.6, 0.4, 0.4, 0.9, 1.1, 0.6, 0.4],
+        "oy": 9
+      },
+      "note": "sentyabr=0.9, keyingi <0.7 noyabrda (2 oy=9 hafta) — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11580,
+      "expect": "seasonal",
+      "turkum": "Sharflar",
+      "kirish": {
+        "seasonality": [1.9, 1.7, 1.1, 0.6, 0.4, 0.3, 0.3, 0.3, 0.6, 1.1, 1.6, 2.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.6 < 0.7 — mavsumdan tashqari"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11617,
+      "expect": null,
+      "turkum": "Suvenirlar va sovgʻalar",
+      "kirish": {
+        "seasonality": [0.5, 0.6, 0.9, 0.6, 0.6, 0.6, 0.6, 0.6, 0.7, 0.8, 1.4, 4.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.7 (teng, < emas), keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11877,
+      "expect": null,
+      "turkum": "Qogʻoz uchun papkalar",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.7, 0.6, 0.6, 0.8, 2.6, 2.2, 0.9, 0.8, 0.9],
+        "oy": 9
+      },
+      "note": "sentyabr=2.2, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 11931,
+      "expect": null,
+      "turkum": "Termoslar",
+      "kirish": {
+        "seasonality": [1.5, 1.4, 1.1, 0.8, 0.6, 0.5, 0.5, 0.6, 0.9, 1.2, 1.4, 1.5],
+        "oy": 9
+      },
+      "note": "sentyabr=0.9, keyingi <0.7 mayda (8 oy=35 hafta) — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12025,
+      "expect": "seasonal",
+      "turkum": "Mini-ventilyatorlar",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12154,
+      "expect": null,
+      "turkum": "Ryukzaklar",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.7, 0.6, 0.6, 0.8, 2.6, 2.2, 0.9, 0.8, 0.9],
+        "oy": 9
+      },
+      "note": "sentyabr=2.2, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12271,
+      "expect": "seasonal",
+      "turkum": "Bosonojkalar",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12585,
+      "expect": "seasonal",
+      "turkum": "Isitgichlar",
+      "kirish": {
+        "seasonality": [1.9, 1.7, 1.1, 0.6, 0.4, 0.3, 0.3, 0.3, 0.6, 1.1, 1.6, 2.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.6 < 0.7 — mavsumdan tashqari"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12608,
+      "expect": "seasonal",
+      "turkum": "Havo namlagichlar",
+      "kirish": {
+        "seasonality": [1.9, 1.7, 1.1, 0.6, 0.4, 0.3, 0.3, 0.3, 0.6, 1.1, 1.6, 2.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.6 < 0.7 — mavsumdan tashqari"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12613,
+      "expect": null,
+      "turkum": "Qalamlar",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.7, 0.6, 0.6, 0.8, 2.6, 2.2, 0.9, 0.8, 0.9],
+        "oy": 9
+      },
+      "note": "sentyabr=2.2, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12730,
+      "expect": null,
+      "turkum": "Bayramona dekor",
+      "kirish": {
+        "seasonality": [0.5, 0.6, 0.9, 0.6, 0.6, 0.6, 0.6, 0.6, 0.7, 0.8, 1.4, 4.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.7 (teng), keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12768,
+      "expect": null,
+      "turkum": "Kardiganlar",
+      "kirish": {
+        "seasonality": [1.5, 1.4, 1.1, 0.8, 0.6, 0.5, 0.5, 0.6, 0.9, 1.2, 1.4, 1.5],
+        "oy": 9
+      },
+      "note": "sentyabr=0.9, keyingi <0.7 mayda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 12984,
+      "expect": "seasonal",
+      "turkum": "Quyoshdan himoya koʻzoynaklari",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13133,
+      "expect": null,
+      "turkum": "Daftar",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.7, 0.6, 0.6, 0.8, 2.6, 2.2, 0.9, 0.8, 0.9],
+        "oy": 9
+      },
+      "note": "sentyabr=2.2, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13263,
+      "expect": null,
+      "turkum": "Uy shippaklari",
+      "kirish": {
+        "seasonality": [1.5, 1.4, 1.1, 0.8, 0.6, 0.5, 0.5, 0.6, 0.9, 1.2, 1.4, 1.5],
+        "oy": 9
+      },
+      "note": "sentyabr=0.9, keyingi <0.7 mayda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13407,
+      "expect": null,
+      "turkum": "Otkritkalar",
+      "kirish": {
+        "seasonality": [0.5, 0.6, 0.9, 0.6, 0.6, 0.6, 0.6, 0.6, 0.7, 0.8, 1.4, 4.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.7, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13495,
+      "expect": null,
+      "turkum": "Elektrogirlyandlar",
+      "kirish": {
+        "seasonality": [0.5, 0.6, 0.9, 0.6, 0.6, 0.6, 0.6, 0.6, 0.7, 0.8, 1.4, 4.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.7, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13511,
+      "expect": null,
+      "turkum": "Sviterlar",
+      "kirish": {
+        "seasonality": [1.5, 1.4, 1.1, 0.8, 0.6, 0.5, 0.5, 0.6, 0.9, 1.2, 1.4, 1.5],
+        "oy": 9
+      },
+      "note": "sentyabr=0.9, keyingi <0.7 mayda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13812,
+      "expect": "seasonal",
+      "turkum": "Quyoshdan himoya vositalari",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13825,
+      "expect": null,
+      "turkum": "Ruchkalar",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.7, 0.6, 0.6, 0.8, 2.6, 2.2, 0.9, 0.8, 0.9],
+        "oy": 9
+      },
+      "note": "sentyabr=2.2, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13907,
+      "expect": "seasonal",
+      "turkum": "Abituriyentlar, talabalar va aspirantlarga",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.8, 1, 1.6, 2, 2.2, 1, 0.6, 0.5, 0.4],
+        "oy": 9
+      },
+      "note": "sentyabr=1.0, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 13953,
+      "expect": null,
+      "turkum": "Bloknotlar",
+      "kirish": {
+        "seasonality": [0.6, 0.6, 0.7, 0.7, 0.6, 0.6, 0.8, 2.6, 2.2, 0.9, 0.8, 0.9],
+        "oy": 9
+      },
+      "note": "sentyabr=2.2, keyingi <0.7 yanvarda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14050,
+      "expect": null,
+      "turkum": "Jemperlar va pulloverlar",
+      "kirish": {
+        "seasonality": [1.5, 1.4, 1.1, 0.8, 0.6, 0.5, 0.5, 0.6, 0.9, 1.2, 1.4, 1.5],
+        "oy": 9
+      },
+      "note": "sentyabr=0.9, keyingi <0.7 mayda — uzoq"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14276,
+      "expect": "seasonal",
+      "turkum": "Quyoshdan himoya koʻzoynaklari",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14362,
+      "expect": "seasonal",
+      "turkum": "Shlepanslar va slanslar",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 14552,
+      "expect": "seasonal",
+      "turkum": "Puxli kurtkalar va qishki kurtkalar",
+      "kirish": {
+        "seasonality": [1.9, 1.7, 1.1, 0.6, 0.4, 0.3, 0.3, 0.3, 0.6, 1.1, 1.6, 2.1],
+        "oy": 9
+      },
+      "note": "sentyabr=0.6 < 0.7 — mavsumdan tashqari"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 15379,
+      "expect": "seasonal",
+      "turkum": "Quyoshdan himoya qiluvchi kremlar",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    },
+    {
+      "platform": "uzum",
+      "category_external_id": 15645,
+      "expect": "seasonal",
+      "turkum": "Shlepanslar va slanslar",
+      "kirish": {
+        "seasonality": [0.3, 0.3, 0.5, 0.9, 1.5, 2, 2.2, 1.9, 1.2, 0.6, 0.3, 0.3],
+        "oy": 9
+      },
+      "note": "sentyabr=1.2, lekin oktyabr=0.6 — mavsum 4 haftada tugaydi"
+    }
+  ]
+}
