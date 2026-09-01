@@ -18,6 +18,10 @@ SQL **bazada** turadi, skriptda emas:
 |---|---|
 | `zs_tuzoq_nomzodlari()` | 1-tuzoq: doʻkon nomi brend nomi bilan bir xil boʻlgan holatlar |
 | `zs_monopoliya_nomzodlari()` | 6-tuzoq: eng konsentratsiyalangan 20 + eng tarqoq 20 + yupqa namuna |
+| `zs_nakrutka_nomzodlari()` | 4-tuzoq: sharh/sotuv nisbati gʻalati + taxmin + nol sotuv |
+| `zs_mavsumiy_nomzodlari()` | 2-tuzoq: mavsumiylik jadvali bor turkumlar |
+| `zs_ogir_nomzodlari()` | 7-tuzoq: ogʻir/katta tovarlar + oʻlchovi yoʻq |
+| `zs_sertifikat_nomzodlari()` | 5-tuzoq: sertifikat/markirovka talab qilingan + talab nomaʼlum |
 
 Nega bazada: skriptga *"ixtiyoriy SQL"* RPC si kerak boʻlardi, u esa
 kalit sizib ketsa butun bazani ochib beradi.

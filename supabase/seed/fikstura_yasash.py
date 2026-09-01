@@ -124,9 +124,199 @@ def monopoliya_fiksturasi() -> dict:
             "elementlar": elementlar}
 
 
+def nakrutka_fiksturasi() -> dict:
+    qatorlar = rpc("zs_nakrutka_nomzodlari")
+    elementlar = []
+    for q in qatorlar:
+        sotuv = q["sold_30d"]
+        manba_q = q["manba"]
+        sharh = q["reviews"]
+        reyting = q["rating"]
+
+        if sharh is None or sotuv is None:
+            kutilgan = "baholanmadi"
+            sabab = "sotuv yoki sharh oʻlchanmagan"
+        elif manba_q == "taxmin":
+            kutilgan = "baholanmadi"
+            sabab = "sotuvManbasi=taxmin — oʻlchangan sotuv emas"
+        elif sotuv <= 0:
+            kutilgan = "baholanmadi"
+            sabab = "sotuv=0 — nisbat hisoblanmaydi"
+        else:
+            kutilgan_sharh = sotuv * 0.08
+            nisbat = sharh / kutilgan_sharh
+            if nisbat < 0.25 or nisbat > 4.0:
+                kutilgan = "fake_sales"
+                tur = "oʻta koʻp sharh" if nisbat > 4.0 else "oʻta kam sharh"
+                sabab = (f"sharh/sotuv = {sharh}/({sotuv}×0.08) "
+                         f"= {nisbat:.1f} — {tur}")
+            else:
+                kutilgan = None
+                sabab = (f"sharh/sotuv = {sharh}/({sotuv}×0.08) "
+                         f"= {nisbat:.2f} — normal oraliqda [0.25, 4.0]")
+
+        elementlar.append({
+            "platform": "uzum", "external_id": q["pid"],
+            "expect": kutilgan, "title": q["title"],
+            "kirish": {
+                "soldUnits30d": sotuv,
+                "sotuvManbasi": manba_q or "olchandi",
+                "reviews": sharh,
+                "rating": float(reyting) if reyting else 0,
+            },
+            "note": sabab,
+        })
+    return {"izoh": ["Bazadan avtomatik yasalgan: supabase/seed/fikstura_yasash.py"],
+            "elementlar": elementlar}
+
+
+OY_NOM = ["yanvar", "fevral", "mart", "aprel", "may", "iyun",
+          "iyul", "avgust", "sentyabr", "oktyabr", "noyabr", "dekabr"]
+PAST_KOEF = 0.7
+OGOHLANTIRISH_HAFTA = 8
+
+
+def _mavsum_tugashi(koef: list[float], oy: int) -> int | None:
+    for i in range(1, 13):
+        keyingi = koef[(oy - 1 + i) % 12]
+        if keyingi < PAST_KOEF:
+            return round(i * 4.345)
+    return None
+
+
+def mavsumiy_fiksturasi() -> dict:
+    qatorlar = rpc("zs_mavsumiy_nomzodlari")
+    oy = 9
+    elementlar = []
+    for q in qatorlar:
+        s = [float(x) for x in q["seasonality"]]
+        joriy = s[oy - 1]
+        haftalar = _mavsum_tugashi(s, oy)
+
+        if joriy < PAST_KOEF:
+            kutilgan = "seasonal"
+            sabab = f"{OY_NOM[oy - 1]}={joriy} < {PAST_KOEF} — mavsumdan tashqari"
+        elif haftalar is not None and haftalar <= OGOHLANTIRISH_HAFTA:
+            kutilgan = "seasonal"
+            keyingi_idx = next(
+                (oy - 1 + i) % 12 for i in range(1, 13)
+                if s[(oy - 1 + i) % 12] < PAST_KOEF
+            )
+            sabab = (f"{OY_NOM[oy - 1]}={joriy}, lekin "
+                     f"{OY_NOM[keyingi_idx]}={s[keyingi_idx]} — "
+                     f"mavsum {haftalar} haftada tugaydi")
+        elif haftalar is None:
+            kutilgan = None
+            sabab = (f"{OY_NOM[oy - 1]}={joriy}, "
+                     f"hech qachon <{PAST_KOEF} — mavsumiy emas")
+        else:
+            kutilgan = None
+            keyingi_idx = next(
+                (oy - 1 + i) % 12 for i in range(1, 13)
+                if s[(oy - 1 + i) % 12] < PAST_KOEF
+            )
+            oy_farqi = next(
+                i for i in range(1, 13)
+                if s[(oy - 1 + i) % 12] < PAST_KOEF
+            )
+            sabab = (f"{OY_NOM[oy - 1]}={joriy}, keyingi <{PAST_KOEF} "
+                     f"{OY_NOM[keyingi_idx]}da "
+                     f"({oy_farqi} oy={haftalar} hafta) — uzoq")
+
+        elementlar.append({
+            "platform": "uzum",
+            "category_external_id": q["category_external_id"],
+            "expect": kutilgan, "turkum": q["turkum"],
+            "kirish": {"seasonality": s, "oy": oy},
+            "note": sabab,
+        })
+    return {"izoh": ["Bazadan avtomatik yasalgan: supabase/seed/fikstura_yasash.py"],
+            "elementlar": elementlar}
+
+
+OGIR_GRAMM = 5000
+KATTA_HAJM_ML = 30000
+
+
+def ogir_fiksturasi() -> dict:
+    qatorlar = rpc("zs_ogir_nomzodlari")
+    elementlar = []
+    for q in qatorlar:
+        wg = q["weight_g"]
+        vm = q["volume_ml"]
+        ov = q["oversized"]
+
+        if wg is None and vm is None and ov is None:
+            kutilgan = "baholanmadi"
+            sabab = "oʻlchov maʼlumoti yoʻq"
+        elif wg is not None and wg >= OGIR_GRAMM:
+            kutilgan = "heavy"
+            sabab = f"ogʻirlik={wg} ≥ {OGIR_GRAMM}"
+        elif vm is not None and vm >= KATTA_HAJM_ML:
+            kutilgan = "heavy"
+            sabab = f"hajm={vm} ≥ {KATTA_HAJM_ML}"
+        elif ov is True:
+            kutilgan = "heavy"
+            sabab = "faqat Uzum belgisi"
+        else:
+            kutilgan = None
+            sabab = "chegaradan past"
+
+        elementlar.append({
+            "platform": "uzum", "external_id": q["pid"],
+            "expect": kutilgan, "title": q["title"],
+            "kirish": {
+                "weightG": wg, "volumeMl": vm, "oversized": ov,
+            },
+            "note": sabab,
+        })
+    return {"izoh": ["Bazadan avtomatik yasalgan: supabase/seed/fikstura_yasash.py"],
+            "elementlar": elementlar}
+
+
+def sertifikat_fiksturasi() -> dict:
+    qatorlar = rpc("zs_sertifikat_nomzodlari")
+    elementlar = []
+    for q in qatorlar:
+        mr = q["marking_required"]
+        cr = q["certificate_required"]
+        src = q["source"]
+
+        if mr is True or cr is True:
+            kutilgan = "certification"
+            sabab = ("markirovka kerak" if mr else "sertifikat kerak")
+        else:
+            kutilgan = "baholanmadi"
+            sabab = "ikkala talab ham null — baholanmadi"
+
+        elementlar.append({
+            "platform": "uzum",
+            "category_external_id": q["category_external_id"],
+            "expect": kutilgan, "turkum": q["turkum"],
+            "kirish": {
+                "categoryId": q["category_external_id"],
+                "markingRequired": mr,
+                "certificateRequired": cr,
+                "entryCostUzs": q["entry_cost_uzs"],
+                "entryWeeks": q["entry_weeks"],
+                "source": src,
+                "izoh": q["note"],
+            },
+            "note": sabab,
+        })
+    return {"izoh": ["Bazadan avtomatik yasalgan: supabase/seed/fikstura_yasash.py"],
+            "elementlar": elementlar}
+
+
 def main() -> None:
-    for nom, yasovchi in (("traps.json", yopiq_brend_fiksturasi),
-                          ("monopoliya.json", monopoliya_fiksturasi)):
+    for nom, yasovchi in (
+        ("traps.json", yopiq_brend_fiksturasi),
+        ("monopoliya.json", monopoliya_fiksturasi),
+        ("nakrutka.json", nakrutka_fiksturasi),
+        ("mavsumiy.json", mavsumiy_fiksturasi),
+        ("ogir.json", ogir_fiksturasi),
+        ("sertifikat.json", sertifikat_fiksturasi),
+    ):
         maʼlumot = yasovchi()
         (FIKSTURA / nom).write_text(
             json.dumps(maʼlumot, ensure_ascii=False, indent=2) + "\n")
