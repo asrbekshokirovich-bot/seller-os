@@ -76,8 +76,9 @@ export const THRESHOLDS = {
      * Ulush turkumdagi sotuvchilarning kamida shuncha foizi ustida
      * hisoblangan bo'lishi shart.
      *
-     * O'LCHANGAN, tanlab olinmagan (2026-08-19). 2-qatlam namunasi
-     * bo'yicha hisoblangan ulush haqiqatdan qanchalik farq qiladi:
+     * O'LCHANGAN, tanlab olinmagan (2026-08-19, kengaytirilgan
+     * 2026-09-01). 2-qatlam namunasi bo'yicha hisoblangan ulush
+     * haqiqatdan qanchalik farq qiladi:
      *
      *   turkum        namuna/jami   namuna ulushi   haqiqiy ulush
      *   Qoplamalar     10/2052          76%              21%
@@ -89,10 +90,16 @@ export const THRESHOLDS = {
      * oshirib ko'rsatdi. Sabab: o'lchovga aynan yirik sotuvchilar
      * tushadi, kichiklari namunaga kirmaydi.
      *
+     * KENGAYTIRILGAN TEKSHIRUV (298 turkum, 2026-09-01):
+     * Perepis tugagach 298 ta turkumda qamrov so'raldi —
+     * HAMMASIDA 100%. Bu 50% chegara plomba vazifasini bajaradi:
+     * amalda hech qachon yoqilmaydi, lekin kimdir perepisni
+     * namuna bilan almashtirib qo'ysa CI shu zahoti yiqiladi.
+     *
      * 50% tanlandi: yarmidan ko'pi o'lchanganda tanlov qiyshiqligi
      * ulushni ag'darib yubora olmaydi. Amalda ulush perepisdan
-     * hisoblanadi va qamrov 100% bo'ladi — bu chegara plombа vazifasini
-     * bajaradi, kimdir yana namunani ulasa CI yiqiladi.
+     * hisoblanadi va qamrov 100% bo'ladi — bu chegara plomba
+     * vazifasini bajaradi.
      */
     minSellerCoveragePercent: 50,
   },

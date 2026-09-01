@@ -47,10 +47,16 @@ Toʻliq hisobot: `docs/B1-TEKSHIRUV.md`.
 1. ~~`selleros` sxemasi boʻsh — skreyper bazaga hech qachon yozmagan.~~
    **✅ YOPILDI 2026-08-24** — skreyper GitHub Actions da oʻzi yurdi va
    oʻzi yozdi. `docs/B1-TEKSHIRUV.md` §1.1 ga qarang.
-2. Filtrlarni ishlab chiqarish kodi chaqirmaydi; `TovarHolati` ni
-   bazadan yigʻadigan qatlam yoʻq.
-3. Fikstura yasash skriptlari bazaga ulanmaydi — maʼlumot qoʻlda
-   koʻchirilgan, perepis tugagach yana qoʻlda yangilash kerak.
+2. ~~Filtrlarni ishlab chiqarish kodi chaqirmaydi; `TovarHolati` ni
+   bazadan yigʻadigan qatlam yoʻq.~~
+   **✅ YOPILDI 2026-08-30** — `tahlil.ts` barcha 6 filtrni chaqiradi,
+   `app.ts` `/tuzoqlar` uchi bazadan yigʻab `tovarniTekshir` ga uzatadi.
+3. ~~Fikstura yasash skriptlari bazaga ulanmaydi — maʼlumot qoʻlda
+   koʻchirilgan, perepis tugagach yana qoʻlda yangilash kerak.~~
+   **✅ YOPILDI 2026-09-01** — `fikstura_yasash.py` endi 6 ta fiksturaní
+   bazadan yasaydi: traps, monopoliya, nakrutka, mavsumiy, ogir, sertifikat.
+   4 ta yangi RPC: `zs_nakrutka_nomzodlari`, `zs_mavsumiy_nomzodlari`,
+   `zs_ogir_nomzodlari`, `zs_sertifikat_nomzodlari`.
 4. ~~`npm run lint` hech narsa qilmaydi — CI darvozasi boʻsh.~~
    **✅ YOPILDI.** Darvoza ishlaydi va 101 ta faylni tekshiradi.
 
@@ -69,8 +75,13 @@ Toʻliq hisobot: `docs/B1-TEKSHIRUV.md`.
    ular buyruq satri vositalari, ekranga chiqarish ularning
    vazifasi. Qolgan qoidalar kuchda — teskari tomondan
    tekshirildi (sinov xatosi kiritilganda toʻrtta qoida yondi).
-5. Eval testlari yoʻq (QOIDALAR §5 merge uchun talab qiladi).
-6. `minSellerCoveragePercent = 50` atigi 7 ta oʻlchov nuqtasiga tayanadi.
+5. ~~Eval testlari yoʻq (QOIDALAR §5 merge uchun talab qiladi).~~
+   **✅ YOPILDI 2026-08-30** — eval qamrovi 6/8 filtrga kengaytirildi
+   (yopiq_brend, nakrutka, ogir, sertifikat, monopoliya, mavsumiy).
+6. ~~`minSellerCoveragePercent = 50` atigi 7 ta oʻlchov nuqtasiga tayanadi.~~
+   **✅ YOPILDI 2026-09-01** — 298 turkum tekshirildi, HAMMASIDA qamrov
+   100%. Chegara plomba vazifasini bajaradi. `thresholds.ts` izohi
+   kengaytirildi.
 
 ## ~~Qoldiq faqat 6 ta tovarda oʻlchangan~~ — YOPILDI, va ostidan xato chiqdi
 
