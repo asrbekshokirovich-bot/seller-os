@@ -25,8 +25,13 @@ import {
   tovarlar,
   yonalishlar,
   TARIF_NARXI,
+  tarifNarxi,
+  type DavrTuri,
   limitTekshir,
   moqHisobi,
+  kartochkaLimitTekshir,
+  xizmatNarxi,
+  type XizmatTuri,
   type KpiTezlik,
   type KpiXom,
   type TannarxKirishi,
@@ -551,7 +556,11 @@ export function build(): FastifyInstance {
     if (!rejaNomi || !(rejaNomi in TARIF_NARXI)) {
       return javob.code(400).send({ xato: 'notanish reja', berilgan: rejaNomi ?? null });
     }
-    const summa = TARIF_NARXI[rejaNomi]!;
+    const davr = (tana.davr as DavrTuri) || 'oylik';
+    if (davr !== 'oylik' && davr !== 'yillik') {
+      return javob.code(400).send({ xato: 'notanish davr', berilgan: davr });
+    }
+    const summa = tarifNarxi(rejaNomi, davr) ?? TARIF_NARXI[rejaNomi]!;
     const sandbox = process.env.PAYMENTS_LIVE !== '1';
 
     const n = await rpc<{ xato?: string; paymentId?: string; userId?: string }>(
@@ -911,6 +920,186 @@ export function build(): FastifyInstance {
     }
 
     return moqHisobi(moq, narxYuan, kurs, byudjet);
+  });
+
+  // ================================================================
+  // B5: XIZMAT ARIZASI
+  // ================================================================
+
+  app.post('/xizmat/ariza', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const turi = tana.turi as XizmatTuri;
+
+    if (!turi || !['start-paket', 'kalit-taxtida', 'kartochka'].includes(turi)) {
+      return javob.code(400).send({ xato: 'notanish xizmat turi' });
+    }
+
+    const tafsilot: Record<string, unknown> = {};
+    if (tana.categoryId) tafsilot.categoryId = Number(tana.categoryId);
+    if (tana.productId) tafsilot.productId = Number(tana.productId);
+    if (typeof tana.izoh === 'string') tafsilot.izoh = tana.izoh;
+
+    const n = await rpc<{ xato?: string; arizaId?: number; holat?: string }>(
+      'so_xizmat_ariza', {
+        p_token: token,
+        p_turi: turi,
+        p_tafsilot: tafsilot,
+      },
+    );
+
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(400).send({ xato: n.xato });
+
+    return { arizaId: n.arizaId, holat: n.holat, narx: xizmatNarxi(turi) };
+  });
+
+  app.get('/xizmat/royxat', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+
+    const n = await rpc<unknown[]>('so_xizmat_royxat', { p_token: token });
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    return n;
+  });
+
+  // ================================================================
+  // B5: AI KARTOCHKA
+  // ================================================================
+
+  app.post('/kartochka', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+
+    const ruxsat = await qadamRuxsati(token, 5);
+    if (!ruxsat.ochiq) return javob.code(402).send(ruxsat.javob);
+
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const productId = Number(tana.productId);
+    const til = (tana.til as string) || 'uz';
+
+    if (!Number.isInteger(productId) || productId <= 0) {
+      return javob.code(400).send({ xato: 'productId kerak' });
+    }
+    if (til !== 'uz' && til !== 'ru') {
+      return javob.code(400).send({ xato: 'til uz yoki ru boʻlishi kerak' });
+    }
+
+    const n = await rejaniOl(token);
+    const limitJ = await rpc<{ xato?: string; soni?: number }>(
+      'so_kartochka_limit', { p_token: token },
+    );
+    const ishlatilgan = limitJ?.soni ?? 0;
+    const limitNatija = kartochkaLimitTekshir(ishlatilgan, n.reja);
+    if (!limitNatija.ruxsat) {
+      return javob.code(429).send({
+        xato: 'kunlik kartochka limiti tugadi',
+        ...limitNatija,
+        reja: n.reja,
+      });
+    }
+
+    const kirish: Record<string, unknown> = {
+      productId,
+      til,
+    };
+    if (typeof tana.turkumNomi === 'string') kirish.turkumNomi = tana.turkumNomi;
+    if (Array.isArray(tana.kalit_sozlar)) kirish.kalit_sozlar = tana.kalit_sozlar;
+
+    const ish = await rpc<{ xato?: string; ishId?: number; holat?: string }>(
+      'so_kartochka_yarat', {
+        p_token: token,
+        p_product_id: productId,
+        p_til: til,
+        p_kirish: kirish,
+      },
+    );
+
+    if (ish === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (ish.xato) return javob.code(400).send({ xato: ish.xato });
+
+    // AI chaqiruvi hali ulanmagan — ish navbatda saqlanadi.
+    // ANTHROPIC_API_KEY kelgach shu yerda AI model chaqiriladi.
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return {
+        ishId: ish.ishId,
+        holat: 'navbatda',
+        limit: limitNatija,
+        izoh: 'AI provayderi hali ulanmagan — kalit kutilmoqda.',
+      };
+    }
+
+    return {
+      ishId: ish.ishId,
+      holat: 'navbatda',
+      limit: limitNatija,
+    };
+  });
+
+  app.get('/kartochka/:ishId', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+
+    const { ishId } = request.params as { ishId: string };
+    const id = Number(ishId);
+    if (!Number.isInteger(id) || id <= 0) {
+      return javob.code(400).send({ xato: 'notogri ishId' });
+    }
+
+    const n = await rpc<Record<string, unknown>>(
+      'so_kartochka_natija', { p_token: token, p_ish_id: id },
+    );
+
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(404).send({ xato: n.xato });
+    return n;
+  });
+
+  // ================================================================
+  // B5: SOTUVCHI TOKEN
+  // ================================================================
+
+  app.post('/sotuvchi-token', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const sellerToken = typeof tana.token === 'string' ? tana.token : null;
+    if (!sellerToken) {
+      return javob.code(400).send({ xato: 'token kerak' });
+    }
+
+    const { createHash } = await import('node:crypto');
+    const tokenHash = createHash('sha256').update(sellerToken).digest('hex');
+
+    const dokonId = typeof tana.dokonId === 'string' ? tana.dokonId : null;
+    const dokonNomi = typeof tana.dokonNomi === 'string' ? tana.dokonNomi : null;
+
+    const n = await rpc<{ xato?: string; ok?: boolean; tokenId?: number }>(
+      'so_sotuvchi_token_saqla', {
+        p_token: token,
+        p_token_hash: tokenHash,
+        p_dokon_id: dokonId,
+        p_dokon_nomi: dokonNomi,
+      },
+    );
+
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(400).send({ xato: n.xato });
+    return { ok: true, tokenId: n.tokenId };
   });
 
   return app;

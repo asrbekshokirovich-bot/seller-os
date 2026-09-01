@@ -20,3 +20,5 @@ export * from './kpi.ts';
 export * from './tannarx.ts';
 export * from './xatolik.ts';
 export * from './xitoy.ts';
+export * from './xizmat.ts';
+export * from './kartochka.ts';

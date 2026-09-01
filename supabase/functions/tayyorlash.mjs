@@ -39,6 +39,8 @@ export const FAYLLAR = [
   ['packages/shared/src/tannarx.ts', 'shared/tannarx.ts'],
   ['packages/shared/src/xatolik.ts', 'shared/xatolik.ts'],
   ['packages/shared/src/xitoy.ts', 'shared/xitoy.ts'],
+  ['packages/shared/src/xizmat.ts', 'shared/xizmat.ts'],
+  ['packages/shared/src/kartochka.ts', 'shared/kartochka.ts'],
   ['apps/backend/src/tahlil.ts', 'tahlil.ts'],
 ];
 

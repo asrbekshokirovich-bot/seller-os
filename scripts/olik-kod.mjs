@@ -50,6 +50,8 @@ const ISTISNO = new Map([
   ['imzoTekshir', 'B3: provayder webhook kaliti kelgach ulanadi — tolov.ts'],
   ['paymeSubscribeYechish', 'B3: Payme Subscribe avtomatik yechish — merchant key kelgach ulanadi'],
   ['paymeHmac', 'B3: baʼzi Payme endpointlari uchun — merchant key kelgach ulanadi'],
+  ['YILLIK_TEJASH_OY', 'B5: yillik tarif — frontend da tejash koʻrsatish uchun'],
+  ['obunaMuddati', 'B5: yillik muddat hisoblash — so_tolov_webhook da SQL bilan ishlaydi'],
 ]);
 
 /** Test fayli — ham taʼrif, ham murojaat sifatida chetda qoladi. */

@@ -1,10 +1,32 @@
-// Toʻlov tizimi — B3 (pilotga tayyor).
+// Toʻlov tizimi — B3 (pilotga tayyor), B5 (yillik tarif).
+
+export type DavrTuri = 'oylik' | 'yillik';
 
 // Tarif narxlari (soʻm). Pilot: birinchi oy bepul (trial).
 export const TARIF_NARXI: Record<string, number> = {
   pro: 99_000,
   biznes: 299_000,
 };
+
+// Yillik narxlar: 10 oy narxi (2 oy bepul).
+export const YILLIK_NARX: Record<string, number> = {
+  pro: 990_000,
+  biznes: 2_990_000,
+};
+
+export const YILLIK_TEJASH_OY = 2;
+
+export function tarifNarxi(reja: string, davr: DavrTuri): number | null {
+  if (davr === 'yillik') return YILLIK_NARX[reja] ?? null;
+  return TARIF_NARXI[reja] ?? null;
+}
+
+// Toʻlov summasidan obuna muddatini aniqlaydi (kun).
+export function obunaMuddati(summaSom: number): number {
+  const yillikNarxlar = Object.values(YILLIK_NARX);
+  if (yillikNarxlar.includes(summaSom)) return 365;
+  return 30;
+}
 
 // Toʻlov holatlari
 export type TolovHolati = 'kutmoqda' | 'tolangan' | 'rad' | 'qaytarildi';
