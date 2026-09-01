@@ -27,6 +27,7 @@ import {
   TARIF_NARXI,
   limitTekshir,
   moqHisobi,
+  type KpiTezlik,
   type KpiXom,
   type TannarxKirishi,
   type NomzodJavobi,
@@ -39,6 +40,12 @@ import {
   type XitoyTovar,
 } from '@selleros/shared';
 
+// ── Javob vaqtini oʻlchash (KPI: qadam_tezligi) ──────────────
+const TEZLIK_HAJMI = 200;
+const KUZATILADIGAN: ReadonlySet<string> = new Set([
+  '/yonalishlar', '/tovarlar', '/tannarx', '/profil', '/tarif',
+]);
+
 /**
  * Backend — yagona kirish nuqtasi.
  *
@@ -48,6 +55,34 @@ import {
  */
 export function build(): FastifyInstance {
   const app = Fastify({ logger: false });
+
+  const tezliklar: number[] = [];
+  const sorovBoshi = new WeakMap<object, number>();
+
+  app.addHook('onRequest', async (request) => {
+    sorovBoshi.set(request, performance.now());
+  });
+
+  app.addHook('onResponse', async (request) => {
+    const yol = request.url.split('?')[0]!;
+    if (KUZATILADIGAN.has(yol)) {
+      const boshi = sorovBoshi.get(request);
+      if (boshi !== undefined) {
+        tezliklar.push((performance.now() - boshi) / 1000);
+        if (tezliklar.length > TEZLIK_HAJMI) tezliklar.shift();
+      }
+    }
+  });
+
+  function tezlikniOl(): KpiTezlik {
+    if (tezliklar.length === 0) return { soniya: null, namuna: 0 };
+    const sorted = [...tezliklar].sort((a, b) => a - b);
+    const idx = Math.ceil(sorted.length * 0.95) - 1;
+    return {
+      soniya: Math.round(sorted[idx]! * 100) / 100,
+      namuna: sorted.length,
+    };
+  }
 
   /*
    * XATO JIM OʻTMAYDI (reja, B0: Sentry).
@@ -327,6 +362,33 @@ export function build(): FastifyInstance {
     return n;
   });
 
+  /**
+   * Hodisa yozish — `tavsiya_tanlandi` va boshqa foydalanuvchi
+   * harakatlari shu orqali bazaga yoziladi.
+   *
+   * KPI `tavsiya_qabul` aynan shu hodisalarga bogʻlangan:
+   * `so_kpi_xom()` `events` jadvalidan `tavsiya_tanlandi` ni sanaydi.
+   * Bu uchi yoʻq ekan, u KPI doim `null` qaytardi.
+   */
+  app.post('/hodisa', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const nom = tana.nom;
+    if (typeof nom !== 'string' || !nom) {
+      return javob.code(400).send({ xato: 'hodisa nomi kerak' });
+    }
+    const n = await rpc<{ xato?: string; ok?: boolean }>('so_hodisa_yoz', {
+      p_token: token,
+      p_nom: nom,
+      p_props: typeof tana.props === 'object' && tana.props !== null ? tana.props : null,
+    });
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(401).send(n);
+    return n;
+  });
 
   /**
    * Sotuv sahifasidagi "Bazamizda bugun" raqamlari.
@@ -385,7 +447,8 @@ export function build(): FastifyInstance {
   app.get('/kpi', async () => {
     const xom = await rpc<KpiXom>('so_kpi_xom', {});
     const sifat = await sifatniOl();
-    const qatorlar = kpilar(xom, sifat.has_data ? sifat : null);
+    const tezlik = tezlikniOl();
+    const qatorlar = kpilar(xom, sifat.has_data ? sifat : null, new Date(), tezlik);
     return {
       olchandi: new Date().toISOString(),
       xulosa: kpiXulosa(qatorlar),
