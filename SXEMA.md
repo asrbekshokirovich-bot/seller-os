@@ -174,6 +174,14 @@ Har tavsiya logi: kimga, nima, qaysi ball va bayroq bilan, qachon.
 Javobgarlik uchun ham, o'rganish uchun ham. `score_breakdown` (jsonb) —
 "nega bu tovar?" shu yerdan ochiladi.
 
+### `id_frontier`
+Id→sana kalibrovkasining kunlik o'lchovi. Har kuni Uzumdagi eng katta
+javob beruvchi mahsulot id si yoziladi. 30+ kunlik qator to'plangach
+`id_yoshi()` statik jadvaldan dinamik regressiyaga o'tadi.
+
+`platform`, `sana` (unique), `max_id` (topilgan eng yuqori id),
+`probe_steps` (nechta so'rov ketdi), `created_at`.
+
 ## 4. Biznes
 
 `users`, `subscriptions`, `payments` — mijoz, tarif, to'lovlar, dunning.
@@ -206,6 +214,7 @@ har safar baza kerak boʻlardi.
 | Versiya | Sana | O'zgarish |
 |---|---|---|
 | v1 | 2026-08-19 | Birinchi sxema (B0) |
+| v2 | 2026-09-01 | `id_frontier` jadvali — id→sana kalibrovkasi uchun kunlik o'lchov |
 
 
 ## `sales_estimates` — sotuv qanday hisoblanadi

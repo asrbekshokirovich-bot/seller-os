@@ -1,0 +1,338 @@
+{
+  "izoh": [
+    "4-tuzoq: sunʼiy sotuv (nakrutka) fiksturasi.",
+    "Bazadan olingan haqiqiy oʻlchovlar: tovar_sotuvi + product_census.",
+    "`kirish` — NakrutkaKirishi formati: {soldUnits30d, sotuvManbasi, reviews, rating}.",
+    "sharh/sotuv nisbati oraligi: [0.25, 4.0] × (soldUnits30d × 0.08).",
+    "`expect: null` — nisbat normal, filtr bayroq QOʻYMASLIGI kerak.",
+    "`expect: 'baholanmadi'` — maʼlumot yetishmaydi (taxmin, null, yoki sotuv=0).",
+    "`expect: 'fake_sales'` — nisbat normaldan tashqarida."
+  ],
+  "elementlar": [
+    {
+      "platform": "uzum",
+      "external_id": 41723,
+      "expect": "fake_sales",
+      "title": "Tish choʻtkasi ROCS Pro Gold Edition Soft 5940",
+      "kirish": {
+        "soldUnits30d": 2,
+        "sotuvManbasi": "olchandi",
+        "reviews": 21,
+        "rating": 4.5
+      },
+      "note": "sharh/sotuv = 21/(2×0.08) = 131.3 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 42973,
+      "expect": "fake_sales",
+      "title": "Bref Power Active Lavanda hojatxona bloki, 3x50 g",
+      "kirish": {
+        "soldUnits30d": 36,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1197,
+        "rating": 4.9
+      },
+      "note": "sharh/sotuv = 1197/(36×0.08) = 415.6 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 23299,
+      "expect": "fake_sales",
+      "title": "Lablar uchun blesk Luxivisage pIn up ultra matt, ton 39",
+      "kirish": {
+        "soldUnits30d": 14,
+        "sotuvManbasi": "olchandi",
+        "reviews": 5,
+        "rating": 5
+      },
+      "note": "sharh/sotuv = 5/(14×0.08) = 4.46 — chegaradan chiqdi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 50602,
+      "expect": "fake_sales",
+      "title": "Tozalash vositasi gel Чистин, 750 g",
+      "kirish": {
+        "soldUnits30d": 3,
+        "sotuvManbasi": "olchandi",
+        "reviews": 71,
+        "rating": 4.8
+      },
+      "note": "sharh/sotuv = 71/(3×0.08) = 295.8 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 15673,
+      "expect": "fake_sales",
+      "title": "Havo xushboʻylagich Do-Re-Mi Sharqiy motivlar, 350 ml",
+      "kirish": {
+        "soldUnits30d": 3,
+        "sotuvManbasi": "olchandi",
+        "reviews": 47,
+        "rating": 4.9
+      },
+      "note": "sharh/sotuv = 47/(3×0.08) = 195.8 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2455,
+      "expect": "fake_sales",
+      "title": "Qoʻl va tirsaklar uchun MUMIYE Revitalizatsiyalovchi, 150 g",
+      "kirish": {
+        "soldUnits30d": 2,
+        "sotuvManbasi": "olchandi",
+        "reviews": 26,
+        "rating": 4.9
+      },
+      "note": "sharh/sotuv = 26/(2×0.08) = 162.5 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 108328,
+      "expect": "fake_sales",
+      "title": "Vileda Style System almashtiriladigan nasadka, mikrofiber",
+      "kirish": {
+        "soldUnits30d": 1,
+        "sotuvManbasi": "olchandi",
+        "reviews": 25,
+        "rating": 4.9
+      },
+      "note": "sharh/sotuv = 25/(1×0.08) = 312.5 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 126672,
+      "expect": "fake_sales",
+      "title": "Kundalik prokladkalar Always Long Fresh Scent, 24dona",
+      "kirish": {
+        "soldUnits30d": 27,
+        "sotuvManbasi": "olchandi",
+        "reviews": 623,
+        "rating": 4.9
+      },
+      "note": "sharh/sotuv = 623/(27×0.08) = 288.4 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 13665,
+      "expect": "fake_sales",
+      "title": "Guashi Gamma Klassik, 16 rang, 20 ml",
+      "kirish": {
+        "soldUnits30d": 23,
+        "sotuvManbasi": "olchandi",
+        "reviews": 11,
+        "rating": 5
+      },
+      "note": "sharh/sotuv = 11/(23×0.08) = 5.98 — chegaradan chiqdi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 248923,
+      "expect": "fake_sales",
+      "title": "Gigienik prokladkalar Dielux, 60 dona",
+      "kirish": {
+        "soldUnits30d": 7,
+        "sotuvManbasi": "olchandi",
+        "reviews": 237,
+        "rating": 4.8
+      },
+      "note": "sharh/sotuv = 237/(7×0.08) = 423.2 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 20782,
+      "expect": "fake_sales",
+      "title": "Havo xushboʻylagich DO-RE-MI Premium, anor, 330 ml",
+      "kirish": {
+        "soldUnits30d": 1,
+        "sotuvManbasi": "olchandi",
+        "reviews": 6,
+        "rating": 4.8
+      },
+      "note": "sharh/sotuv = 6/(1×0.08) = 75 — oʻta koʻp sharh"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 13261,
+      "expect": null,
+      "title": "Guash Gamma Multiki 6 rang, 20 ml",
+      "kirish": {
+        "soldUnits30d": 12,
+        "sotuvManbasi": "olchandi",
+        "reviews": 3,
+        "rating": 5
+      },
+      "note": "sharh/sotuv = 3/(12×0.08) = 3.13 — normal oraliqda [0.25, 4.0]"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 45253,
+      "expect": "baholanmadi",
+      "title": "Eriydigan qahva MacCoffee Classic, 100 gr",
+      "kirish": {
+        "soldUnits30d": 47,
+        "sotuvManbasi": "taxmin",
+        "reviews": 520,
+        "rating": 4.9
+      },
+      "note": "sotuvManbasi=taxmin — oʻlchangan sotuv emas"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2064,
+      "expect": "baholanmadi",
+      "title": "Sabzavot va mevalarni tozalash uchun pichoq Lamart LT2095",
+      "kirish": {
+        "soldUnits30d": 4,
+        "sotuvManbasi": "taxmin",
+        "reviews": 60,
+        "rating": 4.8
+      },
+      "note": "sotuvManbasi=taxmin — oʻlchangan sotuv emas"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 176783,
+      "expect": "baholanmadi",
+      "title": "Passim butun donli suli yormasi, 700 g",
+      "kirish": {
+        "soldUnits30d": 56,
+        "sotuvManbasi": "taxmin",
+        "reviews": 349,
+        "rating": 4.9
+      },
+      "note": "sotuvManbasi=taxmin — oʻlchangan sotuv emas"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 4883,
+      "expect": "baholanmadi",
+      "title": "Sovutuvchi dush geli Liv Delano Cool Effect, 300 g",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1,
+        "rating": 5
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 254410,
+      "expect": "baholanmadi",
+      "title": "Quyoshdan himoya qiluvchi krem gel De Tan SPF 50, 100 g",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": 0
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 154053,
+      "expect": "baholanmadi",
+      "title": "Antijiravchina Sanfor Active, 750 g",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": 0
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 43839,
+      "expect": "baholanmadi",
+      "title": "Choy Tashkent Gold Keniya, 88 g",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": 0
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 219573,
+      "expect": "baholanmadi",
+      "title": "Vampironika",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1,
+        "rating": 5
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 181543,
+      "expect": "baholanmadi",
+      "title": "Avto kolonka SONY XS-160ES",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1,
+        "rating": 5
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 189057,
+      "expect": "baholanmadi",
+      "title": "Oxford Discover Science Second edition 6: Teacher's Pack",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": 0
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 164681,
+      "expect": "baholanmadi",
+      "title": "Konstruktor Justice Magician 11571, 825 element",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": 0
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 202642,
+      "expect": "baholanmadi",
+      "title": "Chelovek-pauk Todda Makfarleyna. Omnibus",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1,
+        "rating": 5
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 230254,
+      "expect": "baholanmadi",
+      "title": "Ayollar roʻmoli PAJ-0045/06, 1.2×1.7 m",
+      "kirish": {
+        "soldUnits30d": 0,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": 0
+      },
+      "note": "sotuv=0 — nisbat hisoblanmaydi"
+    }
+  ]
+}

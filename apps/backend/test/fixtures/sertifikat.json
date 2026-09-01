@@ -1,0 +1,275 @@
+{
+  "izoh": [
+    "5-tuzoq: majburiy sertifikat/markirovka fiksturasi.",
+    "Bazadan olingan haqiqiy maʼlumotlar: category_requirements.",
+    "`kirish` — KirishTalablari formati.",
+    "`expect: 'certification'` — markirovka yoki sertifikat kerak.",
+    "`expect: 'baholanmadi'` — maʼlumot yetishmaydi (source yoʻq yoki talab nomaʼlum)."
+  ],
+  "elementlar": [
+    {
+      "platform": "uzum", "category_external_id": 11878,
+      "expect": "certification",
+      "turkum": "Shampunlar",
+      "kirish": {
+        "categoryId": 11878, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 11956,
+      "expect": "certification",
+      "turkum": "Futbolkalar",
+      "kirish": {
+        "categoryId": 11956, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 40-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12144,
+      "expect": "certification",
+      "turkum": "Lab boʻyoqlari",
+      "kirish": {
+        "categoryId": 12144, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12147,
+      "expect": "certification",
+      "turkum": "Kalta yengli futbolkalar",
+      "kirish": {
+        "categoryId": 12147, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 40-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12236,
+      "expect": "certification",
+      "turkum": "Dazmollar",
+      "kirish": {
+        "categoryId": 12236, "markingRequired": true, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 2-guruh",
+        "izoh": "Qolda tekshirilgan. Sertifikat holati BILINMAYDI."
+      },
+      "note": "markirovka kerak — VMQ 148"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12336,
+      "expect": "certification",
+      "turkum": "Yumshoq oʻyinchoqlar",
+      "kirish": {
+        "categoryId": 12336, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 62-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12439,
+      "expect": "certification",
+      "turkum": "Tonal kremlar",
+      "kirish": {
+        "categoryId": 12439, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12601,
+      "expect": "certification",
+      "turkum": "Televizorlar",
+      "kirish": {
+        "categoryId": 12601, "markingRequired": true, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh",
+        "izoh": "Qolda tekshirilgan. Sertifikat holati BILINMAYDI."
+      },
+      "note": "markirovka kerak — VMQ 148"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12648,
+      "expect": "certification",
+      "turkum": "Parfyumlangan suv",
+      "kirish": {
+        "categoryId": 12648, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12834,
+      "expect": "certification",
+      "turkum": "Pijamalar",
+      "kirish": {
+        "categoryId": 12834, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 39-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12894,
+      "expect": "certification",
+      "turkum": "Changyutgichlar",
+      "kirish": {
+        "categoryId": 12894, "markingRequired": true, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 148, 02.04.2022 (lex.uz/docs/-5936141), 1-guruh",
+        "izoh": "Qolda tekshirilgan. Sertifikat holati BILINMAYDI."
+      },
+      "note": "markirovka kerak — VMQ 148"
+    },
+    {
+      "platform": "uzum", "category_external_id": 13694,
+      "expect": "certification",
+      "turkum": "Blesklar",
+      "kirish": {
+        "categoryId": 13694, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 13983,
+      "expect": "certification",
+      "turkum": "Krossovkalar",
+      "kirish": {
+        "categoryId": 13983, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 43-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 14237,
+      "expect": "certification",
+      "turkum": "Krossovkalar",
+      "kirish": {
+        "categoryId": 14237, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 43-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 14251,
+      "expect": "certification",
+      "turkum": "Kiprik uchun tushlar",
+      "kirish": {
+        "categoryId": 14251, "markingRequired": null, "certificateRequired": true,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "VMQ 502, 14.08.2024 (lex.uz/docs/-7080176), 4-ilova, 15-band",
+        "izoh": "muvofiqlik sertifikati"
+      },
+      "note": "sertifikat kerak — VMQ 502"
+    },
+    {
+      "platform": "uzum", "category_external_id": 11574,
+      "expect": "baholanmadi",
+      "turkum": "Bilaguzuklar",
+      "kirish": {
+        "categoryId": 11574, "markingRequired": null, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements)",
+        "izoh": "TEKSHIRILDI: talab materialga bogʻliq — turkum darajasida hal qilib boʻlmaydi."
+      },
+      "note": "ikkala talab ham null — baholanmadi"
+    },
+    {
+      "platform": "uzum", "category_external_id": 11894,
+      "expect": "baholanmadi",
+      "turkum": "Uzuklar",
+      "kirish": {
+        "categoryId": 11894, "markingRequired": null, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements)",
+        "izoh": "TEKSHIRILDI: talab materialga bogʻliq — turkum darajasida hal qilib boʻlmaydi."
+      },
+      "note": "ikkala talab ham null — baholanmadi"
+    },
+    {
+      "platform": "uzum", "category_external_id": 12476,
+      "expect": "baholanmadi",
+      "turkum": "Zanjirlar",
+      "kirish": {
+        "categoryId": 12476, "markingRequired": null, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements)",
+        "izoh": "TEKSHIRILDI: talab materialga bogʻliq — turkum darajasida hal qilib boʻlmaydi."
+      },
+      "note": "ikkala talab ham null — baholanmadi"
+    },
+    {
+      "platform": "uzum", "category_external_id": 13061,
+      "expect": "baholanmadi",
+      "turkum": "Ziraklar",
+      "kirish": {
+        "categoryId": 13061, "markingRequired": null, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "Uzum sotuvchi qoʻllanmasi (seller.uzum.uz/manual/uz/2.seller-requirements)",
+        "izoh": "TEKSHIRILDI: talab materialga bogʻliq. Qimmatbaho metallga Davlat probir nazorati ruxsatnomasi kerak, bijuteriyaga kerak emas. Turkum darajasida hal qilib boʻlmaydi."
+      },
+      "note": "ikkala talab ham null — baholanmadi"
+    },
+    {
+      "platform": "uzum", "category_external_id": 82,
+      "expect": "baholanmadi",
+      "turkum": "Sovutgichlar",
+      "kirish": {
+        "categoryId": 82, "markingRequired": null, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.",
+        "izoh": "Sovutgichlar — issiqda talab oshadi."
+      },
+      "note": "faqat mavsumiylik manbasi, talab nomaʼlum"
+    },
+    {
+      "platform": "uzum", "category_external_id": 2614,
+      "expect": "baholanmadi",
+      "turkum": "Penallar",
+      "kirish": {
+        "categoryId": 2614, "markingRequired": null, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.",
+        "izoh": "Penallar — oʻquv yili boshi."
+      },
+      "note": "faqat mavsumiylik manbasi, talab nomaʼlum"
+    },
+    {
+      "platform": "uzum", "category_external_id": 10057,
+      "expect": "baholanmadi",
+      "turkum": "Urugʻlar",
+      "kirish": {
+        "categoryId": 10057, "markingRequired": null, "certificateRequired": null,
+        "entryCostUzs": null, "entryWeeks": null,
+        "source": "Mulohaza, oʻlchov EMAS (2026-08-25). Bir yillik tarix yigʻilgach oʻlchangan egri chiziq bilan almashtiriladi.",
+        "izoh": "Urugʻlar — bahorgi ekish."
+      },
+      "note": "faqat mavsumiylik manbasi, talab nomaʼlum"
+    }
+  ]
+}
