@@ -245,10 +245,10 @@ Bugungi taqsimot:
 Qolgan olti filtr maʼlumot kutmoqda — nimani kutayotgani
 `/tuzoqlar` javobidagi `yetishmayotgan` da koʻrinadi.
 
-## KPI paneli — nimasi oʻlchanadi (2026-08-25)
+## KPI paneli — nimasi oʻlchanadi (2026-09-01)
 
-`GET /kpi` rejaning 8-boʻlimidagi oʻn bitta raqamni qaytaradi.
-Bugun ulardan **uchtasi** oʻlchanadi, sakkiztasi yoʻq — va
+`GET /kpi` rejaning 8-boʻlimidagi oʻn ikkita raqamni qaytaradi.
+Bugun ulardan **toʻrttasi** oʻlchanadi, sakkiztasi yoʻq — va
 har oʻlchanmagani `qiymat: null` va SABAB bilan qaytadi. Nol
 qoʻyilmaydi: "bepul → pullik 0%" mahsulot haqidagi daʼvo
 boʻlardi, holbuki bu kodning holati.
@@ -258,12 +258,12 @@ boʻlardi, holbuki bu kodning holati.
 | Usta → 3-qadam | 3 tadan 0 | namuna kichik (<20), darvozaga hisoblanmaydi |
 | Skreyper qamrovi | oʻlchanadi | `so_quality` |
 | Skreyper xatosi | oʻlchanadi | `so_quality` |
-| Tavsiya qabuli | — | oqimda "tovar tanlandi" nuqtasi yoʻq (`events` boʻsh) |
+| Qadam tezligi | oʻlchanadi | P95 javob vaqti, xotirada oʻlchanadi (oxirgi 200 soʻrov) |
+| Tavsiya qabuli | **tayyor** | `POST /hodisa` + `so_hodisa_yoz` qoʻshildi — frontend `tavsiya_tanlandi` yuborishi kerak |
 | Bepul → pullik | — | `payments` boʻsh — toʻlov oqimi ishlamagan |
 | Mijoz ketishi | — | toʻlov davri boshlanmagan |
 | AI xarajat | — | `ai_usage` boʻsh, tarif narxi ham belgilanmagan |
 | Tuzoq testi / Eval | — | CI da oʻlchanadi, ish vaqtida yozilmaydi |
-| Qadam tezligi | — | soʻrov vaqti hech qayerga yozilmaydi |
 | Avtoyechish | — | jonli rejim yoqilmagan |
 
 Bitta anomaliya koʻrindi va yashirilmadi: **1 foydalanuvchi

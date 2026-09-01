@@ -147,6 +147,14 @@ export interface KpiSifat {
   last_sweep_at?: string | null;
 }
 
+/** Javob vaqti — backenddan xotira ichida oʻlchanadi. */
+export interface KpiTezlik {
+  /** P95 javob vaqti (soniyalarda). `null` — oʻlchov yoʻq. */
+  soniya: number | null;
+  /** Nechta soʻrovdan oʻlchandi. */
+  namuna: number;
+}
+
 const NOM: Readonly<Record<KpiKalit, string>> = {
   usta_3_qadam: 'Ustani boshlash → 3-qadamgacha yetish',
   tavsiya_qabul: 'Tavsiyani qabul qilish (tovar tanlandi)',
@@ -215,6 +223,7 @@ export function kpilar(
   xom: KpiXom | null,
   sifat: KpiSifat | null,
   hozir: Date = new Date(),
+  tezlik: KpiTezlik | null = null,
 ): Kpi[] {
   const q: Kpi[] = [];
 
@@ -299,7 +308,9 @@ export function kpilar(
   // panelda oxirgi CI emas, oxirgi DEPLOY holatini anglatardi.
   q.push(yoq('tuzoq_testi', 'CI da oʻlchanadi (`tuzoqlar.test.ts`), ish vaqtida yozilmaydi'));
   q.push(yoq('eval', 'CI da oʻlchanadi (`eval.test.ts`), ish vaqtida yozilmaydi'));
-  q.push(yoq('qadam_tezligi', 'soʻrov vaqti oʻlchanmaydi — javob vaqti hech qayerga yozilmaydi', 'soniya'));
+  q.push(tezlik === null || tezlik.soniya === null
+    ? yoq('qadam_tezligi', 'soʻrov vaqti oʻlchanmaydi — javob vaqti hech qayerga yozilmaydi', 'soniya')
+    : olchandi('qadam_tezligi', tezlik.soniya, tezlik.namuna, 'soniya'));
   q.push(yoq('avtoyechish', 'jonli rejim yoqilmagan — avtoyechish oqimi yoʻq'));
 
   return q;
