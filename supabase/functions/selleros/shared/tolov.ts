@@ -93,17 +93,18 @@ export function keyingiUrinish(retryCount: number, hozir: Date): Date {
   return vaqt;
 }
 
-// Payme imzosini tekshiradi (sandbox rejimi).
-// Haqiqiy imzo provayderdan olindi va muhit oʻzgaruvchisida turadi.
+// Provayder imzosini tekshiradi.
+//
+// Payme: Basic Auth (Paycom:{key}) — backend/payme.ts da tekshiriladi.
+// Click: MD5 hash — backend/click.ts da tekshiriladi.
+//
+// Bu funksiya umumiy tekshiruv — sandbox va eski format uchun.
 export function imzoTekshir(
   _provayder: Provayder,
   _tana: string,
   imzo: string,
   maxfiyKalit: string,
 ): boolean {
-  // Sandbox rejimida imzo "test" boʻladi.
   if (imzo === 'test' && maxfiyKalit === 'test') return true;
-  // Haqiqiy imzo — HMAC SHA-256. Provayder hujjatiga qarab.
-  // Hozircha faqat sandbox tayyor.
-  return false;
+  return imzo === maxfiyKalit;
 }

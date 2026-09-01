@@ -48,6 +48,8 @@ const ISTISNO = new Map([
   ['dunningQarori', 'B3: dunning cron job ulangach chaqiriladi — tolov.ts'],
   ['keyingiUrinish', 'B3: dunning cron job ulangach chaqiriladi — tolov.ts'],
   ['imzoTekshir', 'B3: provayder webhook kaliti kelgach ulanadi — tolov.ts'],
+  ['paymeSubscribeYechish', 'B3: Payme Subscribe avtomatik yechish — merchant key kelgach ulanadi'],
+  ['paymeHmac', 'B3: baʼzi Payme endpointlari uchun — merchant key kelgach ulanadi'],
 ]);
 
 /** Test fayli — ham taʼrif, ham murojaat sifatida chetda qoladi. */
