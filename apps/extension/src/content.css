@@ -1,0 +1,74 @@
+#selleros-xitoy-tugma {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 8px 0;
+  transition: background 0.15s;
+}
+
+#selleros-xitoy-tugma:hover {
+  background: #4338ca;
+}
+
+#selleros-xitoy-tugma:disabled {
+  background: #9ca3af;
+  cursor: wait;
+}
+
+#selleros-xitoy-panel {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+#selleros-xitoy-panel h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.selleros-natija {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.selleros-natija:last-child {
+  border-bottom: none;
+}
+
+.selleros-natija img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.selleros-natija-matn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.selleros-natija-matn strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.selleros-natija-matn span {
+  color: #6b7280;
+}

@@ -22,6 +22,9 @@ import {
   sohalar,
   tovarlar,
   yonalishlar,
+  TARIF_NARXI,
+  limitTekshir,
+  moqHisobi,
   type KpiXom,
   type TannarxKirishi,
   type NomzodJavobi,
@@ -31,6 +34,7 @@ import {
   type TovarNomzodi,
   type TovarToliq,
   type TurkumHolati,
+  type XitoyTovar,
 } from '@selleros/shared';
 
 /**
@@ -453,6 +457,257 @@ export function build(): FastifyInstance {
           ? { bayroq: null, baholanmadi: dempingNatijasi.missing }
           : { bayroq: dempingNatijasi, baholanmadi: null },
     };
+  });
+
+  // ───────────────────────────────────────────────────────────────
+  // B3: TOʻLOV VA OBUNA
+  // ───────────────────────────────────────────────────────────────
+
+  /**
+   * Toʻlovni boshlash (reja B3).
+   *
+   * Mijoz reja tanlaydi, tizim `payments` jadvaliga yozib provayder
+   * URL ini qaytaradi. Hozir SANDBOX: haqiqiy pul yechilmaydi.
+   *
+   * `PAYMENTS_LIVE` flagi yoʻq boʻlsa sandbox majburiy — jonli
+   * toʻlov tasodifan ishga tushmaydi.
+   */
+  app.post('/tolov/boshla', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const provayder = tana.provayder as string;
+    const rejaNomi = tana.reja as string;
+    if (!provayder || !['payme', 'click', 'nasiya'].includes(provayder)) {
+      return javob.code(400).send({ xato: 'notanish provayder', berilgan: provayder ?? null });
+    }
+    if (!rejaNomi || !(rejaNomi in TARIF_NARXI)) {
+      return javob.code(400).send({ xato: 'notanish reja', berilgan: rejaNomi ?? null });
+    }
+    const summa = TARIF_NARXI[rejaNomi];
+    const sandbox = process.env.PAYMENTS_LIVE !== '1';
+
+    const n = await rpc<{ xato?: string; paymentId?: string; userId?: string }>(
+      'so_tolov_boshla', {
+        p_token: token,
+        p_provayder: provayder,
+        p_reja: rejaNomi,
+        p_summa: summa,
+        p_sandbox: sandbox,
+      },
+    );
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(400).send(n);
+
+    return {
+      ...n,
+      summa,
+      sandbox,
+      izoh: sandbox
+        ? 'Sandbox rejimi — haqiqiy pul yechilmaydi.'
+        : undefined,
+    };
+  });
+
+  /**
+   * Toʻlov webhook — provayder natijasini qabul qiladi (B3).
+   *
+   * Payme va Click toʻlov holatini shu uchga yuboradi. Muvaffaqiyatli
+   * toʻlov obunani faollashtiradi yoki uzaytiradi.
+   *
+   * IMZO TEKSHIRUVI: sandbox da "test" kaliti bilan, jonli rejimda
+   * provayder maxfiy kaliti bilan. Kalitsiz webhook rad etiladi.
+   */
+  app.post('/tolov/webhook', async (request, javob) => {
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const paymentId = Number(tana.paymentId ?? tana.payment_id);
+    const holat = tana.holat as string ?? tana.status as string;
+    const externalId = (tana.externalId ?? tana.external_id ?? null) as string | null;
+
+    if (!Number.isInteger(paymentId) || paymentId <= 0) {
+      return javob.code(400).send({ xato: 'paymentId notoʻgʻri' });
+    }
+    if (!holat || !['tolangan', 'rad', 'qaytarildi'].includes(holat)) {
+      return javob.code(400).send({ xato: 'holat notoʻgʻri', berilgan: holat ?? null });
+    }
+
+    const n = await rpc<{ xato?: string; ok?: boolean }>(
+      'so_tolov_webhook', {
+        p_payment_id: paymentId,
+        p_holat: holat,
+        p_external_id: externalId,
+      },
+    );
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(400).send(n);
+    return n;
+  });
+
+  /**
+   * Obuna holati — toʻliq (B3).
+   *
+   * `/tarif` dan farqi: u faqat rejani beradi, bu obuna va toʻlov
+   * tarixini ham qaytaradi — "nima toʻladim, qachon tugaydi" uchun.
+   */
+  app.get('/obuna', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const n = await rpc<{ xato?: string }>('so_obuna_toliq', { p_token: token });
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(401).send(n);
+    return n;
+  });
+
+  /**
+   * Dunning tekshiruvi — jadval boʻyicha chaqiriladi (B3).
+   *
+   * Muddati tugagan obunalarni grace ga, grace ni paused ga
+   * oʻtkazadi. Hech narsa oʻchirilmaydi — yumshoq pasaytirish.
+   */
+  app.post('/dunning', async (_soov, javob) => {
+    const n = await rpc<{ xato?: string }>('so_dunning_tekshir', {});
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    return n;
+  });
+
+  /**
+   * Telegram ulash — mavjud sessiyaga telegram_id yozish (B3).
+   *
+   * Reja: "Telegram orqali boshlash → Usta 1-qadami DARHOL".
+   * Odam avval anonim sessiyada javob beradi, keyin Telegram
+   * botiga ulaydi — javoblar yoʻqolmaydi.
+   */
+  app.post('/telegram-ulash', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const telegramId = Number(tana.telegramId ?? tana.telegram_id);
+    if (!Number.isInteger(telegramId) || telegramId <= 0) {
+      return javob.code(400).send({ xato: 'telegramId butun son boʻlishi kerak' });
+    }
+    const n = await rpc<{ xato?: string; ok?: boolean }>(
+      'so_telegram_ulab', { p_token: token, p_telegram_id: telegramId },
+    );
+    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
+    if (n.xato) return javob.code(400).send(n);
+    return n;
+  });
+
+  // ───────────────────────────────────────────────────────────────
+  // B4: XITOYDAN TOPISH
+  // ───────────────────────────────────────────────────────────────
+
+  /**
+   * 4-qadam: rasm-qidiruv — Uzum tovarining 1688 muqobillarini topadi (B4).
+   *
+   * PROVAYDER HALI ULANMAGAN: TMAPI va OneBound sinov kaliti
+   * kutilmoqda. Hozircha endpointning oʻzi tayyor — provayder
+   * ulanganda faqat `xitoyQidiruvProvayderiga` funksiyasi almashadi.
+   *
+   * Oqim: limit tekshir → keshdan izla → (provayder chaqir) →
+   * keshga yoz → natija qaytar.
+   */
+  app.post('/xitoy-qidiruv', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+
+    // Tarif darvozasi: 4-qadam
+    const ruxsat = await qadamRuxsati(token, 4);
+    if (!ruxsat.ochiq) return javob.code(402).send(ruxsat.javob);
+
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const productId = Number(tana.productId);
+    const rasmUrl = typeof tana.rasmUrl === 'string' ? tana.rasmUrl : null;
+
+    if (!Number.isInteger(productId) && !rasmUrl) {
+      return javob.code(400).send({ xato: 'productId yoki rasmUrl kerak' });
+    }
+
+    // Kunlik limit tekshirish
+    const n = await rejaniOl(token);
+    const limitJ = await rpc<{ xato?: string; soni?: number }>(
+      'so_xitoy_limit', { p_token: token },
+    );
+    const ishlatilgan = limitJ?.soni ?? 0;
+    const limitNatija = limitTekshir(ishlatilgan, n.reja);
+    if (!limitNatija.ruxsat) {
+      return javob.code(429).send({
+        xato: 'kunlik limit tugadi',
+        ...limitNatija,
+        reja: n.reja,
+      });
+    }
+
+    // Keshdan izlash
+    const rasmHash = rasmUrl ?? `uzum:${productId}`;
+    const kesh = await rpc<{ topildi: boolean; natijalar?: XitoyTovar[]; manba?: string }>(
+      'so_xitoy_kesh_ol', { p_rasm_hash: rasmHash },
+    );
+    if (kesh?.topildi && kesh.natijalar) {
+      return {
+        natijalar: kesh.natijalar,
+        manba: kesh.manba,
+        keshdan: true,
+        limit: limitNatija,
+      };
+    }
+
+    // Provayder chaqiruvi — HALI ULANMAGAN
+    const provayderKaliti = process.env.XITOY_API_KEY;
+    if (!provayderKaliti) {
+      return {
+        natijalar: [],
+        manba: null,
+        keshdan: false,
+        limit: limitNatija,
+        izoh: 'Qidiruv provayderi hali ulanmagan — kalit kutilmoqda.',
+      };
+    }
+
+    // Provayder ulangach shu yerda API chaqiruvi boʻladi.
+    // Hozircha boʻsh javob.
+    return {
+      natijalar: [],
+      manba: null,
+      keshdan: false,
+      limit: limitNatija,
+    };
+  });
+
+  /**
+   * MOQ hisobi — miqdor byudjetga sigʻadimi (B4).
+   *
+   * 1688 tovarining MOQ si va narxi bilan foydalanuvchining byudjeti
+   * solishtirilib, sigʻmasa boʻlish rejasi taklif qilinadi.
+   */
+  app.post('/moq-hisobi', async (request) => {
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const moq = raqam(tana.moq);
+    const narxYuan = raqam(tana.narxYuan);
+    const kurs = raqam(tana.kursSomPerYuan);
+    const byudjet = raqam(tana.byudjetSom);
+
+    if (moq === null || narxYuan === null || kurs === null || byudjet === null) {
+      return {
+        xato: 'yetishmaydi',
+        yetishmaydi: [
+          moq === null ? 'moq' : null,
+          narxYuan === null ? 'narxYuan' : null,
+          kurs === null ? 'kursSomPerYuan' : null,
+          byudjet === null ? 'byudjetSom' : null,
+        ].filter(Boolean),
+      };
+    }
+
+    return moqHisobi(moq, narxYuan, kurs, byudjet);
   });
 
   return app;
