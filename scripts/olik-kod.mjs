@@ -45,6 +45,9 @@ const ISTISNO = new Map([
   // istisno eskirganini u endi koʻradi.
   ['bosProfil', '1-qadam formasi yozilgach ulanadi — BACKLOG.md'],
   ['javobSoni', '1-qadam formasi yozilgach ulanadi — BACKLOG.md'],
+  ['dunningQarori', 'B3: dunning cron job ulangach chaqiriladi — tolov.ts'],
+  ['keyingiUrinish', 'B3: dunning cron job ulangach chaqiriladi — tolov.ts'],
+  ['imzoTekshir', 'B3: provayder webhook kaliti kelgach ulanadi — tolov.ts'],
 ]);
 
 /** Test fayli — ham taʼrif, ham murojaat sifatida chetda qoladi. */

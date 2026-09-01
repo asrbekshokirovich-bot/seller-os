@@ -15,6 +15,8 @@ export * from './filtrlar/ogir.ts';
 export * from './filtrlar/mavsum.ts';
 export * from './filtrlar/hype.ts';
 export * from './tarif.ts';
+export * from './tolov.ts';
 export * from './kpi.ts';
 export * from './tannarx.ts';
 export * from './xatolik.ts';
+export * from './xitoy.ts';
