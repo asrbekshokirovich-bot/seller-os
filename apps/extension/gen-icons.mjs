@@ -18,8 +18,6 @@ function pngYarat(kenglik, balandlik, r, g, b) {
   const qator = Buffer.alloc(1 + kenglik * 3);
   qator[0] = 0; // no filter
   for (let x = 0; x < kenglik; x++) {
-    // Markazda "S" harfi — oddiy piksel naqshi
-    const mx = kenglik / 2, my = balandlik / 2;
     qator[1 + x * 3 + 0] = r;
     qator[1 + x * 3 + 1] = g;
     qator[1 + x * 3 + 2] = b;
