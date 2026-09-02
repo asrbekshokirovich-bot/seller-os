@@ -12,7 +12,6 @@ CREATE OR REPLACE FUNCTION public.zs_demping_nomzodlari()
 RETURNS TABLE(
   pid bigint, title text,
   sotuv_narxi bigint,
-  komissiya_foiz numeric,
   sold_30d integer, manba text
 )
 LANGUAGE sql
@@ -23,12 +22,9 @@ AS $$
   WITH asosiy AS (
     SELECT p.external_id AS pid, p.title,
            pd.price AS sotuv_narxi,
-           cr.commission_percent AS komissiya_foiz,
            ts.sold_30d, ts.manba
     FROM selleros.product p
     LEFT JOIN selleros.tovar_sotuvi ts ON ts.product_id = p.id
-    LEFT JOIN selleros.category_requirements cr
-      ON cr.category_id = p.category_id
     LEFT JOIN LATERAL (
       SELECT price FROM selleros.product_daily
       WHERE product_id = p.id AND price IS NOT NULL

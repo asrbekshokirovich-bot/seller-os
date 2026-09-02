@@ -331,7 +331,7 @@ def demping_fiksturasi() -> dict:
     elementlar = []
     for q in qatorlar:
         sotuv_narxi = q["sotuv_narxi"]
-        komissiya_foiz = float(q["komissiya_foiz"]) if q["komissiya_foiz"] else 10.0
+        komissiya_foiz = 10.0
 
         xitoy_past = int(sotuv_narxi * 0.50)
         xitoy_yaxshi = int(sotuv_narxi * 0.30)
