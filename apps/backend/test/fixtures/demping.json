@@ -1,0 +1,338 @@
+{
+  "izoh": [
+    "Qoʻlda yasalgan fikstura — bazaga ulanish yoʻq.",
+    "Tannarx sintez qilingan. Bazadan yasash: python supabase/seed/fikstura_yasash.py"
+  ],
+  "elementlar": [
+    {
+      "platform": "uzum", "external_id": 100001,
+      "expect": "dumping",
+      "title": "Arzon telefon chexoli",
+      "kirish": {
+        "sotuvNarxi": 15000,
+        "xitoyNarxi": 9500,
+        "kargo": 2000,
+        "bojxonaQqs": 1140,
+        "komissiya": 1800,
+        "uzumLogistika": 500,
+        "saqlash": 200
+      },
+      "note": "sof=-140, marja=-0.9% < 5% — demping"
+    },
+    {
+      "platform": "uzum", "external_id": 100002,
+      "expect": "dumping",
+      "title": "USB kabel 1m",
+      "kirish": {
+        "sotuvNarxi": 8000,
+        "xitoyNarxi": 5000,
+        "kargo": 1200,
+        "bojxonaQqs": 600,
+        "komissiya": 960,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=3.0% < 5% — demping"
+    },
+    {
+      "platform": "uzum", "external_id": 100003,
+      "expect": "dumping",
+      "title": "Plastik stakan 10 li",
+      "kirish": {
+        "sotuvNarxi": 10000,
+        "xitoyNarxi": 6500,
+        "kargo": 1500,
+        "bojxonaQqs": 780,
+        "komissiya": 1200,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "sof=20, marja=0.2% < 5% — demping"
+    },
+    {
+      "platform": "uzum", "external_id": 100004,
+      "expect": "dumping",
+      "title": "Arzon naushnik",
+      "kirish": {
+        "sotuvNarxi": 20000,
+        "xitoyNarxi": 14000,
+        "kargo": 3000,
+        "bojxonaQqs": 1680,
+        "komissiya": 2400,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "sof=-1080, marja=-5.4% < 5% — zarar"
+    },
+    {
+      "platform": "uzum", "external_id": 100005,
+      "expect": "dumping",
+      "title": "LED lampochka",
+      "kirish": {
+        "sotuvNarxi": 5000,
+        "xitoyNarxi": 3500,
+        "kargo": 750,
+        "bojxonaQqs": 420,
+        "komissiya": 600,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "sof=-270, marja=-5.4% — zarar"
+    },
+    {
+      "platform": "uzum", "external_id": 100006,
+      "expect": "dumping",
+      "title": "Cho'ntak oynasi",
+      "kirish": {
+        "sotuvNarxi": 7000,
+        "xitoyNarxi": 4900,
+        "kargo": 1050,
+        "bojxonaQqs": 588,
+        "komissiya": 840,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "sof=-378, marja=-5.4% — zarar"
+    },
+    {
+      "platform": "uzum", "external_id": 100007,
+      "expect": "dumping",
+      "title": "Telefon ushlagich",
+      "kirish": {
+        "sotuvNarxi": 18000,
+        "xitoyNarxi": 11000,
+        "kargo": 2700,
+        "bojxonaQqs": 1320,
+        "komissiya": 2160,
+        "uzumLogistika": 1200,
+        "saqlash": 500
+      },
+      "note": "sof=-880, marja=-4.9% — zarar (logistika va saqlash bilan)"
+    },
+    {
+      "platform": "uzum", "external_id": 100008,
+      "expect": "dumping",
+      "title": "Bir martalik quti",
+      "kirish": {
+        "sotuvNarxi": 3000,
+        "xitoyNarxi": 2100,
+        "kargo": 450,
+        "bojxonaQqs": 252,
+        "komissiya": 360,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "sof=-162, marja=-5.4% — zarar"
+    },
+    {
+      "platform": "uzum", "external_id": 100009,
+      "expect": "dumping",
+      "title": "Plastik vilka 20 dona",
+      "kirish": {
+        "sotuvNarxi": 6000,
+        "xitoyNarxi": 4200,
+        "kargo": 900,
+        "bojxonaQqs": 504,
+        "komissiya": 720,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "sof=-324, marja=-5.4% — zarar"
+    },
+    {
+      "platform": "uzum", "external_id": 100010,
+      "expect": "dumping",
+      "title": "Arzon qopqoq",
+      "kirish": {
+        "sotuvNarxi": 4000,
+        "xitoyNarxi": 2800,
+        "kargo": 600,
+        "bojxonaQqs": 336,
+        "komissiya": 480,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "sof=-216, marja=-5.4% — zarar"
+    },
+    {
+      "platform": "uzum", "external_id": 100011,
+      "expect": null,
+      "title": "Charm sumka",
+      "kirish": {
+        "sotuvNarxi": 250000,
+        "xitoyNarxi": 75000,
+        "kargo": 30000,
+        "bojxonaQqs": 9000,
+        "komissiya": 25000,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100012,
+      "expect": null,
+      "title": "Erkaklar ko'ylagi",
+      "kirish": {
+        "sotuvNarxi": 180000,
+        "xitoyNarxi": 54000,
+        "kargo": 21600,
+        "bojxonaQqs": 6480,
+        "komissiya": 18000,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100013,
+      "expect": null,
+      "title": "Sport krossovka",
+      "kirish": {
+        "sotuvNarxi": 350000,
+        "xitoyNarxi": 105000,
+        "kargo": 42000,
+        "bojxonaQqs": 12600,
+        "komissiya": 35000,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100014,
+      "expect": null,
+      "title": "Elektr choynak",
+      "kirish": {
+        "sotuvNarxi": 420000,
+        "xitoyNarxi": 126000,
+        "kargo": 50400,
+        "bojxonaQqs": 15120,
+        "komissiya": 42000,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100015,
+      "expect": null,
+      "title": "Oshxona pichoq to'plami",
+      "kirish": {
+        "sotuvNarxi": 150000,
+        "xitoyNarxi": 45000,
+        "kargo": 18000,
+        "bojxonaQqs": 5400,
+        "komissiya": 15000,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100016,
+      "expect": null,
+      "title": "Bolalar istarachasi",
+      "kirish": {
+        "sotuvNarxi": 85000,
+        "xitoyNarxi": 25500,
+        "kargo": 10200,
+        "bojxonaQqs": 3060,
+        "komissiya": 8500,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100017,
+      "expect": null,
+      "title": "Qo'l soati",
+      "kirish": {
+        "sotuvNarxi": 600000,
+        "xitoyNarxi": 180000,
+        "kargo": 72000,
+        "bojxonaQqs": 21600,
+        "komissiya": 60000,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal (qimmat tovar)"
+    },
+    {
+      "platform": "uzum", "external_id": 100018,
+      "expect": null,
+      "title": "Samsung aksessuar",
+      "kirish": {
+        "sotuvNarxi": 95000,
+        "xitoyNarxi": 28500,
+        "kargo": 11400,
+        "bojxonaQqs": 3420,
+        "komissiya": 9500,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=44.4% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100019,
+      "expect": null,
+      "title": "Sovg'a to'plam",
+      "kirish": {
+        "sotuvNarxi": 200000,
+        "xitoyNarxi": 80000,
+        "kargo": 24000,
+        "bojxonaQqs": 9600,
+        "komissiya": 20000,
+        "uzumLogistika": 0,
+        "saqlash": 0
+      },
+      "note": "marja=33.2% ≥ 5% — normal"
+    },
+    {
+      "platform": "uzum", "external_id": 100020,
+      "expect": null,
+      "title": "Yoga mat",
+      "kirish": {
+        "sotuvNarxi": 120000,
+        "xitoyNarxi": 36000,
+        "kargo": 14400,
+        "bojxonaQqs": 4320,
+        "komissiya": 12000,
+        "uzumLogistika": 5250,
+        "saqlash": 2000
+      },
+      "note": "marja=38.4% ≥ 5% — normal (logistika va saqlash bilan)"
+    },
+    {
+      "platform": "uzum", "external_id": 0,
+      "expect": "baholanmadi",
+      "title": "Narxi nomaʼlum",
+      "kirish": {
+        "sotuvNarxi": null,
+        "xitoyNarxi": null,
+        "kargo": null,
+        "bojxonaQqs": null,
+        "komissiya": null,
+        "uzumLogistika": null,
+        "saqlash": null
+      },
+      "note": "barcha maydon null — baholanmadi"
+    },
+    {
+      "platform": "uzum", "external_id": 1,
+      "expect": "baholanmadi",
+      "title": "Xitoy narxi nomaʼlum",
+      "kirish": {
+        "sotuvNarxi": 100000,
+        "xitoyNarxi": null,
+        "kargo": null,
+        "bojxonaQqs": null,
+        "komissiya": null,
+        "uzumLogistika": null,
+        "saqlash": null
+      },
+      "note": "xitoyNarxi null — baholanmadi"
+    }
+  ]
+}

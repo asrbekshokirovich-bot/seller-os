@@ -237,6 +237,8 @@ def mavsumiy_fiksturasi() -> dict:
 OGIR_GRAMM = 5000
 KATTA_HAJM_ML = 30000
 
+MIN_MARJA_FOIZ = 5
+
 
 def ogir_fiksturasi() -> dict:
     qatorlar = rpc("zs_ogir_nomzodlari")
@@ -308,6 +310,167 @@ def sertifikat_fiksturasi() -> dict:
             "elementlar": elementlar}
 
 
+YOSH_KUN = 42
+OSISH_OYNA_KUN = 14
+
+
+def demping_fiksturasi() -> dict:
+    """3-tuzoq: demping fiksturasi.
+
+    Tannarx DB da saqlanmaydi — sotuvchi kiritadi. Shuning uchun RPC
+    faqat sotuv narxi va komissiya foizini qaytaradi, qolgan xarajatlarni
+    SHU FUNKSIYA realitsik nisbatlar bilan sintez qiladi.
+
+    Tipik xarajat tarkibi (yangi sotuvchi uchun):
+      xitoyNarxi  ~ sotuv narxining 30-50%
+      kargo       ~ 10-15%
+      bojxonaQqs   ~ 12% (QQS) × xitoyNarxi
+      komissiya   ~ turkum bo'yicha (5-15%)
+    """
+    qatorlar = rpc("zs_demping_nomzodlari")
+    elementlar = []
+    for q in qatorlar:
+        sotuv_narxi = q["sotuv_narxi"]
+        komissiya_foiz = float(q["komissiya_foiz"]) if q["komissiya_foiz"] else 10.0
+
+        xitoy_past = int(sotuv_narxi * 0.50)
+        xitoy_yaxshi = int(sotuv_narxi * 0.30)
+        kargo = int(sotuv_narxi * 0.12)
+        bojxona_qqs = int(xitoy_past * 0.12)
+        komissiya = int(sotuv_narxi * komissiya_foiz / 100)
+
+        sof_past = sotuv_narxi - xitoy_past - kargo - bojxona_qqs - komissiya
+        marja_past = (sof_past / sotuv_narxi * 100) if sotuv_narxi else 0
+
+        sof_yaxshi = sotuv_narxi - xitoy_yaxshi - kargo - int(xitoy_yaxshi * 0.12) - komissiya
+        marja_yaxshi = (sof_yaxshi / sotuv_narxi * 100) if sotuv_narxi else 0
+
+        if sotuv_narxi < 50000:
+            xitoy = xitoy_past
+            boj = int(xitoy * 0.12)
+            sof = sotuv_narxi - xitoy - kargo - boj - komissiya
+            marja = (sof / sotuv_narxi * 100) if sotuv_narxi else 0
+            if marja < MIN_MARJA_FOIZ:
+                kutilgan = "dumping"
+                sabab = f"marja={marja:.1f}% < {MIN_MARJA_FOIZ}% — demping"
+            else:
+                kutilgan = None
+                sabab = f"marja={marja:.1f}% ≥ {MIN_MARJA_FOIZ}% — normal"
+        elif sotuv_narxi > 500000:
+            xitoy = xitoy_yaxshi
+            boj = int(xitoy * 0.12)
+            sof = sotuv_narxi - xitoy - kargo - boj - komissiya
+            marja = (sof / sotuv_narxi * 100) if sotuv_narxi else 0
+            kutilgan = None
+            sabab = f"marja={marja:.1f}% ≥ {MIN_MARJA_FOIZ}% — normal (qimmat tovar)"
+        else:
+            xitoy = int(sotuv_narxi * 0.40)
+            boj = int(xitoy * 0.12)
+            sof = sotuv_narxi - xitoy - kargo - boj - komissiya
+            marja = (sof / sotuv_narxi * 100) if sotuv_narxi else 0
+            if marja < MIN_MARJA_FOIZ:
+                kutilgan = "dumping"
+                sabab = f"marja={marja:.1f}% < {MIN_MARJA_FOIZ}% — demping"
+            else:
+                kutilgan = None
+                sabab = f"marja={marja:.1f}% ≥ {MIN_MARJA_FOIZ}% — normal"
+
+        elementlar.append({
+            "platform": "uzum", "external_id": q["pid"],
+            "expect": kutilgan, "title": q["title"],
+            "kirish": {
+                "sotuvNarxi": sotuv_narxi,
+                "xitoyNarxi": xitoy,
+                "kargo": kargo,
+                "bojxonaQqs": boj,
+                "komissiya": komissiya,
+                "uzumLogistika": 0,
+                "saqlash": 0,
+            },
+            "note": sabab,
+        })
+
+    bosh = [{
+        "platform": "uzum", "external_id": 0,
+        "expect": "baholanmadi", "title": "Narxi nomaʼlum",
+        "kirish": {
+            "sotuvNarxi": None, "xitoyNarxi": None, "kargo": None,
+            "bojxonaQqs": None, "komissiya": None,
+            "uzumLogistika": None, "saqlash": None,
+        },
+        "note": "barcha maydon null — baholanmadi",
+    }, {
+        "platform": "uzum", "external_id": 1,
+        "expect": "baholanmadi", "title": "Xitoy narxi nomaʼlum",
+        "kirish": {
+            "sotuvNarxi": 100000, "xitoyNarxi": None, "kargo": None,
+            "bojxonaQqs": None, "komissiya": None,
+            "uzumLogistika": None, "saqlash": None,
+        },
+        "note": "xitoyNarxi null — baholanmadi",
+    }]
+
+    return {"izoh": ["Bazadan avtomatik yasalgan: supabase/seed/fikstura_yasash.py",
+                     "Tannarx sintez qilingan — haqiqiy xitoy narxi emas."],
+            "elementlar": elementlar + bosh}
+
+
+def hype_fiksturasi() -> dict:
+    qatorlar = rpc("zs_hype_nomzodlari")
+    elementlar = []
+    for q in qatorlar:
+        yosh = q["product_age_days"]
+        sold_30 = q["sold_30d"]
+        sold_14 = q["sold_14d"]
+        manba_q = q["manba"]
+
+        if yosh is None or sold_30 is None or sold_14 is None:
+            kutilgan = "baholanmadi"
+            sabab = "yosh yoki sotuv maʼlumoti yoʻq"
+            ulush = None
+        elif manba_q == "taxmin":
+            kutilgan = "baholanmadi"
+            sabab = "sotuvManbasi=taxmin — oʻlchangan sotuv emas"
+            ulush = None
+        elif sold_30 <= 0:
+            kutilgan = "baholanmadi"
+            sabab = "sotuv=0 — ulush hisoblanmaydi"
+            ulush = None
+        else:
+            ulush = round(sold_14 / sold_30, 2)
+            yosh_signal = yosh <= YOSH_KUN
+            osish_signal = ulush > 0.5
+
+            if yosh_signal and osish_signal:
+                kutilgan = "hype"
+                sabab = (f"yosh={yosh} ≤ {YOSH_KUN} kun VA "
+                         f"ulush={ulush} > 0.5 — trend xavfi")
+            elif yosh_signal:
+                kutilgan = None
+                sabab = (f"yosh={yosh} ≤ {YOSH_KUN} kun, lekin "
+                         f"ulush={ulush} ≤ 0.5 — barqaror oʻsish")
+            elif osish_signal:
+                kutilgan = None
+                sabab = (f"ulush={ulush} > 0.5, lekin "
+                         f"yosh={yosh} > {YOSH_KUN} kun — eski tovar")
+            else:
+                kutilgan = None
+                sabab = (f"yosh={yosh} > {YOSH_KUN} kun, "
+                         f"ulush={ulush} ≤ 0.5 — barqaror eski")
+
+        elementlar.append({
+            "platform": "uzum", "external_id": q["pid"],
+            "expect": kutilgan, "title": q["title"],
+            "kirish": {
+                "productAgeDays": yosh,
+                "yangiSotuvUlushi": ulush,
+            },
+            "note": sabab,
+        })
+    return {"izoh": ["Bazadan avtomatik yasalgan: supabase/seed/fikstura_yasash.py"],
+            "elementlar": elementlar}
+
+
 def main() -> None:
     for nom, yasovchi in (
         ("traps.json", yopiq_brend_fiksturasi),
@@ -316,6 +479,8 @@ def main() -> None:
         ("mavsumiy.json", mavsumiy_fiksturasi),
         ("ogir.json", ogir_fiksturasi),
         ("sertifikat.json", sertifikat_fiksturasi),
+        ("demping.json", demping_fiksturasi),
+        ("hype.json", hype_fiksturasi),
     ):
         maʼlumot = yasovchi()
         (FIKSTURA / nom).write_text(
