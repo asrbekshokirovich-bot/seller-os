@@ -21,18 +21,27 @@ Filtr `baholanmadi` qaytaradi va foydalanuvchi
 &laquo;bu turkum tekshirilmagan&raquo; degan javobni koʻradi —
 xotirjam qiladigan yolgʻon emas.
 
-## Bugungi holat (2026-08-25 da oʻlchandi)
+## Bugungi holat (2026-09-02 da oʻlchandi)
 
 | Nima | Soni |
 |---|---:|
-| `marking_reference` dagi qator (markirovka) | 13 |
-| Ulardan `category_requirements` ga tushgani | 3 |
-| **`certificate_required` toʻldirilgan turkum** | **0** |
-| Kuzatuvdagi turkum | 318 |
+| `category_requirements` dagi qator | 66 |
+| **`certificate_required` = 1** | **16** |
+| `marking_required` = 1 | 3 |
+| Tekshirilgan, lekin bayroq qoʻyilmagan | 16 |
+| `seasonality` toʻldirilgan | 31 |
+| Kuzatuvdagi turkum | 322 |
 | Uzumdagi jami turkum | 5 315 |
 
-Yaʼni 5-tuzoq (sertifikat/markirovka) bugun deyarli hech qayerda
-ishlamaydi.
+> Oldingi oʻlchov (2026-08-25) da `certificate_required` **0** edi.
+> Oʻrtada ikki ish boʻldi: 2026-08-26 da VMQ 502 topildi va 12 turkum
+> toʻldirildi, 2026-09-02 da 4-ilovaning toʻliq matni oʻqilib qolgan
+> 30 turkum oxirigacha koʻrib chiqildi (quyida).
+
+"Tekshirilgan, lekin bayroq qoʻyilmagan" — bu **bekor ish emas**.
+Har bunday qator qaysi hujjat, qaysi band va qaysi TIF TN kodi
+qaralganini yozib qoldiradi, yaʼni keyingi safar oʻsha turkum
+qaytadan qidirilmaydi.
 
 ## Uch maydon, uch xil qiymat
 
@@ -81,105 +90,44 @@ qaytargan boʻlardim. Buni huquqshunos yoki `standart.uz` /
 
 ## Qayerga yoziladi
 
-`supabase/seed/certificate_required.TODO.csv` — men eng
-muhim **30 ta turkumni talab boʻyicha tartiblab** tayyorladim.
-Faqat uch ustunni toʻldirish qoladi:
-`marking_required`, `certificate_required`, `source`.
+`supabase/seed/category_requirements.csv`, keyin
+`node supabase/seed/yukla.mjs` bazaga yozadi.
 
-Birinchi oʻntalik (talab — oʻlchangan, taxmin emas):
-
-| Turkum | Talab |
-|---|---:|
-| Smartfonlar Android | 618 813 |
-| Qoplamalar | 285 516 |
-| Simsiz quloqchinlar | 265 835 |
-| Sumkalar | 209 020 |
-| Parfyumlangan suv | 178 247 |
-| Ziraklar | 154 057 |
-| Krossovkalar | 146 784 |
-| Soat | 132 246 |
-| Uzuklar | 112 946 |
-| Smartfonlar Apple iPhone (iOS) | 112 004 |
-
-Hammasini toʻldirish shart emas. **Bittasini** toʻldirsangiz ham
-oʻsha turkum boʻyicha filtr darhol ishlay boshlaydi.
+> `certificate_required.TODO.csv` **oʻchirildi** (2026-09-02).
+> Undagi 30 turkumning hammasi koʻrib chiqildi: 4 tasiga bayroq
+> qoʻyildi, 12 tasi allaqachon toʻldirilgan edi, qolgan 14 tasiga
+> tekshirilgani va NEGA bayroq qoʻyilmagani yozib qoldirildi.
+> Ish varaqasi oʻz vazifasini bajardi.
 
 ## Nazoratchi aynan NIMA qilishi kerak
 
-> Qisqa javob: **huquqiy qaror qabul qilish shart emas.**
-> Menga roʻyxatning MATNI kerak, xulosa emas. Uzum turkumlariga
-> moslashtirishni oʻzim qilaman.
+> Bu boʻlim 2026-09-02 da qisqardi. Oldin bu yerda "menga
+> roʻyxatning MATNI kerak" deb yozilgan edi — matn olindi va
+> oʻqildi (yuqoridagi boʻlimga qarang). Qolgan uchta narsa
+> haqiqatan sizni kutadi.
 
-### Nima allaqachon bor
+**1. Deklaratsiya uchun sxema qarori.** Yuqoridagi "Ochiq savol"
+boʻlimi. Uchta turkumga taʼsir qiladi va kod tomondan tayyorman.
 
-`VMQ 148, 02.04.2022` (lex.uz/docs/-5936141) dan 13 ta turkum
-olingan — hammasi maishiy texnika:
+**2. Boshqa hujjatlar.** VMQ 502 — bitta hujjat. Roʻyxatda
+topilmagan turkumlar (soat, quloqchin, stiker, taroq, zargarlik,
+qoplama, niqob, organayzer) boshqa hujjatga tegishli boʻlishi
+mumkin. Ularga `0` yozilmadi, chunki `0` "hamma hujjatni koʻrdim"
+degan daʼvo boʻlardi.
 
-| Guruh | Turkumlar |
-|---|---|
-| 1-guruh | muzlatgich, kir yuvish mashinasi, televizor, changyutgich |
-| 2-guruh | dazmol, gaz pechka, mikrotoʻlqinli pech |
-| 3-guruh | konditsioner, blender, mikser |
+Agar boshqa hujjat nomini yoki havolasini bersangiz, oʻsha
+turkumlarni oʻsha manbaga solishtiraman.
 
-### Nima yetishmayapti
-
-Foydalanuvchilarga eng koʻp tavsiya qilinadigan turkumlar bu
-roʻyxatda **umuman yoʻq**: smartfon, simsiz quloqchin, parfyum,
-kosmetika, krossovka, zargarlik.
-
-Yaʼni ular boshqa hujjatga tegishli yoki umuman talab yoʻq —
-va men buni bilmayman.
-
-### Uch manba, arzonidan boshlab
-
-**1. Uzumning oʻz sotuvchi hujjatlari — eng arzon va eng aniq.**
-
-Uzum sotuvchidan qaysi turkumlarda sertifikat soʻrashini oʻzi
-belgilaydi va buni sotuvchi kabinetida/qoʻllanmasida yozadi.
-Aynan shu narsa savdoni toʻxtatadi — qonun emas, platformaning
-talabi.
-
-Kerak: sotuvchi kabinetidagi yoki yordam boʻlimidagi
-&laquo;qanday turkumlarda sertifikat kerak&raquo; roʻyxati.
-Skrinshot ham boʻladi.
-
-**2. lex.uz — asosi.**
-
-Qidiruv soʻzlari: *majburiy sertifikatlashtirish*,
-*muvofiqlik sertifikati*, *majburiy sertifikatlash roʻyxati*.
-
-Kerak: hujjat nomi, sanasi, havolasi va **ilovadagi tovar
-roʻyxati matni**.
-
-**3. Sertifikatlashtirish organi yoki huquqshunos** — faqat
-`entry_cost_uzs` va `entry_weeks` uchun. Bu majburiy emas,
-filtr busiz ham ishlaydi.
-
-### Menga qanday yuborish kerak
-
-Quyidagilarning **istalgan bittasi** yetadi:
-
-* lex.uz sahifasiga havola,
-* roʻyxat matnini nusxalab tashlash,
-* skrinshot,
-* Uzum kabinetidagi roʻyxat rasmi.
-
-CSV ni oʻzingiz toʻldirishingiz **shart emas**. Roʻyxatni
-bersangiz, men uni Uzum turkumlariga moslashtirib, `source`
-maydonini toʻldirib, faylga yozaman va bazaga qoʻyaman.
-
-Bir shart bor: **xulosa emas, MANBA kerak.** &laquo;Menimcha
-parfyumga sertifikat kerak&raquo; degan gap yozilmaydi — chunki
-keyin uni hech kim qayta tekshira olmaydi va bir yildan keyin
-qoida oʻzgarsa, buni hech narsa koʻrsatmaydi.
+**3. Uzumning OʻZ talabi — eng qimmatlisi.** Savdoni qonun emas,
+platformaning qoidasi toʻxtatadi. `seller.uzum.uz` qoʻllanmasidan
+nimadir olingan (pastda), lekin u toʻliq emas: sotuvchi
+kabinetidagi "qaysi turkumda sertifikat soʻraladi" roʻyxati
+kerak. Skrinshot ham yetadi.
 
 ### Eng kichik foydali qadam
 
-Bittagina turkumni oling — masalan **Simsiz quloqchinlar**
-(talab 265 835). Uzum kabinetida yoki lex.uz da shu boʻyicha
-nima yozilganini toping va menga tashlang.
-
-Bitta turkum ham filtrni oʻsha yerda darhol ishga tushiradi.
+Sotuvchi kabinetiga kirsangiz, sertifikat soʻraladigan turkumlar
+roʻyxatini skrinshot qilib tashlang. Qolganini oʻzim qilaman.
 
 ## Topilgan manbalar (2026-08-26)
 
@@ -300,6 +248,98 @@ oʻnli kasr bilan berilgan va varaqda ustunlarga boʻlinib ketgan
 ("10,00%" ikki katakka tushadi). Ehtiyotsiz oʻqisam, 10% oʻrniga
 1 000% yozib qoʻyish mumkin edi. Uni alohida, tekshiruv bilan
 olish kerak.
+
+## 4-ilovaning toʻliq matni oʻqildi (2026-09-02)
+
+Oldin bu hujjatda "roʻyxatning MATNI kerak" deb yozilgan edi va u
+nazoratchidan soʻralgandi. Matn `lex.uz/docs/-7080176` dan olindi va
+4-ilova toʻliq ajratildi: **108 band, 65 tasi sertifikat (1—65),
+43 tasi deklaratsiya (66—108)** — bu hujjatning oldingi qismidagi
+daʼvo bilan mos, yaʼni ajratish toʻgʻri.
+
+`certificate_required.TODO.csv` dagi **30 ta turkumning hammasi**
+koʻrib chiqildi va fayl oʻchirildi: undagi ish tugagan.
+
+### Topildi — sertifikat talab qilinadi
+
+| Turkum | Band | Nega |
+|---|---|---|
+| Smartfonlar (Android, iPhone) | 56 | TIF TN 8517 13 ∈ 8517 11 000 0 — 8517 69 900 0 |
+| Noutbuklar | 54 | 8471 30 000 0 kod roʻyxatida AYNAN bor |
+| Planshetlar | 54 yoki 56 | 8471 30 → 54-band, 8517 62 → 56-band; **ikkala tasnifda ham** sertifikat |
+
+Planshet holati alohida qiziq: tasnif noaniq boʻlsa ham javob aniq,
+chunki ikkala yoʻl ham sertifikat boʻlimiga olib boradi.
+
+### Tekshirildi, lekin bayroq QOʻYILMADI
+
+Uch xil sabab bor va ular aralashtirilmaydi.
+
+**1. Tasnifga bogʻliq** — bir tasnifda roʻyxatda bor, boshqasida yoʻq:
+
+| Turkum | Nega |
+|---|---|
+| Simsiz quloqchinlar | 8518 30 (quloqchin) roʻyxatda YOʻQ — 56-band 8518 dan faqat 21/22/29 (dinamiklar) ni oladi. Lekin TWS 8517 62 deb ham tasniflanadi va u 56-bandda BOR. |
+| Aqlli soatlar | 8517 62 → 56-bandda bor; 9102 → roʻyxatda yoʻq. |
+
+**2. Deklaratsiya boʻlimida** — sxema buni ifodalay olmaydi:
+
+| Turkum | Band |
+|---|---|
+| Sumkalar | 77 (4202) |
+| Kiyim toʻplamlari | 86 (trikotaj), 87 (toʻqima) |
+| Har kun kiyiladigan liboslar | 86, 87 |
+
+`certificate_required` ikki holatli. Deklaratsiya sertifikat emas,
+shuning uchun `1` ham, `0` ham notoʻgʻri boʻlardi. **Bu hali ham
+nazoratchining qarori** — pastdagi "Ochiq savol" ga qarang.
+
+**3. VMQ 502 roʻyxatida umuman yoʻq** — lekin bu "kerak emas"
+degani EMAS, faqat "shu hujjatda yoʻq" degani:
+
+| Turkum | TIF TN | Izoh |
+|---|---|---|
+| Soat (2610, 2607) | 9101, 9102 | 9101 umuman yoʻq; 9102 faqat 106-bandda, u ham "faqat elektron sekundomerlar, shaxmat soatlari" deb cheklangan |
+| Stikerlar | 4821, 4911 | — |
+| Soch toʻgʻnagʻichlari va taroqlar | 9615 | — |
+| Qoplamalar | 3926 | — |
+| Matoli niqoblar | 6307 90 | 41-band 6307 dan faqat 6307 20 000 0 ni oladi; 88-band nomi "sport bayroqlari" deb cheklangan |
+| Organayzerlar | 3924 90, 3926 | 20-band 3924 dan faqat 3924 10 000 0 (dasturxon buyumlari) ni oladi |
+| Ziraklar, uzuklar, bilaguzuklar, zanjirlar | 7113, 7117 | roʻyxatda yoʻq; ustiga bijuteriya aralashligi allaqachon yozilgan |
+
+Bularga `0` yozilmadi. `0` — "tekshirdim, kerak emas" degan daʼvo,
+va u faqat BARCHA tegishli hujjatlar koʻrilgandan keyin yozilishi
+mumkin. Koʻrilgani bittasi.
+
+### Bir tuzatish
+
+`Futbolkalar` va `Kalta yengli futbolkalar` qatorlarida manba
+**40-band** deb yozilgan. Futbolka TIF TN 6109 (trikotaj) va u
+**39-bandda** (6105—6109); 40-band esa toʻqima mahsulotlar
+(6205—6209). Ikkala band ham sertifikat boʻlimida, yaʼni
+`certificate_required = 1` **oʻzgarmaydi** — faqat havola aniq emas.
+Tegilmadi: bu qatorlarni nazoratchi kiritgan va bayroqqa taʼsiri
+yoʻq.
+
+## Ochiq savol — nazoratchiga
+
+**Deklaratsiya uchun uchinchi qiymat kerakmi?**
+
+Uchta turkum (sumka, kiyim toʻplami, libos) VMQ 502 roʻyxatida BOR,
+lekin deklaratsiya boʻlimida. Hozir ular bayroqsiz qolyapti, yaʼni
+foydalanuvchi "tekshirilmagan" deb koʻradi — aslida esa biz aniq
+bilamiz: talab bor, faqat sertifikat emas, deklaratsiya.
+
+Variantlar:
+
+1. `certificate_required` ni uch holatli qilish
+   (`sertifikat` / `deklaratsiya` / `yoʻq`) — sxema oʻzgaradi.
+2. Alohida `declaration_required` ustuni qoʻshish — sodda, lekin
+   filtr ikkala ustunni koʻrishi kerak.
+3. Hozirgicha qoldirish — foydalanuvchi bilsa boʻladigan narsani
+   bilmay qoladi.
+
+Qaror sizniki. Aytsangiz, migratsiya va filtr oʻzgarishini yozaman.
 
 ## Toʻldirgandan keyin nima boʻladi
 
