@@ -140,9 +140,28 @@ class Store:
             },
         )
 
-    def frontier_yoz(self, client: httpx.Client, max_id: int, steps: int) -> None:
-        self._rpc(client, "frontier_yoz", {
+    def frontier_yoz(self, client: httpx.Client, max_id: int, steps: int) -> dict[str, Any]:
+        """Kunlik frontier o'lchovini yozadi va YOZILGANINI qaytaradi.
+
+        Uch nomni adashtirmaslik kerak: ish `selleros.frontier_yoz` da
+        qoladi, chaqiriladigan uch esa `public.so_frontier_yoz`.
+        PostgREST faqat `public` ni ko'radi, shuning uchun ilgari bu
+        yerda turgan sxemasiz `frontier_yoz` nomi `public` da
+        qidirilardi va topilmasdi — ya'ni zond hech qachon yoza
+        olmagan (0051-migratsiya izohiga qarang).
+
+        Qaytgan `max_id` yuborilganidan FARQ qilishi mumkin: baza
+        tomonda `greatest(...)` bor va bir kunda ikki marta o'lchansa
+        kattasi qoladi. Chaqiruvchi shuning uchun qaytgan qiymatga
+        qaraydi, o'zi yuborganiga emas.
+        """
+        javob = self._rpc(client, "so_frontier_yoz", {
             "p_platform": self.platform,
             "p_max_id": max_id,
             "p_steps": steps,
         })
+        if not isinstance(javob, dict):
+            raise StoreError(
+                f"so_frontier_yoz kutilmagan javob qaytardi: {type(javob).__name__}"
+            )
+        return javob

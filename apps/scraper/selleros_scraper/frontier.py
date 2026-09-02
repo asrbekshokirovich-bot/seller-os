@@ -137,16 +137,30 @@ def main(argv: list[str] | None = None) -> int:
             rps=args.rps,
         )
 
+    # Avval yoziladi, keyin hisobot bosiladi.
+    #
+    # Tartib ATAYLAB shunday. Ilgari JSON yozishdan OLDIN chiqardi va
+    # `"yozildi": true` yozish muvaffaqiyatli boʻlishidan qatʼi nazar
+    # koʻrinardi — yaʼni hisobot niyatni aytardi, natijani emas.
+    # Endi u bazadan qaytgan qiymatni koʻrsatadi.
+    yozilgan: dict | None = None
+    if store is not None:
+        with httpx.Client(timeout=20.0) as client:
+            yozilgan = store.frontier_yoz(client, max_id, qadamlar)
+
     print(json.dumps({
         "max_id": max_id,
         "qadamlar": qadamlar,
-        "yozildi": not args.quruq,
+        "yozildi": yozilgan is not None,
+        # Bazada NIMA turgani. `frontier_yoz` ichidagi `greatest(...)`
+        # tufayli bu yuborilgan qiymatdan katta boʻlishi mumkin: kun
+        # ichida ikkinchi oʻlchov birinchisidan kichik chiqsa, kattasi
+        # qoladi. Workflow aynan shu qiymatga qaraydi.
+        "bazada": yozilgan,
     }, ensure_ascii=False, indent=2))
 
-    if store is not None:
-        with httpx.Client(timeout=20.0) as client:
-            store.frontier_yoz(client, max_id, qadamlar)
-        print(f"Bazaga yozildi: max_id={max_id}", file=sys.stderr)
+    if yozilgan is not None:
+        print(f"Bazaga yozildi: {yozilgan}", file=sys.stderr)
 
     return 0
 
