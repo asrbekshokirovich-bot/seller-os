@@ -177,6 +177,13 @@ def _qatorga(javob: Javob) -> dict:
         "shop_external_id": k.shop_external_id,
         "shop_name": k.shop_name,
         "shop_official": k.shop_official,
+        # Do'kon reytingi va sharh soni. `shop.rating` ustuni
+        # 0001-migratsiyadan beri bor va bugungacha BO'SH turgan
+        # (4 297 do'kondan 0 tasida qiymat) — chunki so'rovga
+        # qo'shilmagan edi. `weight_g` bilan aynan bir xil naqsh:
+        # ustun bor, ajratuvchi yo'q (QOIDALAR.md, 8-bo'lim).
+        "shop_rating": k.shop_rating,
+        "shop_reviews": k.shop_reviews,
         "category_external_id": k.category_external_id,
         "category_name": k.category_name,
         "price": k.price,

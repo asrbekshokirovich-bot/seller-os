@@ -48,7 +48,11 @@ query sellerosProduct($id: Int!) {
       # `official` so'raladi, lekin YOZILMAYDI — Uzum uni doim `false`
       # qaytaradi (parse() dagi izohga qarang). So'rovda qoldirilgan
       # sababi: Uzum to'ldira boshlasa, bir marta tekshirib bilamiz.
-      shop { id title official ordersQuantity }
+      # `feedbackQuantity` va `rating` — do'kon darajasida. Ular
+      # `official` dan FARQLI o'laroq haqiqatan to'ldiriladi: 70 ta
+      # tasodifiy do'konda o'lchandi (2026-09-02), 60 tasida ikkalasi
+      # ham noldan katta, `null` bitta ham yo'q, reyting 2.5–5.0.
+      shop { id title official ordersQuantity feedbackQuantity rating }
     }
   }
 }
@@ -76,7 +80,11 @@ query sellerosProductStok($id: Int!) {
       minFullPrice
       category { id title }
       oversized
-      shop { id title official ordersQuantity }
+      # `feedbackQuantity` va `rating` — do'kon darajasida. Ular
+      # `official` dan FARQLI o'laroq haqiqatan to'ldiriladi: 70 ta
+      # tasodifiy do'konda o'lchandi (2026-09-02), 60 tasida ikkalasi
+      # ham noldan katta, `null` bitta ham yo'q, reyting 2.5–5.0.
+      shop { id title official ordersQuantity feedbackQuantity rating }
       # Qoldiq variantlar bo'yicha keladi — tovar qoldig'i ularning
       # yig'indisi. `weight` 7-tuzoq (og'ir tovar) uchun ham keladi.
       # `dimensions` — uzunlik/kenglik/balandlik, millimetrda.
@@ -124,6 +132,18 @@ class Kuzatuv:
     shop_official: bool | None
     shop_orders: int | None
     """Do'kon hisoblagichi."""
+    shop_reviews: int | None
+    """Do'kon sharhlari soni. Nol — HAQIQIY javob ("hali sharh yo'q"),
+    `None` esa "kelmadi". Ikkalasi boshqa narsa."""
+    shop_rating: float | None
+    """Do'kon reytingi. `None` — baho YO'Q, nol emas.
+
+    O'lchandi 2026-09-02, 70 ta tasodifiy do'kon: reyting nol bo'lgan
+    10 ta do'konning HAMMASIDA sharh ham nol edi, va sharhi bor
+    do'konda reyting nol bo'lgan holat BITTA ham chiqmadi. Ya'ni
+    Uzumning `rating: 0.0` i "nol baho" degani emas — "hali
+    baholanmagan" degani. Uni nol deb yozsak, yangi do'kon eng yomon
+    do'konga o'xshab qolardi (QOIDALAR.md, 4-qoida)."""
     category_external_id: int | None
     category_name: str | None
     price: int | None
@@ -175,6 +195,8 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         # ko'rinadi. Boshqa bozor haqiqiy belgi bersa — o'sha manba yozadi.
         shop_official=None,
         shop_orders=_int(shop.get("ordersQuantity")),
+        shop_reviews=_int(shop.get("feedbackQuantity")),
+        shop_rating=_dokon_reytingi(shop),
         category_external_id=_int(category.get("id")),
         category_name=category.get("title"),
         price=_int(product.get("minSellPrice")),
@@ -187,6 +209,34 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         oversized=_bool(product.get("oversized")),
         volume_ml=_hajm(product.get("skuList")),
     )
+
+
+def _dokon_reytingi(shop: dict[str, Any]) -> float | None:
+    """Do'kon reytingi, sharhsiz do'konda `None`.
+
+    Uzum sharhi yo'q do'konga `rating: 0.0` beradi — bu baho emas,
+    bahoning yo'qligi. O'lchandi 2026-09-02, 70 ta tasodifiy do'kon:
+
+        sharh = 0 va reyting = 0        10 ta
+        sharh > 0 lekin reyting = 0      0 ta   ← nol hech qachon baho emas
+        sharh = 0 lekin reyting > 0      0 ta
+
+    Ya'ni ikkalasi doim birga nol bo'ladi. Nolni bazaga yozsak, endi
+    ochilgan do'kon 2.5 ballik do'kondan ham yomon ko'rinardi.
+
+    Bu `official` bilan bir xil dars, lekin bu safar oldindan
+    o'lchandi: `official` da Uzumning doimiy `false` i bir yil bazada
+    o'lchov bo'lib turgan edi (0009-migratsiya).
+    """
+    reyting = _float(shop.get("rating"))
+    if reyting is None or reyting <= 0:
+        return None
+    sharh = _int(shop.get("feedbackQuantity"))
+    # Sharh kelmagan bo'lsa (`None`) reytingga ishonamiz: u noldan
+    # katta, ya'ni baho haqiqatan mavjud.
+    if sharh is not None and sharh <= 0:
+        return None
+    return reyting
 
 
 def _qoldiq(sku_list: list[dict[str, Any]] | None) -> int | None:
