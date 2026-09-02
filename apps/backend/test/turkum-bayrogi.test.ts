@@ -9,9 +9,14 @@
  * edi (oʻlchandi 2026-09-02). QOIDALAR.md 8-boʻlimidagi naqsh.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { TurkumHolati } from '@selleros/shared';
 import { turkumBayroqlariniTarqat } from '../src/tahlil.js';
+
+/** Repo ildizi — bu fayl `apps/backend/test/` da yotadi. */
+const ILDIZ = join(import.meta.dirname, '../../..');
 
 /** Chegaradan OʻTADIGAN turkum: top-3 ulushi 88%, qamrov toʻliq. */
 const MONOPOL: TurkumHolati = {
@@ -85,5 +90,49 @@ describe('turkumBayroqlariniTarqat', () => {
     expect(turkumBayroqlariniTarqat([kam], [
       { productId: 1, categoryId: 55 },
     ])).toEqual([]);
+  });
+});
+
+/**
+ * IKKALA UCH HAM ulangan boʻlsin — qorovul.
+ *
+ * NEGA. Bu mantiq ikki joyda yashaydi: `apps/backend/src/app.ts`
+ * (Fastify) va `supabase/functions/selleros/index.ts` (Edge Function).
+ * JADVAL faqat ikkinchisini chaqiradi —
+ * `.github/workflows/skreyper.yml` `functions/v1/selleros/
+ * bayroqlarni-hisobla` ga `curl` yuboradi. Fastify serveri hech
+ * qayerda ishlamaydi.
+ *
+ * 2026-09-02 da monopoliya bayrogʻi faqat `app.ts` ga ulandi. Natija:
+ * supurish yashil tugadi (`tekshirildi` noldan katta, demak qorovul
+ * qadam ham oʻtdi), bayroqlar 17:35 da qayta hisoblandi — va jadvalda
+ * `monopoly` turi BITTA ham yoʻq edi. Kod bor, test yashil, jadval
+ * boʻsh (QOIDALAR.md, 8-boʻlim).
+ *
+ * Bu test matnni oʻqiydi, chunki Edge Function Deno uchun yozilgan va
+ * uni shu yerdan import qilib boʻlmaydi.
+ */
+describe('monopoliya bayrogʻi ikkala uchda ham ulangan', () => {
+  const UCHLAR: [string, string][] = [
+    ['Fastify', 'apps/backend/src/app.ts'],
+    ['Edge Function', 'supabase/functions/selleros/index.ts'],
+  ];
+
+  it.each(UCHLAR)('%s — turkum bayroqlari olinadi', (_nom, yol) => {
+    const kod = readFileSync(join(ILDIZ, yol), 'utf8');
+    expect(kod).toMatch(/so_turkum_tovarlari/);
+    expect(kod).toMatch(/turkumBayroqlariniTarqat/);
+  });
+
+  it.each(UCHLAR)('%s — ular `so_bayroq_yoz` ga BORADI', (_nom, yol) => {
+    // Hisoblab, keyin yozuvga qoʻshmaslik — aynan shu xato boʻlgan.
+    const kod = readFileSync(join(ILDIZ, yol), 'utf8');
+    expect(kod).toMatch(/p_bayroqlar:\s*\[[^\]]*monopoliyaBayroqlari/);
+  });
+
+  it.each(UCHLAR)('%s — javobda soni koʻrinadi', (_nom, yol) => {
+    // Nol boʻlsa jimgina qolmasin.
+    const kod = readFileSync(join(ILDIZ, yol), 'utf8');
+    expect(kod).toMatch(/monopoliya:\s*monopoliyaBayroqlari\.length/);
   });
 });
