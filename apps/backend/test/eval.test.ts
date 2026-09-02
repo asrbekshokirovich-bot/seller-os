@@ -2,11 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  demping, hype,
   mavsumiy, monopoliya, nakrutka, ogir, sertifikat, yopiqBrend,
 } from '@selleros/shared';
 import type {
-  KirishTalablari, MavsumKirishi, NakrutkaKirishi,
-  OgirKirishi, TovarHolati, TurkumHolati,
+  HypeKirishi, KirishTalablari, MavsumKirishi, NakrutkaKirishi,
+  OgirKirishi, Tannarx, TovarHolati, TurkumHolati,
 } from '@selleros/shared';
 
 /**
@@ -32,6 +33,8 @@ interface NakrutkaQator { expect: string | null; kirish: NakrutkaKirishi; note: 
 interface MavsumQator { expect: string | null; kirish: MavsumKirishi; note: string }
 interface OgirQator { expect: string | null; kirish: OgirKirishi; note: string }
 interface SertifikatQator { expect: string | null; kirish: KirishTalablari; note: string }
+interface DempingQator { expect: string | null; kirish: Tannarx; note: string }
+interface HypeQator { expect: string | null; kirish: HypeKirishi; note: string }
 
 const oqi = <T>(fayl: string): { elementlar: T[] } =>
   JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures', fayl), 'utf8'));
@@ -61,6 +64,8 @@ describe('eval — filtrlarning umumiy aniqligi', () => {
   const mavsumQ = oqi<MavsumQator>('mavsumiy.json').elementlar;
   const ogirQ = oqi<OgirQator>('ogir.json').elementlar;
   const sertQ = oqi<SertifikatQator>('sertifikat.json').elementlar;
+  const dempingQ = oqi<DempingQator>('demping.json').elementlar;
+  const hypeQ = oqi<HypeQator>('hype.json').elementlar;
 
   it(`roʻyxatlar yetarli katta (≥${MIN_QATOR})`, () => {
     expect(tovar.length).toBeGreaterThanOrEqual(MIN_QATOR);
@@ -69,11 +74,14 @@ describe('eval — filtrlarning umumiy aniqligi', () => {
     expect(mavsumQ.length).toBeGreaterThanOrEqual(MIN_QATOR);
     expect(ogirQ.length).toBeGreaterThanOrEqual(MIN_QATOR);
     expect(sertQ.length).toBeGreaterThanOrEqual(MIN_QATOR);
+    expect(dempingQ.length).toBeGreaterThanOrEqual(MIN_QATOR);
+    expect(hypeQ.length).toBeGreaterThanOrEqual(MIN_QATOR);
   });
 
   it('ikkala sinf ham vakil boʻlgan', () => {
     for (const [nom, qatorlar] of [['tovar', tovar], ['turkum', turkum],
-        ['nakrutka', nakrutkaQ], ['mavsum', mavsumQ]] as const) {
+        ['nakrutka', nakrutkaQ], ['mavsum', mavsumQ],
+        ['demping', dempingQ], ['hype', hypeQ]] as const) {
       const musbat = qatorlar.filter((q) => q.expect !== null && q.expect !== 'baholanmadi');
       const manfiy = qatorlar.filter((q) => q.expect === null);
       expect(musbat.length, `${nom}: musbat misol yoʻq`).toBeGreaterThan(0);
@@ -123,6 +131,18 @@ describe('eval — filtrlarning umumiy aniqligi', () => {
       .toBeGreaterThanOrEqual(MIN_ANIQLIK);
   });
 
+  it(`3-tuzoq aniqligi ≥ ${MIN_ANIQLIK}%`, () => {
+    const n = baho(dempingQ, demping);
+    expect(n.aniqlik, `${n.togri}/${n.jami}. Xatolar: ${n.xatolar.join('; ')}`)
+      .toBeGreaterThanOrEqual(MIN_ANIQLIK);
+  });
+
+  it(`8-tuzoq aniqligi ≥ ${MIN_ANIQLIK}%`, () => {
+    const n = baho(hypeQ, hype);
+    expect(n.aniqlik, `${n.togri}/${n.jami}. Xatolar: ${n.xatolar.join('; ')}`)
+      .toBeGreaterThanOrEqual(MIN_ANIQLIK);
+  });
+
   it('umumiy aniqlik chiqariladi', () => {
     const natijalar = [
       baho(tovar, yopiqBrend),
@@ -131,6 +151,8 @@ describe('eval — filtrlarning umumiy aniqligi', () => {
       baho(sertQ, sertifikat),
       baho(turkum, monopoliya),
       baho(ogirQ, ogir),
+      baho(dempingQ, demping),
+      baho(hypeQ, hype),
     ];
     const togri = natijalar.reduce((s, n) => s + n.togri, 0);
     const jami = natijalar.reduce((s, n) => s + n.jami, 0);

@@ -1,0 +1,228 @@
+{
+  "izoh": [
+    "Qoʻlda yasalgan fikstura — bazaga ulanish yoʻq.",
+    "Bazadan yasash: python supabase/seed/fikstura_yasash.py"
+  ],
+  "elementlar": [
+    {
+      "platform": "uzum", "external_id": 200001,
+      "expect": "hype",
+      "title": "TikTok trendga chiqqan sumka",
+      "kirish": {
+        "productAgeDays": 10,
+        "yangiSotuvUlushi": 0.85
+      },
+      "note": "yosh=10 ≤ 42 VA ulush=0.85 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200002,
+      "expect": "hype",
+      "title": "Viral telefon aksessuari",
+      "kirish": {
+        "productAgeDays": 5,
+        "yangiSotuvUlushi": 0.92
+      },
+      "note": "yosh=5 ≤ 42 VA ulush=0.92 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200003,
+      "expect": "hype",
+      "title": "Yangi smart soat",
+      "kirish": {
+        "productAgeDays": 20,
+        "yangiSotuvUlushi": 0.78
+      },
+      "note": "yosh=20 ≤ 42 VA ulush=0.78 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200004,
+      "expect": "hype",
+      "title": "Instagram trend ko'zoynak",
+      "kirish": {
+        "productAgeDays": 30,
+        "yangiSotuvUlushi": 0.65
+      },
+      "note": "yosh=30 ≤ 42 VA ulush=0.65 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200005,
+      "expect": "hype",
+      "title": "Yangi chiqarilgan naushnik",
+      "kirish": {
+        "productAgeDays": 42,
+        "yangiSotuvUlushi": 0.70
+      },
+      "note": "yosh=42 ≤ 42 (aynan chegara) VA ulush=0.70 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200006,
+      "expect": "hype",
+      "title": "Ommabop fidjet",
+      "kirish": {
+        "productAgeDays": 15,
+        "yangiSotuvUlushi": 0.55
+      },
+      "note": "yosh=15 ≤ 42 VA ulush=0.55 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200007,
+      "expect": "hype",
+      "title": "Yangi trend ayollar kiyimi",
+      "kirish": {
+        "productAgeDays": 35,
+        "yangiSotuvUlushi": 0.60
+      },
+      "note": "yosh=35 ≤ 42 VA ulush=0.60 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200008,
+      "expect": "hype",
+      "title": "Trend bolalar o'yinchog'i",
+      "kirish": {
+        "productAgeDays": 8,
+        "yangiSotuvUlushi": 0.90
+      },
+      "note": "yosh=8 ≤ 42 VA ulush=0.90 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200009,
+      "expect": "hype",
+      "title": "Social media trend kosmetika",
+      "kirish": {
+        "productAgeDays": 25,
+        "yangiSotuvUlushi": 0.72
+      },
+      "note": "yosh=25 ≤ 42 VA ulush=0.72 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200010,
+      "expect": "hype",
+      "title": "Ommabop shisha idish",
+      "kirish": {
+        "productAgeDays": 38,
+        "yangiSotuvUlushi": 0.58
+      },
+      "note": "yosh=38 ≤ 42 VA ulush=0.58 > 0.5 — trend xavfi"
+    },
+    {
+      "platform": "uzum", "external_id": 200011,
+      "expect": null,
+      "title": "Yangi lekin barqaror sotuv",
+      "kirish": {
+        "productAgeDays": 14,
+        "yangiSotuvUlushi": 0.40
+      },
+      "note": "yosh=14 ≤ 42 kun, lekin ulush=0.40 ≤ 0.5 — barqaror oʻsish"
+    },
+    {
+      "platform": "uzum", "external_id": 200012,
+      "expect": null,
+      "title": "Yangi tovar tekis sotilgan",
+      "kirish": {
+        "productAgeDays": 28,
+        "yangiSotuvUlushi": 0.45
+      },
+      "note": "yosh=28 ≤ 42 kun, lekin ulush=0.45 ≤ 0.5 — barqaror"
+    },
+    {
+      "platform": "uzum", "external_id": 200013,
+      "expect": null,
+      "title": "Eski tovar yuqori sotuv",
+      "kirish": {
+        "productAgeDays": 120,
+        "yangiSotuvUlushi": 0.80
+      },
+      "note": "ulush=0.80 > 0.5, lekin yosh=120 > 42 — eski barqaror tovar"
+    },
+    {
+      "platform": "uzum", "external_id": 200014,
+      "expect": null,
+      "title": "Eski tovar tez sotilgan",
+      "kirish": {
+        "productAgeDays": 200,
+        "yangiSotuvUlushi": 0.60
+      },
+      "note": "ulush=0.60 > 0.5, lekin yosh=200 > 42 — eski tovar"
+    },
+    {
+      "platform": "uzum", "external_id": 200015,
+      "expect": null,
+      "title": "Eski tovar asta sotilgan",
+      "kirish": {
+        "productAgeDays": 90,
+        "yangiSotuvUlushi": 0.30
+      },
+      "note": "yosh=90 > 42, ulush=0.30 ≤ 0.5 — barqaror eski"
+    },
+    {
+      "platform": "uzum", "external_id": 200016,
+      "expect": null,
+      "title": "Klassik charm kamar",
+      "kirish": {
+        "productAgeDays": 365,
+        "yangiSotuvUlushi": 0.33
+      },
+      "note": "yosh=365 > 42, ulush=0.33 ≤ 0.5 — barqaror eski"
+    },
+    {
+      "platform": "uzum", "external_id": 200017,
+      "expect": null,
+      "title": "Mezon tovar",
+      "kirish": {
+        "productAgeDays": 180,
+        "yangiSotuvUlushi": 0.48
+      },
+      "note": "yosh=180 > 42, ulush=0.48 ≤ 0.5 — barqaror eski"
+    },
+    {
+      "platform": "uzum", "external_id": 200018,
+      "expect": null,
+      "title": "Eski katta sotuvli",
+      "kirish": {
+        "productAgeDays": 250,
+        "yangiSotuvUlushi": 0.35
+      },
+      "note": "yosh=250 > 42, ulush=0.35 ≤ 0.5 — barqaror eski"
+    },
+    {
+      "platform": "uzum", "external_id": 200019,
+      "expect": null,
+      "title": "Chegara atrofida — eski",
+      "kirish": {
+        "productAgeDays": 43,
+        "yangiSotuvUlushi": 0.80
+      },
+      "note": "yosh=43 > 42 (chegaradan 1 kun oshiq) — eski"
+    },
+    {
+      "platform": "uzum", "external_id": 200020,
+      "expect": null,
+      "title": "Chegara atrofida — past ulush",
+      "kirish": {
+        "productAgeDays": 40,
+        "yangiSotuvUlushi": 0.50
+      },
+      "note": "ulush=0.50 ≤ 0.5 (aynan chegara, leq emas strict >) — tuzoq yoʻq"
+    },
+    {
+      "platform": "uzum", "external_id": 200021,
+      "expect": "baholanmadi",
+      "title": "Yoshi nomaʼlum",
+      "kirish": {
+        "productAgeDays": null,
+        "yangiSotuvUlushi": 0.70
+      },
+      "note": "productAgeDays null — baholanmadi"
+    },
+    {
+      "platform": "uzum", "external_id": 200022,
+      "expect": "baholanmadi",
+      "title": "Sotuv ulushi nomaʼlum",
+      "kirish": {
+        "productAgeDays": 15,
+        "yangiSotuvUlushi": null
+      },
+      "note": "yangiSotuvUlushi null — baholanmadi"
+    }
+  ]
+}
