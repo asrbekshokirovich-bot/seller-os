@@ -311,7 +311,6 @@ def sertifikat_fiksturasi() -> dict:
 
 
 YOSH_KUN = 42
-OSISH_OYNA_KUN = 14
 
 
 def demping_fiksturasi() -> dict:
