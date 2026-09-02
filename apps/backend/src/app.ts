@@ -1,6 +1,9 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Sifat, holat } from './sifat.js';
-import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.js';
+import {
+  tovarniTekshir, turkumBayroqlariniTarqat, turkumniTekshir, xulosa,
+} from './tahlil.js';
+import type { TarqalganBayroq, TurkumXaritasi } from './tahlil.js';
 import { paymeCheckoutUrl, paymeWebhookTekshir, paymeWebhookParse, paymeJavob, paymeXato } from './payme.js';
 import { clickCheckoutUrl, clickImzoTekshir, clickWebhookParse, clickPrepareJavob, clickCompleteJavob, CLICK_XATO, type ClickWebhookTana } from './click.js';
 
@@ -289,17 +292,40 @@ export function build(): FastifyInstance {
     const oy = hozirgiOy();
     const bayroqlar = royxat.flatMap((t) =>
       tovarniTekshir(t, { oy }).bayroqlar.map((b) => ({ ...b, productId: t.productId })));
+
+    // 6-tuzoq (monopoliya) TURKUM darajasida hisoblanadi, `product_flags`
+    // esa TOVAR boʻyicha yoziladi. Shu sababdan u shu yergacha hech
+    // qachon yetib kelmagan: `turkumniTekshir` faqat `/tuzoqlar` uchida
+    // chaqirilardi va natijasi hech qayerga saqlanmasdi — jadvalda
+    // `monopoly` turi BITTA ham yoʻq edi.
+    //
+    // Endi turkum bayrogʻi oʻsha turkumdagi har tovarga tarqatiladi.
+    // Bayroq matni ham, dalili ham turkumniki: tovar ayblanmaydi,
+    // "kirish qiyin" deb ogohlantiriladi.
+    //
+    // Nusxalanish qoʻrqinchli koʻrinadi, lekin oʻlchandi (2026-09-02):
+    // 322 turkumdan 9 tasi chegaradan oʻtadi va ularda jami 67 ta
+    // kuzatuv tovari bor. Perepisgacha bu raqam boshqacha edi — 319
+    // turkumdan 284 tasi "monopol" chiqardi, chunki ulush 6 000 lik
+    // namunadan hisoblanardi (TUZOQLAR.md, 6-tuzoq).
+    const monopoliyaBayroqlari = await turkumBayroqlari();
+
     // Bayroqsiz tovar ham roʻyxatga kiradi: uning eski bayroqlari
     // oʻchirilishi kerak, aks holda tuzatilgan tovarning bayrogʻi
     // jadvalda abadiy qolib ketardi.
     const tegilgan = royxat.map((t) => ({ productId: t.productId }));
 
     const natija = await rpc<{ tegilgan: number; ochirildi: number; yozildi: number }>(
-      'so_bayroq_yoz', { p_bayroqlar: [...bayroqlar, ...tegilgan] });
+      'so_bayroq_yoz',
+      { p_bayroqlar: [...bayroqlar, ...monopoliyaBayroqlari, ...tegilgan] });
     if (natija === null) {
       return { olchov_yoq: true, sabab: 'bayroqlar yozilmadi' };
     }
-    return { tekshirildi: royxat.length, ...natija };
+    return {
+      tekshirildi: royxat.length,
+      monopoliya: monopoliyaBayroqlari.length,
+      ...natija,
+    };
   });
 
   /**
@@ -1185,6 +1211,29 @@ function hozirgiOy(): number {
     month: 'numeric',
   }).format(new Date());
   return Number(matn);
+}
+
+/**
+ * Turkum bayroqlarini bazadan olib tovarlarga tarqatadi.
+ *
+ * Ikki uch soʻraladi: `so_turkum_holati` — turkum raqamlari,
+ * `so_turkum_tovarlari` — tovar → turkum xaritasi (`0052`).
+ * Qaror TypeScript da qoladi: chegara `thresholds.ts` da, SQL da
+ * emas. Aks holda raqam ikki joyda yashardi va ajralib ketardi —
+ * repoda bunday holat allaqachon bor (`supabase/test/kun-sharti.test.ts`).
+ *
+ * Baza javob bermasa BOʻSH roʻyxat qaytadi, xato emas: monopoliya
+ * bayrogʻi yozilmagani qolgan bayroqlarni yozishga toʻsqinlik
+ * qilmasligi kerak. Lekin bu jimgina emas — chaqiruvchi javobda
+ * `monopoliya` sonini koʻrsatadi va u nol boʻlsa koʻrinadi.
+ */
+async function turkumBayroqlari(): Promise<TarqalganBayroq[]> {
+  const [turkumlar, xarita] = await Promise.all([
+    rpc<TurkumHolati[]>('so_turkum_holati', { p_platform: 'uzum' }),
+    rpc<TurkumXaritasi[]>('so_turkum_tovarlari', { p_platform: 'uzum' }),
+  ]);
+  if (turkumlar === null || xarita === null) return [];
+  return turkumBayroqlariniTarqat(turkumlar, xarita);
 }
 
 /** Bazadagi funksiyani chaqiradi. `null` — ulanmagan yoki javob yoʻq. */
