@@ -203,3 +203,51 @@ export function xulosa<T>(natijalar: Bayroqli<T>[]): Xulosa {
     bayroqlar,
   };
 }
+
+/** Tovar va uning turkumi — ikkalasi ham TASHQI id. */
+export interface TurkumXaritasi {
+  productId: number;
+  categoryId: number;
+}
+
+/** Tovarga tarqatilgan turkum bayrogʻi. */
+export type TarqalganBayroq = Flag & { productId: number };
+
+/**
+ * Turkum bayroqlarini oʻsha turkumdagi tovarlarga tarqatadi.
+ *
+ * NEGA KERAK. 6-tuzoq (monopoliya) TURKUM darajasida hisoblanadi,
+ * `selleros.product_flags` esa TOVAR boʻyicha yoziladi. Ikkisi
+ * bogʻlanmagani uchun bayroq jadvalgacha hech qachon yetib
+ * kelmagan: `turkumniTekshir` faqat `/tuzoqlar` uchida chaqirilardi
+ * va natijasi saqlanmasdi (QOIDALAR.md, 8-boʻlim naqshi).
+ *
+ * TOVAR AYBLANMAYDI. Bayroqning matni ham, dalili ham turkumniki
+ * boʻlib qoladi — u "bu tovar yomon" demaydi, "bu turkumga kirish
+ * qiyin" deydi. Shuning uchun `Flag` oʻzgartirilmasdan koʻchiriladi,
+ * faqat `productId` qoʻshiladi.
+ *
+ * Sof funksiya: bazaga tegmaydi, shuning uchun testlanadi.
+ */
+export function turkumBayroqlariniTarqat(
+  turkumlar: TurkumHolati[],
+  xarita: TurkumXaritasi[],
+): TarqalganBayroq[] {
+  // Avval qaysi turkum bayroqli ekanini aniqlaymiz. `Map` ataylab:
+  // xarita 6 000 qatorli va har biri uchun roʻyxat boʻylab qidirsak
+  // bu O(n×m) boʻlardi.
+  const bayroqli = new Map<number, Flag[]>();
+  for (const turkum of turkumlar) {
+    const { bayroqlar } = turkumniTekshir(turkum);
+    if (bayroqlar.length > 0) bayroqli.set(turkum.categoryId, bayroqlar);
+  }
+  if (bayroqli.size === 0) return [];
+
+  const natija: TarqalganBayroq[] = [];
+  for (const { productId, categoryId } of xarita) {
+    const bayroqlar = bayroqli.get(categoryId);
+    if (bayroqlar === undefined) continue;
+    for (const b of bayroqlar) natija.push({ ...b, productId });
+  }
+  return natija;
+}
