@@ -37,7 +37,8 @@ Kategoriya daraxti. `(platform, external_id)` kalit, `parent_id` bilan
 o'ziga havola. `name_uz`, `name_ru`.
 
 ### `shop`
-Sotuvchi. `(platform, external_id)`, `name`, `rating`, `official`.
+Sotuvchi. `(platform, external_id)`, `name`, `rating`, `feedback_quantity`,
+`official`.
 
 > `official` — **ishonmang.** Uzum bu maydonni to'ldirmaydi (2026-08-19 da
 > jonli tekshirilgan: Artel Brand Shop, ARTEL_OFFICIAL, Яшкино — hammasi
@@ -45,6 +46,24 @@ Sotuvchi. `(platform, external_id)`, `name`, `rating`, `official`.
 > unga suyanmaydi. Saqlanishining yagona sababi — Uzum to'ldira boshlasa
 > tayyor bo'lish. Uzum manbasi bu ustunga hech narsa yozmaydi: uning
 > `false` i o'lchov emas, doimiy (63 113 do'konda 0 ta `true`).
+
+> `rating` va `feedback_quantity` — **haqiqiy o'lchov**, `official` dan
+> farqli. Jonli o'lchandi 2026-09-02, 70 ta tasodifiy do'kon: 60 tasida
+> ikkalasi ham noldan katta, `null` bitta ham yo'q, reyting 2.5–5.0
+> (mediana 4.7). Ular do'kondan do'konga o'zgaradi — demak o'lchov,
+> doimiy emas.
+>
+> `rating` da **nol yo'q**: sharhi bo'lmagan do'konga Uzum `0.0` beradi va
+> bu baho emas, bahoning yo'qligi. O'sha o'lchovda reyting nol bo'lgan
+> 10 ta do'konning hammasida sharh ham nol edi, va sharhi bor do'konda
+> reyting nol bo'lgan holat bitta ham chiqmadi. Skreyper shuning uchun
+> uni `null` ga aylantiradi (`_dokon_reytingi`). `feedback_quantity` da
+> esa nol **haqiqiy javob**: "hali sharh yo'q".
+>
+> Migratsiya `0050` gacha ikkalasi ham bo'sh edi — `rating` ustuni
+> `0001` dan beri bor, lekin so'rovga qo'shilmagani uchun 4 297 do'konning
+> 0 tasida qiymat bor edi. Hozircha hech bir filtr bunga tayanmaydi;
+> nimaga ishlatilishi alohida qaror (`BACKLOG.md`).
 
 ### `product`
 Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,

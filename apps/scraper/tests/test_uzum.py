@@ -4,7 +4,14 @@ Tarmoqqa chiqmaydi: javob shakli qotirilgan. Shakl o'zgarsa test
 yiqiladi va biz buni bilamiz — jimgina `None` qaytarib qolmaymiz.
 """
 
-from selleros_scraper.manbalar.uzum import PRODUCT_QUERY, buyers_per_week, parse, _ogirlik
+from selleros_scraper.manbalar.uzum import (
+    PRODUCT_QUERY,
+    PRODUCT_QUERY_STOK,
+    buyers_per_week,
+    parse,
+    _dokon_reytingi,
+    _ogirlik,
+)
 
 JAVOB = {
     "actions": [{"__typename": "MotivationAction", "text": "313 kishi shu hafta sotib oldi"}],
@@ -16,9 +23,21 @@ JAVOB = {
         "minSellPrice": 11370,
         "minFullPrice": 15000,
         "category": {"id": 2570, "title": "Nam salfetkalar"},
-        "shop": {"id": 6016, "title": "Sunlight Group", "official": True, "ordersQuantity": 102400},
+        "shop": {
+            "id": 6016,
+            "title": "Sunlight Group",
+            "official": True,
+            "ordersQuantity": 102400,
+            "feedbackQuantity": 3021,
+            "rating": 4.6,
+        },
     },
 }
+
+
+def _dokon(**maydonlar):
+    """Berilgan do'kon bilan javob yasaydi."""
+    return {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D", **maydonlar})}
 
 
 def test_toliq_javob_oqiladi():
@@ -48,6 +67,62 @@ def test_uzumdan_official_yozilmaydi():
 
     javob = {"product": dict(JAVOB["product"], shop={"id": 1, "title": "D"})}
     assert parse(javob).shop_official is None
+
+
+# --------------------------------------- do'kon reytingi va sharh soni
+
+
+def test_dokon_reytingi_va_sharhi_oqiladi():
+    """`official` dan farqli — bular haqiqiy o'lchov.
+
+    Jonli o'lchandi 2026-09-02, 70 ta tasodifiy do'kon: 60 tasida
+    ikkalasi ham noldan katta, `null` bitta ham yo'q, reyting
+    2.5–5.0 oralig'ida.
+    """
+    k = parse(JAVOB)
+    assert k.shop_rating == 4.6
+    assert k.shop_reviews == 3021
+
+
+def test_sharhsiz_dokonda_reyting_none_nol_emas():
+    """Uzum sharhi yo'q do'konga `rating: 0.0` beradi — bu baho emas.
+
+    O'lchandi 2026-09-02: reyting nol bo'lgan 10 ta do'konning
+    hammasida sharh ham nol edi; sharhi bor do'konda reyting nol
+    bo'lgan holat BITTA ham chiqmadi. Nolni yozsak, endi ochilgan
+    do'kon 2.5 ballik do'kondan yomon ko'rinardi — 0009-migratsiyadagi
+    `official` xatosining aynan o'zi.
+    """
+    k = parse(_dokon(feedbackQuantity=0, rating=0.0))
+    assert k.shop_rating is None
+    # Sharh soni uchun nol esa HAQIQIY javob va saqlanadi.
+    assert k.shop_reviews == 0
+
+
+def test_sharhi_bor_dokonning_past_reytingi_yoqolmaydi():
+    """2.5 ball — yomon do'kon, lekin o'lchangan. U yo'qolmasin."""
+    assert _dokon_reytingi({"feedbackQuantity": 42, "rating": 2.5}) == 2.5
+
+
+def test_dokon_maydonlari_kelmasa_none():
+    """Kelmagan maydon nolga aylanmaydi."""
+    k = parse(_dokon())
+    assert k.shop_rating is None
+    assert k.shop_reviews is None
+
+
+def test_sharh_soni_kelmasa_reytingga_ishonamiz():
+    """Sharh kelmagan, lekin reyting noldan katta — baho mavjud."""
+    assert _dokon_reytingi({"rating": 4.9}) == 4.9
+
+
+def test_dokon_reytingi_ikkala_sorovda_ham_soraladi():
+    """Yengil so'rovda unutilsa, ustun kunlarcha bo'sh qolardi."""
+    for nomi, sorov in (("yengil", PRODUCT_QUERY), ("og'ir", PRODUCT_QUERY_STOK)):
+        dokon = sorov[sorov.index("shop {"):]
+        dokon = dokon[: dokon.index("}")]
+        assert "rating" in dokon, f"{nomi} so'rovda do'kon reytingi yo'q"
+        assert "feedbackQuantity" in dokon, f"{nomi} so'rovda do'kon sharhi yo'q"
 
 
 def test_olik_id_none_qaytaradi_xato_emas():
