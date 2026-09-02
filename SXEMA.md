@@ -176,11 +176,23 @@ Javobgarlik uchun ham, o'rganish uchun ham. `score_breakdown` (jsonb) —
 
 ### `id_frontier`
 Id→sana kalibrovkasining kunlik o'lchovi. Har kuni Uzumdagi eng katta
-javob beruvchi mahsulot id si yoziladi. 30+ kunlik qator to'plangach
-`id_yoshi()` statik jadvaldan dinamik regressiyaga o'tadi.
+javob beruvchi mahsulot id si yoziladi. **7+** kunlik qator to'plangach
+`id_yoshi()` statik jadvaldan dinamik regressiyaga o'tadi — chegara
+`0043` da, va u yerda nega ettita ekani yozilgan (ikkita nuqta ham
+regressiya beradi, lekin bitta anomal kun uni buzadi).
 
 `platform`, `sana` (unique), `max_id` (topilgan eng yuqori id),
 `probe_steps` (nechta so'rov ketdi), `created_at`.
+
+> **Qachondan beri to'ladi.** 2026-09-02 dan. Bundan oldin bu bo'lim
+> "har kuni yoziladi" deb turgan, lekin jadval **bo'sh** edi: zondni
+> chaqiradigan qadam hech bir workflow da yo'q edi, va yozish yo'lining
+> o'zi ham buzuq edi — `selleros.frontier_yoz` `selleros` sxemasida,
+> PostgREST esa faqat `public` ni ko'radi (`0051`).
+>
+> O'lchov ishlashi tasdiqlangan: quruq yurish 3 285 215 topgan, 23
+> qadamda. Zumsavdoning mustaqil zondi o'sha kuni 3 284 229 bergan —
+> ikki boshqa amalga oshirish 0,03% farq bilan bir xil javob beradi.
 
 ## 4. Biznes
 

@@ -51,6 +51,42 @@ jobs:
       - run: pip install -e '.[dev]'
         working-directory: apps/scraper
 
+      # Frontier zondi — id→sana kalibrovkasi uchun kunlik nuqta.
+      #
+      # NEGA OʻLCHOVDAN OLDIN. Zond 25 tadan koʻp soʻrov yubormaydi va
+      # ~10 soniya oladi, supurish esa ~1 soat. Oldinda tursa, supurish
+      # nimadandir yiqilsa ham kunlik nuqta yozib ulgurilgan boʻladi.
+      #
+      # NEGA KERAK. `id_yoshi()` hozir 526 tovarning eng eski sharhidan
+      # chiqarilgan STATIK jadvalga tayanadi (korrelyatsiya 0.81,
+      # oʻlchangan 2026-08-19) va u har kuni eskiradi. Yetti kunlik
+      # nuqta yigʻilgach funksiya oʻzi regressiyaga oʻtadi (`0043`).
+      # `id_yoshi` esa 1-tuzoq (brend yoshi) va 8-tuzoq (tovar yoshi)
+      # ning kirishi — yaʼni bu qadam ikki filtrning aniqligini ushlaydi.
+      #
+      # Kod `0043` dan beri tayyor turgan, lekin HECH KIM CHAQIRMAGAN:
+      # `selleros.id_frontier` da 0 qator edi. Yozish yoʻlining oʻzi ham
+      # buzuq edi (`0051` ga qarang) — ikkalasi shu yerda birga
+      # tuzatildi.
+      - name: Frontier zondi
+        working-directory: apps/scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          javob=$(python -m selleros_scraper frontier)
+          echo "$javob"
+          # "Ishladi" degani "yozdi" degani emas (QOIDALAR.md §8).
+          # Tekshiruv BAZADAN qaytgan qiymat boʻyicha: `bazada.max_id`
+          # ni faqat baza toʻldiradi, skript uni oʻzi toʻqiy olmaydi.
+          n=$(printf '%s' "$javob" | python3 -c \
+            'import json,sys; d=json.load(sys.stdin); print((d.get("bazada") or {}).get("max_id") or 0)')
+          if [ "$n" -le 0 ]; then
+            echo "::error::Frontier oʻlchandi, lekin bazaga yozilmadi."
+            exit 1
+          fi
+          echo "Frontier bazada: $n"
+
       - name: Oʻlchash
         working-directory: apps/scraper
         env:
