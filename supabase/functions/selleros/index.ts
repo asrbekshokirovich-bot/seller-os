@@ -14,7 +14,14 @@
  * koʻchiriladi. Qoʻlda tahrirlanmaydi — CI ularning bir xilligini
  * tekshiradi.
  */
-import { tovarniTekshir, turkumniTekshir, xulosa } from './tahlil.ts';
+import {
+  tovarniTekshir,
+  turkumBayroqlariniTarqat,
+  turkumniTekshir,
+  xulosa,
+  type TarqalganBayroq,
+  type TurkumXaritasi,
+} from './tahlil.ts';
 import {
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
@@ -68,6 +75,34 @@ async function rpc<T>(nom: string, arg: unknown): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Turkum bayroqlarini bazadan olib tovarlarga tarqatadi.
+ *
+ * NEGA SHU YERDA HAM. Bu mantiq `apps/backend/src/app.ts` da ham bor,
+ * lekin JADVAL AYNAN SHU UCHNI chaqiradi: `.github/workflows/skreyper.yml`
+ * `functions/v1/selleros/bayroqlarni-hisobla` ga `curl` yuboradi.
+ * Fastify serveri esa hech qayerda ishlamaydi.
+ *
+ * 2026-09-02 da aynan shu farq qimmatga tushdi: monopoliya bayrogʻi
+ * `app.ts` ga ulandi, bu yerga ulanmadi, va supurish yashil tugadi —
+ * `tekshirildi` noldan katta edi, demak qorovul qadam ham oʻtdi.
+ * Jadvalda esa `monopoly` turi hamon BITTA ham yoʻq edi. Kod bor,
+ * test yashil, jadval boʻsh (QOIDALAR.md, 8-boʻlim).
+ *
+ * Baza javob bermasa BOʻSH roʻyxat qaytadi, xato emas: monopoliya
+ * bayrogʻi yozilmagani qolgan bayroqlarni yozishga toʻsqinlik
+ * qilmasligi kerak. Lekin bu jimgina emas — javobdagi `monopoliya`
+ * soni nol boʻlsa koʻrinadi.
+ */
+async function turkumBayroqlari(): Promise<TarqalganBayroq[]> {
+  const [turkumlar, xarita] = await Promise.all([
+    rpc<TurkumHolati[]>('so_turkum_holati', { p_platform: 'uzum' }),
+    rpc<TurkumXaritasi[]>('so_turkum_tovarlari', { p_platform: 'uzum' }),
+  ]);
+  if (turkumlar === null || xarita === null) return [];
+  return turkumBayroqlariniTarqat(turkumlar, xarita);
 }
 
 const javob = (data: unknown, status = 200) =>
@@ -275,18 +310,31 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const bayroqlar = tovarlar_.flatMap((t) =>
       tovarniTekshir(t, { oy }).bayroqlar.map((b) => ({ ...b, productId: t.productId })));
 
+    // 6-tuzoq (monopoliya) TURKUM darajasida hisoblanadi, `product_flags`
+    // esa TOVAR boʻyicha yoziladi. Turkum bayrogʻi oʻsha turkumdagi har
+    // tovarga tarqatiladi: tovar ayblanmaydi, "kirish qiyin" deyiladi.
+    //
+    // Oʻlchandi (2026-09-02): 322 turkumdan 9 tasi chegaradan oʻtadi va
+    // ularda jami 67 ta kuzatuv tovari bor.
+    const monopoliyaBayroqlari = await turkumBayroqlari();
+
     // Bayroqsiz tovar ham YOZILADI (boʻsh yozuv sifatida emas —
     // eski bayroqlari oʻchiriladi). Aks holda tuzatilgan tovarning
     // eski bayrogʻi jadvalda abadiy qolib ketardi.
     const tegilgan = tovarlar_.map((t) => ({ productId: t.productId }));
 
     const natija = await rpc<{ tegilgan: number; ochirildi: number; yozildi: number }>(
-      'so_bayroq_yoz', { p_bayroqlar: [...bayroqlar, ...tegilgan] });
+      'so_bayroq_yoz',
+      { p_bayroqlar: [...bayroqlar, ...monopoliyaBayroqlari, ...tegilgan] });
     if (natija === null) {
       return javob({ olchov_yoq: true, sabab: 'bayroqlar yozilmadi' }, 503);
     }
 
-    return javob({ tekshirildi: tovarlar_.length, ...natija });
+    return javob({
+      tekshirildi: tovarlar_.length,
+      monopoliya: monopoliyaBayroqlari.length,
+      ...natija,
+    });
   }
 
   // ---- Sessiya va profil (reja B3, onboarding) ------------------
