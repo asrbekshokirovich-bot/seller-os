@@ -49,8 +49,29 @@ jobs:
       - name: Edge Function nusxasi manbaga mos
         run: node supabase/functions/tayyorlash.mjs --tekshir
 
+      # VERSIYA QOTIRILGAN — `latest` EMAS.
+      #
+      # `version: latest` har yugurishda GitHub API dan oxirgi relizni
+      # soʻraydi. Yugurish anonim, yaʼni soatiga 60 ta soʻrov —
+      # umumiy runner IP lari uni tez toʻldiradi.
+      #
+      # Oʻlchandi 2026-09-02 13:01: deploy shu bilan yiqildi —
+      #
+      #   ##[error]Failed to resolve latest Supabase CLI release:
+      #            rate limit exceeded
+      #
+      # Zarari deploy bilan tugamadi. Oʻsha yugurish PR #13 ni
+      # joylashi kerak edi; joylay olmagani uchun Edge Function butun
+      # kun 35-versiyada qoldi va monopoliya bayrogʻi bazaga
+      # yozilmadi. Yaʼni bitta API chegarasi butun bir kunlik
+      # oʻlchovni yeb ketdi.
+      #
+      # Qotirilgan versiya bu soʻrovni umuman qilmaydi. 2.116.0 —
+      # npm registrida `latest` deb belgilangan barqaror versiya
+      # (tekshirildi 2026-09-05). Yangilash — ongli qadam, tasodif
+      # emas.
       - uses: supabase/setup-cli@v1
-        with: { version: latest }
+        with: { version: 2.116.0 }
 
       - name: Joylash
         env:
