@@ -1,14 +1,24 @@
 {
   "manifest_version": 3,
   "name": "Seller OS — Xitoydan top",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Uzum.uz sahifasida \"Xitoydan top\" tugmasi — 1688 dan oʻxshash tovar topadi.",
-  "permissions": ["activeTab"],
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
   "content_scripts": [
     {
-      "matches": ["*://uzum.uz/*", "*://www.uzum.uz/*"],
-      "js": ["content.js"],
-      "css": ["content.css"]
+      "matches": [
+        "*://uzum.uz/*",
+        "*://www.uzum.uz/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ]
     }
   ],
   "background": {
@@ -18,5 +28,8 @@
   "icons": {
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "host_permissions": [
+    "https://duequijnnzcngzzvjqst.supabase.co/*"
+  ]
 }
