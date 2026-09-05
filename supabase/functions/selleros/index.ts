@@ -31,6 +31,7 @@ import {
   kpilar,
   demping,
   tannarxHisobi,
+  limitTekshir,
   xatoniYubor,
   profilOqi,
   qadamOchiq,
@@ -40,6 +41,7 @@ import {
   yonalishlar,
   type KpiXom,
   type TannarxKirishi,
+  type XitoyTovar,
   type NomzodJavobi,
   type ObunaXom,
   type RejaNatijasi,
@@ -457,6 +459,95 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   // provayderidan kelishi kerak (kalit kutilmoqda), stavkalar esa
   // huquqiy hujjatdan. Ikkalasi ham hali yoʻq, shuning uchun
   // hozircha odam kiritadi — formula esa bir joyda va testlangan.
+  // ───────────────────────────────────────────────────────────────
+  // B4: XITOYDAN TOPISH
+  // ───────────────────────────────────────────────────────────────
+  //
+  // NEGA BU YERDA. Bu uch `apps/backend/src/app.ts` da ham bor, lekin
+  // Fastify serveri hech qayerda ishlamaydi — chaqiriladigan yagona
+  // joy shu Edge Function.
+  //
+  // Aynan shu farq 2026-09-02 da monopoliya bayrogʻini bir kunga
+  // yoʻqotgan edi, va 2026-09-05 da yana takrorlangani aniqlandi:
+  // Chrome kengaytmasi 2-sentabrdan beri "Published - public" turgan,
+  // lekin uning "Xitoydan top" tugmasi hech qachon ishlamagan —
+  // chaqirayotgan uchi mavjud emas edi.
+  //
+  // PROVAYDER HALI ULANMAGAN: TMAPI va OneBound sinov kaliti
+  // kutilmoqda. Uch tayyor; provayder ulanganda faqat shu yerdagi
+  // chaqiruv qoʻshiladi.
+  //
+  // Oqim: sessiya → tarif darvozasi → kunlik limit → kesh → provayder.
+  if (yol === '/xitoy-qidiruv' && req.method === 'POST') {
+    const token = req.headers.get('x-sessiya');
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+
+    const ruxsat = await qadamRuxsati(token, 4);
+    if (!ruxsat.ochiq) return javob(ruxsat.javob, 402);
+
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+    const productId = Number(tana.productId);
+    const rasmUrl = typeof tana.rasmUrl === 'string' ? tana.rasmUrl : null;
+
+    if (!Number.isInteger(productId) && !rasmUrl) {
+      return javob({ xato: 'productId yoki rasmUrl kerak' }, 400);
+    }
+
+    const n = await rejaniOl(token);
+    const limitJ = await rpc<{ xato?: string; soni?: number }>(
+      'so_xitoy_limit', { p_token: token },
+    );
+    const ishlatilgan = limitJ?.soni ?? 0;
+    const limitNatija = limitTekshir(ishlatilgan, n.reja);
+    if (!limitNatija.ruxsat) {
+      return javob({
+        xato: 'kunlik limit tugadi',
+        ...limitNatija,
+        reja: n.reja,
+      }, 429);
+    }
+
+    // Keshdan izlash. Rasm berilmasa tovar id si kalit boʻladi.
+    const rasmHash = rasmUrl ?? `uzum:${productId}`;
+    const kesh = await rpc<{ topildi: boolean; natijalar?: XitoyTovar[]; manba?: string }>(
+      'so_xitoy_kesh_ol', { p_rasm_hash: rasmHash },
+    );
+    if (kesh?.topildi && kesh.natijalar) {
+      return javob({
+        natijalar: kesh.natijalar,
+        manba: kesh.manba,
+        keshdan: true,
+        limit: limitNatija,
+      });
+    }
+
+    // Provayder chaqiruvi — HALI ULANMAGAN.
+    //
+    // `izoh` ATAYLAB qaytariladi: boʻsh roʻyxatni "Xitoyda oʻxshashi
+    // yoʻq" deb oʻqish mumkin edi, holbuki hech kim qidirmagan.
+    // Kengaytma shu matnni foydalanuvchiga koʻrsatadi.
+    const provayderKaliti = Deno.env.get('XITOY_API_KEY');
+    if (!provayderKaliti) {
+      return javob({
+        natijalar: [],
+        manba: null,
+        keshdan: false,
+        limit: limitNatija,
+        izoh: 'Qidiruv provayderi hali ulanmagan — kalit kutilmoqda.',
+      });
+    }
+
+    // Provayder ulangach shu yerda API chaqiruvi va `so_xitoy_kesh_yoz`
+    // boʻladi.
+    return javob({
+      natijalar: [],
+      manba: null,
+      keshdan: false,
+      limit: limitNatija,
+    });
+  }
+
   if (yol === '/tannarx' && req.method === 'POST') {
     let tana: Partial<TannarxKirishi> = {};
     try { tana = (await req.json()) as Partial<TannarxKirishi>; } catch { /* boʻsh */ }

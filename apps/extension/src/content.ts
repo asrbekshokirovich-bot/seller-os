@@ -1,14 +1,25 @@
 // Uzum.uz tovar sahifasiga "Xitoydan top" tugmasini qoʻshadi.
 //
-// PROVAYDER HALI ULANMAGAN: tugma bosilganda backendga soʻrov
-// yuboriladi, backend keshdan yoki provayder API dan javob beradi.
+// TARMOQQA CHIQMAYDI. Soʻrovni servis ishchisi (`background.ts`)
+// yuboradi va natijani xabar orqali qaytaradi.
+//
+// NEGA. Manifest V3 da content script sahifaning (uzum.uz)
+// manshasidan soʻrov yuboradi va CORS ga tushadi. Birinchi yozuvda
+// `fetch` aynan shu yerda edi va manzil ham mavjud boʻlmagan domenga
+// (`api.selleros.uz`) qaragan — yaʼni tugma nashr qilingan kunidan
+// beri faqat "Tarmoq xatosi" berardi.
 
-const BACKEND_URL = 'https://api.selleros.uz';
 const TUGMA_ID = 'selleros-xitoy-tugma';
 
 function tovarIdOl(): number | null {
   const mos = window.location.pathname.match(/\/product\/(\d+)/);
   return mos ? Number(mos[1]) : null;
+}
+
+interface Javob {
+  natijalar?: Natija[];
+  izoh?: string;
+  xato?: string;
 }
 
 function tugmaYarat(): HTMLButtonElement {
@@ -27,23 +38,27 @@ function tugmaYarat(): HTMLButtonElement {
     tugma.disabled = true;
 
     try {
-      const javob = await fetch(`${BACKEND_URL}/xitoy-qidiruv`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: pid }),
+      const javob: Javob = await chrome.runtime.sendMessage({
+        tur: 'xitoy-qidiruv',
+        productId: pid,
       });
-      const data = await javob.json();
 
-      if (data.xato) {
-        tugma.textContent = `Xato: ${data.xato}`;
-      } else if (data.natijalar?.length) {
-        tugma.textContent = `${data.natijalar.length} ta topildi`;
-        natijalarniKorsat(data.natijalar);
+      if (!javob) {
+        tugma.textContent = 'Javob kelmadi';
+      } else if (javob.xato) {
+        tugma.textContent = `Xato: ${javob.xato}`;
+      } else if (javob.natijalar?.length) {
+        tugma.textContent = `${javob.natijalar.length} ta topildi`;
+        natijalarniKorsat(javob.natijalar);
+      } else if (javob.izoh) {
+        // Boʻsh roʻyxatni "Xitoyda oʻxshashi yoʻq" deb oʻqish mumkin
+        // edi, holbuki hech kim qidirmagan. Sabab koʻrsatiladi.
+        tugma.textContent = javob.izoh;
       } else {
         tugma.textContent = 'Natija topilmadi';
       }
-    } catch {
-      tugma.textContent = 'Tarmoq xatosi';
+    } catch (e) {
+      tugma.textContent = `Xato: ${(e as Error)?.message ?? 'nomaʼlum'}`;
     } finally {
       tugma.disabled = false;
     }
