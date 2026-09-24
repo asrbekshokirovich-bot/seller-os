@@ -1,0 +1,780 @@
+/*
+ * Bosh sahifa — `ZUMSavdo K Journey Tinted.dc.html` dizayni.
+ *
+ * Ranglar `globals.css` dagi `.zs-mavzu` dan (Usta bilan bitta).
+ * Oʻlchamlar, radiuslar va animatsiyalar dizayn faylidan aynan.
+ *
+ * DIZAYNDAN FARQ: `backdrop-filter` faqat tepa panelda. Dizaynda u
+ * har kartada edi; arzon telefonda sahifa aylantirganda sekinlashadi.
+ */
+
+.sahifa {
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+  color: var(--ink);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 520px at 85% -10%, var(--glow1), transparent 60%),
+    radial-gradient(700px 500px at 0% 100%, var(--glow2), transparent 60%),
+    linear-gradient(115deg, transparent 40%, var(--a04) 50%, transparent 60%);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sahifa a { text-decoration: none; }
+
+/* `globals.css` dagi eski `main { max-width: 44rem }` bu sahifaga tegmasin. */
+.sahifa main {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sahifa :focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.sahifa ::selection {
+  background: var(--acc);
+  color: var(--accInk);
+}
+
+.mono { font-family: var(--font-mono), ui-monospace, monospace; }
+
+.shisha {
+  background: linear-gradient(160deg, var(--a13), var(--a06));
+  border: 1px solid var(--a17);
+  box-shadow: inset 0 1px 0 var(--a30), 0 26px 50px -40px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------------------------------------------------------- nav */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--navBg);
+  backdrop-filter: saturate(160%) blur(18px);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  border-bottom: 1px solid var(--a09);
+}
+
+.navIchi {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.nishon {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: linear-gradient(160deg, var(--acc2), var(--acc) 55%, var(--acc3));
+  box-shadow: inset 0 1px 0 var(--shine);
+  color: var(--accInk);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navOng {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 14px;
+}
+
+.navHavola { color: var(--ink2); }
+.navHavola:hover { color: var(--ink); }
+
+.mavzuTugma {
+  background: var(--a06);
+  border: 1px solid var(--a17);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mavzuTugma:hover { border-color: var(--acc); color: var(--accMatn); }
+
+.kirish {
+  background: var(--a17);
+  border: 1px solid var(--a30);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 9px 16px;
+  white-space: nowrap;
+}
+
+.kirish:hover { background: var(--acc); color: var(--accInk); }
+
+/* ---------------------------------------------------------- hero */
+
+.hero {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(36px, 5vw, 72px) 24px clamp(20px, 3vw, 40px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink2);
+  animation: kotarilish 0.8s both;
+}
+
+.tirik,
+.ochiq {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--acc);
+  animation: urish 1.8s infinite;
+}
+
+.ochiq { background: var(--a30); animation: none; }
+
+.h1 {
+  margin: 14px 0 0;
+  font-size: clamp(27px, 3.3vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  max-width: 24ch;
+  text-wrap: pretty;
+  animation: kotarilish 0.9s 0.1s both;
+}
+
+.lead {
+  margin: 16px 0 0;
+  max-width: 48ch;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--ink2);
+  animation: kotarilish 0.9s 0.2s both;
+}
+
+.tugmalar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  animation: kotarilish 0.9s 0.3s both;
+}
+
+.asosiyTugma {
+  display: inline-block;
+  background: var(--acc);
+  color: var(--accInk);
+  padding: 13px 22px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.asosiyTugma:hover { background: var(--acc2); }
+
+.ikkinchiTugma {
+  display: inline-block;
+  color: var(--ink);
+  padding: 13px 22px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  border: 1px solid var(--a30);
+  background: var(--a06);
+  white-space: nowrap;
+}
+
+.ikkinchiTugma:hover { border-color: var(--acc); }
+
+.jonli {
+  margin-top: 26px;
+  animation: kotarilish 0.9s 0.4s both;
+}
+
+.jonliSon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.jonliSon .mono { font-weight: 500; }
+
+.jonliIzoh {
+  margin-top: 4px;
+  max-width: 52ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink3);
+}
+
+/* ---------------------------------------------------------- pul oqimi */
+
+.oqim {
+  border-radius: 24px;
+  padding: clamp(18px, 2.4vw, 28px);
+  animation: kotarilish 1s 0.35s both;
+}
+
+.oqimBosh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--ink3);
+}
+
+.misolTeg {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--a22);
+  color: var(--ink2);
+}
+
+.oqimQator {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.kichikKarta {
+  background: linear-gradient(160deg, var(--a09), var(--a04));
+  border: 1px solid var(--a17);
+  box-shadow: inset 0 1px 0 var(--a17);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.sariqKarta {
+  background: linear-gradient(160deg, var(--acc), var(--acc3));
+  box-shadow: inset 0 1px 0 var(--shine);
+  color: var(--accInk);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.yorliq { font-size: 11.5px; color: var(--ink3); }
+.yorliqQora { font-size: 11.5px; color: var(--accInk2); }
+
+.katta {
+  margin-top: 4px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(16px, 1.8vw, 21px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.chiziqlar {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ingichka {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--a09);
+  overflow: hidden;
+}
+
+.ingichka i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.rang_ink { background: var(--ink); }
+.rang_ink2 { background: var(--ink2); }
+.rang_qum { background: #e8dca8; }
+
+.izoh {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink3);
+}
+
+.izohQora {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--accInk2);
+}
+
+.yol {
+  position: relative;
+  height: 74px;
+}
+
+.yolChiziq {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--a17);
+  border-radius: 2px;
+}
+
+.zarra {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--acc2);
+  animation: oqish 3.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.zarraKatta {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: var(--acc);
+  box-shadow: 0 0 0 4px rgba(230, 210, 0, 0.15);
+}
+
+.yolNomlar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--ink3);
+}
+
+.yolHolat {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink2);
+}
+
+.qator {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.qator + .bar { margin-bottom: 12px; }
+
+.bar {
+  margin-top: 6px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--a09);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.barQum { background: #e8dca8; }
+.barSariq { background: linear-gradient(90deg, var(--acc), var(--acc2)); }
+
+.foyda {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--a17);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.foyda > span:last-child {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.foydaMln {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  color: var(--ink3);
+}
+
+.foyda b {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--accMatn);
+}
+
+.oqimOst {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink3);
+}
+
+/* ---------------------------------------------------------- besh bekat */
+
+.yolBolim {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 56px) 0 clamp(40px, 5vw, 72px);
+  scroll-margin-top: 64px;
+}
+
+.bolimBosh {
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.h2 {
+  margin: 0;
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.bolimMeta { font-size: 13px; color: var(--ink3); }
+
+.trek {
+  position: relative;
+  margin: 26px 24px 0;
+  height: 70px;
+}
+
+.trekChiziq,
+.trekTola {
+  position: absolute;
+  left: 10%;
+  top: 22px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.trekChiziq { right: 10%; background: var(--a09); }
+
+.trekTola {
+  background: linear-gradient(90deg, var(--acc), var(--acc2));
+  transition: width 0.8s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.trekNuqta {
+  position: absolute;
+  top: 23px;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.4s;
+}
+
+.chip {
+  position: absolute;
+  top: 23px;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border-radius: 11px;
+  background: var(--shine);
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.9), 0 0 0 4px rgba(11, 11, 11, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.8s cubic-bezier(0.3, 0.7, 0.2, 1);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chip span {
+  width: 42%;
+  height: 42%;
+  border-radius: 5px;
+  background: linear-gradient(150deg, var(--acc), var(--acc3));
+}
+
+.trekNom {
+  position: absolute;
+  top: 48px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ink3);
+  transition: color 0.4s;
+}
+
+.trekNomFaol { color: var(--ink); font-weight: 600; }
+
+.lenta {
+  position: relative;
+  margin-top: 22px;
+  height: 270px;
+  overflow: hidden;
+}
+
+.lentaIchi {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.bekat {
+  flex: 0 0 300px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  border-radius: 20px;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.6s;
+}
+
+.bekatBosh {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.bekatNom {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.holatTeg {
+  flex: none;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--a22);
+  color: var(--ink3);
+}
+
+.holatBor {
+  border-color: transparent;
+  background: var(--accSoft);
+  color: var(--accMatn);
+}
+
+.bekatMatn {
+  margin-top: 6px;
+  min-height: 62px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink3);
+}
+
+.bekatBar {
+  margin-top: 14px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--a09);
+  overflow: hidden;
+}
+
+.bekatBar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--acc), var(--acc2));
+}
+
+.bekatOxir {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.bekatOxir b {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--accMatn);
+}
+
+.bekatOxir .metaYoq {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink3);
+}
+
+.soyaChap,
+.soyaOng {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10%;
+  pointer-events: none;
+}
+
+.soyaChap { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
+.soyaOng { right: 0; background: linear-gradient(270deg, var(--bg), transparent); }
+
+/* ---------------------------------------------------------- cta, pastki */
+
+.cta { border-top: 1px solid var(--a09); }
+
+.ctaIchi {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(40px, 5vw, 72px) 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.ctaSarlavha {
+  margin: 0;
+  font-size: clamp(20px, 2.6vw, 30px);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  max-width: 26ch;
+}
+
+.ctaMatn {
+  margin: 8px 0 0;
+  max-width: 46ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink2);
+}
+
+.pastki { border-top: 1px solid var(--a09); }
+
+.pastkiIchi {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink3);
+}
+
+.pastkiIchi a { color: var(--ink2); }
+.pastkiIchi a:hover { color: var(--accMatn); }
+
+/* ---------------------------------------------------------- animatsiya */
+
+@keyframes kotarilish {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes urish {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes oqish {
+  0% { left: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kicker, .h1, .lead, .tugmalar, .jonli, .oqim { animation: none; }
+  .tirik { animation: none; opacity: 0.8; }
+  .lentaIchi, .trekTola, .chip, .bekat { transition: none; }
+}
+
+/* ---------------------------------------------------------- telefon */
+
+@media (max-width: 640px) {
+  .navIchi { padding: 12px 16px; }
+  .navOng { gap: 10px; }
+  .navHavola { display: none; }
+  .mavzuTugma { padding: 8px 12px; }
+  .kirish { padding: 8px 13px; }
+
+  .hero { padding-left: 16px; padding-right: 16px; }
+
+  /* Uch ustun 390 px da siqilib qolardi: yoʻl — tepada, kartalar yonma-yon. */
+  .oqimQator {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .yol { grid-column: 1 / -1; order: -1; height: 64px; }
+
+  .bolimBosh { padding: 0 16px; }
+  .trek { margin: 26px 16px 0; }
+  .trekNom { font-size: 10.5px; }
+
+
+  .ctaIchi, .pastkiIchi { padding-left: 16px; padding-right: 16px; }
+}

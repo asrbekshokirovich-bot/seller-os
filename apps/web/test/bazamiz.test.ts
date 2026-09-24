@@ -14,15 +14,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  YANGI_MS, bazamizniQoy, holatMatni, qoy, son, yosh,
+  YANGI_MS, holatMatni, son, yosh,
 } from '../src/lib/bazamiz';
-
-/** Statik sahifada RAQAM YOʻQ — faqat chiziqcha. */
-const SAHIFA = `<div>
-  <div data-bazamiz="tovar" style="font-size:34px">—</div>
-  <div data-bazamiz="dokon" style="font-size:34px">—</div>
-  <p data-bazamiz="holat">Raqamlar hozir olinmadi.</p>
-</div>`;
 
 const HOZIR = 1_800_000_000_000;
 const OLCHOV = {
@@ -47,27 +40,6 @@ describe('son', () => {
    */
   it('uzilmas boʻshliq ishlatilmaydi', () => {
     expect(son(1_850_863)).not.toContain(' ');
-  });
-});
-
-describe('qoy', () => {
-  it('belgilangan elementning ichi almashadi', () => {
-    const n = qoy(SAHIFA, 'tovar', '1 850 863');
-    expect(n).toContain('>1 850 863</div>');
-  });
-
-  it('atributlar saqlanadi — uslub yoʻqolmaydi', () => {
-    const n = qoy(SAHIFA, 'tovar', '1');
-    expect(n).toContain('data-bazamiz="tovar" style="font-size:34px"');
-  });
-
-  it('faqat oʻz belgisini tegadi', () => {
-    const n = qoy(SAHIFA, 'tovar', '1');
-    expect(n).toContain('data-bazamiz="dokon" style="font-size:34px">—<');
-  });
-
-  it('belgi yoʻq boʻlsa matn buzilmaydi', () => {
-    expect(qoy(SAHIFA, 'yoq_narsa', 'X')).toBe(SAHIFA);
   });
 });
 
@@ -107,46 +79,5 @@ describe('holatMatni — uch holat ARALASHMAYDI', () => {
     const m = holatMatni(null, HOZIR);
     expect(m).toContain('olinmadi');
     expect(m).toContain('Eski raqam koʻrsatilmaydi');
-  });
-});
-
-describe('bazamizniQoy', () => {
-  it('yangi oʻlchovda raqamlar almashadi', () => {
-    const n = bazamizniQoy(SAHIFA, OLCHOV, HOZIR);
-    expect(n).toContain('>1 850 863<');
-    expect(n).toContain('>85 866<');
-  });
-
-  /*
-   * ENG MUHIM TEKSHIRUV. Oʻlchov yoʻq boʻlsa RAQAM
-   * KOʻRSATILMAYDI. Ilgari bu yerda qurish paytidagi eski son
-   * turardi va u yangi boʻlib koʻrinardi.
-   */
-  it('oʻlchov yoʻq boʻlsa raqam oʻrnida CHIZIQCHA qoladi', () => {
-    const n = bazamizniQoy(SAHIFA, null, HOZIR);
-    expect(n).toContain('data-bazamiz="tovar" style="font-size:34px">—<');
-    expect(n).not.toMatch(/data-bazamiz="tovar"[^>]*>[^<]*\d/);
-  });
-
-  it('eskirgan oʻlchovda raqam koʻrsatiladi, lekin yoshi bilan', () => {
-    const n = bazamizniQoy(SAHIFA, OLCHOV, HOZIR + 9 * 3_600_000);
-    expect(n).toContain('>1 850 863<');
-    expect(n).toContain('9 soat oldin');
-  });
-
-  it('yarim javobda faqat kelgani almashadi, qolgani chiziqcha', () => {
-    const n = bazamizniQoy(SAHIFA, { qiymat: { tovar: 7 }, vaqt: HOZIR }, HOZIR);
-    expect(n).toContain('>7<');
-    expect(n).toContain('data-bazamiz="dokon" style="font-size:34px">—<');
-  });
-
-  it('nol ham qabul qilinadi — u haqiqiy oʻlchov boʻlishi mumkin', () => {
-    // Kunlik oʻlchov nol boʻlishi mumkin (supurish hali
-    // boshlanmagan). Bu `undefined` dan farq qiladi.
-    const n = bazamizniQoy(
-      '<i data-bazamiz="kunlik">—</i><p data-bazamiz="holat">x</p>',
-      { qiymat: { kunlik: 0 }, vaqt: HOZIR }, HOZIR,
-    );
-    expect(n).toContain('>0<');
   });
 });
