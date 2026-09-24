@@ -1,10 +1,9 @@
 /**
- * "Bazamizda bugun" raqamlarini statik sahifaga qoʻyish.
+ * "Bazamiz" oʻlchovi — toza yordamchilar (tarmoqsiz).
  *
- * NEGA BU QATʼIY. Sahifadagi sarlavha "Har bir raqam oʻlchangan"
- * deb turadi va odam bu raqamlarga qarab qaror qabul qiladi.
- * Yaʼni eskirgan raqam — shunchaki nomukammallik emas, daʼvoning
- * oʻzini yolgʻonga aylantiradi.
+ * NEGA BU QATʼIY. Bosh sahifada "N tovar kuzatilmoqda" deb turadi va
+ * odam bu raqamga qarab qaror qabul qiladi. Yaʼni eskirgan raqam —
+ * shunchaki nomukammallik emas, daʼvoning oʻzini yolgʻonga aylantiradi.
  *
  * Shuning uchun UCH holat aniq ajratilgan va hech biri ikkinchisiga
  * oʻxshamaydi:
@@ -13,15 +12,10 @@
  *   eskirgan — oxirgi muvaffaqiyatli oʻlchov, YOSHI bilan aytiladi
  *   yoʻq     — hech qachon olinmagan: raqam oʻrnida chiziqcha
  *
- * Statik faylda RAQAM UMUMAN YOʻQ. Ilgari u yerda "zaxira" deb
- * qoʻlda yozilgan sonlar turardi; bir kunda ular 322 099 taga
- * eskirdi va baza javob bermaganda YANGI boʻlib koʻrinardi.
- * Endi `qurish.mjs` belgilangan joyda raqam qolsa qurishni
- * toʻxtatadi.
- *
- * Alohida fayl, `route.ts` ichida emas: Next marshrut faylidan
- * faqat HTTP usullarini eksport qilishga ruxsat beradi, yaʼni
- * yordamchilarni u yerdan sinab boʻlmasdi.
+ * Ilgari bosh sahifa statik HTML edi va raqam unga matn almashtirish
+ * bilan qoʻyilardi (`qoy`, `bazamizniQoy`). 2026-09-24 dan u React
+ * sahifa — raqam oddiy prop, almashtirish kerak emas. Tarmoq qismi
+ * `bazamizOl.ts` da; bu fayl brauzerda ham ishlaydi.
  */
 
 export interface Bazamiz {
@@ -46,21 +40,6 @@ export const YANGI_MS = 60 * 60 * 1000;
 /** `1850863` → `1 850 863`. Dizaynda ajratgich — oddiy boʻshliq. */
 export function son(n: number): string {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
-
-/**
- * `data-bazamiz="kalit"` elementining ichini almashtiradi.
- *
- * Belgi topilmasa matn OʻZGARMASDAN qaytadi. Bu holat qurish
- * paytida ham tekshiriladi (`qurish.mjs`, `bazamizBelgilari`),
- * yaʼni belgi yoʻqolsa sayt umuman qurilmaydi.
- */
-export function qoy(matn: string, kalit: string, qiymat: string): string {
-  const naqsh = new RegExp(
-    `(<(\\w+)[^>]*data-bazamiz="${kalit}"[^>]*>)([^<]*)(</\\2>)`,
-  );
-  return matn.replace(naqsh, (_, ochilish, __, ___, yopilish) =>
-    `${ochilish}${qiymat}${yopilish}`);
 }
 
 /**
@@ -98,25 +77,4 @@ export function holatMatni(o: Olchov | null, hozir: number): string {
   return `Bu raqamlar ${yosh(qari)} oʻlchangan`
     + `${o.qiymat.olchandi ? ` (${o.qiymat.olchandi})` : ''}. `
     + 'Bazaga hozir ulanib boʻlmadi, shuning uchun yangilanmadi.';
-}
-
-/**
- * Hamma raqamni va holat jumlasini qoʻyadi.
- *
- * `null` — hech qachon oʻlchov olinmagan. Unda raqamlar
- * CHIZIQCHA boʻlib qoladi: notoʻgʻri son yoʻqligidan qimmat.
- */
-export function bazamizniQoy(
-  matn: string,
-  o: Olchov | null,
-  hozir: number,
-): string {
-  let n = qoy(matn, 'holat', holatMatni(o, hozir));
-  if (o === null) return n;
-  const b = o.qiymat;
-  if (typeof b.tovar === 'number') n = qoy(n, 'tovar', son(b.tovar));
-  if (typeof b.dokon === 'number') n = qoy(n, 'dokon', son(b.dokon));
-  if (typeof b.turkum === 'number') n = qoy(n, 'turkum', son(b.turkum));
-  if (typeof b.kunlik === 'number') n = qoy(n, 'kunlik', son(b.kunlik));
-  return n;
 }

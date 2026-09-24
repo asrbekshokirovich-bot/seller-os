@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box}
+:root,[data-theme="dark"]{
+  --bg:#0B0B0B;--glow1:rgba(230,210,0,.20);--glow2:rgba(230,210,0,.07);
+  --ink:#FFFFFF;--ink2:rgba(255,255,255,.74);--ink3:rgba(255,255,255,.52);
+  --acc:#E6D200;--acc2:#F5E84A;--acc3:#C4B300;--accInk:#0B0B0B;--accInk2:rgba(11,11,11,.72);
+  --a04:rgba(255,255,255,.05);--a06:rgba(255,255,255,.08);--a09:rgba(255,255,255,.11);
+  --a13:rgba(255,255,255,.15);--a17:rgba(255,255,255,.20);--a22:rgba(255,255,255,.26);--a30:rgba(255,255,255,.34);
+  --shine:rgba(255,255,255,.45);--shadow:rgba(0,0,0,.9);--navBg:rgba(11,11,11,.62);--tile:rgba(255,255,255,.10);
+}
+[data-theme="light"]{
+  --bg:#F1F0EA;--glow1:rgba(230,210,0,.78);--glow2:rgba(230,210,0,.34);
+  --ink:#0B0B0B;--ink2:rgba(11,11,11,.78);--ink3:rgba(11,11,11,.64);
+  --acc:#DDC800;--acc2:#F0DE00;--acc3:#A89A00;--accInk:#0B0B0B;--accInk2:rgba(11,11,11,.68);
+  --a04:rgba(11,11,11,.035);--a06:rgba(11,11,11,.055);--a09:rgba(11,11,11,.08);
+  --a13:rgba(255,255,255,.55);--a17:rgba(11,11,11,.12);--a22:rgba(11,11,11,.16);--a30:rgba(11,11,11,.22);
+  --shine:rgba(255,255,255,.85);--shadow:rgba(11,11,11,.28);--navBg:rgba(248,247,242,.78);--tile:rgba(255,255,255,.72);
+}
+body{margin:0;color:var(--ink);font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--acc);text-decoration:none}
+a:hover{color:#FFFFFF}
+::selection{background:var(--acc);color:var(--accInk)}
+@keyframes tRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes tChip{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes tPulse{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes mFlow{0%{left:0%;opacity:0}8%{opacity:1}92%{opacity:1}100%{left:100%;opacity:0}}
+</style>
+</helmet>
+
+<div style="width:100%;overflow-x:hidden;position:relative;color:var(--ink);background:var(--bg);background-image:radial-gradient(900px 520px at 85% -10%,var(--glow1),transparent 60%),radial-gradient(700px 500px at 0% 100%,var(--glow2),transparent 60%),linear-gradient(115deg,transparent 40%,var(--a04) 50%,transparent 60%);transition:background-color .4s,color .4s">
+
+  <div style="position:sticky;top:0;z-index:50;background:var(--navBg);backdrop-filter:saturate(160%) blur(18px);border-bottom:1px solid var(--a09)">
+    <div style="max-width:1160px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div style="font-size:16px;font-weight:600;letter-spacing:-0.02em">ZUMSavdo</div>
+      <div style="display:flex;align-items:center;gap:22px;font-size:14px">
+        <a href="#yol" style="color:var(--ink2)" style-hover="color:var(--ink)">Yo'l</a>
+        <button onClick="{{ onToggleTheme }}" style="background:var(--a06);border:1px solid var(--a17);border-radius:999px;padding:9px 14px;font-size:13.5px;color:var(--ink2);cursor:pointer;white-space:nowrap;font-family:inherit" style-hover="border-color:var(--acc);color:var(--acc)">{{ themeLabel }}</button>
+        <a href="ZUMSavdo%20Chat.dc.html" style="background:var(--a17);backdrop-filter:blur(14px);border:1px solid var(--a30);color:var(--ink);border-radius:999px;padding:9px 16px;white-space:nowrap" style-hover="background:var(--acc);color:var(--ink)">Tizimga kirish</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:1160px;margin:0 auto;padding:clamp(36px,5vw,72px) 24px clamp(20px,3vw,40px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:clamp(24px,4vw,64px);align-items:center">
+    <div>
+      <div style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);animation:tRise .8s both"><span style="width:6px;height:6px;border-radius:50%;background:var(--acc);animation:tPulse 1.8s infinite"></span>Guangzhou → Toshkent → Uzum</div>
+      <h1 style="margin:14px 0 0;font-size:clamp(26px,3.2vw,40px);line-height:1.15;letter-spacing:-0.025em;font-weight:600;max-width:24ch;text-wrap:pretty;animation:tRise .9s .1s both">Bir dona tovarning do'koningizgacha yo'li — tizim har bekatni o'zi bosib o'tadi.</h1>
+      <p style="margin:16px 0 0;max-width:46ch;font-size:15.5px;line-height:1.65;color:var(--ink2);animation:tRise .9s .2s both">Nisha tanlash, Xitoydan narx, buyurtma, yetkazish va Uzum kartochkasi. Siz faqat tasdiqlaysiz.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;animation:tRise .9s .3s both">
+        <a href="ZUMSavdo%20Chat.dc.html" style="background:var(--acc);color:var(--accInk);padding:13px 22px;border-radius:999px;font-size:14.5px;font-weight:500;white-space:nowrap" style-hover="background:#FFFFFF;color:var(--bg)">Suhbatni boshlash</a>
+        <a href="#yol" style="color:var(--ink);padding:13px 22px;border-radius:999px;font-size:14.5px;border:1px solid var(--a30);background:var(--a06);backdrop-filter:blur(12px);white-space:nowrap" style-hover="border-color:#FFFFFF;color:#FFFFFF">Bekatlarni ko'rish</a>
+      </div>
+    </div>
+
+    <div style="position:relative;background:linear-gradient(160deg,var(--a13),var(--a06));backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a30),0 26px 50px -40px var(--shadow);border-radius:24px;padding:clamp(18px,2.4vw,28px);box-shadow:0 30px 60px -48px var(--shadow);animation:tRise 1s .35s both">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;color:var(--ink3)">
+        <span>Pul oqimi · 300 dona · silikon to'plam</span>
+        <span style="display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:50%;background:var(--acc);animation:tPulse 1.6s infinite"></span>jonli hisob</span>
+      </div>
+
+      <div style="margin-top:20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr);gap:10px;align-items:center">
+        <div style="background:linear-gradient(160deg,var(--a09),var(--a04));backdrop-filter:blur(18px);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a17);border-radius:16px;padding:14px">
+          <div style="font-size:11.5px;color:var(--ink3)">Sarmoya</div>
+          <div style="margin-top:4px;font-size:clamp(17px,1.9vw,22px);font-weight:600;letter-spacing:-0.02em">{{ m.cost }}</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+            <div style="height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ m.c1 }};background:var(--ink);border-radius:999px;transition:width .4s"></div></div>
+            <div style="height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ m.c2 }};background:var(--ink2);border-radius:999px;transition:width .4s"></div></div>
+            <div style="height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ m.c3 }};background:#E8DCA8;border-radius:999px;transition:width .4s"></div></div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--ink3);line-height:1.5">tovar · yetkazish · bojxona</div>
+        </div>
+
+        <div style="position:relative;height:74px">
+          <div style="position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--a17);border-radius:2px"></div>
+          <div style="position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px rgba(230,210,0,.15);animation:mFlow 3.2s cubic-bezier(.4,0,.6,1) infinite"></div>
+          <div style="position:absolute;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--acc2);animation:mFlow 3.2s 1.05s cubic-bezier(.4,0,.6,1) infinite"></div>
+          <div style="position:absolute;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--acc2);animation:mFlow 3.2s 2.1s cubic-bezier(.4,0,.6,1) infinite"></div>
+          <div style="position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink3)"><span>Xitoy</span><span>Toshkent</span><span>Uzum</span></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:11px;color:var(--ink2)">{{ m.days }} kun · {{ m.status }}</div>
+        </div>
+
+        <div style="background:linear-gradient(160deg,var(--acc),var(--acc3));box-shadow:inset 0 1px 0 var(--shine);color:var(--accInk);border-radius:16px;padding:14px">
+          <div style="font-size:11.5px;color:var(--accInk2)">Daromad</div>
+          <div style="margin-top:4px;font-size:clamp(17px,1.9vw,22px);font-weight:600;letter-spacing:-0.02em">{{ m.rev }}</div>
+          <div style="margin-top:10px;font-size:11px;color:var(--accInk2);line-height:1.5">300 × 89 000 so'm</div>
+          <div style="margin-top:6px;font-size:11px;color:var(--accInk2);line-height:1.5">komissiya −{{ m.fee }}</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;background:linear-gradient(160deg,var(--a09),var(--a04));backdrop-filter:blur(18px);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a17);border-radius:16px;padding:14px 16px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)"><span>Xarajat</span><span>{{ m.cost }}</span></div>
+        <div style="margin-top:6px;height:8px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ m.costBar }};background:#E8DCA8;border-radius:999px;transition:width .4s"></div></div>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)"><span>Sof tushum</span><span>{{ m.net }}</span></div>
+        <div style="margin-top:6px;position:relative;height:8px;border-radius:999px;background:var(--a09);overflow:hidden">
+          <div style="position:absolute;left:0;top:0;height:100%;width:{{ m.netBar }};background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:999px;transition:width .4s"></div>
+          <div style="position:absolute;top:0;height:100%;left:{{ m.costBar }};width:{{ m.profitBar }};background:var(--shine);transition:left .4s,width .4s"></div>
+        </div>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--a17);padding-top:12px">
+          <span style="font-size:13px;color:var(--ink2)">Sof foyda</span>
+          <span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;color:var(--ink3)">{{ m.profit }}</span><span style="font-size:20px;font-weight:600;letter-spacing:-0.02em;color:var(--acc)">{{ m.pct }}</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="yol" style="max-width:1160px;margin:0 auto;padding:clamp(28px,4vw,56px) 0 clamp(40px,5vw,72px)">
+    <div style="padding:0 24px;display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap">
+      <div style="font-size:clamp(20px,2.4vw,28px);font-weight:600;letter-spacing:-0.02em">Besh bekat</div>
+      <div style="font-size:13px;color:var(--ink3)">{{ deckLabel }}</div>
+    </div>
+
+    <div style="position:relative;margin:26px 24px 0;height:70px">
+      <div style="position:absolute;left:10%;right:10%;top:22px;height:3px;border-radius:999px;background:var(--a09)"></div>
+      <div style="position:absolute;left:10%;top:22px;height:3px;border-radius:999px;background:linear-gradient(90deg,var(--acc),var(--acc2));width:{{ trackFill }};transition:width .8s cubic-bezier(.3,.7,.2,1)"></div>
+      <div style="position:absolute;left:0;right:0;top:22px;height:0"><button onClick="{{ c1.onPick }}" style="position:absolute;left:10%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:0;padding:0;border-radius:50%;background:{{ c1.dot }};cursor:pointer;transition:background .4s"></button><button onClick="{{ c2.onPick }}" style="position:absolute;left:30%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:0;padding:0;border-radius:50%;background:{{ c2.dot }};cursor:pointer;transition:background .4s"></button><button onClick="{{ c3.onPick }}" style="position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:0;padding:0;border-radius:50%;background:{{ c3.dot }};cursor:pointer;transition:background .4s"></button><button onClick="{{ c4.onPick }}" style="position:absolute;left:70%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:0;padding:0;border-radius:50%;background:{{ c4.dot }};cursor:pointer;transition:background .4s"></button><button onClick="{{ c5.onPick }}" style="position:absolute;left:90%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:0;padding:0;border-radius:50%;background:{{ c5.dot }};cursor:pointer;transition:background .4s"></button></div>
+      <div style="position:absolute;left:{{ chipLeft }};top:22px;transform:translate(-50%,-50%);transition:left .8s cubic-bezier(.3,.7,.2,1);z-index:2">
+        <div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(150deg,var(--shine),var(--shine));box-shadow:0 12px 24px -12px var(--shadow),0 0 0 4px rgba(11,11,11,.7);display:flex;align-items:center;justify-content:center;animation:tChip 4s ease-in-out infinite">
+          <span style="width:42%;height:42%;border-radius:5px;background:linear-gradient(150deg,var(--acc),var(--acc3))"></span>
+        </div>
+      </div>
+      <div style="position:absolute;left:0;right:0;top:48px;height:18px"><span style="position:absolute;left:10%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:{{ c1.ink }};font-weight:{{ c1.w }};transition:color .4s">Uzum</span><span style="position:absolute;left:30%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:{{ c2.ink }};font-weight:{{ c2.w }};transition:color .4s">Yiwu</span><span style="position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:{{ c3.ink }};font-weight:{{ c3.w }};transition:color .4s">Chrome</span><span style="position:absolute;left:70%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:{{ c4.ink }};font-weight:{{ c4.w }};transition:color .4s">Toshkent</span><span style="position:absolute;left:90%;transform:translateX(-50%);white-space:nowrap;font-size:12px;color:{{ c5.ink }};font-weight:{{ c5.w }};transition:color .4s">Uzum Market</span></div>
+    </div>
+
+    <div style="position:relative;margin-top:22px;height:260px;overflow:hidden">
+      <div style="position:absolute;left:50%;top:6px;display:flex;gap:18px;align-items:flex-start;transform:{{ stripTf }};transition:transform .8s cubic-bezier(.2,.7,.2,1)">
+          <div onClick="{{ c1.onPick }}" style="flex:0 0 300px;width:300px;background:linear-gradient(160deg,var(--a13),var(--a06));backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a30),0 26px 50px -40px var(--shadow);border-radius:20px;padding:20px;transform:scale({{ c1.sc }});opacity:{{ c1.op }};transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .6s;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)"><span>Bekat 01</span><span>Uzum</span></div>
+            <div style="margin-top:14px;font-size:17px;font-weight:600;letter-spacing:-0.015em">Nisha tanlandi</div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.5;color:var(--ink3);min-height:60px">Silikon oshxona to'plami · talab 92 · raqobat past</div>
+            <div style="margin-top:14px;height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ c1.bar }};background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:999px;transition:width 1.2s cubic-bezier(.3,.7,.2,1)"></div></div>
+            <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span style="font-size:12px;color:var(--ink3)">foyda oynasi</span><span style="font-size:21px;font-weight:600;letter-spacing:-0.02em;color:var(--acc)">48%</span></div>
+          </div>
+          <div onClick="{{ c2.onPick }}" style="flex:0 0 300px;width:300px;background:linear-gradient(160deg,var(--a13),var(--a06));backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a30),0 26px 50px -40px var(--shadow);border-radius:20px;padding:20px;transform:scale({{ c2.sc }});opacity:{{ c2.op }};transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .6s;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)"><span>Bekat 02</span><span>Yiwu</span></div>
+            <div style="margin-top:14px;font-size:17px;font-weight:600;letter-spacing:-0.015em">Zavod topildi</div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.5;color:var(--ink3);min-height:60px">Yiwu Hongyu · reyting 4.8 · namuna bepul · 148 lotdan</div>
+            <div style="margin-top:14px;height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ c2.bar }};background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:999px;transition:width 1.2s cubic-bezier(.3,.7,.2,1)"></div></div>
+            <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span style="font-size:12px;color:var(--ink3)">dona narxi</span><span style="font-size:21px;font-weight:600;letter-spacing:-0.02em;color:var(--acc)">$2.10</span></div>
+          </div>
+          <div onClick="{{ c3.onPick }}" style="flex:0 0 300px;width:300px;background:linear-gradient(160deg,var(--a13),var(--a06));backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a30),0 26px 50px -40px var(--shadow);border-radius:20px;padding:20px;transform:scale({{ c3.sc }});opacity:{{ c3.op }};transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .6s;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)"><span>Bekat 03</span><span>Chrome</span></div>
+            <div style="margin-top:14px;font-size:17px;font-weight:600;letter-spacing:-0.015em">Buyurtma berildi</div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.5;color:var(--ink3);min-height:60px">Kengaytma 300 donani savatga soldi, zavod tasdiqladi</div>
+            <div style="margin-top:14px;height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ c3.bar }};background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:999px;transition:width 1.2s cubic-bezier(.3,.7,.2,1)"></div></div>
+            <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span style="font-size:12px;color:var(--ink3)">jami</span><span style="font-size:21px;font-weight:600;letter-spacing:-0.02em;color:var(--acc)">$893</span></div>
+          </div>
+          <div onClick="{{ c4.onPick }}" style="flex:0 0 300px;width:300px;background:linear-gradient(160deg,var(--a13),var(--a06));backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a30),0 26px 50px -40px var(--shadow);border-radius:20px;padding:20px;transform:scale({{ c4.sc }});opacity:{{ c4.op }};transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .6s;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)"><span>Bekat 04</span><span>Toshkent</span></div>
+            <div style="margin-top:14px;font-size:17px;font-weight:600;letter-spacing:-0.015em">Yo'lda</div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.5;color:var(--ink3);min-height:60px">Havo · 42 kg · bojxona va broker hisobda · kuzatuv jonli</div>
+            <div style="margin-top:14px;height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ c4.bar }};background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:999px;transition:width 1.2s cubic-bezier(.3,.7,.2,1)"></div></div>
+            <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span style="font-size:12px;color:var(--ink3)">muddat</span><span style="font-size:21px;font-weight:600;letter-spacing:-0.02em;color:var(--acc)">18 kun</span></div>
+          </div>
+          <div onClick="{{ c5.onPick }}" style="flex:0 0 300px;width:300px;background:linear-gradient(160deg,var(--a13),var(--a06));backdrop-filter:blur(20px) saturate(140%);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--a30),0 26px 50px -40px var(--shadow);border-radius:20px;padding:20px;transform:scale({{ c5.sc }});opacity:{{ c5.op }};transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .6s;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)"><span>Bekat 05</span><span>Uzum Market</span></div>
+            <div style="margin-top:14px;font-size:17px;font-weight:600;letter-spacing:-0.015em">Do'konda</div>
+            <div style="margin-top:6px;font-size:13.5px;line-height:1.5;color:var(--ink3);min-height:60px">Kartochka yozildi, narx qo'yildi, moderatsiya 2–6 soat</div>
+            <div style="margin-top:14px;height:4px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ c5.bar }};background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:999px;transition:width 1.2s cubic-bezier(.3,.7,.2,1)"></div></div>
+            <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span style="font-size:12px;color:var(--ink3)">sotuv narxi</span><span style="font-size:21px;font-weight:600;letter-spacing:-0.02em;color:var(--acc)">89 000 so'm</span></div>
+          </div>
+      </div>
+      <div style="position:absolute;left:0;top:0;bottom:0;width:10%;background:linear-gradient(90deg,var(--bg),transparent);pointer-events:none"></div>
+      <div style="position:absolute;right:0;top:0;bottom:0;width:10%;background:linear-gradient(270deg,var(--bg),transparent);pointer-events:none"></div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--a09)">
+    <div style="max-width:1160px;margin:0 auto;padding:clamp(40px,5vw,72px) 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+      <div data-reveal="1">
+        <div style="font-size:clamp(20px,2.6vw,30px);line-height:1.2;letter-spacing:-0.025em;font-weight:600;max-width:26ch">Yo'lni budjetingiz boshlaydi.</div>
+        <p style="margin:8px 0 0;max-width:44ch;font-size:15px;line-height:1.6;color:var(--ink2)">Uch savol — budjet, ombor, vaqt. Qolgan bekatlarni tizim o'zi bosib o'tadi.</p>
+      </div>
+      <a data-reveal="1" href="ZUMSavdo%20Chat.dc.html" style="background:var(--acc);color:var(--accInk);padding:14px 26px;border-radius:999px;font-size:15px;font-weight:500;white-space:nowrap" style-hover="background:#FFFFFF;color:var(--bg)">Suhbatni boshlash</a>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--a09)">
+    <div style="max-width:1160px;margin:0 auto;padding:18px 24px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--ink3)">
+      <span>ZUMSavdo · Uzum Market</span><span>Toshkent · 2026</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;stageMs&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:2600,&quot;min&quot;:1200,&quot;max&quot;:5000,&quot;step&quot;:100,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Animatsiya&quot;}}">
+const STOPS = [
+  { label: 'Nisha', kicker: 'Bekat 01 · Uzum tahlili', title: "Silikon oshxona to'plami", body: '412 subkategoriya o\u2018lchandi. Talab 92, raqobat past.', metaLabel: 'foyda oynasi', metaValue: '48%' },
+  { label: 'Zavod', kicker: 'Bekat 02 · 1688, Yiwu', title: 'Yiwu Hongyu · reyting 4.8', body: '148 lot solishtirildi, namuna bepul, tarjima tayyor.', metaLabel: 'dona narxi', metaValue: '$2.10' },
+  { label: 'Buyurtma', kicker: 'Bekat 03 · Chrome kengaytmasi', title: 'Savat to\u2018ldirildi', body: '300 dona savatda, zavodga so\u2018rov yuborildi.', metaLabel: 'jami', metaValue: '$893' },
+  { label: 'Yetkazish', kicker: 'Bekat 04 · Toshkent', title: 'Yo\u2018lda · havo, 42 kg', body: 'Bojxona va broker hisobi tizimda, kuzatuv jonli.', metaLabel: 'muddat', metaValue: '18 kun' },
+  { label: "Do'kon", kicker: 'Bekat 05 · Uzum Market', title: 'Kartochka nashrga tayyor', body: 'Matn, rasm va xarakteristika tizim tomonidan yozildi.', metaLabel: 'sotuv narxi', metaValue: "89 000 so'm" }
+];
+
+const LOTS = [
+  { name: '1688 · Yiwu Hongyu · 4.8', price: '$2.10' },
+  { name: '1688 · Ningbo Kaili · MOQ 500', price: '$1.85' },
+  { name: 'Taobao · Chaozhou · 12 kun', price: '$3.40' },
+  { name: 'MIC · Guangdong Silico · FDA', price: '$2.65' }
+];
+const ease = (t) => 1 - Math.pow(1 - t, 3);
+const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+class Component extends DCLogic {
+  state = { i: 0, fill: '0%', p: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+  tween(k, ms) {
+    if (this.started && this.started[k]) return;
+    this.started = this.started || {};
+    this.started[k] = true;
+    const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / ms);
+      this.setState((s) => { const np = Object.assign({}, s.p); np[k] = p; return { p: np }; });
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  watchStations() {
+    if (!this.sio) {
+      this.sio = new IntersectionObserver((es) => es.forEach((e) => {
+        if (e.isIntersecting) {
+          const k = e.target.getAttribute('data-station');
+          this.tween(k, k === '2' ? 2400 : k === '3' ? 1600 : 1400);
+          this.sio.unobserve(e.target);
+        }
+      }), { threshold: 0.45 });
+    }
+    document.querySelectorAll('[data-station]:not([data-watched])').forEach((el) => {
+      el.setAttribute('data-watched', '1');
+      this.sio.observe(el);
+    });
+  }
+  constructor(props) {
+    super(props);
+    this.journeyRef = React.createRef();
+    this.onScroll = this.onScroll.bind(this);
+  }
+  applyTheme(t) { document.documentElement.setAttribute('data-theme', t); document.body.setAttribute('data-theme', t); }
+  componentDidMount() {
+    this.applyTheme(this.state && this.state.theme ? this.state.theme : 'dark');
+    // money-flow loop: 3.4s build, hold, restart
+    const loopMs = this.props.stageMs || 7000;
+    const run = () => {
+      const t0 = performance.now();
+      const step = (now) => {
+        const p = Math.min(1, (now - t0) / 3400);
+        this.setState({ mp: p });
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    run();
+    this.timer = setInterval(run, loopMs);
+    // station deck: advance every 3.6s, tween the active card's data
+    this.deckMs = 3600;
+    this.deckT0 = performance.now();
+    this.tween('1', 1400);
+    this.deckTimer = setInterval(() => {
+      if (this.deckPaused) return;
+      this.setState((s) => {
+        const n = (s.i + 1) % 5;
+        this.deckT0 = performance.now();
+        this.started = this.started || {}; this.started[String(n + 1)] = false;
+        setTimeout(() => this.tween(String(n + 1), n === 1 ? 2400 : n === 2 ? 1600 : 1400), 350);
+        return { i: n };
+      });
+    }, this.deckMs);
+    const prog = () => {
+      const p = Math.min(1, (performance.now() - this.deckT0) / this.deckMs);
+      if (Math.abs(p - (this.state.deckP || 0)) > 0.01) this.setState({ deckP: p });
+      this.raf = requestAnimationFrame(prog);
+    };
+    this.raf = requestAnimationFrame(prog);
+    window.addEventListener('scroll', this.onScroll, { passive: true });
+    this.onScroll();
+    this.arm(); this.watchStations();
+    this.t = setTimeout(() => { this.arm(); this.watchStations(); this.onScroll(); }, 900);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer); clearTimeout(this.t); clearInterval(this.deckTimer); cancelAnimationFrame(this.raf);
+    window.removeEventListener('scroll', this.onScroll);
+    if (this.io) this.io.disconnect();
+    if (this.sio) this.sio.disconnect();
+  }
+  onScroll() {
+    const j = this.journeyRef.current;
+    if (!j) return;
+    const r = j.getBoundingClientRect();
+    const p = Math.max(0, Math.min(1, (window.innerHeight * 0.46 - r.top) / Math.max(1, r.height)));
+    const fill = (p * 100).toFixed(1) + '%';
+    if (fill !== this.state.fill) this.setState({ fill: fill });
+  }
+  arm() {
+    if (!this.io) {
+      this.io = new IntersectionObserver((es) => es.forEach((e) => {
+        if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; this.io.unobserve(e.target); }
+      }), { threshold: 0.14 });
+    }
+    document.querySelectorAll('[data-reveal]:not([data-armed])').forEach((el, i) => {
+      el.setAttribute('data-armed', '1');
+      el.style.transition = 'opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1)';
+      el.style.transitionDelay = (i % 2) * 110 + 'ms';
+      if (el.getBoundingClientRect().top > window.innerHeight * 0.9) {
+        el.style.opacity = '0'; el.style.transform = 'translateY(16px)';
+      }
+      this.io.observe(el);
+    });
+  }
+  renderVals() {
+    const i = this.state.i;
+    const s = STOPS[i];
+    const centre = (i + 0.5) / STOPS.length * 100;
+    const P = this.state.p;
+    const e1 = ease(P[1]), e3 = ease(P[3]), e4 = ease(P[4]), e5 = ease(P[5]);
+    // station 2: sweep highlight through rows, then settle on the best (row 0)
+    const p2 = P[2];
+    const sweep = p2 < 0.7 ? Math.min(3, Math.floor(p2 / 0.7 * 4)) : 0;
+    const settled = p2 >= 0.7;
+    const rows = LOTS.map((l, n) => {
+      const on = n === sweep;
+      return {
+        name: l.name, price: l.price,
+        bg: on ? (settled ? 'rgba(230,210,0,.10)' : 'rgba(230,210,0,.06)') : 'transparent',
+        ink: on ? 'var(--ink)' : 'var(--ink2)',
+        priceInk: on && settled ? 'var(--acc)' : (on ? 'var(--ink)' : 'var(--ink2)'),
+        weight: on ? 600 : 400
+      };
+    });
+    const stage = (p, from, to) => Math.max(0, Math.min(1, (p - from) / (to - from)));
+    // money flow (so'm): cost 11.2M, gross 26.7M, fee 4.9M, net 21.8M, profit 10.6M (48%)
+    const mp = ease(this.state.mp || 0);
+    const mCost = stage(mp, 0, .35), mShip = stage(mp, .3, .6), mRev = stage(mp, .55, 1);
+    const mln = (v) => (v / 1e6).toFixed(1).replace('.', ',') + ' mln';
+    const cost = 11200000 * mCost, gross = 26700000 * mRev, fee = 4900000 * mRev, net = gross - fee;
+    const profit = Math.max(0, net - 11200000 * (mRev > 0 ? 1 : mCost));
+    const m = {
+      cost: mln(cost), c1: (mCost * 100).toFixed(0) + '%', c2: (mCost * 27).toFixed(0) + '%', c3: (mCost * 15).toFixed(0) + '%',
+      days: Math.round(mShip * 18), status: mShip < 1 ? "yo'lda" : (mRev < 1 ? 'sotuvda' : 'yakunlandi'),
+      rev: mln(gross), fee: mln(fee),
+      costBar: (11.2 / 21.8 * 100 * mCost).toFixed(1) + '%',
+      net: mln(net), netBar: (mRev * 100).toFixed(1) + '%',
+      profitBar: (Math.max(0, mRev * 100 - 11.2 / 21.8 * 100 * mCost)).toFixed(1) + '%',
+      profit: mln(profit), pct: Math.round(mRev * 48) + '%'
+    };
+    const out = {};
+    for (let n = 0; n < 5; n += 1) {
+      const k = (n - i + 5) % 5;
+      const active = k === 0;
+      out['d' + (n + 1)] = {
+        tf: 'translateY(' + (k * 16) + 'px) scale(' + (1 - k * 0.045).toFixed(3) + ')',
+        op: k > 2 ? 0 : (active ? 1 : (k === 1 ? .55 : .3)),
+        z: 10 - k,
+        pe: active ? 'auto' : 'none',
+        bg: active ? 'var(--a13)' : 'transparent',
+        border: active ? 'var(--a30)' : 'rgba(255,255,255,0)',
+        num: active ? 'var(--acc)' : 'var(--ink3)',
+        descOp: active ? 1 : 0,
+        descH: active ? '80px' : '0px',
+        prog: active ? ((this.state.deckP || 0) * 100).toFixed(1) + '%' : '0%',
+        blur: active ? 'none' : 'blur(7px) saturate(.7)',
+        chip: (active ? [6, 28, 50, 72, 94][n] : [6, 28, 50, 72, 94][Math.max(0, n - 1)]) + '%',
+        onPick: () => {
+          this.deckPaused = true;
+          this.deckT0 = performance.now();
+          this.started = this.started || {}; this.started[String(n + 1)] = false;
+          this.setState({ i: n, deckP: 0 });
+          setTimeout(() => this.tween(String(n + 1), n === 1 ? 2400 : n === 2 ? 1600 : 1400), 350);
+        }
+      };
+    }
+    const BARS = [92, 64, 40, 72, 100];
+    const POSN = [10, 30, 50, 70, 90];
+    for (let n = 0; n < 5; n += 1) {
+      const active = n === i, dist = Math.abs(n - i);
+      out['c' + (n + 1)] = {
+        sc: active ? '1' : (dist === 1 ? '.92' : '.86'),
+        op: active ? 1 : (dist === 1 ? .55 : .3),
+        bar: active ? BARS[n] + '%' : '0%',
+        dot: n <= i ? 'var(--acc)' : 'var(--a30)',
+        ink: active ? 'var(--ink)' : 'var(--ink3)',
+        w: active ? 600 : 400,
+        onPick: out['d' + (n + 1)].onPick
+      };
+    }
+    out.stripTf = 'translateX(' + (-150 - i * 318) + 'px)';
+    out.chipLeft = POSN[i] + '%';
+    out.trackFill = (POSN[i] - 10) + '%';
+    const th = this.state.theme || 'dark';
+    return Object.assign(out, {
+      themeLabel: th === 'dark' ? "Yorug'" : 'Tungi',
+      onToggleTheme: () => { const n = th === 'dark' ? 'light' : 'dark'; this.setState({ theme: n }); this.applyTheme(n); },
+      deckLabel: 'Bekat ' + (i + 1) + ' / 5' + (this.deckPaused ? '' : ' · avtomatik'),
+      m: m,
+      s1: { bar: (e1 * 92).toFixed(1) + '%', margin: Math.round(e1 * 48) + '%' },
+      s2: { rows: rows },
+      s3: { a: fmt(e3 * 300), b: '$' + fmt(e3 * 893), c: fmt(e3 * 37200) },
+      s4: { bar: (e4 * 64).toFixed(1) + '%', o1: stage(e4, .2, .5), o2: stage(e4, .45, .75), o3: stage(e4, .7, 1), days: Math.round(e4 * 18) + ' kun' },
+      s5: { o1: stage(e5, 0, .4), sc: (0.9 + 0.1 * stage(e5, 0, .5)).toFixed(3), o2: stage(e5, .25, .6), o3: stage(e5, .5, .85), o4: stage(e5, .7, 1), price: fmt(e5 * 89000) + " so'm" },
+      fill: this.state.fill,
+      stageBadge: (i + 1) + ' / ' + STOPS.length,
+      stageKicker: s.kicker,
+      stageTitle: s.title,
+      stageBody: s.body,
+      stageMetaLabel: s.metaLabel,
+      stageMetaValue: s.metaValue,
+      progress: 'calc(' + centre.toFixed(1) + '% - 6px)',
+      tokenLeft: centre.toFixed(1) + '%',
+      stops: STOPS.map((st, n) => ({
+        label: st.label,
+        dot: n <= i ? 'var(--acc)' : 'var(--a30)',
+        ink: n === i ? 'var(--ink)' : 'var(--ink3)',
+        weight: n === i ? 600 : 400,
+        onPick: () => { this.paused = true; this.setState({ i: n }); }
+      }))
+    });
+  }
+}
+</script>
+</body>
+</html>

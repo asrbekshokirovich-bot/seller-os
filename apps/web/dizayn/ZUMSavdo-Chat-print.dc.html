@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="omelette-print-source" content="v1789035493105212 ZUMSavdo Chat.dc.html">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box}
+:root,[data-theme="dark"]{
+  --bg:#0B0B0B;--glow1:rgba(230,210,0,.18);--glow2:rgba(230,210,0,.06);
+  --ink:#FFFFFF;--ink2:rgba(255,255,255,.74);--ink3:rgba(255,255,255,.52);
+  --acc:#E6D200;--acc2:#F5E84A;--acc3:#C4B300;--accInk:#0B0B0B;
+  --accSoft:rgba(230,210,0,.20);--accEdge:rgba(230,210,0,.45);
+  --a04:rgba(255,255,255,.05);--a06:rgba(255,255,255,.08);--a09:rgba(255,255,255,.11);
+  --a13:rgba(255,255,255,.15);--a17:rgba(255,255,255,.20);--a22:rgba(255,255,255,.26);
+  --shine:rgba(255,255,255,.45);--shadow:rgba(0,0,0,.9);--tile:rgba(255,255,255,.10);--navBg:rgba(11,11,11,.62);
+  --ok:#4FBF7E;--okBg:rgba(79,191,126,.16);--warn:#E9A23B;--warnBg:rgba(233,162,59,.16);--bad:#E4574C;--badBg:rgba(228,87,76,.16);
+}
+[data-theme="light"]{
+  --bg:#F1F0EA;--glow1:rgba(230,210,0,.72);--glow2:rgba(230,210,0,.30);
+  --ink:#0B0B0B;--ink2:rgba(11,11,11,.78);--ink3:rgba(11,11,11,.64);
+  --acc:#DDC800;--acc2:#F0DE00;--acc3:#A89A00;--accInk:#0B0B0B;
+  --accSoft:rgba(221,200,0,.34);--accEdge:rgba(168,154,0,.6);
+  --a04:rgba(11,11,11,.035);--a06:rgba(11,11,11,.055);--a09:rgba(11,11,11,.08);
+  --a13:rgba(255,255,255,.55);--a17:rgba(11,11,11,.12);--a22:rgba(11,11,11,.16);
+  --shine:rgba(255,255,255,.85);--shadow:rgba(11,11,11,.28);--tile:rgba(255,255,255,.72);--navBg:rgba(248,247,242,.78);
+  --ok:#1E8A50;--okBg:rgba(30,138,80,.14);--warn:#B87400;--warnBg:rgba(184,116,0,.14);--bad:#C33A30;--badBg:rgba(195,58,48,.14);
+}
+body{margin:0;color:var(--ink);font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--acc);text-decoration:none}
+a:hover{color:var(--ink)}
+input,button{font-family:inherit}
+input::placeholder{color:var(--ink3)}
+::selection{background:var(--acc);color:var(--accInk)}
+@keyframes cIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes cDot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+@keyframes cPulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes cBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes cRise{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+</style>
+<script src="./doc-page.js"></script>
+<style>
+doc-page:not(:defined){visibility:hidden}
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+* { animation-delay: -99s !important; animation-duration: .001s !important; animation-iteration-count: 1 !important; animation-fill-mode: both !important; animation-play-state: running !important; transition-duration: 0s !important; }
+[data-block] { break-inside: avoid; }
+</style>
+</helmet>
+
+<doc-page margin="0.6in">
+  <div style="display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--a17);margin-bottom:18px">
+    <span style="width:26px;height:26px;border-radius:9px;background:linear-gradient(160deg,var(--acc2),var(--acc) 55%,var(--acc3));display:inline-flex;align-items:center;justify-content:center;color:var(--accInk);font-size:13px;font-weight:600">Z</span>
+    <div><div style="font-size:17px;font-weight:600;letter-spacing:-0.02em">ZUMSavdo · suhbat</div><div style="margin-top:2px;font-size:12px;color:var(--ink3)">Nisha tanlashdan do'kon monitoringigacha · to'liq yo'l</div></div>
+  </div>
+
+  <div>
+    <div data-chat-scroll="1">
+      <div style="max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+        <sc-for list="{{ messages }}" as="m" hint-placeholder-count="3">
+
+          <sc-if value="{{ m.isUser }}">
+            <div style="align-self:flex-end;max-width:min(520px,86%);background:linear-gradient(160deg,var(--acc2),var(--acc) 50%,var(--acc3));box-shadow:inset 0 1px 0 var(--shine);color:var(--accInk);border-radius:18px 6px 18px 18px;padding:13px 16px;font-size:15px;line-height:1.55;animation:cIn .35s ease-out both">{{ m.text }}</div>
+          </sc-if>
+
+          <sc-if value="{{ m.isText }}" hint-placeholder-val="{{ true }}">
+            <div style="align-self:flex-start;max-width:min(660px,92%);background:linear-gradient(145deg,var(--a13),var(--a04));backdrop-filter:blur(18px);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--shine);border-radius:6px 18px 18px 18px;padding:14px 17px;font-size:15px;line-height:1.6;animation:cIn .35s ease-out both">{{ m.text }}</div>
+          </sc-if>
+
+          <sc-if value="{{ m.isTyping }}">
+            <div style="align-self:flex-start;display:flex;align-items:center;gap:9px;background:var(--a09);border:1px solid var(--a17);border-radius:999px;padding:12px 17px;animation:cIn .3s ease-out both">
+              <span style="display:flex;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:var(--ink3);animation:cDot 1.1s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--ink3);animation:cDot 1.1s .16s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--ink3);animation:cDot 1.1s .32s infinite"></span></span>
+              <span style="font-size:12.5px;color:var(--ink3)">{{ m.text }}</span>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ m.isStats }}">
+            <div data-block="1" style="align-self:stretch;background:linear-gradient(145deg,var(--a13),var(--a04));backdrop-filter:blur(18px);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--shine);border-radius:18px;padding:17px;animation:cIn .4s ease-out both">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><div style="font-size:11px;color:var(--ink3);letter-spacing:0.06em;text-transform:uppercase">{{ m.kicker }}</div><div style="font-size:12.5px;color:var(--ink3)">{{ m.note }}</div></div>
+              <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px">
+                <sc-for list="{{ m.items }}" as="k" hint-placeholder-count="4">
+                  <div style="background:{{ k.bg }};border:1px solid {{ k.border }};border-radius:13px;padding:14px;color:{{ k.ink }}">
+                    <div style="font-size:11.5px;color:{{ k.sub }}">{{ k.label }}</div>
+                    <div style="margin-top:6px;font-size:21px;font-weight:600;letter-spacing:-0.03em;font-family:'JetBrains Mono',monospace;white-space:nowrap">{{ k.value }}</div>
+                    <div style="margin-top:4px;font-size:11.5px;color:{{ k.sub }}">{{ k.meta }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ m.hasBar }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:14px">
+                  <div style="height:26px;border-radius:10px;background:var(--a09);overflow:hidden;display:flex">
+                    <div style="width:{{ m.barA }};background:linear-gradient(90deg,var(--acc),var(--acc2));transform-origin:left;animation:cBar .7s cubic-bezier(.22,.61,.36,1) both"></div>
+                    <div style="width:{{ m.barB }};background:var(--a22)"></div>
+                    <div style="width:{{ m.barC }};background:repeating-linear-gradient(115deg,var(--a17) 0 8px,transparent 8px 16px)"></div>
+                  </div>
+                  <div style="margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3)">
+                    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--acc)"></span>Kelib tushdi</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--a22)"></span>Omborda</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--a17)"></span>Yo'lda</span>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ m.isCards }}">
+            <div data-block="1" style="align-self:stretch;display:flex;flex-direction:column;gap:10px;animation:cIn .4s ease-out both">
+              <div style="font-size:11px;color:var(--ink3);letter-spacing:0.06em;text-transform:uppercase">{{ m.kicker }}</div>
+              <sc-for list="{{ m.items }}" as="c" hint-placeholder-count="3">
+                <div style="background:linear-gradient(145deg,var(--a13),var(--a04));backdrop-filter:blur(18px);border:1px solid {{ c.border }};box-shadow:inset 0 1px 0 var(--shine);border-radius:16px;padding:16px;transition:border-color .3s">
+                  <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+                    <div style="min-width:0;flex:1 1 220px">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <span style="font-size:15.5px;font-weight:600;letter-spacing:-0.015em">{{ c.title }}</span>
+                        <sc-if value="{{ c.hasTag }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;padding:4px 9px;border-radius:999px;background:var(--accSoft);color:var(--acc)">{{ c.tag }}</span></sc-if>
+                      </div>
+                      <div style="margin-top:5px;font-size:13px;line-height:1.5;color:var(--ink2)">{{ c.body }}</div>
+                    </div>
+                    <div style="text-align:right;flex:0 0 auto"><div style="font-size:11.5px;color:var(--ink3)">{{ c.metricLabel }}</div><div style="font-size:22px;font-weight:600;letter-spacing:-0.02em;color:var(--acc);font-family:'JetBrains Mono',monospace">{{ c.metric }}</div></div>
+                  </div>
+                  <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(94px,1fr));gap:8px">
+                    <sc-for list="{{ c.stats }}" as="s" hint-placeholder-count="4">
+                      <div style="background:var(--a06);border:1px solid var(--a13);border-radius:11px;padding:9px 11px"><div style="font-size:10.5px;color:var(--ink3)">{{ s.label }}</div><div style="margin-top:3px;font-size:13.5px;font-weight:500;font-family:'JetBrains Mono',monospace">{{ s.value }}</div></div>
+                    </sc-for>
+                  </div>
+                  <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+                    <div style="flex:1 1 160px;min-width:0;display:flex;gap:2px;align-items:flex-end;height:30px">
+                      <sc-for list="{{ c.spark }}" as="b" hint-placeholder-count="12">
+                        <span style="flex:1;height:{{ b.h }};background:{{ b.bg }};border-radius:2px;transform-origin:bottom;animation:cRise .45s cubic-bezier(.22,.61,.36,1) both;animation-delay:{{ b.d }}"></span>
+                      </sc-for>
+                    </div>
+                    <button onClick="{{ c.onPick }}" style="background:{{ c.btnBg }};color:{{ c.btnInk }};border:1px solid {{ c.btnBorder }};border-radius:999px;padding:10px 17px;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap">{{ c.btnLabel }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ m.isPlan }}">
+            <div data-block="1" style="align-self:stretch;background:linear-gradient(145deg,var(--a13),var(--a04));backdrop-filter:blur(18px);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--shine);border-radius:18px;padding:17px;animation:cIn .4s ease-out both">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><div style="font-size:11px;color:var(--ink3);letter-spacing:0.06em;text-transform:uppercase">Budjet rejasi</div><div style="font-size:12.5px;color:var(--ink3)">{{ m.note }}</div></div>
+              <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ m.items }}" as="al" hint-placeholder-count="2">
+                  <div style="background:var(--a06);border:1px solid var(--a13);border-radius:13px;padding:14px">
+                    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+                      <div style="min-width:0;flex:1 1 190px"><div style="font-size:14.5px;font-weight:500">{{ al.name }}</div><div style="margin-top:3px;font-size:12px;color:var(--ink3)">{{ al.note }}</div></div>
+                      <div style="display:flex;align-items:center;gap:9px;flex:0 0 auto">
+                        <button onClick="{{ al.onMinus }}" style="width:30px;height:30px;border-radius:9px;border:1px solid var(--a22);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="border-color:var(--acc)">−</button>
+                        <span style="font-size:15px;font-weight:600;min-width:66px;text-align:center;font-family:'JetBrains Mono',monospace">{{ al.units }}</span>
+                        <button onClick="{{ al.onPlus }}" style="width:30px;height:30px;border-radius:9px;border:1px solid var(--a22);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="border-color:var(--acc)">+</button>
+                      </div>
+                    </div>
+                    <div style="margin-top:11px;height:6px;border-radius:999px;background:var(--a09);overflow:hidden"><div style="height:100%;width:{{ al.share }};border-radius:999px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .35s"></div></div>
+                    <div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;font-size:12px">
+                      <div><span style="color:var(--ink3)">Tannarx</span><div style="margin-top:2px;font-size:13px;font-weight:500;font-family:'JetBrains Mono',monospace">{{ al.cost }}</div></div>
+                      <div><span style="color:var(--ink3)">Sotuvdan</span><div style="margin-top:2px;font-size:13px;font-weight:500;font-family:'JetBrains Mono',monospace">{{ al.revenue }}</div></div>
+                      <div><span style="color:var(--ink3)">Foyda</span><div style="margin-top:2px;font-size:13px;font-weight:500;font-family:'JetBrains Mono',monospace;color:var(--acc)">{{ al.profit }}</div></div>
+                      <div><span style="color:var(--ink3)">Aylanma</span><div style="margin-top:2px;font-size:13px;font-weight:500;font-family:'JetBrains Mono',monospace">{{ al.turn }}</div></div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:13px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--a13);padding-top:13px">
+                <div style="font-size:13px;color:{{ m.warnInk }}">{{ m.warn }}</div>
+                <button onClick="{{ m.onAct }}" style="background:linear-gradient(180deg,var(--acc2),var(--acc) 55%,var(--acc3));box-shadow:inset 0 1px 0 var(--shine);color:var(--accInk);border:0;border-radius:999px;padding:11px 20px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap">Xitoydan manba top →</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ m.isLots }}">
+            <div data-block="1" style="align-self:stretch;background:linear-gradient(145deg,var(--a13),var(--a04));backdrop-filter:blur(18px);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--shine);border-radius:18px;padding:17px;animation:cIn .4s ease-out both">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><div style="font-size:11px;color:var(--ink3);letter-spacing:0.06em;text-transform:uppercase">Kengaytma topdi</div><div style="font-size:12.5px;color:var(--ink3)">{{ m.note }}</div></div>
+              <div style="margin-top:13px;display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ m.items }}" as="l" hint-placeholder-count="4">
+                  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:{{ l.bg }};border:1px solid {{ l.border }};border-radius:13px;padding:12px 14px;transition:background .3s">
+                    <div style="min-width:0;flex:1 1 200px">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:11px;padding:4px 8px;border-radius:999px;background:var(--a09);color:var(--ink2)">{{ l.platform }}</span><span style="font-size:14.5px;font-weight:600">{{ l.factory }}</span></div>
+                      <div style="margin-top:4px;font-size:12px;color:var(--ink3)">{{ l.meta }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto">
+                      <div style="text-align:right"><div style="font-size:15.5px;font-weight:600;color:var(--acc);font-family:'JetBrains Mono',monospace">{{ l.price }}</div><div style="font-size:11.5px;color:var(--ink3)">{{ l.landed }}</div></div>
+                      <button onClick="{{ l.onPick }}" style="background:{{ l.btnBg }};color:{{ l.btnInk }};border:1px solid {{ l.btnBorder }};border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap">{{ l.btnLabel }}</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ m.canOrder }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ m.onAct }}" style="margin-top:13px;width:100%;background:linear-gradient(180deg,var(--acc2),var(--acc) 55%,var(--acc3));box-shadow:inset 0 1px 0 var(--shine);color:var(--accInk);border:0;border-radius:999px;padding:12px;font-size:13.5px;font-weight:600;cursor:pointer">Savatni tasdiqlash · {{ m.total }}</button>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ m.isTrack }}">
+            <div data-block="1" style="align-self:stretch;background:linear-gradient(145deg,var(--a13),var(--a04));backdrop-filter:blur(18px);border:1px solid var(--a17);box-shadow:inset 0 1px 0 var(--shine);border-radius:18px;padding:17px;animation:cIn .4s ease-out both">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><div style="font-size:11px;color:var(--ink3);letter-spacing:0.06em;text-transform:uppercase">Yuk kuzatuvi</div><div style="font-size:12.5px;color:var(--ink3)">{{ m.note }}</div></div>
+              <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ m.items }}" as="s" hint-placeholder-count="2">
+                  <div style="background:var(--a06);border:1px solid var(--a13);border-radius:13px;padding:14px">
+                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+                      <div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink3)">{{ s.id }}</span><span style="font-size:14.5px;font-weight:600">{{ s.product }}</span></div><div style="margin-top:3px;font-size:12px;color:var(--ink3)">{{ s.meta }}</div></div>
+                      <span style="background:{{ s.pillBg }};color:{{ s.pillInk }};border-radius:999px;padding:5px 10px;font-size:11.5px;font-weight:500;white-space:nowrap">{{ s.status }}</span>
+                    </div>
+                    <div style="margin-top:13px;display:flex;align-items:center">
+                      <sc-for list="{{ s.stages }}" as="g" hint-placeholder-count="4">
+                        <div style="flex:1;display:flex;align-items:center;min-width:0">
+                          <span style="width:16px;height:16px;border-radius:50%;flex:0 0 auto;background:{{ g.dotBg }};border:1.5px solid {{ g.dotBorder }};box-shadow:{{ g.ring }};display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:var(--accInk)">{{ g.mark }}</span>
+                          <span style="flex:1;height:2px;background:{{ g.lineBg }};margin:0 4px"></span>
+                        </div>
+                      </sc-for>
+                      <span style="font-size:11.5px;color:var(--ink3);white-space:nowrap;padding-left:4px">{{ s.eta }}</span>
+                    </div>
+                    <div style="margin-top:7px;display:flex;justify-content:space-between;gap:6px">
+                      <sc-for list="{{ s.stages }}" as="g" hint-placeholder-count="4">
+                        <span style="flex:1;font-size:10.5px;color:{{ g.ink }};text-align:center;min-width:0">{{ g.label }}</span>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ m.isAlerts }}">
+            <div data-block="1" style="align-self:stretch;display:flex;flex-direction:column;gap:9px;animation:cIn .4s ease-out both">
+              <div style="font-size:11px;color:var(--ink3);letter-spacing:0.06em;text-transform:uppercase">{{ m.kicker }}</div>
+              <sc-for list="{{ m.items }}" as="al" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;align-items:start;background:linear-gradient(145deg,var(--a13),var(--a04));border:1px solid {{ al.border }};box-shadow:inset 0 1px 0 var(--shine);border-radius:14px;padding:14px">
+                  <span style="width:32px;height:32px;border-radius:9px;background:{{ al.tintBg }};color:{{ al.tintInk }};display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">{{ al.icon }}</span>
+                  <div style="min-width:0">
+                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><div style="font-size:14.5px;font-weight:500;line-height:1.35">{{ al.title }}</div><span style="font-size:11.5px;color:var(--ink3);white-space:nowrap">{{ al.time }}</span></div>
+                    <div style="margin-top:4px;font-size:13px;line-height:1.5;color:var(--ink2)">{{ al.body }}</div>
+                    <button onClick="{{ al.onAct }}" style="margin-top:10px;background:{{ al.btnBg }};color:{{ al.btnInk }};border:1px solid {{ al.btnBorder }};border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:500;cursor:pointer">{{ al.action }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</doc-page>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860}}">
+const CATS = [
+  { key: 'kitchen', title: 'Uy va oshxona', tag: 'past raqobat', body: "Budjetingizga sig'adi, sotuvchilar kam, qaytarish 2%. Yirik o'yinchi yo'q.", metric: '92', up: true,
+    stats: [['Oylik savdo', '184 mln'], ["O'rtacha chek", '76 000'], ['Sotuvchilar', '312'], ["3 oy o'sish", '+18%']] },
+  { key: 'auto', title: 'Avto aksessuar', tag: "o'rta raqobat", body: 'Talab yuqori va barqaror, narx urushi bor. Kichik o\u2018lcham — yetkazish arzon.', metric: '84', up: true,
+    stats: [['Oylik savdo', '242 mln'], ["O'rtacha chek", '54 000'], ['Sotuvchilar', '688'], ["3 oy o'sish", '+11%']] },
+  { key: 'light', title: "Uy va bog' · yoritish", tag: 'yuqori foyda', body: 'Foyda oynasi eng keng, mavsumiylik kuchsiz, sertifikat kerak emas.', metric: '79', up: true,
+    stats: [['Oylik savdo', '96 mln'], ["O'rtacha chek", '62 000'], ['Sotuvchilar', '204'], ["3 oy o'sish", '+26%']] }
+];
+const SUBS = [
+  { key: 's1', title: 'Idish-tovoq va oshxona jihozlari', tag: 'eng mos', body: "Silikon va bambuk to'plamlar — qaytarish 2%, havo yuki arzon.", metric: '94',
+    stats: [['Mahsulot', '1 240'], ['Oylik dona', '2 180'], ["O'rtacha", '76 000'], ['Raqobat', 'past']] },
+  { key: 's2', title: 'Saqlash va tartib', tag: '', body: 'Konteynerlar barqaror sotiladi, lekin hajmi katta — yetkazish qimmat.', metric: '81',
+    stats: [['Mahsulot', '890'], ['Oylik dona', '1 640'], ["O'rtacha", '58 000'], ['Raqobat', "o'rta"]] },
+  { key: 's3', title: 'Choy va qahva jihozlari', tag: '', body: 'Mavsumiy o\u2018sish kuchli, o\u2018rtacha chek yuqori.', metric: '73',
+    stats: [['Mahsulot', '410'], ['Oylik dona', '760'], ["O'rtacha", '94 000'], ['Raqobat', "o'rta"]] }
+];
+const PRODS = [
+  { key: 'p1', title: "Silikon oshxona to'plami, 12 predmet", tag: 'eng foydali', body: "4.7★ · 1 284 sharh · 18 sotuvchi", metric: '48%', cost: 37200, price: 89000,
+    stats: [['Uzum narxi', '89 000'], ['Oylik dona', '340'], ['Xitoy tannarx', '37 200'], ['Foyda', '48%']] },
+  { key: 'p2', title: 'Bambuk tutqichli kurak va cho\u2018mich', tag: 'past raqobat', body: '4.6★ · 612 sharh · 11 sotuvchi', metric: '45%', cost: 26400, price: 64000,
+    stats: [['Uzum narxi', '64 000'], ['Oylik dona', '260'], ['Xitoy tannarx', '26 400'], ['Foyda', '45%']] },
+  { key: 'p3', title: 'Silikon pishirish qoliplari, 6 ta', tag: "o'sishda", body: '4.8★ · 438 sharh · 9 sotuvchi', metric: '47%', cost: 21800, price: 54000,
+    stats: [['Uzum narxi', '54 000'], ['Oylik dona', '210'], ['Xitoy tannarx', '21 800'], ['Foyda', '47%']] }
+];
+
+const LOTS = [
+  { platform: '1688', factory: 'Yiwu Hongyu', meta: 'MOQ 200 · 4.8★ · 15–20 kun · namuna bepul', price: '$2.10', landed: "37 200 so'm", best: true },
+  { platform: '1688', factory: 'Ningbo Kaili', meta: 'MOQ 500 · 4.4★ · 20–25 kun', price: '$1.85', landed: "34 100 so'm" },
+  { platform: 'Taobao', factory: 'Chaozhou Retail', meta: 'MOQ 10 · 4.9★ · 12 kun · sinov uchun', price: '$3.40', landed: "52 800 so'm" },
+  { platform: 'Made-in-China', factory: 'Guangdong Silico', meta: 'MOQ 300 · 5.0★ · 25 kun · FDA', price: '$2.65', landed: "43 900 so'm" }
+];
+const SHIPS = [
+  { id: '#A-2201', product: "Silikon oshxona to'plami", meta: '300 dona · Yiwu Hongyu · havo 42 kg', stage: 2, eta: '6 kun qoldi', status: "Yo'lda", tone: 'ok' },
+  { id: '#A-2208', product: 'Bambuk kurak va cho\u2018mich', meta: '200 dona · Ningbo Kaili · havo 28 kg', stage: 1, eta: '14 kun', status: 'Ishlab chiqarishda', tone: 'warn' }
+];
+const ALERTS = [
+  { icon: '!', tone: 'bad', title: 'Qoldiq tugayapti · Silikon to\u2018plam', body: '42 dona qoldi, kunlik sotuv 11 dona — 4 kunga yetadi.', action: 'Qayta buyurtma ber', time: '12 daq' },
+  { icon: '↓', tone: 'warn', title: 'Raqobatchi narxni tushirdi', body: '"UyStore" 84 000 so\u2018m qo\u2018ydi. Konversiya 2 kunda 18% pasaydi.', action: 'Narxni 5% tushir', time: '1 soat' },
+  { icon: '✓', tone: 'ok', title: 'Kartochka moderatsiyadan o\u2018tdi', body: 'Silikon pishirish qoliplari · Uzum katalogida faol.', action: 'Bugungi holat', time: '3 soat' }
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.chatRef = React.createRef();
+    this.state = {
+      theme: 'light', input: '', typing: false, typingNote: '', step: 3, answers: { budget: '10–30 mln' },
+      cat: 'kitchen', sub: 'Idish-tovoq va oshxona jihozlari', picked: ['p1', 'p2'], units: { p1: 300, p2: 200 }, lots: { main: 0 }, paid: true, live: true,
+      thread: 't1',
+      msgs: [
+        { id: 1, role: 'bot', type: 'text', text: "Salom! Men ZUMSavdo. Nima sotishni topamiz, Xitoydan sotib olamiz, do'kon ochamiz va savdoni shu suhbatdan boshqaramiz." },
+        { id: 2, role: 'bot', type: 'text', text: "Boshlaymiz: birinchi partiya uchun budjetingiz qancha?" },
+        { id: 3, role: 'user', type: 'text', text: "10–30 mln" },
+        { id: 4, role: 'bot', type: 'text', text: "Yozib oldim. Tovarni o'z omboringizda saqlaysizmi yoki Uzum FBS orqali?" },
+        { id: 5, role: 'user', type: 'text', text: "Uzum FBS" },
+        { id: 6, role: 'bot', type: 'text', text: "Yaxshi. Haftada savdoga qancha vaqt ajratasiz?" },
+        { id: 7, role: 'user', type: 'text', text: "10–20 soat" },
+        { id: 8, role: 'bot', type: 'text', text: "2.4 mln mahsulotni o'lchadim. Javoblaringizga uchta kategoriya mos keldi — moslik reytingi bilan:" },
+        { id: 9, role: 'bot', type: 'cards', kind: 'cat', kicker: 'Kategoriya tahlili', items: ['kitchen', 'auto', 'light'] },
+        { id: 10, role: 'user', type: 'text', text: "Uy va oshxona" },
+        { id: 11, role: 'bot', type: 'text', text: "Uy va oshxona tanlandi. Subkategoriyalar moslik bo'yicha:" },
+        { id: 12, role: 'bot', type: 'cards', kind: 'sub', kicker: 'Subkategoriya', items: ['s1', 's2', 's3'] },
+        { id: 13, role: 'user', type: 'text', text: "Idish-tovoq va oshxona jihozlari" },
+        { id: 14, role: 'bot', type: 'text', text: "Eng ko'p sotilgan mahsulotlar. Xitoy tannarxi bazadagi o'rtacha lotdan olindi:" },
+        { id: 15, role: 'bot', type: 'cards', kind: 'prod', kicker: 'Mahsulotlar', items: ['p1', 'p2', 'p3'] },
+        { id: 16, role: 'user', type: 'text', text: "Silikon oshxona to'plami va bambuk kurak — rejaga" },
+        { id: 17, role: 'user', type: 'text', text: "Budjet rejasini tuz" },
+        { id: 18, role: 'bot', type: 'text', text: "Budjetning 82% tovarga, 18% zaxiraga (reklama va kutilmagan xarajat):" },
+        { id: 19, role: 'bot', type: 'plan' },
+        { id: 20, role: 'user', type: 'text', text: "Xitoydan manba top" },
+        { id: 21, role: 'bot', type: 'text', text: "148 lot topildi. Narx, minimal partiya, zavod reytingi va muddat bo'yicha eng yaxshi to'rttasi:" },
+        { id: 22, role: 'bot', type: 'lots' },
+        { id: 23, role: 'user', type: 'text', text: "Yiwu Hongyu · $2.10 — savatni tasdiqlayman" },
+        { id: 24, role: 'bot', type: 'text', text: "To'lov o'tdi, zavod ishlab chiqarishni boshladi. Yukni shu suhbatdan kuzatasiz:" },
+        { id: 25, role: 'bot', type: 'track', note: 'kengaytma har 30 daqiqada yangilaydi' },
+        { id: 26, role: 'user', type: 'text', text: "Bugungi holat" },
+        { id: 27, role: 'bot', type: 'text', text: "Sarmoyaning 87% qaytdi, omborda 18,3 mln so'mlik tovar bor, yo'lda 7,9 mln." },
+        { id: 28, role: 'bot', type: 'stats', kicker: 'Pul holati', note: 'ROI +125%', bar: ['38.5%', '43%', '18.5%'], items: [
+    { label: 'Sarmoya', value: '18,9 mln', meta: "so'm · 3 partiya" },
+    { label: 'Kutilgan tushum', value: '42,6 mln', meta: "so'm · joriy narxda" },
+    { label: 'Kelib tushdi', value: '16,4 mln', meta: "so'm · 38% yo'l", accent: true },
+    { label: 'Sof foyda', value: '−2,5 mln', meta: "2,5 mln qaytishi kerak" } ] },
+        { id: 29, role: 'bot', type: 'alerts', kicker: "E'tibor bering" }
+      ]
+    };
+    this.seq = 29;
+    this.onInput = (e) => this.setState({ input: e.target.value });
+    this.onKey = (e) => { if (e.key === 'Enter') this.send(this.state.input); };
+    this.onSend = () => this.send(this.state.input);
+    this.onReset = () => window.location.reload();
+  }
+  componentDidMount() { this.applyTheme('light'); }
+  applyTheme(t) { document.documentElement.setAttribute('data-theme', t); document.body.setAttribute('data-theme', t); }
+  setTheme(t) { this.setState({ theme: t }); this.applyTheme(t); }
+  scroller() { return document.querySelector('[data-chat-scroll]'); }
+  stick() {
+    const go = () => { const el = this.scroller(); if (el) el.scrollTop = el.scrollHeight; };
+    go();
+    requestAnimationFrame(go);
+    this.wait(go, 120);
+    this.wait(go, 480);
+  }
+  componentDidUpdate(pp, ps) {
+    if (ps.msgs.length !== this.state.msgs.length || ps.typing !== this.state.typing) this.stick();
+  }
+  componentWillUnmount() { (this.timers || []).forEach(clearTimeout); }
+  wait(fn, ms) { this.timers = this.timers || []; this.timers.push(setTimeout(fn, ms)); }
+  push(msg) {
+    this.seq += 1;
+    this.setState((s) => ({ msgs: s.msgs.concat([Object.assign({ id: this.seq }, msg)]) }));
+    this.stick();
+  }
+  user(text) { this.push({ role: 'user', type: 'text', text: text }); }
+  bot(text, delay) { this.think('Javob yozilmoqda', delay || 600, () => this.push({ role: 'bot', type: 'text', text: text })); }
+  think(note, ms, fn) {
+    this.setState({ typing: true, typingNote: note });
+    this.stick();
+    this.wait(() => { this.setState({ typing: false }); fn(); this.stick(); }, ms);
+  }
+  fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  mln(n) { return (n / 1e6).toFixed(1).replace('.', ',') + ' mln'; }
+  spark(seed, up) { const o = []; for (let i = 0; i < 12; i += 1) o.push(Math.max(14, Math.min(100, (up ? 30 + i * 5 : 70 - i * 2) + ((seed * (i + 3)) % 17) - 8))); return o; }
+  budgetNum() { return { '10 mln gacha': 9e6, '10–30 mln': 26e6, '30–70 mln': 62e6, '70 mln+': 110e6 }[this.state.answers.budget] || 26e6; }
+  send(raw) { const t = (raw || '').trim(); if (!t) return; this.setState({ input: '' }); this.answer(t); }
+  answer(text) {
+    this.user(text);
+    const st = this.state, l = text.toLowerCase();
+    if (st.step === 0) { this.setState({ step: 1, answers: { budget: text } }); return this.bot("Yozib oldim. Tovarni o'z omboringizda saqlaysizmi yoki Uzum FBS orqali?"); }
+    if (st.step === 1) { this.setState({ step: 2 }); return this.bot('Yaxshi. Haftada savdoga qancha vaqt ajratasiz?'); }
+    if (st.step === 2) {
+      this.setState({ step: 3 });
+      return this.think('Uzum bazasi tahlil qilinmoqda · 412 subkategoriya', 1600, () => {
+        this.push({ role: 'bot', type: 'text', text: "2.4 mln mahsulotni o'lchadim. Javoblaringizga uchta kategoriya mos keldi — moslik reytingi bilan:" });
+        this.wait(() => this.push({ role: 'bot', type: 'cards', kind: 'cat', kicker: 'Kategoriya tahlili', items: CATS.map((c) => c.key) }), 500);
+      });
+    }
+    if (/kategoriya|nisha/.test(l)) return this.showCats();
+    if (/subkategoriya|aniqlash/.test(l)) return this.showSubs();
+    if (/mahsulot|tovar tanla/.test(l)) return this.showProds();
+    if (/reja|budjet|taqsim/.test(l)) return this.showPlan();
+    if (/xitoy|manba|1688|taobao|zavod/.test(l)) return this.showLots();
+    if (/holat|monitoring|nazorat|pul|foyda|daromad/.test(l)) return this.showMonitor();
+    if (/yuk|qayerda|kuzat|yetkaz/.test(l)) return this.showTrack();
+    if (/ogoh|muammo|alert/.test(l)) return this.showAlerts();
+    const m = l.match(/narx.*?(\d+)\s*%/);
+    if (m) {
+      const pct = parseInt(m[1], 10), down = /tushir|kamay|pasay/.test(l);
+      const np = Math.round(89000 * (down ? 1 - pct / 100 : 1 + pct / 100) / 100) * 100;
+      return this.think('Narx qayta hisoblanmoqda', 800, () => {
+        this.push({ role: 'bot', type: 'text', text: 'Narx ' + this.fmt(np) + " so'mga o'zgartirildi. Marja va konversiya prognozi:" });
+        this.wait(() => this.push({ role: 'bot', type: 'stats', kicker: 'Narx ta\u2019siri', note: 'prognoz · 7 kun', items: [
+          { label: 'Yangi narx', value: this.fmt(np), meta: "so'm" },
+          { label: 'Marja', value: Math.round((np * 0.82 - 37200) / (np * 0.82) * 100) + '%', meta: 'komissiyadan keyin' },
+          { label: 'Kutilgan sotuv', value: (down ? '+' : '−') + Math.round(pct * 1.8) + '%', meta: 'konversiya', accent: true },
+          { label: 'Raqobatchi', value: '84 000', meta: 'UyStore' }
+        ] }), 500);
+      });
+    }
+    this.bot("Shu suhbatda hammasi bor: kategoriya tahlili, mahsulot tanlash, budjet rejasi, Xitoydan manba, yuk kuzatuvi va do'kon monitoringi. Nimadan boshlaymiz?");
+  }
+  showCats() { this.think('Kategoriyalar qayta hisoblanmoqda', 900, () => this.push({ role: 'bot', type: 'cards', kind: 'cat', kicker: 'Kategoriya tahlili', items: CATS.map((c) => c.key) })); }
+  showSubs() { this.think('Subkategoriyalar filtrlanmoqda', 900, () => this.push({ role: 'bot', type: 'cards', kind: 'sub', kicker: 'Subkategoriya', items: SUBS.map((s) => s.key) })); }
+  showProds() { this.think('Mahsulot statistikasi yig\u2018ilmoqda', 1000, () => this.push({ role: 'bot', type: 'cards', kind: 'prod', kicker: 'Mahsulotlar', items: PRODS.map((p) => p.key) })); }
+  pickCat(c) {
+    this.setState({ cat: c.key });
+    this.user(c.title);
+    this.think('Subkategoriyalar filtrlanmoqda', 1100, () => {
+      this.push({ role: 'bot', type: 'text', text: c.title + " tanlandi. Ikkita savol: kichik o'lchamli tovar sizga qulaymi, va mavsumiylikka munosabatingiz qanday? Yoki to'g'ridan-to'g'ri subkategoriyalarni ko'rsatay:" });
+      this.wait(() => this.push({ role: 'bot', type: 'cards', kind: 'sub', kicker: 'Subkategoriya', items: SUBS.map((s) => s.key) }), 500);
+    });
+  }
+  pickSub(s) {
+    this.setState({ sub: s.title });
+    this.user(s.title);
+    this.think('Mahsulotlar saralanmoqda', 1100, () => {
+      this.push({ role: 'bot', type: 'text', text: s.title + " bo'yicha eng ko'p sotilgan mahsulotlar. Xitoy tannarxi bazadagi o'rtacha lotdan olindi — rejaga qo'shishingiz mumkin:" });
+      this.wait(() => this.push({ role: 'bot', type: 'cards', kind: 'prod', kicker: 'Mahsulotlar', items: PRODS.map((p) => p.key) }), 500);
+    });
+  }
+  toggleProd(p) {
+    const has = this.state.picked.indexOf(p.key) >= 0;
+    this.setState((s) => {
+      const picked = has ? s.picked.filter((k) => k !== p.key) : s.picked.concat([p.key]);
+      return { picked: picked };
+    });
+    if (!has) { this.user(p.title + ' — rejaga'); this.bot(this.state.picked.length >= 1 ? "Qo'shildi. Yana mahsulot qo'shasizmi, yoki budjet rejasini tuzamizmi?" : "Qo'shildi."); }
+  }
+  showPlan() {
+    if (!this.state.picked.length) return this.bot("Avval kamida bitta mahsulotni rejaga qo'shing — mahsulotlarni ko'rsataymi?");
+    const budget = this.budgetNum(), goods = budget * 0.82;
+    const picked = PRODS.filter((p) => this.state.picked.indexOf(p.key) >= 0);
+    const units = Object.assign({}, this.state.units);
+    picked.forEach((p) => { if (!units[p.key]) units[p.key] = Math.max(20, Math.round(goods / picked.length / p.cost / 10) * 10); });
+    this.setState({ units: units });
+    this.think('Budjet taqsimlanmoqda', 1100, () => {
+      this.push({ role: 'bot', type: 'text', text: 'Budjetning 82% tovarga, 18% zaxiraga (reklama va kutilmagan xarajat). Dona sonini o\u2018zgartirsangiz hisob qayta yig\u2018iladi:' });
+      this.wait(() => this.push({ role: 'bot', type: 'plan' }), 450);
+    });
+  }
+  bump(key, d) { this.setState((s) => { const u = Object.assign({}, s.units); u[key] = Math.max(0, (u[key] || 0) + d * 10); return { units: u }; }); }
+  showLots() {
+    this.think("Kengaytma 1688, Taobao va Made-in-China'ni tekshirmoqda", 1600, () => {
+      this.push({ role: 'bot', type: 'text', text: '148 lot topildi. Narx, minimal partiya, zavod reytingi va muddat bo\u2018yicha eng yaxshi to\u2018rttasi — tanlaganingizni savatga solaman:' });
+      this.wait(() => this.push({ role: 'bot', type: 'lots' }), 450);
+    });
+  }
+  pickLot(i) {
+    this.setState((s) => ({ lots: Object.assign({}, s.lots, { main: i }) }));
+    this.user(LOTS[i].factory + ' · ' + LOTS[i].price);
+    this.bot('Savatga soldim. Tasdiqlasangiz, to\u2018lov va zavod so\u2018rovini kengaytma o\u2018zi rasmiylashtiradi.');
+  }
+  confirmOrder() {
+    this.setState({ paid: true, live: true });
+    this.user('Savatni tasdiqlayman');
+    this.think("To'lov rasmiylashtirilmoqda", 1300, () => {
+      this.push({ role: 'bot', type: 'text', text: "To'lov o'tdi, zavod ishlab chiqarishni boshladi. Endi yukni shu suhbatdan kuzatasiz — do'kon ochilgach monitoring ham shu yerda bo'ladi." });
+      this.wait(() => this.push({ role: 'bot', type: 'track', note: 'kengaytma har 30 daqiqada yangilaydi' }), 450);
+    });
+  }
+  showTrack() { this.think('Kuzatuv yangilanmoqda', 800, () => this.push({ role: 'bot', type: 'track', note: 'oxirgi yangilanish 12 daqiqa oldin' })); }
+  showAlerts() { this.think('Ogohlantirishlar tekshirilmoqda', 800, () => this.push({ role: 'bot', type: 'alerts', kicker: 'Ogohlantirishlar · 3 ta' })); }
+  showMonitor() {
+    this.setState({ live: true });
+    this.think('Pul holati yig\u2018ilmoqda', 1200, () => {
+      this.push({ role: 'bot', type: 'text', text: "Bugungi holat: sarmoyaning 87% qaytdi, omborda 18,3 mln so'mlik tovar bor, yo'lda 7,9 mln." });
+      this.wait(() => this.push({ role: 'bot', type: 'stats', kicker: 'Pul holati', note: 'ROI +125%', bar: ['38.5%', '43%', '18.5%'], items: [
+        { label: 'Sarmoya', value: '18,9 mln', meta: "so'm · 3 partiya" },
+        { label: 'Kutilgan tushum', value: '42,6 mln', meta: "so'm · joriy narxda" },
+        { label: 'Kelib tushdi', value: '16,4 mln', meta: "so'm · 38% yo'l", accent: true },
+        { label: 'Sof foyda', value: '−2,5 mln', meta: "2,5 mln qaytishi kerak" }
+      ] }), 500);
+      this.wait(() => this.push({ role: 'bot', type: 'alerts', kicker: "E'tibor bering" }), 1000);
+    });
+  }
+  extraVals() {
+    const st = this.state;
+    const picked = PRODS.filter((p) => st.picked.indexOf(p.key) >= 0);
+    const units = st.units || {};
+    const budget = this.budgetNum();
+    const goodsTotal = picked.reduce((s, p) => s + (units[p.key] || 0) * p.cost, 0);
+    const over = goodsTotal > budget * 0.82;
+    const tone = (t) => ({ ok: ['var(--okBg)', 'var(--ok)'], warn: ['var(--warnBg)', 'var(--warn)'], bad: ['var(--badBg)', 'var(--bad)'] }[t]);
+    return {};
+  }
+  decorateMsg(m) {
+    const st = this.state;
+    const picked = PRODS.filter((p) => st.picked.indexOf(p.key) >= 0);
+    const units = st.units || {};
+    const budget = this.budgetNum();
+    const goodsTotal = picked.reduce((s, p) => s + (units[p.key] || 0) * p.cost, 0);
+    const over = goodsTotal > budget * 0.82;
+    const tone = (t) => ({ ok: ['var(--okBg)', 'var(--ok)'], warn: ['var(--warnBg)', 'var(--warn)'], bad: ['var(--badBg)', 'var(--bad)'] }[t]);
+    {
+      if (m.type === 'plan') {
+        m.isPlan = true; m.note = this.mln(budget) + " so'm budjet";
+        m.items = picked.map((p) => {
+          const u = units[p.key] || 0, cost = u * p.cost, rev = u * p.price * 0.82;
+          return {
+            name: p.title, note: u + ' dona · tannarx ' + this.fmt(p.cost) + " so'm",
+            units: u + ' dona', share: Math.min(100, cost / (budget * 0.82) * 100).toFixed(1) + '%',
+            cost: this.mln(cost), revenue: this.mln(rev), profit: this.mln(Math.max(0, rev - cost)),
+            turn: u ? Math.max(1, Math.round(u / parseInt(p.stats[1][1]) * 30)) + ' kun' : '—',
+            onPlus: () => this.bump(p.key, 1), onMinus: () => this.bump(p.key, -1)
+          };
+        });
+        m.warn = over ? 'Budjetdan oshdi — dona sonini kamaytiring' : 'Tovarga ' + this.mln(goodsTotal) + " so'm · zaxira " + this.mln(budget * 0.18);
+        m.warnInk = over ? 'var(--warn)' : 'var(--ink3)';
+        m.onAct = () => this.showLots();
+      }
+      if (m.type === 'lots') {
+        m.isLots = true; m.note = '148 lotdan 4 tasi';
+        m.items = LOTS.map((l, i) => ({
+          platform: l.platform, factory: l.factory, meta: l.meta, price: l.price, landed: l.landed,
+          bg: st.lots.main === i ? 'var(--accSoft)' : 'var(--a06)',
+          border: st.lots.main === i ? 'var(--accEdge)' : 'var(--a13)',
+          btnLabel: st.lots.main === i ? 'Savatda ✓' : (l.best ? 'Tavsiya' : 'Tanlash'),
+          btnBg: st.lots.main === i ? 'linear-gradient(180deg,var(--acc2),var(--acc))' : 'transparent',
+          btnInk: st.lots.main === i ? 'var(--accInk)' : 'var(--ink)',
+          btnBorder: st.lots.main === i ? 'var(--acc)' : 'var(--a22)',
+          onPick: () => this.pickLot(i)
+        }));
+        m.canOrder = st.lots.main !== undefined && !st.paid;
+        m.total = this.mln(goodsTotal || 11200000) + " so'm";
+        m.onAct = () => this.confirmOrder();
+      }
+      if (m.type === 'track') {
+        m.isTrack = true;
+        m.items = SHIPS.map((s) => {
+          const [pb, pi] = tone(s.tone);
+          return {
+            id: s.id, product: s.product, meta: s.meta, eta: s.eta, status: s.status, pillBg: pb, pillInk: pi,
+            stages: ['Zavod', 'Yuk', 'Bojxona', 'Ombor'].map((g, i) => ({
+              label: g, mark: i < s.stage ? '✓' : '',
+              dotBg: i < s.stage ? 'linear-gradient(180deg,var(--acc2),var(--acc))' : 'transparent',
+              dotBorder: i <= s.stage ? 'var(--acc)' : 'var(--a22)',
+              ring: i === s.stage ? '0 0 0 4px var(--accSoft)' : 'none',
+              lineBg: i < s.stage ? 'var(--acc)' : 'var(--a17)',
+              ink: i <= s.stage ? 'var(--ink2)' : 'var(--ink3)'
+            }))
+          };
+        });
+      }
+      if (m.type === 'alerts') {
+        m.isAlerts = true;
+        m.items = ALERTS.map((a) => {
+          const [bg, ink] = tone(a.tone);
+          const primary = a.tone !== 'ok';
+          return {
+            icon: a.icon, title: a.title, body: a.body, time: a.time, action: a.action,
+            tintBg: bg, tintInk: ink, border: a.tone === 'bad' ? 'var(--badBg)' : 'var(--a17)',
+            btnBg: primary ? 'linear-gradient(180deg,var(--acc2),var(--acc))' : 'transparent',
+            btnInk: primary ? 'var(--accInk)' : 'var(--ink2)',
+            btnBorder: primary ? 'var(--acc)' : 'var(--a22)',
+            onAct: () => this.answer(a.action)
+          };
+        });
+      }
+    }
+    return m;
+  }
+  renderVals() {
+    const st = this.state, th = st.theme;
+    const byKey = { cat: CATS, sub: SUBS, prod: PRODS };
+    const picker = { cat: (x) => this.pickCat(x), sub: (x) => this.pickSub(x), prod: (x) => this.toggleProd(x) };
+    const isPicked = { cat: (x) => st.cat === x.key, sub: (x) => st.sub === x.title, prod: (x) => st.picked.indexOf(x.key) >= 0 };
+    const btnLabel = { cat: 'Tanlash', sub: 'Tanlash', prod: "Rejaga qo'shish" };
+    const msgs = st.msgs.map((m) => {
+      const base = { id: m.id, text: m.text, kicker: m.kicker, note: m.note, isUser: m.role === 'user', isText: m.role === 'bot' && m.type === 'text', isTyping: false, isStats: m.type === 'stats', isCards: m.type === 'cards' };
+      if (m.type === 'cards') {
+        const src = byKey[m.kind] || [];
+        base.items = m.items.map((k) => {
+          const it = src.filter((x) => x.key === k)[0] || {};
+          const on = isPicked[m.kind](it);
+          return {
+            title: it.title, body: it.body, tag: it.tag, hasTag: !!it.tag,
+            metric: it.metric, metricLabel: m.kind === 'prod' ? 'foyda' : 'moslik',
+            stats: (it.stats || []).map((s) => ({ label: s[0], value: s[1] })),
+            spark: this.spark(k.length + (it.metric ? parseInt(it.metric) : 5), true).map((v, i) => ({ h: v + '%', bg: i >= 9 ? 'var(--acc)' : 'var(--a22)', d: (i * 26) + 'ms' })),
+            border: on ? 'var(--accEdge)' : 'var(--a17)',
+            btnLabel: on ? 'Tanlangan ✓' : btnLabel[m.kind],
+            btnBg: on ? 'linear-gradient(180deg,var(--acc2),var(--acc))' : 'transparent',
+            btnInk: on ? 'var(--accInk)' : 'var(--ink)',
+            btnBorder: on ? 'var(--acc)' : 'var(--a22)',
+            onPick: () => picker[m.kind](it)
+          };
+        });
+      }
+      if (m.type === 'stats') {
+        base.items = (m.items || []).map((k) => ({
+          label: k.label, value: k.value, meta: k.meta,
+          bg: k.accent ? 'linear-gradient(160deg,var(--acc2),var(--acc) 45%,var(--acc3))' : 'var(--a06)',
+          border: k.accent ? 'var(--acc)' : 'var(--a13)',
+          ink: k.accent ? 'var(--accInk)' : 'var(--ink)',
+          sub: k.accent ? 'rgba(11,11,11,.7)' : 'var(--ink3)'
+        }));
+        base.hasBar = !!m.bar; base.barA = m.bar && m.bar[0]; base.barB = m.bar && m.bar[1]; base.barC = m.bar && m.bar[2];
+      }
+      if (['plan', 'lots', 'track', 'alerts'].indexOf(m.type) >= 0) return this.decorateMsg(Object.assign(base, { type: m.type, note: m.note, kicker: m.kicker }));
+      return base;
+    });
+    if (st.typing) msgs.push({ id: 'typing', isTyping: true, text: st.typingNote });
+    const quick = st.step === 0 ? ['10 mln gacha', '10–30 mln', '30–70 mln', '70 mln+']
+      : st.step === 1 ? ["O'z omborim", 'Uzum FBS', 'Hali yo\u2018q']
+      : st.step === 2 ? ['5 soatgacha', '10–20 soat', "To'liq kun"]
+      : (st.live ? ['Bugungi holat', 'Yuk qayerda?', 'Narxni 5% tushir', 'Ogohlantirishlar']
+        : st.picked.length ? ['Budjet rejasini tuz', 'Xitoydan manba top']
+        : st.sub ? ['Mahsulotlarni ko\u2018rsat', 'Boshqa subkategoriya']
+        : st.cat ? ['Subkategoriyalar', 'Mahsulotlar'] : ['Kategoriyalarni ko\u2018rsat', 'Bugungi holat']);
+    return Object.assign(this.extraVals(), {
+      chatRef: this.chatRef, messages: msgs,
+      threadTitle: st.sub || (st.cat ? (CATS.filter((c) => c.key === st.cat)[0] || {}).title : 'Yangi savdo'),
+      threadMeta: st.live ? "Do'kon faol · monitoring yoqilgan" : (st.step < 3 ? 'Tanishuv · ' + (st.step + 1) + ' / 3' : 'Tahlil va tanlash'),
+      threads: [
+        { id: 't1', title: 'Yangi savdo', meta: 'hozir' },
+        { id: 't2', title: "Silikon to'plam · partiya 2", meta: '2 kun oldin' },
+        { id: 't3', title: "Do'kon #1 monitoring", meta: '5 kun oldin' },
+        { id: 't4', title: 'Avto aksessuar tahlili', meta: '1 hafta' }
+      ].map((t) => ({ title: t.title, meta: t.meta, bg: st.thread === t.id ? 'var(--a09)' : 'transparent', ink: st.thread === t.id ? 'var(--ink)' : 'var(--ink2)', w: st.thread === t.id ? 600 : 400, onPick: () => this.setState({ thread: t.id }) })),
+      tools: [
+        { label: 'Bugungi holat', onPick: () => this.answer('Bugungi holat') },
+        { label: 'Yuk kuzatuvi', onPick: () => this.answer('Yuk qayerda?') },
+        { label: 'Ogohlantirishlar', onPick: () => this.answer('Ogohlantirishlar') }
+      ],
+      hasQuick: !st.typing, quick: quick.map((q) => ({ label: q, onPick: () => this.answer(q) })),
+      input: st.input, onInput: this.onInput, onKey: this.onKey, onSend: this.onSend, onReset: this.onReset,
+      placeholder: st.step < 3 ? 'Javobingizni yozing' : "Masalan: narxni 5% tushir, yuk qayerda, bugungi foyda",
+      lightBg: th === 'light' ? 'linear-gradient(180deg,var(--acc2),var(--acc))' : 'transparent',
+      lightInk: th === 'light' ? 'var(--accInk)' : 'var(--ink3)',
+      darkBg: th === 'dark' ? 'linear-gradient(180deg,var(--acc2),var(--acc))' : 'transparent',
+      darkInk: th === 'dark' ? 'var(--accInk)' : 'var(--ink3)',
+      onLight: () => this.setTheme('light'), onDark: () => this.setTheme('dark')
+    });
+  }
+}
+</script>
+</body>
+</html>

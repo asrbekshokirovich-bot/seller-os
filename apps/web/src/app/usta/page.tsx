@@ -415,7 +415,7 @@ export default function Usta() {
   );
 
   return (
-    <div className={`${u.ilova} ${menyu ? u.menyuOchiq : ''}`} data-mavzu={mavzu}>
+    <div className={`zs-mavzu ${u.ilova} ${menyu ? u.menyuOchiq : ''}`} data-mavzu={mavzu}>
       <aside className={u.yon} aria-label="Yon panel">{yonPanel}</aside>
       {menyu && (
         <button

@@ -29,15 +29,13 @@ const config = {
   transpilePackages: ['@selleros/shared'],
 
   /*
-   * `/` uchun YOʻNALTIRISH YOʻQ — `src/app/route.ts` bor.
+   * `/` — oddiy React sahifa (`src/app/page.tsx`).
    *
-   * Ilgari bu yerda `/` → `/sotuv.html` yoʻnaltirishi turardi va
-   * sahifa toʻgʻridan-toʻgʻri statik fayl sifatida berilardi.
-   * Endi uch shu faylni oʻqib, "Bazamizda bugun" raqamlarini
-   * jonli qiymatga almashtiradi (`route.ts` dagi izohga qarang).
-   *
-   * `public/sotuv.html` oʻz manzilida qolaveradi — u zaxira va
-   * uni brauzerda ochib solishtirish mumkin.
+   * Ilgari u statik `public/sotuv.html` edi: dizayn qadogʻidan
+   * `qurish.mjs` bilan yasalar va `route.ts` ichiga jonli raqamni
+   * matn almashtirib qoʻyardi. 2026-09-24 dagi yangi dizayn bilan
+   * bu quvur olib tashlandi — endi yoʻnaltirish ham, qurish skripti
+   * ham yoʻq.
    */
 
   webpack(webpackConfig) {

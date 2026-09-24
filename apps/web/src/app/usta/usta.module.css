@@ -1,10 +1,9 @@
 /*
  * Usta — `ZUMSavdo Chat.dc.html` dizayni (nazoratchi, 2026-09-24).
  *
- * Ranglar OʻYLAB TOPILMAGAN: tokenlar dizayn faylidagi `:root` va
- * `[data-theme="light"]` dan aynan koʻchirilgan (nomlari ham bir
- * xil: `--a06`, `--a17` …), shuning uchun dizaynning keyingi
- * versiyasini solishtirish oson.
+ * Ranglar OʻYLAB TOPILMAGAN: tokenlar dizayn faylidan aynan
+ * koʻchirilgan va `globals.css` dagi `.zs-mavzu` da turadi — bosh
+ * sahifa bilan bitta joyda.
  *
  * DIZAYNDAN FARQ — uchta, ataylab:
  *
@@ -23,35 +22,6 @@
  */
 
 .ilova {
-  --bg: #0b0b0b;
-  --glow1: rgba(230, 210, 0, 0.18);
-  --glow2: rgba(230, 210, 0, 0.06);
-  --ink: #ffffff;
-  --ink2: rgba(255, 255, 255, 0.74);
-  --ink3: rgba(255, 255, 255, 0.52);
-  --acc: #e6d200;
-  --acc2: #f5e84a;
-  --acc3: #c4b300;
-  --accInk: #0b0b0b;
-  --accMatn: #e6d200;
-  --accSoft: rgba(230, 210, 0, 0.2);
-  --accEdge: rgba(230, 210, 0, 0.45);
-  --a04: rgba(255, 255, 255, 0.05);
-  --a06: rgba(255, 255, 255, 0.08);
-  --a09: rgba(255, 255, 255, 0.11);
-  --a13: rgba(255, 255, 255, 0.15);
-  --a17: rgba(255, 255, 255, 0.2);
-  --a22: rgba(255, 255, 255, 0.26);
-  --shine: rgba(255, 255, 255, 0.45);
-  --navBg: rgba(11, 11, 11, 0.62);
-  --panelBg: #141414;
-  --ok: #4fbf7e;
-  --okBg: rgba(79, 191, 126, 0.16);
-  --warn: #e9a23b;
-  --warnBg: rgba(233, 162, 59, 0.16);
-  --bad: #e4574c;
-  --badBg: rgba(228, 87, 76, 0.16);
-
   position: fixed;
   inset: 0;
   display: flex;
@@ -64,39 +34,8 @@
   font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  color-scheme: dark;
 }
 
-.ilova[data-mavzu='yorug'] {
-  --bg: #f1f0ea;
-  --glow1: rgba(230, 210, 0, 0.72);
-  --glow2: rgba(230, 210, 0, 0.3);
-  --ink: #0b0b0b;
-  --ink2: rgba(11, 11, 11, 0.78);
-  --ink3: rgba(11, 11, 11, 0.64);
-  --acc: #ddc800;
-  --acc2: #f0de00;
-  --acc3: #a89a00;
-  --accMatn: #6b6100;
-  --accSoft: rgba(221, 200, 0, 0.34);
-  --accEdge: rgba(168, 154, 0, 0.6);
-  --a04: rgba(11, 11, 11, 0.035);
-  --a06: rgba(11, 11, 11, 0.055);
-  --a09: rgba(11, 11, 11, 0.08);
-  --a13: rgba(255, 255, 255, 0.55);
-  --a17: rgba(11, 11, 11, 0.12);
-  --a22: rgba(11, 11, 11, 0.16);
-  --shine: rgba(255, 255, 255, 0.85);
-  --navBg: rgba(248, 247, 242, 0.78);
-  --panelBg: #f8f7f2;
-  --ok: #1e7a48;
-  --okBg: rgba(30, 138, 80, 0.14);
-  --warn: #8a5700;
-  --warnBg: rgba(184, 116, 0, 0.14);
-  --bad: #b0322a;
-  --badBg: rgba(195, 58, 48, 0.14);
-  color-scheme: light;
-}
 
 .ilova button,
 .ilova input {

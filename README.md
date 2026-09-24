@@ -50,17 +50,19 @@ Alohida "ZumSavdo sayti" degan narsa YOʻQ.
 
 ### Dizayn — `apps/web/dizayn/`
 
-Nazoratchi bergan qadoq (`ZumSavdo-standalone.html`) **toʻrtta
-ekran**: `1 Landing`, `2 Demo chat`, `3 Marketpleys`, `4 1688 sim`.
-Bu **butun ilovaning** dizayni, faqat sotuv sahifasi emas.
+Nazoratchi tasdiqlagan dizayn (2026-09-24) — **ikki ekran**, manba
+fayllari shu papkada:
 
-Yaʼni `/usta` ham, keyingi qadamlar ham shu koʻrinishda boʻlishi
-kerak: koʻk `#1A3A6C`, yashil `#D4E94C`, "QADAM" nuqtalari, chat
-pufakchalari. Oʻz uslubini oʻylab topish — xato.
+| Fayl | Sahifa |
+|---|---|
+| `ZUMSavdo-K-Journey-Tinted.dc.html` | `/` — bosh sahifa ("Besh bekat") |
+| `ZUMSavdo-Chat.dc.html` | `/usta` — suhbat |
+| `ZUMSavdo-Chat-print.dc.html` | butun yoʻl bir sahifada (yorugʻ) |
 
-Ekranlarni koʻrish: `qurish.mjs` dagi 7-bosqich (ekran
-almashtirgichini olib tashlash) oʻtkazib yuborilsa, qadoq ichida
-toʻrtala ekran ham ochiladi.
+Qora + sariq, **tungi mavzu standart**, Instrument Sans + JetBrains
+Mono. Tokenlar `apps/web/src/app/globals.css` dagi `.zs-mavzu` da —
+ikkala sahifa uchun bitta. Dizayndan qayerda va nega chetga
+chiqilgani — `dizayn/HOLAT.md`.
 
 ## Ishga tushirish
 
