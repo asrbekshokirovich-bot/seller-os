@@ -60,6 +60,27 @@ olmaydi. Bu ongli tanlov: savollar hali oʻzgaradi va ikki tilni
 barobar olib borish har oʻzgarishni ikki barobar qiladi. Matn
 barqarorlashgach ruschasi qoʻshiladi.
 
+### Webda: 3 savol suhbatda, 9 tasi «Profilim» da (2026-09-24)
+
+Nazoratchi qarori, yangi chat dizayni bilan birga. 12 savolning
+hammasi QOLADI — faqat qayerda soʻralishi oʻzgaradi:
+
+- **Suhbatda:** byudjet (4), qiziqish (3), tajriba (1) — shu tartibda.
+  Uchtasi tasodifiy emas: ball profildan faqat byudjetni va soha
+  javoblarini (`sohalar()`) oʻqiydi, yaʼni tavsiyani aynan shular
+  oʻzgartiradi.
+- **«Profilim» da:** qolgan 9 ta. Suhbat tugagach eslatma chiqadi va
+  unda rost yoziladi: oila sohasi (2) ham ballga kiradi, qolganlari
+  hozircha kirmaydi.
+
+Byudjet uchun tezkor tugmalar bor (5 / 10 / 30 / 70 mln). Ular
+**oraliq emas** — har biri aniq son yozadi, yaʼni "aniq summa"
+qarori buzilmaydi. Maydonga istalgan summani yozish ham mumkin.
+
+Tartib `apps/web/src/app/usta/page.tsx` dagi `SUHBAT_MAYDONLARI` da.
+Savol matni va variantlari `packages/shared/src/savollar.ts` da
+qoladi — bot va kengaytma bir xil matnni oladi.
+
 ---
 
 ## Keyingi ish

@@ -28,7 +28,8 @@
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { type Bazamiz, type Olchov, YANGI_MS, bazamizniQoy } from '@/lib/bazamiz';
+import { bazamizniQoy } from '@/lib/bazamiz';
+import { bazamizniOl } from '@/lib/bazamizOl';
 
 /*
  * Sahifa har soʻrovda qayta yigʻiladi.
@@ -38,46 +39,8 @@ import { type Bazamiz, type Olchov, YANGI_MS, bazamizniQoy } from '@/lib/bazamiz
  */
 export const dynamic = 'force-dynamic';
 
-/**
- * Oxirgi MUVAFFAQIYATLI oʻlchov va u qachon olingani.
- *
- * `count(*)` 1,85 mln qatorda ~540 ms, beshtasi ~1,5 s. Har
- * tashrifda soʻrasak sahifa sekinlashardi va bazaga keraksiz yuk
- * tushardi. Supurish kuniga uch marta, yaʼni bir soatlik yangilash
- * maʼlumotni eskirtirmaydi.
- *
- * Baza javob bermasa eski qiymat SAQLANADI — lekin u "yangi" deb
- * koʻrsatilmaydi: `vaqt` oʻzgarmaydi va sahifa yoshini aytadi.
- */
-let oxirgi: Olchov | null = null;
-
 /** Sahifa matni — bir marta oʻqiladi, u oʻzgarmaydi. */
 let sahifa: string | null = null;
-
-const API = () => process.env.SELLEROS_API_URL ?? '';
-const KEY = () => process.env.SELLEROS_API_KEY ?? '';
-
-async function bazamizniOl(hozir: number): Promise<Olchov | null> {
-  if (oxirgi !== null && hozir - oxirgi.vaqt < YANGI_MS) return oxirgi;
-  if (!API() || !KEY()) return oxirgi;
-  try {
-    const r = await fetch(`${API()}/bazamiz`, {
-      headers: { Authorization: `Bearer ${KEY()}` },
-      cache: 'no-store',
-    });
-    if (!r.ok) return oxirgi;
-    const d = (await r.json()) as { olchov_yoq?: boolean; bazamiz?: Bazamiz };
-    if (d.olchov_yoq || !d.bazamiz) return oxirgi;
-    oxirgi = { qiymat: d.bazamiz, vaqt: hozir };
-    return oxirgi;
-  } catch {
-    // Uch javob bermasa sahifa baribir chiqadi. Sotuv sahifasini
-    // kuzatuv nosozligi yiqitmasligi kerak — lekin u yolgʻon ham
-    // aytmasligi kerak, shuning uchun eski qiymat YOSHI bilan
-    // qaytadi.
-    return oxirgi;
-  }
-}
 
 export async function GET(): Promise<Response> {
   if (sahifa === null) {
