@@ -383,7 +383,7 @@ interface TovarQatori {
     narxSom: number | null; soldUnits30d: number | null;
     sotuvManbasi: 'olchandi' | 'taxmin' | null; olchanganKun: number | null;
     categoryMedianUnits30d?: number | null; reyting?: number | null; sharhSoni?: number | null;
-    /** Skreyper hali rasm olmaydi — maydon kelajak uchun, bo'sh bo'lsa harf turadi. */
+    /** `so_tovar_royxati.rasmUrl` (0054) — kalit oʻlchangan tovarda; boʻlmasa harf turadi. */
     rasmUrl?: string | null;
   };
   miqdor: { dona: number; hisob: string } | null;
@@ -455,7 +455,8 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
  * RAQAMLAR API DAN. Ulush FAQAT shu ro'yxat ichida hisoblanadi va
  * shunday yoziladi ("ro'yxatdagi ulush"): butun turkumga nisbatan
  * emas, chunki ro'yxat turkumning o'lchangan qismi, hammasi emas.
- * Rasm: skreyper hali olmaydi — o'rnida nomning bosh harfi.
+ * Rasm: `rasmUrl` kelsa rasm (0054, faqat ogʻir soʻrovda oʻlchangan
+ * tovarlarda), kelmasa nomning bosh harfi — chiziqcha oʻrnida.
  */
 function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
   royxat: TovarQatori[];
@@ -488,7 +489,9 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
             >
               {bor && <span className={u.katalogTanlov} aria-hidden="true">✓</span>}
               <div className={u.katalogRasm} aria-hidden="true">
-                <span>{n.title.trim().charAt(0).toUpperCase() || '·'}</span>
+                {n.rasmUrl
+                  ? <img src={n.rasmUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  : <span>{n.title.trim().charAt(0).toUpperCase() || '·'}</span>}
               </div>
               <div className={u.katalogNomi}>{n.title}</div>
               <div className={u.katalogDokon}>{n.shopName ?? '—'}</div>

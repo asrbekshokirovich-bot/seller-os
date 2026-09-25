@@ -92,6 +92,13 @@ query sellerosProductStok($id: Int!) {
       # uzunlik × kenglik × balandlik / 1 000 000 = litr.
       skuList { id availableAmount sellPrice weight
                 dimensions { length width height } }
+      # Asosiy rasm kaliti — 5-qadam (1688 rasm-qidiruvi) va katalog
+      # kartasi uchun. FAQAT OG'IR SO'ROVDA: o'lchandi 2026-09-25,
+      # 12 rasmli tovarda `photos { key }` javobni 93 → 476 baytga
+      # oshiradi; yengil so'rov 2,7 mln id aylanadi va u yerda bu
+      # ~1 GB bo'lardi. Manzil kalitdan yasaladi (bazada saqlanmaydi):
+      # https://images.uzum.uz/<key>/t_product_540_high.jpg
+      photos { key }
     }
   }
 }
@@ -168,6 +175,11 @@ class Kuzatuv:
     oversized: bool | None = None
     """Hajm, millilitrda. Uzum logistika yig'imi shunga bog'liq."""
     volume_ml: int | None = None
+    """Asosiy rasm kaliti (`photos[0].key`). Faqat og'ir so'rovda keladi.
+
+    `None` = o'lchanmagan (yengil so'rov), "rasm yo'q" degani EMAS.
+    """
+    image_key: str | None = None
 
 
 def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
@@ -208,6 +220,7 @@ def parse(node: dict[str, Any] | None) -> Kuzatuv | None:
         weight_g=_ogirlik(product.get("skuList")),
         oversized=_bool(product.get("oversized")),
         volume_ml=_hajm(product.get("skuList")),
+        image_key=_rasm_kaliti(product.get("photos")),
     )
 
 
@@ -237,6 +250,20 @@ def _dokon_reytingi(shop: dict[str, Any]) -> float | None:
     if sharh is not None and sharh <= 0:
         return None
     return reyting
+
+
+def _rasm_kaliti(photos: list[dict[str, Any]] | None) -> str | None:
+    """Birinchi rasmning kaliti. Kelmasa yoki bo'sh bo'lsa `None`.
+
+    Birinchi rasm — Uzumda asosiy rasm (sahifada birinchi ko'rinadigani).
+    Bo'sh kalit bo'sh matn sifatida EMAS, `None` sifatida qaytadi:
+    undan yasalgan manzil yolg'on bo'lardi.
+    """
+    for photo in photos or []:
+        kalit = (photo or {}).get("key")
+        if isinstance(kalit, str) and kalit.strip():
+            return kalit.strip()
+    return None
 
 
 def _qoldiq(sku_list: list[dict[str, Any]] | None) -> int | None:

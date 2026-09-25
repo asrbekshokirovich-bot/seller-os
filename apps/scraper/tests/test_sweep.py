@@ -9,7 +9,9 @@ import httpx
 import pytest
 
 from selleros_scraper.hurmat import Limits
-from selleros_scraper.sweep import Hisobot, sweep
+from selleros_scraper.manbalar.uzum import parse
+from selleros_scraper.manbalar.uzum_client import Javob, Natija
+from selleros_scraper.sweep import Hisobot, _qatorga, sweep
 from selleros_scraper.token import TokenProvider
 
 
@@ -138,3 +140,17 @@ def test_kill_switch_da_uxlanmaydi():
     assert h.toxtadi is not None
     # Oxirgi qadam to'xtash bo'lgani uchun uyqu so'rovdan bitta kam.
     assert len(kutilgan) < h.sorovlar
+
+
+def test_qatorga_rasm_kalitini_tashlab_ketmaydi():
+    """`weight_g` darsi (2026-08-25): uzum.py ajratib olgan maydon shu
+    yerda tashlab ketilsa, ustun bazada bo'sh turaveradi va buni hech
+    narsa ko'rsatmaydi. Har yangi maydon uchun shu test."""
+    javob = javob_ok(7)["data"]["productPage"]
+    javob["product"]["photos"] = [{"key": "crt4mqc0u44g6jopp250"}]
+    k = parse(javob)
+    assert k is not None and k.image_key == "crt4mqc0u44g6jopp250"
+    qator = _qatorga(Javob(natija=Natija.TOPILDI, kuzatuv=k))
+    assert qator["image_key"] == "crt4mqc0u44g6jopp250"
+    # Yengil so'rov: kalit yo'q — `None`, bo'sh matn emas.
+    assert _qatorga(Javob(natija=Natija.TOPILDI, kuzatuv=parse(javob_ok(8)["data"]["productPage"])))["image_key"] is None

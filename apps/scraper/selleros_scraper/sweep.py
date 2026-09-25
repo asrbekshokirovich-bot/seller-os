@@ -209,5 +209,9 @@ def _qatorga(javob: Javob) -> dict:
         # Hajm — Uzum logistika yig'imi uchun. `dimensions` faqat
         # og'ir so'rovda (`--stok`) keladi.
         "volume_ml": k.volume_ml,
+        # Asosiy rasm kaliti — og'ir so'rovda (`--stok`) keladi. Ustun
+        # 0054 dan. `weight_g` darsi: ustun bor, ajratuvchi bor, lekin
+        # shu qatorga tushmasa baza bo'sh qoladi — test buni ushlaydi.
+        "image_key": k.image_key,
         "observed_at": _hozir(),
     }

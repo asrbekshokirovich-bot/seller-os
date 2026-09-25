@@ -162,6 +162,35 @@ def test_skulist_soralmaydi():
     assert "skuList" not in PRODUCT_QUERY
 
 
+# ------------------------------------------------- rasm kaliti
+
+
+def test_photos_faqat_ogir_sorovda():
+    """O'lchandi 2026-09-25: 12 rasm javobni 93 → 476 baytga oshiradi.
+
+    Yengil so'rov 2,7 mln id aylanadi — u yerda bu ~1 GB. Rasm faqat
+    kuzatilayotgan tovarlar uchun (og'ir so'rov) kerak.
+    """
+    assert "photos { key }" in PRODUCT_QUERY_STOK
+    assert "photos" not in PRODUCT_QUERY
+
+
+def test_rasm_kaliti_birinchi_rasmdan():
+    """Birinchi rasm — asosiy rasm. Shakl serverdan o'lchangan (2026-09-25)."""
+    javob = {"product": dict(JAVOB["product"], photos=[
+        {"key": "crt4mqc0u44g6jopp250"}, {"key": "crt4mqji153t30ungu6g"},
+    ])}
+    assert parse(javob).image_key == "crt4mqc0u44g6jopp250"
+
+
+def test_rasm_kelmasa_none_bosh_matn_emas():
+    """`None` = o'lchanmagan. Bo'sh kalit ham `None`: undan yasalgan manzil yolg'on."""
+    assert parse(JAVOB).image_key is None
+    assert parse({"product": dict(JAVOB["product"], photos=[])}).image_key is None
+    assert parse({"product": dict(JAVOB["product"], photos=[{"key": ""}, None, {}])}).image_key is None
+    assert parse({"product": dict(JAVOB["product"], photos=[{"key": "  "}, {"key": "b2"}])}).image_key == "b2"
+
+
 # ------------------------------------------------- og'irlik: mediana
 
 
