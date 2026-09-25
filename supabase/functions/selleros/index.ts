@@ -36,8 +36,10 @@ import {
   kpilar,
   demping,
   tannarxHisobi,
-  limitTekshir,
+  rasmManzili,
+  xitoyLimitHolati,
   xitoyQidir,
+  XITOY_LIMIT,
   xatoniYubor,
   profilOqi,
   qadamOchiq,
@@ -47,6 +49,7 @@ import {
   yonalishlar,
   type KpiXom,
   type TannarxKirishi,
+  type XitoyLimitJavobi,
   type XitoyTovar,
   type NomzodJavobi,
   type ObunaXom,
@@ -514,8 +517,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   // Qidiruv RASM boʻyicha: kengaytma Uzum sahifasidagi tovar rasmini
   // (`images.uzum.uz/<key>/…`) yuboradi; bazada rasm hali yoʻq.
   //
-  // Oqim: sessiya → tarif darvozasi → kunlik limit → kesh → provayder
-  // → kesh yozish + kunlik sanoq.
+  // Oqim: sessiya → tarif darvozasi → kunlik limit (oʻlchov, nol emas)
+  // → kesh → BAND QILISH (atomik, 0055) → provayder → kesh yozish
+  // (yiqilsa band qaytariladi).
   if (yol === '/xitoy-qidiruv' && req.method === 'POST') {
     const token = req.headers.get('x-sessiya');
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
@@ -526,21 +530,27 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     let tana: Record<string, unknown> = {};
     try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
     const productId = Number(tana.productId);
-    const rasmUrl = typeof tana.rasmUrl === 'string' ? tana.rasmUrl : null;
+    const rasmUrl = rasmManzili(tana.rasmUrl);
+    if (typeof tana.rasmUrl === 'string' && rasmUrl === null) {
+      // Manzil provayderga BIZNING kalit bilan ketadi va kesh kaliti
+      // boʻladi — faqat http(s), 2048 belgigacha.
+      return javob({ xato: 'rasmUrl http(s):// bilan boshlanishi va 2048 belgidan oshmasligi kerak' }, 400);
+    }
 
     if (!Number.isInteger(productId) && !rasmUrl) {
       return javob({ xato: 'productId yoki rasmUrl kerak' }, 400);
     }
 
     const n = await rejaniOl(token);
-    const limitJ = await rpc<{ xato?: string; soni?: number }>(
-      'so_xitoy_limit', { p_token: token },
-    );
-    const ishlatilgan = limitJ?.soni ?? 0;
-    const limitNatija = limitTekshir(ishlatilgan, n.reja);
+    // Sanoq — OʻLCHOV. Kelmasa (baza yoʻq, sessiya notoʻgʻri) bu "nol
+    // ishlatilgan" EMAS — toʻxtaymiz. Ilgari `?? 0` edi: notoʻgʻri token
+    // bilan ham pullik provayder chaqirilardi (tekshiruv, 2026-09-25).
+    const limitH = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', { p_token: token }), n.reja);
+    if (!limitH.ok) return javob({ xato: limitH.xato }, limitH.kod);
+    const limitNatija = limitH.natija;
     if (!limitNatija.ruxsat) {
       return javob({
-        xato: 'kunlik limit tugadi',
+        xato: limitNatija.sabab === 'umumiy' ? 'umumiy kunlik limit tugadi' : 'kunlik limit tugadi',
         ...limitNatija,
         reja: n.reja,
       }, 429);
@@ -588,10 +598,28 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       });
     }
 
+    // BAND QILISH — provayderdan OLDIN, bazada atomik (0055). Poyga: bir
+    // vaqtda kelgan soʻrovlardan faqat limit ichidagisi oʻtadi. Ilgari
+    // sanoq oldin oʻqilib keyin oshirilar edi — 10 parallel soʻrov
+    // hammasi "0" ni koʻrardi.
+    const band = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', {
+      p_token: token, p_oshir: true, p_limit: limitNatija.limit, p_umumiy_limit: XITOY_LIMIT.jamiKunlik,
+    }), n.reja);
+    if (!band.ok) return javob({ xato: band.xato }, band.kod);
+    if (!band.ruxsat) {
+      return javob({
+        xato: band.natija.umumiy !== null && band.natija.umumiy.ishlatilgan >= band.natija.umumiy.limit
+          ? 'umumiy kunlik limit tugadi' : 'kunlik limit tugadi',
+        ...band.natija,
+        reja: n.reja,
+      }, 429);
+    }
+
     const q = await xitoyQidir({ kalit: provayderKaliti, fetch }, { rasmUrl });
     if (q.xato !== null) {
-      // Qidiruv BOʻLMADI: limit sanalmaydi, kesh yozilmaydi, sabab
+      // Qidiruv BOʻLMADI: band qaytariladi, kesh yozilmaydi, sabab
       // aytiladi. 502 — nosozlik provayderda, foydalanuvchida emas.
+      await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
       return javob({
         natijalar: [],
         manba: null,
@@ -601,14 +629,12 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       }, 502);
     }
 
-    // Qidiruv BOʻLDI: kesh + kunlik sanoq. Boʻsh natija ham keshlanadi —
-    // u javob, va uni 72 soat ichida qayta sotib olish shart emas.
-    // Sanoq ILGARI hech qachon oshirilmasdi (`p_oshir` chaqirilmagan),
-    // yaʼni limit qogʻozda edi.
+    // Qidiruv BOʻLDI: kesh. Boʻsh natija ham keshlanadi — u javob, va
+    // uni 72 soat ichida qayta sotib olish shart emas. (Oʻqilmagan
+    // elementlar bu yerga yetmaydi — `xitoyQidir` ularni xato qiladi.)
     await rpc('so_xitoy_kesh_yoz', {
       p_rasm_hash: rasmHash, p_natijalar: q.natijalar, p_manba: q.manba ?? '1688',
     });
-    const sanoq = await rpc<{ soni?: number }>('so_xitoy_limit', { p_token: token, p_oshir: true });
     return javob({
       natijalar: q.natijalar,
       manba: q.manba,
@@ -616,8 +642,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       jami: q.jami,
       tashlandi: q.tashlandi,
       vaqtMs: q.vaqtMs,
-      limit: limitTekshir(sanoq?.soni ?? ishlatilgan + 1, n.reja),
+      limit: band.natija,
       ...(q.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
+      ...(q.tashlandi > 0 ? { izoh_tashlandi: `${q.tashlandi} ta element oʻqilmadi va koʻrsatilmadi.` } : {}),
     });
   }
 

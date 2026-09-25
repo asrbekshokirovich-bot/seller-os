@@ -91,7 +91,8 @@ interface Natija {
   title: string;
   narxYuan: number;
   rasmUrl: string;
-  moq: number;
+  /** `null` — provayder bermadi; chiziqcha, nol emas. */
+  moq: number | null;
   /** 2026-09-25 dan provayder beradi; eski keshda boʻlmasligi mumkin. */
   manzil?: string | null;
   sotilgan?: number | null;
@@ -141,7 +142,7 @@ function natijalarniKorsat(natijalar: Natija[]): void {
       nom.textContent = n.title;
     }
     matn.appendChild(nom);
-    const qismlar = [`¥${n.narxYuan}`, `MOQ: ${n.moq}`];
+    const qismlar = [`¥${n.narxYuan}`, typeof n.moq === 'number' ? `MOQ: ${n.moq}` : 'MOQ: —'];
     if (typeof n.sotilgan === 'number') qismlar.push(`sotilgan: ${n.sotilgan}`);
     if (n.zavod === true) qismlar.push('zavod');
     if (typeof n.reyting === 'number') qismlar.push(`★ ${n.reyting}`);

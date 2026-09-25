@@ -35,8 +35,10 @@ import {
   TARIF_NARXI,
   tarifNarxi,
   type DavrTuri,
-  limitTekshir,
+  rasmManzili,
+  xitoyLimitHolati,
   xitoyQidir,
+  XITOY_LIMIT,
   moqHisobi,
   kartochkaLimitTekshir,
   xizmatNarxi,
@@ -51,6 +53,7 @@ import {
   type TovarNomzodi,
   type TovarToliq,
   type TurkumHolati,
+  type XitoyLimitJavobi,
   type XitoyTovar,
 } from '@selleros/shared';
 
@@ -916,22 +919,23 @@ export function build(): FastifyInstance {
 
     const tana = (request.body ?? {}) as Record<string, unknown>;
     const productId = Number(tana.productId);
-    const rasmUrl = typeof tana.rasmUrl === 'string' ? tana.rasmUrl : null;
+    const rasmUrl = rasmManzili(tana.rasmUrl);
+    if (typeof tana.rasmUrl === 'string' && rasmUrl === null) {
+      return javob.code(400).send({ xato: 'rasmUrl http(s):// bilan boshlanishi va 2048 belgidan oshmasligi kerak' });
+    }
 
     if (!Number.isInteger(productId) && !rasmUrl) {
       return javob.code(400).send({ xato: 'productId yoki rasmUrl kerak' });
     }
 
-    // Kunlik limit tekshirish
+    // Kunlik limit — OʻLCHOV; kelmasa toʻxtaymiz (Edge bilan bir xil).
     const n = await rejaniOl(token);
-    const limitJ = await rpc<{ xato?: string; soni?: number }>(
-      'so_xitoy_limit', { p_token: token },
-    );
-    const ishlatilgan = limitJ?.soni ?? 0;
-    const limitNatija = limitTekshir(ishlatilgan, n.reja);
+    const limitH = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', { p_token: token }), n.reja);
+    if (!limitH.ok) return javob.code(limitH.kod).send({ xato: limitH.xato });
+    const limitNatija = limitH.natija;
     if (!limitNatija.ruxsat) {
       return javob.code(429).send({
-        xato: 'kunlik limit tugadi',
+        xato: limitNatija.sabab === 'umumiy' ? 'umumiy kunlik limit tugadi' : 'kunlik limit tugadi',
         ...limitNatija,
         reja: n.reja,
       });
@@ -972,8 +976,23 @@ export function build(): FastifyInstance {
       };
     }
 
+    // Band qilish — provayderdan OLDIN, atomik (0055).
+    const band = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', {
+      p_token: token, p_oshir: true, p_limit: limitNatija.limit, p_umumiy_limit: XITOY_LIMIT.jamiKunlik,
+    }), n.reja);
+    if (!band.ok) return javob.code(band.kod).send({ xato: band.xato });
+    if (!band.ruxsat) {
+      return javob.code(429).send({
+        xato: band.natija.umumiy !== null && band.natija.umumiy.ishlatilgan >= band.natija.umumiy.limit
+          ? 'umumiy kunlik limit tugadi' : 'kunlik limit tugadi',
+        ...band.natija,
+        reja: n.reja,
+      });
+    }
+
     const q = await xitoyQidir({ kalit: provayderKaliti, fetch }, { rasmUrl });
     if (q.xato !== null) {
+      await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
       return javob.code(502).send({
         natijalar: [],
         manba: null,
@@ -986,7 +1005,6 @@ export function build(): FastifyInstance {
     await rpc('so_xitoy_kesh_yoz', {
       p_rasm_hash: rasmHash, p_natijalar: q.natijalar, p_manba: q.manba ?? '1688',
     });
-    const sanoq = await rpc<{ soni?: number }>('so_xitoy_limit', { p_token: token, p_oshir: true });
     return {
       natijalar: q.natijalar,
       manba: q.manba,
@@ -994,8 +1012,9 @@ export function build(): FastifyInstance {
       jami: q.jami,
       tashlandi: q.tashlandi,
       vaqtMs: q.vaqtMs,
-      limit: limitTekshir(sanoq?.soni ?? ishlatilgan + 1, n.reja),
+      limit: band.natija,
       ...(q.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
+      ...(q.tashlandi > 0 ? { izoh_tashlandi: `${q.tashlandi} ta element oʻqilmadi va koʻrsatilmadi.` } : {}),
     };
   });
 

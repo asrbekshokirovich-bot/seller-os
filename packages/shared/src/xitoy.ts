@@ -39,8 +39,8 @@ export interface XitoyTovar {
   narxYuan: number;
   /** Rasm URL (`img`, alicdn). */
   rasmUrl: string;
-  /** Minimal buyurtma miqdori (`moq`). */
-  moq: number;
+  /** Minimal buyurtma miqdori (`moq`). `null` — provayder bermadi (nol EMAS). */
+  moq: number | null;
   /** Sotuvchi reytingi 0–5 (`shop_info.score_info.composite_score`). `null` — yoʻq. */
   reyting: number | null;
   /** Provayder nomi. */
@@ -162,8 +162,28 @@ function mantiq(x: unknown): boolean | null {
 function httpManzil(x: unknown): string | null {
   const m = matn(x);
   if (m === null) return null;
+  // Protokolsiz manzil (`//cbu01.alicdn.com/…`) — CDN larda odatiy;
+  // https bilan toʻldiriladi, tashlanmaydi.
+  const toliq = m.startsWith('//') ? `https:${m}` : m;
   try {
-    const u = new URL(m);
+    const u = new URL(toliq);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Tashqaridan kelgan rasm manzili (kengaytma, obunachi): faqat http(s),
+ * 2048 belgigacha. U provayderga BIZNING kalit bilan ketadi va kesh
+ * kaliti boʻladi — shuning uchun elak shu yerda, bitta joyda.
+ */
+export function rasmManzili(x: unknown): string | null {
+  if (typeof x !== 'string') return null;
+  const t = x.trim();
+  if (t.length === 0 || t.length > 2048) return null;
+  try {
+    const u = new URL(t);
     return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
   } catch {
     return null;
@@ -202,9 +222,9 @@ export function tmapiTovarniOqi(xom: unknown): XitoyTovar | null {
     title,
     narxYuan,
     rasmUrl,
-    // MOQ yoʻq boʻlsa 1 EMAS — hujjatda `moq` doim bor; boʻlmasa bu
-    // "bilmayman" va bu yerda 1 deb yozish yolgʻon boʻlardi.
-    moq: son(t.moq) ?? 0,
+    // MOQ yoʻq boʻlsa `null` — 0 ham, 1 ham emas: ikkalasi "bilmayman"
+    // oʻrniga son qoʻygan boʻlardi (QOIDALAR §4: chiziqcha, nol emas).
+    moq: son(t.moq),
     reyting: son(obyekt(dokon.score_info).composite_score) ?? son(t.rating_star),
     manba: '1688',
     manzil: httpManzil(t.product_url),
@@ -344,6 +364,16 @@ export async function xitoyQidir(p: XitoyProvayder, k: XitoyQidiruvKirishi): Pro
   if (!r.ok) return tayyor({ ogirilganRasm, xato: r.sabab });
   const n = tmapiJavobiniOqi(r.json);
   if (!n.ok) return tayyor({ ogirilganRasm, xato: n.sabab });
+  // Provayder element BERDI, lekin birortasi oʻqilmadi — bu "1688 da
+  // yoʻq" degan JAVOB emas, javob SHAKLI kutilganidan farq qildi.
+  // Tekshiruv (2026-09-25): usiz boʻsh roʻyxat "topilmadi" boʻlib 72
+  // soat keshga tushar va limitdan yechilar edi.
+  if (n.natijalar.length === 0 && n.tashlandi > 0) {
+    return tayyor({
+      ogirilganRasm, jami: n.jami, tashlandi: n.tashlandi,
+      xato: `provayder ${n.tashlandi} ta element berdi, birortasi oʻqilmadi (id, nom, narx yoki rasm manzili yoʻq/notoʻgʻri) — javob shakli oʻzgargan boʻlishi mumkin`,
+    });
+  }
   return tayyor({ natijalar: n.natijalar, manba: '1688', jami: n.jami, tashlandi: n.tashlandi, ogirilganRasm });
 }
 
@@ -359,6 +389,13 @@ export const XITOY_LIMIT = {
   biznesKunlik: 100,
   /** Kesh muddati (soat). Bir xil rasm uchun qayta soʻrov yuborilmaydi. */
   keshSoat: 72,
+  /**
+   * UMUMIY kunlik shift — hamma foydalanuvchi yigʻindisi. Sessiyalar
+   * anonim va cheksiz ochiladi (BACKLOG), yaʼni shaxsiy limitning oʻzi
+   * xarajatni cheklamaydi. Bu son operator tanlovi: kuniga 200 ta
+   * pullik soʻrov = Pro rejada (30 000/oy) 3% dan kam.
+   */
+  jamiKunlik: 200,
 } as const;
 
 /**
@@ -408,19 +445,70 @@ export function moqHisobi(
   };
 }
 
-/** Kunlik limitga yetganmi tekshiradi. */
+export interface LimitNatijasi {
+  ruxsat: boolean;
+  qolgan: number;
+  limit: number;
+  /** Nega yopiq: shaxsiy (reja) yoki umumiy (kunlik shift). Ochiq boʻlsa `null`. */
+  sabab: 'shaxsiy' | 'umumiy' | null;
+  /** Bugungi umumiy sanoq va shift. `null` — oʻlchanmagan (0055 qoʻllanmagan). */
+  umumiy: { ishlatilgan: number; limit: number } | null;
+}
+
+/**
+ * Kunlik limitga yetganmi. `jami` — bugun HAMMA foydalanuvchi yigʻindisi
+ * (0055 dan keladi); `null` boʻlsa umumiy shift tekshirilmaydi va bu
+ * `umumiy: null` bilan koʻrinib turadi.
+ */
 export function limitTekshir(
   ishlatilgan: number,
   reja: 'bepul' | 'pro' | 'biznes',
-): { ruxsat: boolean; qolgan: number; limit: number } {
+  jami: number | null = null,
+): LimitNatijasi {
   const limit = reja === 'biznes'
     ? XITOY_LIMIT.biznesKunlik
     : reja === 'pro'
       ? XITOY_LIMIT.proKunlik
       : XITOY_LIMIT.bepulKunlik;
+  const shaxsiy = ishlatilgan < limit;
+  const umumiyOchiq = jami === null || jami < XITOY_LIMIT.jamiKunlik;
   return {
-    ruxsat: ishlatilgan < limit,
+    ruxsat: shaxsiy && umumiyOchiq,
     qolgan: Math.max(0, limit - ishlatilgan),
     limit,
+    sabab: !shaxsiy ? 'shaxsiy' : !umumiyOchiq ? 'umumiy' : null,
+    umumiy: jami === null ? null : { ishlatilgan: jami, limit: XITOY_LIMIT.jamiKunlik },
+  };
+}
+
+/** `so_xitoy_limit` javobi (0046 → 0055). `ruxsat` faqat band qilishda keladi. */
+export interface XitoyLimitJavobi {
+  xato?: string;
+  soni?: number;
+  jami?: number;
+  ruxsat?: boolean;
+}
+
+export type XitoyLimitHolati =
+  | { ok: true; ishlatilgan: number; jami: number | null; ruxsat: boolean; natija: LimitNatijasi }
+  | { ok: false; xato: string; kod: 401 | 503 };
+
+/**
+ * Sanoq javobini OʻLCHOV sifatida oʻqiydi. Kelmasa yoki xato boʻlsa —
+ * "bilmayman", nol emas: chaqiruvchi toʻxtaydi. Tekshiruv (2026-09-25):
+ * ilgari `soni ?? 0` notoʻgʻri token bilan ham pullik provayderni
+ * chaqirtirardi.
+ */
+export function xitoyLimitHolati(j: XitoyLimitJavobi | null, reja: 'bepul' | 'pro' | 'biznes'): XitoyLimitHolati {
+  if (j === null) return { ok: false, xato: 'baza javob bermadi — limit oʻlchanmadi', kod: 503 };
+  if (j.xato) return { ok: false, xato: j.xato, kod: 401 };
+  if (typeof j.soni !== 'number' || !Number.isFinite(j.soni)) {
+    return { ok: false, xato: 'limit oʻlchanmadi — sanoq kelmadi', kod: 503 };
+  }
+  const jami = typeof j.jami === 'number' && Number.isFinite(j.jami) ? j.jami : null;
+  return {
+    ok: true, ishlatilgan: j.soni, jami,
+    ruxsat: j.ruxsat !== false,
+    natija: limitTekshir(j.soni, reja, jami),
   };
 }

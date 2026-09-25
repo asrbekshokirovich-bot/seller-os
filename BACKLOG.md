@@ -81,6 +81,15 @@ image/webp); `photos { key }` yengil javobga ~+30 B/rasm qoʻshadi
 `rasmUrl`. UI `rasmUrl` kelsa oʻzi koʻrsatadi. Kengaytma hozircha
 rasmni sahifadan oladi (`content.ts`, `rasmUrlOl`).
 
+— [agent, 2026-09-25] **Anonim sessiya = cheksiz limit.** `POST /sessiya`
+har chaqiruvda yangi foydalanuvchi ochadi (cheklovsiz), `so_xitoy_limit`
+esa foydalanuvchi boshiga sanaydi — provayder pullik boʻlgach bu xarajat
+teshigi. Vaqtinchalik shift: `0055` umumiy kunlik limit
+(`XITOY_LIMIT.jamiKunlik = 200`, operator tanlovi). Haqiqiy yechim —
+autentifikatsiya (telefon/Telegram) yoki `/sessiya` ga IP boʻyicha
+sekinlashtirish — nazoratchi qarori. `/kartochka` uchidagi
+`limitJ?.soni ?? 0` ham shu naqsh (nomaʼlum = nol), alohida tuzatiladi.
+
 — [agent, 2026-09-25] **TMAPI jonli javobi oʻlchanmagan.**
 `apps/backend/test/fixtures/tmapi-1688-rasm.json` — hujjat namunasi.
 Birinchi haqiqiy qidiruv (`selleros.xitoy_kesh`) bilan almashtirish

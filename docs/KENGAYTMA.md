@@ -76,13 +76,19 @@ Uch endi uch xil javob beradi va ular ATAYLAB farqlanadi:
 |---|---|
 | Qidiruv boʻldi, topildi | `natijalar: [...]`, `jami`, `limit` |
 | Qidiruv boʻldi, 0 ta | `natijalar: []`, `izoh: "1688 bu rasmga oʻxshash tovar bermadi."` |
-| Qidiruv BOʻLMADI (provayder xatosi, balans, tarmoq) | HTTP 502, `xato: "provayder: …"`; limit sanalmaydi |
+| Qidiruv BOʻLMADI (provayder xatosi, balans, tarmoq, javob shakli buzuq) | HTTP 502, `xato: "provayder: …"`; band qilingan limit qaytariladi |
 | Rasm kelmadi | `izoh: "Tovar rasmi kelmadi …"` |
+| Sessiya notoʻgʻri / baza javob bermadi | 401 / 503 — sanoq OʻLCHANMADI, nol deb olinmaydi |
+| Kunlik limit (shaxsiy yoki umumiy `XITOY_LIMIT.jamiKunlik`) | 429, `sabab` bilan |
 
-Kunlik sanoq (`so_xitoy_limit`, `p_oshir`) ILGARI hech qachon
-oshirilmasdi — limit qogʻozda edi. Endi faqat BOʻLGAN qidiruv
-sanaladi. Kesh (`so_xitoy_kesh_yoz`) ham shu yerda yoziladi; boʻsh
-natija ham keshlanadi — u javob.
+Kunlik sanoq (`so_xitoy_limit`) ILGARI hech qachon oshirilmasdi —
+limit qogʻozda edi. Endi (0055) u provayderdan OLDIN atomik band
+qilinadi (poyga yoʻq), provayder yiqilsa qaytariladi, va UMUMIY
+kunlik shift bor — sessiyalar anonim va cheksiz ochilgani uchun
+shaxsiy limitning oʻzi xarajatni cheklamaydi (BACKLOG). Kesh
+(`so_xitoy_kesh_yoz`) ham shu yerda yoziladi; boʻsh natija ham
+keshlanadi — u javob. Provayder element berib, birortasi oʻqilmasa —
+bu xato (502), kesh yozilmaydi.
 
 Jonli javob hali oʻlchanmagan: fikstura
 `apps/backend/test/fixtures/tmapi-1688-rasm.json` hujjat namunasi.

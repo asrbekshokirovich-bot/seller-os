@@ -17,8 +17,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  aliRasmimi, rasmOgirishSorovi, rasmQidiruvSorovi, tmapiJavobiniOqi, tmapiOgirishniOqi,
-  tmapiTovarniOqi, xitoyQidir, TMAPI_MANZIL, XITOY_SAHIFA_MAX,
+  aliRasmimi, limitTekshir, rasmManzili, rasmOgirishSorovi, rasmQidiruvSorovi, tmapiJavobiniOqi,
+  tmapiOgirishniOqi, tmapiTovarniOqi, xitoyLimitHolati, xitoyQidir, TMAPI_MANZIL, XITOY_LIMIT, XITOY_SAHIFA_MAX,
 } from '@selleros/shared';
 
 const F = JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/tmapi-1688-rasm.json'), 'utf8')) as {
@@ -97,6 +97,17 @@ describe('tmapiTovarniOqi', () => {
     expect(tmapiTovarniOqi({ ...asl, product_url: 'data:text/html,x' })!.manzil).toBeNull();
     expect(tmapiTovarniOqi({ ...asl, product_url: 'http://detail.1688.com/x.html' })!.manzil).toBe('http://detail.1688.com/x.html');
     expect(tmapiTovarniOqi({ ...asl, img: 'javascript:alert(1)' })).toBeNull();
+  });
+  it('MOQ kelmasa null — nol EMAS; protokolsiz rasm https bilan toʻldiriladi', () => {
+    const asl = F.muvaffaqiyat.data.items[0] as Record<string, unknown>;
+    const { moq: _m, ...moqsiz } = asl;
+    void _m;
+    expect(tmapiTovarniOqi(moqsiz)?.moq).toBeNull();
+    expect(tmapiTovarniOqi({ ...asl, moq: '' })?.moq).toBeNull();
+    expect(tmapiTovarniOqi({ ...asl, moq: 'abc' })?.moq).toBeNull();
+    expect(tmapiTovarniOqi({ ...asl, moq: 2 })?.moq).toBe(2);
+    const t = tmapiTovarniOqi({ ...asl, img: '//cbu01.alicdn.com/img/x.jpg' });
+    expect(t?.rasmUrl).toBe('https://cbu01.alicdn.com/img/x.jpg');
   });
   it('narxi yoʻq element oʻqilmaydi (null), boʻsh narx nolga aylanmaydi', () => {
     const asl = F.muvaffaqiyat.data.items[0] as Record<string, unknown>;
@@ -193,6 +204,17 @@ describe('xitoyQidir', () => {
     expect(n.manba).toBeNull();
     expect(n.xato).toMatch(/balans|obuna/);
   });
+  it('elementlar keldi, birortasi oʻqilmadi — XATO, "topilmadi" emas', async () => {
+    const asl = F.muvaffaqiyat.data.items[0] as Record<string, unknown>;
+    const buzuq = { code: 200, data: { total_count: 680, items: [{ ...asl, price: '', price_info: {} }, { ...asl, item_id: undefined }] } };
+    const s = soxtaFetch({ 'search/image?': buzuq });
+    const n = await xitoyQidir({ kalit: 'K', fetch: s.fetch }, { rasmUrl: ALI_RASM });
+    expect(n.natijalar).toEqual([]);
+    expect(n.manba).toBeNull();
+    expect(n.tashlandi).toBe(2);
+    expect(n.jami).toBe(680);
+    expect(n.xato).toMatch(/2 ta element berdi, birortasi oʻqilmadi/);
+  });
   it('0 ta natija — JAVOB: xato null, jami 0', async () => {
     const s = soxtaFetch({ 'search/image?': { code: 200, msg: 'success', data: { total_count: 0, items: [] } } });
     const n = await xitoyQidir({ kalit: 'K', fetch: s.fetch }, { rasmUrl: ALI_RASM });
@@ -211,5 +233,34 @@ describe('xitoyQidir', () => {
     expect((await xitoyQidir({ kalit: '', fetch: s.fetch }, { rasmUrl: ALI_RASM })).xato).toMatch(/kalit/);
     expect((await xitoyQidir({ kalit: 'K', fetch: s.fetch }, { rasmUrl: '' })).xato).toMatch(/rasm/);
     expect(s.chaqiruvlar.length).toBe(0);
+  });
+});
+
+describe('rasmManzili — tashqaridan kelgan rasm manzili', () => {
+  it('faqat http(s), 2048 gacha; boshqasi null', () => {
+    expect(rasmManzili(UZUM_RASM)).toBe(UZUM_RASM);
+    expect(rasmManzili(' ' + ALI_RASM + ' ')).toBe(ALI_RASM);
+    expect(rasmManzili('ftp://x/y.jpg')).toBeNull();
+    expect(rasmManzili('javascript:alert(1)')).toBeNull();
+    expect(rasmManzili('rasm.jpg')).toBeNull();
+    expect(rasmManzili('https://a/' + 'x'.repeat(2048))).toBeNull();
+    expect(rasmManzili(12)).toBeNull();
+    expect(rasmManzili('')).toBeNull();
+  });
+});
+
+describe('limit — oʻlchov, nol emas', () => {
+  it('limitTekshir: shaxsiy va umumiy shift, sabab bilan', () => {
+    expect(limitTekshir(0, 'bepul')).toMatchObject({ ruxsat: true, qolgan: 3, limit: 3, sabab: null, umumiy: null });
+    expect(limitTekshir(3, 'bepul')).toMatchObject({ ruxsat: false, qolgan: 0, sabab: 'shaxsiy' });
+    expect(limitTekshir(0, 'pro', XITOY_LIMIT.jamiKunlik)).toMatchObject({ ruxsat: false, sabab: 'umumiy', umumiy: { ishlatilgan: XITOY_LIMIT.jamiKunlik, limit: XITOY_LIMIT.jamiKunlik } });
+    expect(limitTekshir(1, 'pro', 5)).toMatchObject({ ruxsat: true, qolgan: 29, sabab: null, umumiy: { ishlatilgan: 5, limit: XITOY_LIMIT.jamiKunlik } });
+  });
+  it('xitoyLimitHolati: null → 503; xato → 401; sanoqsiz → 503; toʻgʻri → oʻlchov', () => {
+    expect(xitoyLimitHolati(null, 'bepul')).toMatchObject({ ok: false, kod: 503 });
+    expect(xitoyLimitHolati({ xato: 'sessiya topilmadi' }, 'bepul')).toMatchObject({ ok: false, kod: 401, xato: 'sessiya topilmadi' });
+    expect(xitoyLimitHolati({}, 'bepul')).toMatchObject({ ok: false, kod: 503 });
+    expect(xitoyLimitHolati({ soni: 2 }, 'bepul')).toMatchObject({ ok: true, ishlatilgan: 2, jami: null, ruxsat: true, natija: { ruxsat: true, qolgan: 1 } });
+    expect(xitoyLimitHolati({ soni: 3, jami: 10, ruxsat: false }, 'bepul')).toMatchObject({ ok: true, ruxsat: false, jami: 10 });
   });
 });
