@@ -68,7 +68,14 @@ Sotuvchi. `(platform, external_id)`, `name`, `rating`, `feedback_quantity`,
 ### `product`
 Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,
 `category_id`, `brand` (**1-tuzoq uchun majburiy**), `weight_g`,
-`volume_ml`, `oversized`, `first_seen_at` (**8-tuzoq: tovar yoshi**).
+`volume_ml`, `oversized`, `first_seen_at` (**8-tuzoq: tovar yoshi**),
+`image_key` (0054).
+
+> `image_key` — Uzum `Product.photos[0].key`. Manzil kalitdan yasaladi:
+> `https://images.uzum.uz/<key>/t_product_540_high.jpg` (o'lchandi
+> 2026-09-25, HEAD 200 image/webp). Faqat og'ir so'rovda keladi;
+> `null` = o'lchanmagan, "rasm yo'q" emas. 5-qadam (1688 rasm-qidiruvi)
+> va katalog kartasi shundan.
 
 > `volume_ml` — `Sku.dimensions` medianasidan (mm → ml).
 >

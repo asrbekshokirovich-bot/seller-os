@@ -75,11 +75,12 @@ soʻramaydi. (1) OʻLCHANDI (Hetzner serveridan, zumsavdo mijozi bilan,
 `link(trans: PRODUCT_540){high,low}`; manzil
 `https://images.uzum.uz/<key>/t_product_540_high.jpg` (HEAD 200,
 image/webp); `photos { key }` yengil javobga ~+30 B/rasm qoʻshadi
-(12 rasm: 93 → 476 B). Qolgani: (2) `product.image_key` migratsiyasi;
-(3) skreyper `parse()` va `so_ingest_batch` — faqat ogʻir soʻrovda
-(`--stok`, kuzatilayotgan tovarlar); (4) `so_tovar_royxati` da
-`rasmUrl`. UI `rasmUrl` kelsa oʻzi koʻrsatadi. Kengaytma hozircha
-rasmni sahifadan oladi (`content.ts`, `rasmUrlOl`).
+(12 rasm: 93 → 476 B). (2)–(4) YOZILDI (`0054`, skreyper `photos { key }`
+faqat ogʻir soʻrovda, `so_tovar_royxati.rasmUrl`, katalog `<img>`).
+QOLGANI: `0054` ni bazaga qoʻllash (deploy migratsiya qoʻllamaydi —
+yuqoridagi band) va keyingi `--kuzatuv --stok` supurishini kutish;
+ungacha `rasmUrl` hamma tovarda `null` va katalogda harf turadi.
+Kengaytma rasmni sahifadan oladi (`content.ts`, `rasmUrlOl`).
 
 — [agent, 2026-09-25] **Anonim sessiya = cheksiz limit.** `POST /sessiya`
 har chaqiruvda yangi foydalanuvchi ochadi (cheklovsiz), `so_xitoy_limit`
