@@ -27,7 +27,8 @@
  *   5. Telefonda yon panel butun ekranni egallardi — endi ☰ ortida.
  *
  * TANISHUV — UCH SAVOL (nazoratchi qarori, 2026-09-24). Qolgan
- * toʻqqiztasi «Profilim» panelida. Uchtasi tasodifiy emas: ball
+ * toʻqqiztasi webda soʻralmaydi (2026-09-25): «Profilim» da savol
+ * yoʻq, u hisob, obuna va sozlamalar uchun. Uchtasi tasodifiy emas: ball
  * hisobi profildan faqat byudjet va soha javoblarini oʻqiydi
  * (`qadamlar.ts`, `sohalar()`), yaʼni aynan shular tavsiyani
  * oʻzgartiradi. Savol matni va variantlari `@selleros/shared` da
@@ -47,7 +48,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  aylanmaKun, SAVOLLAR, TRAP_LABEL, type Savol, type TrapKind,
+  aylanmaKun, REJA_QADAMI, SAVOLLAR, TARIF_NARXI, TRAP_LABEL,
+  type Reja, type Savol, type TrapKind,
 } from '@selleros/shared';
 import { son as bosliqliSon, yosh } from '@/lib/bazamiz';
 import u from './usta.module.css';
@@ -134,12 +136,6 @@ const SUHBAT_SAVOLLARI: readonly Savol[] = SUHBAT_MAYDONLARI
   .map((m) => SAVOLLAR.find((s) => s.maydon === m))
   .filter((s): s is Savol => s !== undefined);
 
-/** «Profilim» tartibi: avval suhbatdagi uchtasi, keyin qolganlari. */
-const PROFIL_SAVOLLARI: readonly Savol[] = [
-  ...SUHBAT_SAVOLLARI,
-  ...SAVOLLAR.filter((s) => !SUHBAT_SAVOLLARI.includes(s)),
-];
-
 /** Yoʻl — yon paneldagi olti qadam. 5 va 6 hali qurilmagan. */
 const QADAMLAR: ReadonlyArray<{ n: number; nom: string; tezOrada?: boolean }> = [
   { n: 1, nom: 'Tanishuv' },
@@ -186,7 +182,7 @@ export default function Usta() {
   /*
    * Oldingi javoblarni tiklaymiz — sessiyaga bogʻlangan (HttpOnly
    * cookie). Birorta javob bor boʻlsa suhbat savollari qayta
-   * soʻralmaydi; oʻzgartirish «Profilim» da.
+   * soʻralmaydi; oʻzgartirish — «Boshidan boshlash».
    */
   useEffect(() => {
     let bekor = false;
@@ -243,8 +239,6 @@ export default function Usta() {
 
   const savol: Savol | undefined = SUHBAT_SAVOLLARI[joriy];
   const qadam = tannarxTovari ? 4 : tanlangan ? 3 : natija ? 2 : 1;
-  const toldirilgan = PROFIL_SAVOLLARI
-    .filter((s) => javobMatni(s, javoblar[s.maydon]) !== null).length;
 
   function yoz(maydon: string, qiymat: unknown) {
     setJavoblar((eski) => ({ ...eski, [maydon]: qiymat }));
@@ -276,13 +270,7 @@ export default function Usta() {
     setEskiTiklandi(false);
   }
 
-  /**
-   * Javoblarni saqlaydi va yoʻnalishlarni soʻraydi.
-   *
-   * `profil` ochiq uzatiladi, holatdan oʻqilmaydi: «Profilim» dan
-   * saqlanganda yangi javoblar holatga hali yetib bormagan boʻladi
-   * va hisob ESKI profil bilan ketardi.
-   */
+  /** Javoblarni saqlaydi va yoʻnalishlarni soʻraydi. */
   async function yonalishlarniOl(profil: Javoblar = javoblar) {
     setYuklanmoqda(true);
     setXato(null);
@@ -334,13 +322,6 @@ export default function Usta() {
     }
   }
 
-  /** «Profilim» saqlandi. Tavsiya koʻrsatilgan boʻlsa — qayta hisoblaymiz. */
-  function profilSaqlandi(yangi: Javoblar) {
-    setJavoblar(yangi);
-    setProfilOchiq(false);
-    if (natija) void yonalishlarniOl(yangi);
-  }
-
   const yonPanel = (
     <>
       <div className={u.belgi}>
@@ -386,7 +367,7 @@ export default function Usta() {
         onClick={() => { setProfilOchiq(true); setMenyu(false); }}
       >
         <span>Profilim</span>
-        <span className={u.profilSon}>{toldirilgan}/{PROFIL_SAVOLLARI.length}</span>
+        <span className={u.profilSon}>Bepul</span>
       </button>
 
       <div className={u.bosh} />
@@ -464,14 +445,13 @@ export default function Usta() {
             </Ai>
             <Ai>
               Uch savol beraman. Hech biri majburiy emas — javob
-              bermasangiz, tizim taxmin qilmaydi. Qolgan savollar
-              &laquo;Profilim&raquo;da.
+              bermasangiz, tizim taxmin qilmaydi.
             </Ai>
 
             {eskiTiklandi && (
               <Ai>
                 Oldingi javoblaringiz tiklandi. Oʻzgartirmoqchi boʻlsangiz —
-                &laquo;Profilim&raquo;.
+                &laquo;Boshidan boshlash&raquo;.
               </Ai>
             )}
 
@@ -499,15 +479,6 @@ export default function Usta() {
 
             {natija && !yuklanmoqda && (
               <Yonalishlar natija={natija} tanla={tovarlarniOl} tanlangan={tanlangan} />
-            )}
-
-            {natija && !yuklanmoqda && !natija.olchov_yoq
-              && toldirilgan < PROFIL_SAVOLLARI.length && (
-              <ProfilEslatma
-                toldirilgan={toldirilgan}
-                jami={PROFIL_SAVOLLARI.length}
-                och={() => setProfilOchiq(true)}
-              />
             )}
 
             {tanlangan && (
@@ -566,7 +537,6 @@ export default function Usta() {
                 natija={natija}
                 band={yuklanmoqda || saqlanmoqda}
                 yonalishlarniOl={() => void yonalishlarniOl()}
-                profilniOch={() => setProfilOchiq(true)}
                 boshdan={boshdan}
                 matn={matn}
                 setMatn={setMatn}
@@ -582,10 +552,10 @@ export default function Usta() {
 
       {profilOchiq && (
         <Profilim
-          javoblar={javoblar}
-          qaytaHisoblaydi={natija !== null}
+          mavzu={mavzu}
+          mavzuniTanla={mavzuniTanla}
+          boshdan={boshdan}
           yop={() => setProfilOchiq(false)}
-          saqlandi={profilSaqlandi}
         />
       )}
     </div>
@@ -705,14 +675,14 @@ function variantNomi(s: Savol, qiymat: string): string {
   return s.variantlar?.find((v) => v.qiymat === qiymat)?.nom ?? qiymat;
 }
 
-/** `haYoq` variantlari — suhbatda ham, «Profilim» da ham bir xil. */
+/** `haYoq` variantlari. */
 const HA_YOQ = [{ qiymat: 'ha', nom: 'Ha' }, { qiymat: "yo'q", nom: 'Yoʻq' }] as const;
 
 /* ------------------------------------------------------ javob paneli */
 
 function Javoblash({
   savol, javoblar, yoz, keyingi, otkaz, tugadi, natija, band,
-  yonalishlarniOl, profilniOch, boshdan, matn, setMatn,
+  yonalishlarniOl, boshdan, matn, setMatn,
 }: {
   savol: Savol | undefined;
   javoblar: Javoblar;
@@ -723,7 +693,6 @@ function Javoblash({
   natija: Natija | null;
   band: boolean;
   yonalishlarniOl: () => void;
-  profilniOch: () => void;
   boshdan: () => void;
   matn: string;
   setMatn: (s: string) => void;
@@ -741,9 +710,6 @@ function Javoblash({
             {band ? 'Hisoblanmoqda…' : 'Yoʻnalishlarni koʻrsat'}
           </button>
         )}
-        <button type="button" className={u.chip} onClick={profilniOch} disabled={band}>
-          Profilni toʻldirish
-        </button>
         <button
           type="button"
           className={`${u.chip} ${u.chipYengil}`}
@@ -885,53 +851,32 @@ const BYUDJET_TEZKOR = [
 /* ------------------------------------------------------ profilim */
 
 /**
- * «Profilim» — hamma 12 savol bitta panelda.
+ * «Profilim» — hisob, obuna va sozlamalar. SAVOL YOʻQ.
  *
- * Suhbatda faqat uchtasi soʻraladi; qolganlari shu yerda. Javoblar
- * QORALAMADA tahrirlanadi va faqat "Saqlash" da yuboriladi: yarim
- * tahrirlangan profil bilan yoʻnalish qayta hisoblansa, roʻyxat
- * har bosishda sakrab turardi.
+ * Nazoratchi qarori (2026-09-25): tanishuv faqat suhbatdagi uch
+ * savol; «Profilim» da savol turmaydi. Javobni oʻzgartirish —
+ * «Boshidan boshlash» orqali, suhbatning oʻzida.
+ *
+ * Halollik (QOIDALAR.md, 4-boʻlim): hisob (login) va toʻlov hali
+ * ulanmagan. Shuning uchun joriy reja — `bepul`, pullik rejalar
+ * narxi bilan, lekin TUGMASIZ "tez orada" deb turadi. Bosiladigan,
+ * lekin hech narsa qilmaydigan "Obuna boʻlish" — vaʼda.
+ *
+ * Narx va qadam chegarasi shu yerda YOZILMAYDI — `@selleros/shared`
+ * dan oʻqiladi (`TARIF_NARXI`, `REJA_QADAMI`), backend bilan bitta
+ * manba.
  */
-function Profilim({ javoblar, qaytaHisoblaydi, yop, saqlandi }: {
-  javoblar: Javoblar;
-  qaytaHisoblaydi: boolean;
+function Profilim({ mavzu, mavzuniTanla, boshdan, yop }: {
+  mavzu: Mavzu;
+  mavzuniTanla: (m: Mavzu) => void;
+  boshdan: () => void;
   yop: () => void;
-  saqlandi: (j: Javoblar) => void;
 }) {
-  const [qoralama, setQoralama] = useState<Javoblar>(javoblar);
-  const [band, setBand] = useState(false);
-  const [xato, setXato] = useState<string | null>(null);
-
-  const toldirilgan = PROFIL_SAVOLLARI
-    .filter((s) => javobMatni(s, qoralama[s.maydon]) !== null).length;
-
-  function oz(maydon: string, q: unknown) {
-    setQoralama((eski) => {
-      const yangi = { ...eski };
-      if (q === undefined) delete yangi[maydon];
-      else yangi[maydon] = q;
-      return yangi;
-    });
-  }
-
-  async function saqla() {
-    setBand(true);
-    setXato(null);
-    try {
-      const r = await fetch('/api/profil', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profil: qoralama }),
-      });
-      // Saqlanmagan profil "saqlandi" deb yopilmaydi.
-      if (!r.ok) { setXato('Profil saqlanmadi — keyinroq qayta urinib koʻring.'); return; }
-      saqlandi(qoralama);
-    } catch {
-      setXato('Profil yuborilmadi — tarmoq javob bermadi.');
-    } finally {
-      setBand(false);
-    }
-  }
+  const rejalar: ReadonlyArray<{ reja: Reja; nom: string }> = [
+    { reja: 'bepul', nom: 'Bepul' },
+    { reja: 'pro', nom: 'Pro' },
+    { reja: 'biznes', nom: 'Biznes' },
+  ];
 
   return (
     <div className={u.panelFon} role="presentation" onClick={yop}>
@@ -945,148 +890,98 @@ function Profilim({ javoblar, qaytaHisoblaydi, yop, saqlandi }: {
         <header className={u.panelBosh}>
           <div>
             <h2 id="profil-sarlavha" className={u.panelSarlavha}>Profilim</h2>
-            <p className={u.panelMeta}>
-              {toldirilgan} / {PROFIL_SAVOLLARI.length} savolga javob berilgan.
-              Hech biri majburiy emas.
-            </p>
+            <p className={u.panelMeta}>Hisob, obuna va sozlamalar</p>
           </div>
           <button type="button" className={u.yopish} aria-label="Yopish" onClick={yop}>×</button>
         </header>
 
         <div className={u.panelIchi}>
-          {PROFIL_SAVOLLARI.map((s, i) => (
-            <section key={s.maydon} className={u.profilSavol}>
-              {i === 0 && <div className={u.yorliq}>Suhbatdagi savollar</div>}
-              {i === SUHBAT_SAVOLLARI.length && <div className={u.yorliq}>Qoʻshimcha</div>}
-              <h3 className={u.profilMatn}>{s.matn}</h3>
-              <p className={u.nega}>{s.nega}</p>
-              <SavolTahriri savol={s} qiymat={qoralama[s.maydon]} oz={(q) => oz(s.maydon, q)} />
-            </section>
-          ))}
+          <section className={u.profilBolim}>
+            <div className={u.yorliq}>Hisob</div>
+            <div className={u.profilQator}>
+              <div>
+                <div className={u.profilNom}>Mehmon</div>
+                <p className={u.kichikIzoh}>
+                  Javoblaringiz shu brauzerga bogʻlangan — boshqa qurilmada
+                  koʻrinmaydi.
+                </p>
+              </div>
+              <span className={`${u.teg} ${u.tegNeytral}`}>kirish tez orada</span>
+            </div>
+          </section>
+
+          <section className={u.profilBolim}>
+            <div className={u.yorliq}>Obuna</div>
+            <div className={u.rejalar}>
+              {rejalar.map((r) => {
+                const narx = TARIF_NARXI[r.reja] ?? null;
+                const joriy = r.reja === 'bepul';
+                return (
+                  <div key={r.reja} className={`${u.reja} ${joriy ? u.rejaJoriy : ''}`}>
+                    <div className={u.rejaBosh}>
+                      <span className={u.profilNom}>{r.nom}</span>
+                      {joriy
+                        ? <span className={u.teg}>joriy</span>
+                        : <span className={`${u.teg} ${u.tegNeytral}`}>tez orada</span>}
+                    </div>
+                    <div className={u.rejaNarx}>
+                      {narx === null ? '0 soʻm' : `${son(narx)} soʻm`}
+                      <span> / oy</span>
+                    </div>
+                    <p className={u.kichikIzoh}>
+                      {REJA_QADAMI[r.reja] >= QADAMLAR.length
+                        ? `Hamma ${QADAMLAR.length} qadam`
+                        : `1–${REJA_QADAMI[r.reja]}-qadam`}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            <p className={u.kichikIzoh}>
+              Toʻlov (Payme, Click) hali ulanmagan — pullik rejaga hozircha
+              oʻtib boʻlmaydi.
+            </p>
+          </section>
+
+          <section className={u.profilBolim}>
+            <div className={u.yorliq}>Sozlamalar</div>
+            <div className={u.profilQator}>
+              <span className={u.profilNom}>Mavzu</span>
+              <div className={u.mavzu} role="group" aria-label="Mavzu">
+                {(['yorug', 'tungi'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={mavzu === m ? u.mavzuFaol : ''}
+                    aria-pressed={mavzu === m}
+                    onClick={() => mavzuniTanla(m)}
+                  >
+                    {m === 'yorug' ? 'Yorugʻ' : 'Tungi'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className={u.profilQator}>
+              <span className={u.profilNom}>Til</span>
+              <span className={u.profilQiymat}>
+                Oʻzbekcha <span className={`${u.teg} ${u.tegNeytral}`}>ruscha tez orada</span>
+              </span>
+            </div>
+            <div className={u.profilQator}>
+              <div>
+                <div className={u.profilNom}>Suhbat javoblari</div>
+                <p className={u.kichikIzoh}>Byudjet, qiziqish va tajribani qaytadan berish.</p>
+              </div>
+              <button
+                type="button"
+                className={`${u.chip} ${u.chipKichik}`}
+                onClick={() => { boshdan(); yop(); }}
+              >
+                Boshidan boshlash
+              </button>
+            </div>
+          </section>
         </div>
-
-        <footer className={u.panelOxiri}>
-          {xato !== null && <p className={u.xato}>{xato}</p>}
-          <div className={u.chiplar}>
-            <button
-              type="button"
-              className={`${u.chip} ${u.chipAsosiy}`}
-              onClick={saqla}
-              disabled={band}
-            >
-              {band ? 'Saqlanmoqda…' : qaytaHisoblaydi ? 'Saqlash va qayta hisoblash' : 'Saqlash'}
-            </button>
-            <button type="button" className={`${u.chip} ${u.chipYengil}`} onClick={yop} disabled={band}>
-              Bekor qilish
-            </button>
-          </div>
-        </footer>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Bitta savolni tahrirlash. `oz(undefined)` — javob OLIB TASHLANDI,
- * nol yoki "yoʻq" emas. Tanlangan variantni qayta bosish uni
- * bekor qiladi.
- */
-function SavolTahriri({ savol, qiymat, oz }: {
-  savol: Savol;
-  qiymat: unknown;
-  oz: (q: unknown) => void;
-}) {
-  if (savol.turi === 'kop') {
-    const bel = Array.isArray(qiymat) ? (qiymat as string[]) : [];
-    return (
-      <div className={u.chiplar}>
-        {savol.variantlar?.map((v) => {
-          const bor = bel.includes(v.qiymat);
-          return (
-            <button
-              key={v.qiymat}
-              type="button"
-              className={`${u.chip} ${u.chipKichik} ${bor ? u.chipTanlangan : ''}`}
-              aria-pressed={bor}
-              onClick={() => {
-                const yangi = bor ? bel.filter((x) => x !== v.qiymat) : [...bel, v.qiymat];
-                oz(yangi.length > 0 ? yangi : undefined);
-              }}
-            >
-              {v.nom}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (savol.turi === 'bitta' || savol.turi === 'haYoq') {
-    const variantlar = savol.turi === 'haYoq' ? HA_YOQ : (savol.variantlar ?? []);
-    // Bazadan `true`/`false` kelishi mumkin — ularni variantga moslaymiz.
-    const joriy = qiymat === true ? 'ha' : qiymat === false ? "yo'q" : qiymat;
-    return (
-      <div className={u.chiplar}>
-        {variantlar.map((v) => {
-          const bor = joriy === v.qiymat;
-          return (
-            <button
-              key={v.qiymat}
-              type="button"
-              className={`${u.chip} ${u.chipKichik} ${bor ? u.chipTanlangan : ''}`}
-              aria-pressed={bor}
-              onClick={() => oz(bor ? undefined : v.qiymat)}
-            >
-              {v.nom}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  const matn = typeof qiymat === 'number' && Number.isFinite(qiymat) ? String(qiymat) : '';
-  return (
-    <div className={`${u.shisha} ${u.kiritish} ${u.kiritishKichik}`}>
-      <input
-        type="number"
-        min={0}
-        inputMode="numeric"
-        aria-label={savol.matn}
-        placeholder={savol.maydon === 'budgetUzs' ? 'Masalan 30000000 (soʻm)' : 'Masalan 10'}
-        value={matn}
-        onChange={(e) => {
-          const t = e.target.value.trim();
-          const n = Number(t);
-          // Boʻsh maydon — javob yoʻq, NOL emas.
-          oz(t === '' || !Number.isFinite(n) || n < 0 ? undefined : n);
-        }}
-      />
-      {savol.maydon === 'budgetUzs' && <span className={u.birlik}>soʻm</span>}
-    </div>
-  );
-}
-
-/**
- * Profil toʻliq emasligini AYTAMIZ — lekin nima oʻzgarishini ham.
- *
- * "Profilni toʻldiring, tavsiya aniqroq boʻladi" deyish oson, lekin
- * bugun ball profildan faqat byudjet va soha javoblarini oʻqiydi.
- * Qolganlari ballni OʻZGARTIRMAYDI va buni yashirish — va'da berib
- * bajarmaslik.
- */
-function ProfilEslatma({ toldirilgan, jami, och }: {
-  toldirilgan: number; jami: number; och: () => void;
-}) {
-  return (
-    <div className={`${u.pufak} ${u.ai}`}>
-      Profilingiz {toldirilgan} / {jami} toʻldirilgan. &laquo;Oila aʼzolaringiz
-      nima bilan shugʻullanadi?&raquo; savoli ham &laquo;Sizga moslik&raquo;
-      balliga kiradi; qolganlari keyingi qadamlar uchun.
-      <div className={u.pufakTugmalar}>
-        <button type="button" className={`${u.chip} ${u.chipKichik}`} onClick={och}>
-          Profilimni ochish
-        </button>
       </div>
     </div>
   );

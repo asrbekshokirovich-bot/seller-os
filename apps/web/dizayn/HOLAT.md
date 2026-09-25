@@ -27,6 +27,9 @@ uchun bitta.
 2. Tizimda hali yoʻq funksiyalar — **"tez orada"** deb koʻrsatiladi.
 3. Standart mavzu — **tungi**.
 4. Nom — **ZumSavdo** (dizayndagi "ZUMSavdo" emas).
+5. *(2026-09-25)* «Profilim» da **savol yoʻq** — faqat hisob, obuna
+   va sozlamalar. 1-bandning "qolgan 9 tasi «Profilim» da" qismi
+   bekor qilindi.
 
 ## Dizayndan ataylab chetga chiqilgan joylar
 
