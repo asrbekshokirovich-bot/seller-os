@@ -50,50 +50,53 @@ Kalit — Supabase ning **ommaviy** (`publishable`) kaliti. Panel ham
 shuni ishlatadi. `service_role` kengaytmaga hech qachon tushmaydi
 (QOIDALAR.md, 3-qoida).
 
-## 2026-09-25 — provayder ulandi (TMAPI)
+## 2026-09-25 — provayder ulandi (Apify)
 
-`XITOY_API_KEY` Supabase secret sifatida qoʻyildi (nazoratchi,
-`scripts/kalit-qoy.cmd` orqali — kalit chatga ham, repoga ham
-tushmaydi). Provayder — TMAPI, hujjatning Markdown eksporti
-`tmapi.top/docs/ali/search/search-items-by-image-url.md`:
+Avval TMAPI ulangan edi; nazoratchi qarori bilan **Apify** aktori
+`crawleast/1688-image-search-scraper` ga oʻtildi (kichik hajmda Apify
+bepul rejasi — $5/oy — yetadi; narx $0.005/rasm + $0.01/yurish, 0 ta
+natija pulsiz). Kalit — Apify API tokeni, Supabase secret `XITOY_API_KEY`
+(nazoratchi `scripts/kalit-qoy.cmd` orqali qoʻyadi; chatga ham, repoga
+ham tushmaydi). Aktor taʼrifi va sxemasi `packages/shared/src/xitoy.ts`
+boshida yozilgan.
+
+**Qidiruv RASM boʻyicha** va **ASINXRON** (30–90 s):
 
 ```
-GET  https://api.tmapi.top/1688/search/image?img_url=…&page_size=20&sort=default
-POST https://api.tmapi.top/1688/tools/image/convert_url   {"url": "…"}
-sarlavha: apikey: <kalit>
+content.ts → background.ts → POST /xitoy-qidiruv {productId, rasmUrl}
+                                 ← 202 {kutilmoqda, runId}
+             background.ts → POST /xitoy-qidiruv {runId, rasmUrl}   (har 5 s)
+                                 ← 202 kutilmoqda | 200 natija | 502 xato
 ```
 
-**Qidiruv RASM boʻyicha**, tovar id si boʻyicha emas. Bazada tovar
-rasmi hali yoʻq (BACKLOG: "Tovar rasmi"), shuning uchun `content.ts`
-sahifadagi birinchi `images.uzum.uz/<key>/…` rasmini olib
-`rasmUrl` sifatida yuboradi. Uzum rasmi Ali platformasiniki emas —
-uch avval `convert_url` bilan oʻgiradi, keyin qidiradi
-(`packages/shared/src/xitoy.ts`, `xitoyQidir`).
+`content.ts` sahifadagi birinchi `images.uzum.uz/<key>/…` rasmini
+`rasmUrl` sifatida yuboradi (bazada rasm boʻlmasa ham ishlaydi).
 
-Uch endi uch xil javob beradi va ular ATAYLAB farqlanadi:
+Uch javoblari ATAYLAB farqlanadi:
 
 | Holat | Javob |
 |---|---|
-| Qidiruv boʻldi, topildi | `natijalar: [...]`, `jami`, `limit` |
-| Qidiruv boʻldi, 0 ta | `natijalar: []`, `izoh: "1688 bu rasmga oʻxshash tovar bermadi."` |
-| Qidiruv BOʻLMADI (provayder xatosi, balans, tarmoq, javob shakli buzuq) | HTTP 502, `xato: "provayder: …"`; band qilingan limit qaytariladi |
-| Rasm kelmadi | `izoh: "Tovar rasmi kelmadi …"` |
+| Yurish boshlandi / ishlayapti | 202 `kutilmoqda: true, runId` |
+| Qidiruv boʻldi, topildi | 200 `natijalar: [...]`, `jami`, `limit` |
+| Qidiruv boʻldi, 0 ta | 200 `natijalar: []`, `izoh: "1688 bu rasmga oʻxshash tovar bermadi."` |
+| Qidiruv BOʻLMADI (balans, kalit, RISK_CONTROL, javob shakli buzuq, yurish yiqildi) | 502, `xato: "provayder: …"`; band qilingan limit qaytariladi |
+| Vaqtinchalik tarmoq xatosi | 502, `qaytaUrinish: true` — kengaytma yana soʻraydi |
+| Rasm kelmadi | 200 `izoh: "Tovar rasmi kelmadi …"` |
 | Sessiya notoʻgʻri / baza javob bermadi | 401 / 503 — sanoq OʻLCHANMADI, nol deb olinmaydi |
 | Kunlik limit (shaxsiy yoki umumiy `XITOY_LIMIT.jamiKunlik`) | 429, `sabab` bilan |
 
 Kunlik sanoq (`so_xitoy_limit`) ILGARI hech qachon oshirilmasdi —
-limit qogʻozda edi. Endi (0055) u provayderdan OLDIN atomik band
-qilinadi (poyga yoʻq), provayder yiqilsa qaytariladi, va UMUMIY
+limit qogʻozda edi. Endi (0055) u yurish boshlanishidan OLDIN atomik
+band qilinadi (poyga yoʻq), yurish yiqilsa qaytariladi, va UMUMIY
 kunlik shift bor — sessiyalar anonim va cheksiz ochilgani uchun
 shaxsiy limitning oʻzi xarajatni cheklamaydi (BACKLOG). Kesh
-(`so_xitoy_kesh_yoz`) ham shu yerda yoziladi; boʻsh natija ham
-keshlanadi — u javob. Provayder element berib, birortasi oʻqilmasa —
-bu xato (502), kesh yozilmaydi.
+(`so_xitoy_kesh_yoz`) natija kelganda yoziladi; boʻsh natija ham
+keshlanadi — u javob.
 
 Jonli javob hali oʻlchanmagan: fikstura
-`apps/backend/test/fixtures/tmapi-1688-rasm.json` hujjat namunasi.
-Birinchi haqiqiy qidiruv `selleros.xitoy_kesh` ga tushadi — fikstura
-oʻsha bilan almashtirilishi kerak.
+`apps/backend/test/fixtures/apify-1688-rasm.json` aktor sxemasi
+namunasi. Birinchi haqiqiy qidiruv `selleros.xitoy_kesh` ga tushadi —
+fikstura oʻsha bilan almashtirilishi kerak.
 
 ## Doʻkonga yuklash
 

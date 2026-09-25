@@ -90,13 +90,14 @@ autentifikatsiya (telefon/Telegram) yoki `/sessiya` ga IP boʻyicha
 sekinlashtirish — nazoratchi qarori. `/kartochka` uchidagi
 `limitJ?.soni ?? 0` ham shu naqsh (nomaʼlum = nol), alohida tuzatiladi.
 
-— [agent, 2026-09-25] **TMAPI jonli javobi oʻlchanmagan.**
-`apps/backend/test/fixtures/tmapi-1688-rasm.json` — hujjat namunasi.
-Birinchi haqiqiy qidiruv (`selleros.xitoy_kesh`) bilan almashtirish
-kerak (QOIDALAR §8-1: darvoza testi haqiqiy oʻlchov bilan). Test
-kalitida `Test quota: 0 Credits` koʻrindi — sinov krediti bormi,
-nazoratchi konsolda tekshiradi; boʻlmasa birinchi qidiruv 439
-(balans) qaytaradi va uch buni ochiq aytadi.
+— [agent, 2026-09-25] **Apify jonli javobi oʻlchanmagan.** Provayder
+TMAPI dan Apify (`crawleast/1688-image-search-scraper`) ga oʻtdi
+(nazoratchi qarori). `apps/backend/test/fixtures/apify-1688-rasm.json` —
+aktor dataset SXEMASI namunasi, jonli javob emas. Nazoratchi Apify
+tokenini `XITOY_API_KEY` ga qoʻygach birinchi qidiruv
+(`selleros.xitoy_kesh`) bilan almashtirish kerak (QOIDALAR §8-1).
+`so_xitoy_kesh` dagi eski TMAPI shaklidagi qatorlar yoʻq (provayder
+hech qachon chaqirilmagan).
 
 ## Rad etilgan
 

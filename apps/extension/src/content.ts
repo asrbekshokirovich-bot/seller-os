@@ -53,7 +53,8 @@ function tugmaYarat(): HTMLButtonElement {
       return;
     }
 
-    tugma.textContent = 'Qidirilmoqda...';
+    // Apify qidiruvi 30–90 s (background.ts har 5 s da tekshiradi).
+    tugma.textContent = 'Qidirilmoqda… (1–2 daqiqa)';
     tugma.disabled = true;
 
     try {
@@ -90,14 +91,17 @@ function tugmaYarat(): HTMLButtonElement {
 interface Natija {
   title: string;
   narxYuan: number;
-  rasmUrl: string;
+  /** `null` — provayder rasm bermadi. */
+  rasmUrl: string | null;
   /** `null` — provayder bermadi; chiziqcha, nol emas. */
   moq: number | null;
-  /** 2026-09-25 dan provayder beradi; eski keshda boʻlmasligi mumkin. */
   manzil?: string | null;
-  sotilgan?: number | null;
+  /** Buyurtmalar soni (jami, davri yoʻq) — Apify `bookedCount`. */
+  buyurtmalar?: number | null;
   zavod?: boolean | null;
+  superZavod?: boolean | null;
   reyting?: number | null;
+  oxshashlikOrni?: number | null;
 }
 
 function natijalarniKorsat(natijalar: Natija[]): void {
@@ -115,10 +119,13 @@ function natijalarniKorsat(natijalar: Natija[]): void {
     const qator = document.createElement('div');
     qator.className = 'selleros-natija';
 
-    const rasm = document.createElement('img');
-    rasm.src = n.rasmUrl;
-    rasm.alt = n.title;
-    qator.appendChild(rasm);
+    if (typeof n.rasmUrl === 'string' && /^https?:\/\//i.test(n.rasmUrl)) {
+      const rasm = document.createElement('img');
+      rasm.src = n.rasmUrl;
+      rasm.alt = n.title;
+      rasm.referrerPolicy = 'no-referrer';
+      qator.appendChild(rasm);
+    }
 
     const matn = document.createElement('div');
     matn.className = 'selleros-natija-matn';
@@ -143,8 +150,9 @@ function natijalarniKorsat(natijalar: Natija[]): void {
     }
     matn.appendChild(nom);
     const qismlar = [`¥${n.narxYuan}`, typeof n.moq === 'number' ? `MOQ: ${n.moq}` : 'MOQ: —'];
-    if (typeof n.sotilgan === 'number') qismlar.push(`sotilgan: ${n.sotilgan}`);
-    if (n.zavod === true) qismlar.push('zavod');
+    if (typeof n.buyurtmalar === 'number') qismlar.push(`buyurtma: ${n.buyurtmalar}`);
+    if (n.superZavod === true) qismlar.push('super zavod');
+    else if (n.zavod === true) qismlar.push('zavod');
     if (typeof n.reyting === 'number') qismlar.push(`★ ${n.reyting}`);
     for (const q of qismlar) {
       const span = document.createElement('span');

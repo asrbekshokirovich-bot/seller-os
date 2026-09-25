@@ -37,7 +37,8 @@ import {
   type DavrTuri,
   rasmManzili,
   xitoyLimitHolati,
-  xitoyQidir,
+  xitoyQidiruvniBoshla,
+  xitoyQidiruvniTekshir,
   XITOY_LIMIT,
   moqHisobi,
   kartochkaLimitTekshir,
@@ -901,11 +902,10 @@ export function build(): FastifyInstance {
   /**
    * 4-qadam: rasm-qidiruv — Uzum tovarining 1688 muqobillarini topadi (B4).
    *
-   * PROVAYDER — TMAPI, 2026-09-25 da ulandi (`@selleros/shared`
-   * `xitoy.ts`). Edge Function dagi `/xitoy-qidiruv` bilan BIR XIL.
-   *
-   * Oqim: limit tekshir → keshdan izla → provayder chaqir →
-   * keshga yoz + kunlik sanoq → natija qaytar.
+   * PROVAYDER — Apify aktori (nazoratchi qarori, 2026-09-25;
+   * `@selleros/shared` `xitoy.ts`). Edge Function dagi `/xitoy-qidiruv`
+   * bilan BIR XIL — u yerdagi izohga qarang. ASINXRON: `{rasmUrl}`
+   * boshlaydi (202 runId), `{runId, rasmUrl}` tekshiradi.
    */
   app.post('/xitoy-qidiruv', async (request, javob) => {
     const token = request.headers['x-sessiya'];
@@ -923,8 +923,9 @@ export function build(): FastifyInstance {
     if (typeof tana.rasmUrl === 'string' && rasmUrl === null) {
       return javob.code(400).send({ xato: 'rasmUrl http(s):// bilan boshlanishi va 2048 belgidan oshmasligi kerak' });
     }
-
-    if (!Number.isInteger(productId) && !rasmUrl) {
+    const runId = typeof tana.runId === 'string' && /^[A-Za-z0-9]{8,64}$/.test(tana.runId) ? tana.runId : null;
+    if (typeof tana.runId === 'string' && runId === null) return javob.code(400).send({ xato: 'runId notoʻgʻri' });
+    if (runId === null && !Number.isInteger(productId) && !rasmUrl) {
       return javob.code(400).send({ xato: 'productId yoki rasmUrl kerak' });
     }
 
@@ -932,6 +933,47 @@ export function build(): FastifyInstance {
     const n = await rejaniOl(token);
     const limitH = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', { p_token: token }), n.reja);
     if (!limitH.ok) return javob.code(limitH.kod).send({ xato: limitH.xato });
+    const provayderKaliti = process.env.XITOY_API_KEY;
+
+    // ---- TEKSHIRISH
+    if (runId !== null) {
+      if (!provayderKaliti) return javob.code(503).send({ xato: 'provayder kaliti yoʻq' });
+      const t = await xitoyQidiruvniTekshir({ kalit: provayderKaliti, fetch }, runId);
+      if (t.holat === 'kutilmoqda') {
+        return javob.code(202).send({ kutilmoqda: true, runId, runHolati: t.runHolati, limit: limitH.natija });
+      }
+      if (t.holat === 'xato') {
+        const yakuniy = t.runHolati !== null;
+        if (yakuniy) await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
+        return javob.code(502).send({
+          natijalar: [], manba: null, keshdan: false, limit: limitH.natija,
+          xato: `provayder: ${t.xato}`, qaytaUrinish: !yakuniy,
+        });
+      }
+      const rasm = t.rasmlar.find((r) => rasmUrl !== null && r.rasmUrl === rasmUrl) ?? t.rasmlar[0];
+      if (rasm === undefined || rasm.xato !== null) {
+        await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
+        return javob.code(502).send({
+          natijalar: [], manba: null, keshdan: false, limit: limitH.natija,
+          xato: `provayder: ${rasm?.xato ?? 'yurish natijasiz tugadi'}`, qaytaUrinish: false,
+        });
+      }
+      await rpc('so_xitoy_kesh_yoz', {
+        p_rasm_hash: rasmUrl ?? rasm.rasmUrl, p_natijalar: rasm.natijalar, p_manba: '1688',
+      });
+      return {
+        natijalar: rasm.natijalar,
+        manba: '1688',
+        keshdan: false,
+        jami: rasm.jami,
+        tashlandi: rasm.tashlandi,
+        limit: limitH.natija,
+        ...(rasm.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
+        ...(rasm.tashlandi > 0 ? { izoh_tashlandi: `${rasm.tashlandi} ta karta oʻqilmadi va koʻrsatilmadi.` } : {}),
+      };
+    }
+
+    // ---- BOSHLASH
     const limitNatija = limitH.natija;
     if (!limitNatija.ruxsat) {
       return javob.code(429).send({
@@ -941,7 +983,6 @@ export function build(): FastifyInstance {
       });
     }
 
-    // Keshdan izlash
     const rasmHash = rasmUrl ?? `uzum:${productId}`;
     const kesh = await rpc<{ topildi: boolean; natijalar?: XitoyTovar[]; manba?: string }>(
       'so_xitoy_kesh_ol', { p_rasm_hash: rasmHash },
@@ -956,27 +997,20 @@ export function build(): FastifyInstance {
       };
     }
 
-    const provayderKaliti = process.env.XITOY_API_KEY;
     if (!provayderKaliti) {
       return {
-        natijalar: [],
-        manba: null,
-        keshdan: false,
-        limit: limitNatija,
+        natijalar: [], manba: null, keshdan: false, limit: limitNatija,
         izoh: 'Qidiruv provayderi hali ulanmagan — kalit kutilmoqda.',
       };
     }
     if (!rasmUrl) {
       return {
-        natijalar: [],
-        manba: null,
-        keshdan: false,
-        limit: limitNatija,
+        natijalar: [], manba: null, keshdan: false, limit: limitNatija,
         izoh: 'Tovar rasmi kelmadi — qidiruv rasm boʻyicha ishlaydi. Sahifani yangilab qayta urinib koʻring.',
       };
     }
 
-    // Band qilish — provayderdan OLDIN, atomik (0055).
+    // Band qilish — yurishdan OLDIN, atomik (0055).
     const band = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', {
       p_token: token, p_oshir: true, p_limit: limitNatija.limit, p_umumiy_limit: XITOY_LIMIT.jamiKunlik,
     }), n.reja);
@@ -990,32 +1024,18 @@ export function build(): FastifyInstance {
       });
     }
 
-    const q = await xitoyQidir({ kalit: provayderKaliti, fetch }, { rasmUrl });
-    if (q.xato !== null) {
+    const b = await xitoyQidiruvniBoshla({ kalit: provayderKaliti, fetch }, { rasmlar: [rasmUrl] });
+    if (b.runId === null) {
       await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
       return javob.code(502).send({
-        natijalar: [],
-        manba: null,
-        keshdan: false,
-        limit: limitNatija,
-        xato: `provayder: ${q.xato}`,
+        natijalar: [], manba: null, keshdan: false, limit: limitNatija,
+        xato: `provayder: ${b.xato}`, qaytaUrinish: false,
       });
     }
-
-    await rpc('so_xitoy_kesh_yoz', {
-      p_rasm_hash: rasmHash, p_natijalar: q.natijalar, p_manba: q.manba ?? '1688',
+    return javob.code(202).send({
+      kutilmoqda: true, runId: b.runId, rasmUrl, limit: band.natija,
+      izoh: '1688 da qidirilmoqda — odatda 1–2 daqiqa. Natija tayyor boʻlgach shu yerda koʻrinadi.',
     });
-    return {
-      natijalar: q.natijalar,
-      manba: q.manba,
-      keshdan: false,
-      jami: q.jami,
-      tashlandi: q.tashlandi,
-      vaqtMs: q.vaqtMs,
-      limit: band.natija,
-      ...(q.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
-      ...(q.tashlandi > 0 ? { izoh_tashlandi: `${q.tashlandi} ta element oʻqilmadi va koʻrsatilmadi.` } : {}),
-    };
   });
 
   /**
