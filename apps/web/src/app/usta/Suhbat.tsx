@@ -407,7 +407,9 @@ function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRej
           ? <TovarKatalogi royxat={(n.royxat as TovarQatori[] | undefined) ?? []} chiqarildi={(n.chiqarildi as Array<{ title: string; sabab: string }> | undefined) ?? []} rejim={katalog ?? { tanlangan: [], band: true }} tr={tr} />
           : x.savolId === 'tannarx'
             ? <Chegaralar qatorlar={(n.qatorlar as TannarxQatori[] | undefined) ?? []} izoh={typeof n.izoh === 'string' ? n.izoh : null} tr={tr} />
-            : null}
+            : x.savolId === 'xitoy'
+              ? <XitoyTakliflari qatorlar={(n.qatorlar as XitoyQatorQ[] | undefined) ?? []} kurs={(n.kurs as XitoyKursQ | null | undefined) ?? null} izoh={typeof n.izoh === 'string' ? n.izoh : null} tr={tr} />
+              : null}
     </div>
   );
 }
@@ -567,6 +569,93 @@ function Chegaralar({ qatorlar, izoh, tr }: { qatorlar: TannarxQatori[]; izoh: s
         </div>
       ))}
       {izoh && <p className={u.kichikIzoh}>{izoh}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 5-qadam: 1688 takliflari */
+
+interface XitoyTaklifQ {
+  sourceId: string; title: string; narxYuan: number; rasmUrl: string; moq: number;
+  reyting: number | null; manzil: string | null; sotilgan: number | null; zavod: boolean | null;
+  reklama?: boolean | null; narxSom: number | null; chegaradaMi: boolean | null;
+}
+interface XitoyQatorQ {
+  productId: number; title: string; rasmUrl: string | null; chegaraSom: number | null;
+  holat: 'topildi' | 'topilmadi' | 'qidirilmadi'; sabab: string | null; jami: number | null;
+  takliflar: XitoyTaklifQ[];
+}
+interface XitoyKursQ { somPerYuan: number; sana: string; manba: string }
+
+/**
+ * Har tanlangan tovar uchun 1688 takliflari. Uch holat ATAYLAB farq
+ * qiladi: topildi (kartalar) / topilmadi (1688 hech narsa bermadi —
+ * bu javob) / qidirilmadi (sabab). Raqamlar provayderdan; soʻm — CBU
+ * kursi bilan, kurs boʻlmasa koʻrsatilmaydi. Havola faqat http(s).
+ */
+function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
+  qatorlar: XitoyQatorQ[]; kurs: XitoyKursQ | null; izoh: string | null; tr: Tr;
+}) {
+  const holatMatni = (h: XitoyQatorQ['holat']) =>
+    h === 'topildi' ? tr('topildi', 'найдено') : h === 'topilmadi' ? tr('1688 da oʻxshash yoʻq', 'на 1688 нет похожих') : tr('qidirilmadi', 'не искалось');
+  const holatSinfi = (h: XitoyQatorQ['holat']) =>
+    h === 'topildi' ? u.tegYaxshi : h === 'topilmadi' ? u.tegNeytral : u.tegOgoh;
+  return (
+    <div className={u.kartalar}>
+      {qatorlar.map((q) => (
+        <div key={q.productId} className={u.karta}>
+          <div className={u.kartaBoshi}>
+            <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{q.title}</div></div>
+            <span className={`${u.teg} ${holatSinfi(q.holat)}`}>{holatMatni(q.holat)}</span>
+          </div>
+          <div className={u.statlar}>
+            <Stat nom={tr('Xitoyda chegara', 'Потолок в Китае')} q={q.chegaraSom === null ? '—' : `${raqam(q.chegaraSom)} ${tr('soʻm', 'сум')}`} />
+            <Stat nom={tr('1688 topdi', '1688 нашёл')} q={q.jami === null ? '—' : raqam(q.jami)} />
+          </div>
+          {q.sabab && <p className={u.ogohlik}>{q.sabab}</p>}
+          {q.takliflar.length > 0 && (
+            <div className={u.katalog}>
+              {q.takliflar.map((t) => {
+                const havola = /^https?:\/\//i.test(t.manzil ?? '') ? t.manzil : null;
+                return (
+                  <div key={t.sourceId} className={u.katalogKarta}>
+                    <div className={u.katalogRasm} aria-hidden="true">
+                      <img src={t.rasmUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                    </div>
+                    <div className={u.katalogNomi}>
+                      {havola
+                        ? <a href={havola} target="_blank" rel="noopener noreferrer">{t.title}</a>
+                        : t.title}
+                    </div>
+                    <div className={u.katalogNarx}>
+                      ¥{t.narxYuan}{t.narxSom !== null && ` ≈ ${son(t.narxSom)} ${tr('soʻm', 'сум')}`}
+                    </div>
+                    <div className={u.katalogQator}>
+                      <span>MOQ {t.moq}</span>
+                      <span>{t.sotilgan === null ? '—' : `${son(t.sotilgan)} ${tr('sotilgan', 'продано')}`}</span>
+                    </div>
+                    <div className={u.katalogQator}>
+                      <span>{t.zavod === true ? tr('zavod', 'завод') : t.zavod === false ? tr('sotuvchi', 'продавец') : '—'}</span>
+                      <span>{t.reyting === null ? '—' : `★ ${t.reyting}`}{t.reklama === true ? ` · ${tr('reklama', 'реклама')}` : ''}</span>
+                    </div>
+                    {t.chegaradaMi !== null && (
+                      <span className={u.katalogBelgi}>
+                        {t.chegaradaMi ? tr('chegarada', 'в пределах потолка') : tr('chegaradan yuqori', 'выше потолка')}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ))}
+      <p className={u.kichikIzoh}>
+        {kurs
+          ? tr(`Kurs: ${kurs.manba}, 1 yuan = ${son(kurs.somPerYuan)} soʻm (${kurs.sana}).`, `Курс: ${kurs.manba}, 1 юань = ${son(kurs.somPerYuan)} сум (${kurs.sana}).`)
+          : tr('Kurs olinmadi — soʻm koʻrsatilmadi.', 'Курс не получен — сумы не показаны.')}
+        {izoh ? ` ${izoh}` : ''}
+      </p>
     </div>
   );
 }

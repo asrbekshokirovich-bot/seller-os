@@ -37,6 +37,8 @@ export interface SuhbatBogliqliklari {
     yonalishlar: (profil: Partial<ProfilJavoblari>, holat: YolHolati) => Promise<unknown>;
     tovarlar: (categoryId: number, holat: YolHolati) => Promise<unknown>;
     tannarx: (holat: YolHolati) => Promise<unknown>;
+    /** 5-qadam: 1688 rasm-qidiruvi (provayder, kesh, limit, kurs). */
+    xitoy: (holat: YolHolati) => Promise<unknown>;
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
@@ -174,6 +176,7 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
       }, h);
     }
     if (harakat === 'tovarlar') return await d.kod.tovarlar(Number(h.javoblar['yonalish']), h);
+    if (harakat === 'xitoy') return await d.kod.xitoy(h);
     return await d.kod.tannarx(h);
   } catch (e) {
     // Yiqilish jim o'tmaydi: natija sifatida sabab qaytadi va ssenariy

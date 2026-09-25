@@ -26,10 +26,28 @@ const YONALISHLAR = {
 const TOVARLAR = {
   olchov_yoq: false,
   royxat: [
-    { nomzod: { productId: 100, title: 'Quloqchin A' }, miqdor: { dona: 30, hisob: 'oyiga ~600 · 5% · 30 kun = 30' } },
+    { nomzod: { productId: 100, title: 'Quloqchin A', rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg' }, miqdor: { dona: 30, hisob: 'oyiga ~600 · 5% · 30 kun = 30' } },
     { nomzod: { productId: 200, title: 'Quloqchin B' }, miqdor: null, miqdorSababi: 'Sotuv hali oʻlchanmagan.' },
   ],
   chiqarildi: [{ title: 'Brend X', sabab: 'yopiq brend' }],
+};
+/** 5-qadam natijasi — `suhbat-kod.ts` shakli; raqamlar provayder hujjat namunasi + CBU 2026-09-25. */
+const TAKLIF = {
+  title: '跨境外贸lulu男士同款运动长袖', rasmUrl: 'https://cbu01.alicdn.com/a.jpg', reyting: 4.5, manba: '1688' as const,
+  manzil: 'https://detail.1688.com/offer/1.html', sotilgan: 5160, buyurtmalar: 111, zavod: true, sotuvchi: null,
+  joy: null, dokonYili: 5, takrorXaridFoizi: 54, reklama: false,
+};
+const XITOY = {
+  olchov_yoq: false,
+  kurs: { somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' },
+  qatorlar: [{
+    productId: 100, title: 'Quloqchin A', rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg',
+    chegaraSom: 60_000, holat: 'topildi' as const, sabab: null, jami: 680,
+    takliflar: [
+      { ...TAKLIF, sourceId: '983093623752', narxYuan: 27, moq: 1, narxSom: 47_587, chegaradaMi: true },
+      { ...TAKLIF, sourceId: '969462626480', narxYuan: 80, moq: 2, narxSom: 140_999, chegaradaMi: false },
+    ],
+  }],
 };
 
 /** Javob beradi va qabul qilinganini tekshiradi. */
@@ -46,9 +64,9 @@ function savolId(h: YolHolati): string {
 }
 
 describe('ssenariy — 12 qadam', () => {
-  it('12 qadam, dastlabki 4 tasi qurilgan', () => {
+  it('12 qadam, dastlabki 5 tasi qurilgan', () => {
     expect(SUHBAT_QADAMLARI.length).toBe(12);
-    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4]);
+    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5]);
   });
 });
 
@@ -208,19 +226,14 @@ function tovarlarTanlandi(): YolHolati {
 }
 
 describe('4-qadam — Tannarx va zanjir oxiri', () => {
-  it('marja → tannarx kodi → tasdiq → 5-qadam "tez orada"', () => {
+  it('marja → tannarx kodi → tasdiq → 5-qadam xitoy kodi', () => {
     let h = javob(tovarlarTanlandi(), 'marja', 30);
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'tannarx', qadam: 4 });
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     expect(savolId(h)).toBe('xitoy_tasdiq');
     h = javob(h, 'xitoy_tasdiq', 'ha');
-    const k = keyingi(h);
-    expect(k.tur).toBe('tezOrada');
-    if (k.tur === 'tezOrada') {
-      expect(k.qadam).toBe(5);
-      expect(k.nom).toBe('Xitoydan topish');
-      expect(k.matn).toMatch(/hali qurilmagan/);
-    }
+    // Rasm bazada bor (fikstura) — savolsiz to'g'ri qidiruvga.
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
     expect(joriyQadam(h)).toBe(5);
   });
 
@@ -249,7 +262,8 @@ describe('zanjir hech qayerda uzilmaydi', () => {
       if (k.tur === 'kod') {
         h = natijaniYoz(h, k.harakat,
           k.harakat === 'yonalishlar' ? YONALISHLAR
-            : k.harakat === 'tovarlar' ? TOVARLAR : { ok: true });
+            : k.harakat === 'tovarlar' ? TOVARLAR
+              : k.harakat === 'xitoy' ? XITOY : { ok: true });
         continue;
       }
       expect(k.savol.matn.trim().length).toBeGreaterThan(5);
@@ -283,5 +297,106 @@ describe('tushuntir — tannarx rostini aytadi', () => {
     ] });
     expect(m).toMatch(/1 ta tovar uchun/);
     expect(m).toMatch(/1 tasida yetishmagan/);
+  });
+});
+
+function tasdiqlandi(): YolHolati {
+  let h = javob(tovarlarTanlandi(), 'marja', 30);
+  h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
+  return javob(h, 'xitoy_tasdiq', 'ha');
+}
+
+describe('5-qadam — Xitoydan topish', () => {
+  it('rasmsiz tovar: avval rasm manzili soʻraladi (matn, oʻtkazish mumkin), keyin kod', () => {
+    let h = natijaniYoz(yonalishTanlandi(), 'tovarlar', TOVARLAR);
+    h = javob(h, 'tovarlar', [100, 200]);
+    h = javob(h, 'miqdor:100', 30);
+    h = javob(h, 'miqdor:200', 12);
+    h = javob(h, 'marja', 30);
+    h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
+    h = javob(h, 'xitoy_tasdiq', 'ha');
+    // 100 da rasm bor, 200 da yo'q — faqat 200 uchun so'raladi.
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('rasm:200');
+    expect(k.savol.qadam).toBe(5);
+    expect(k.savol.turi).toBe('matn');
+    expect(k.savol.otkazishMumkin).toBe(true);
+    expect(k.savol.matn).toMatch(/Quloqchin B/);
+    expect(k.savol.matn).toMatch(/qidirilmaydi/);
+    h = javob(h, 'rasm:200', null);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+  });
+
+  it('natija kelgach topilgan tovar uchun tanlov NAVBAT bilan; variant — provayder id, matnda raqamlar taklifdan', () => {
+    let h = natijaniYoz(tasdiqlandi(), 'xitoy', XITOY);
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('xitoy_tanlov:100');
+    expect(k.savol.turi).toBe('tanlov');
+    expect(k.savol.otkazishMumkin).toBe(true);
+    expect(k.savol.matn).toMatch(/2 ta taklif, 1 tasi chegara narxga sigʻadi/);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['983093623752', '969462626480']);
+    expect(k.savol.variantlar[0]!.nom).toMatch(/¥27 ≈ 47587 soʻm · MOQ 1 · zavod · chegarada/);
+    expect(k.savol.variantlar[1]!.nom).toMatch(/chegaradan yuqori/);
+    expect(javobniQabulQil(h, 'xitoy_tanlov:100', 'yoq-id').xato).not.toBeNull();
+    h = javob(h, 'xitoy_tanlov:100', '983093623752');
+    const k2 = keyingi(h);
+    expect(k2.tur).toBe('tezOrada');
+    if (k2.tur === 'tezOrada') {
+      expect(k2.qadam).toBe(6);
+      expect(k2.nom).toBe('Buyurtma va kargo');
+      expect(k2.matn).toMatch(/kargo/);
+    }
+    expect(joriyQadam(h)).toBe(6);
+  });
+
+  it('kurs boʻlmasa "sigʻadi" soni aytilmaydi; oʻtkazib yuborish ham qabul', () => {
+    const kurssiz = { ...XITOY, kurs: null, qatorlar: [{ ...XITOY.qatorlar[0]!, takliflar: XITOY.qatorlar[0]!.takliflar.map((t) => ({ ...t, narxSom: null, chegaradaMi: null })) }] };
+    let h = natijaniYoz(tasdiqlandi(), 'xitoy', kurssiz);
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).not.toMatch(/sigʻadi/);
+    expect(k.savol.variantlar[0]!.nom).toBe('¥27 · MOQ 1 · zavod');
+    h = javob(h, 'xitoy_tanlov:100', null);
+    expect(keyingi(h).tur).toBe('tezOrada');
+  });
+
+  it('taklif boʻlmasa (topilmadi / qidirilmadi) tanlov soʻralmaydi — toʻgʻri 6-qadam', () => {
+    const bosh = { ...XITOY, olchov_yoq: true, qatorlar: [{ ...XITOY.qatorlar[0]!, holat: 'qidirilmadi' as const, sabab: 'provayder: balans', takliflar: [] }] };
+    const h = natijaniYoz(tasdiqlandi(), 'xitoy', bosh);
+    expect(keyingi(h).tur).toBe('tezOrada');
+  });
+
+  it("'miqdorni oʻzgartiraman' 5-qadam javoblari va natijasini ham tozalaydi", () => {
+    let h = natijaniYoz(tasdiqlandi(), 'xitoy', XITOY);
+    h = javob(h, 'xitoy_tanlov:100', '983093623752');
+    // Yo'lni boshidan: tasdiq savoliga qaytish uchun holatni qayta yasaymiz.
+    const h2: YolHolati = { javoblar: { ...h.javoblar }, natijalar: { ...h.natijalar } };
+    delete h2.javoblar['xitoy_tasdiq'];
+    const q = javobniQabulQil(h2, 'xitoy_tasdiq', 'miqdor');
+    expect(q.xato).toBeNull();
+    expect(Object.keys(q.holat.javoblar).some((k) => k.startsWith('xitoy_tanlov:') || k.startsWith('rasm:') || k.startsWith('miqdor:'))).toBe(false);
+    expect(q.holat.natijalar.xitoy).toBeUndefined();
+    expect(q.holat.natijalar.tannarx).toBeUndefined();
+  });
+
+  it('tushuntir(xitoy): sonlar natijadan, qidirilmagani yashirilmaydi, kurs sanasi bilan', () => {
+    const n = { ...XITOY, qatorlar: [
+      XITOY.qatorlar[0]!,
+      { ...XITOY.qatorlar[0]!, productId: 200, title: 'B', holat: 'topilmadi' as const, jami: 0, takliflar: [] },
+      { ...XITOY.qatorlar[0]!, productId: 300, title: 'C', holat: 'qidirilmadi' as const, sabab: 'rasm yoʻq', takliflar: [] },
+    ] };
+    const m = tushuntir('xitoy', n);
+    expect(m).toMatch(/3 ta tovar uchun 1688 qidirildi: 1 tasida taklif bor \(jami 2 ta, 1 tasi chegara narxga sigʻadi\)/);
+    expect(m).toMatch(/1 tasida oʻxshash topilmadi/);
+    expect(m).toMatch(/1 tasi qidirilmadi \(rasm yoʻq\)/);
+    expect(m).toMatch(/1 yuan = 1762.49 soʻm \(25.09.2026\)/);
+    expect(m).not.toMatch(/kafolat/i);
+  });
+
+  it('tushuntir(xitoy): qidiruv umuman boʻlmasa "Xitoyda yoʻq" DEMAYDI', () => {
+    expect(tushuntir('xitoy', { olchov_yoq: true, sabab: 'provayder kaliti yoʻq', kurs: null, qatorlar: [] })).toMatch(/qidiruv boʻlmadi/);
+    expect(tushuntir('xitoy', { ...XITOY, kurs: null })).toMatch(/Kurs olinmadi/);
   });
 });

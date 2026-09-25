@@ -46,6 +46,17 @@ uchun bitta.
    5–12 "tez orada". Byudjet tugmalari aniq son (soʻm), oraliq emas —
    2026-08-24 qarori saqlanadi.
 
+8. *(2026-09-25)* **5-qadam — Xitoydan topish — qurildi.** Provayder
+   TMAPI (nazoratchi kalitni Supabase secret sifatida qoʻydi). Qidiruv
+   RASM boʻyicha: rasm bazadan (`0054`, `rasmUrl`) yoki obunachi yuborgan
+   manzildan; kesh 72 soat va kunlik limit `/xitoy-qidiruv` bilan bir
+   xil. Yuan narx CBU kursi bilan soʻmga oʻgiriladi va 4-qadam
+   chegarasiga solishtiriladi ("chegarada" belgisi); kurs olinmasa soʻm
+   koʻrsatilmaydi. Har tovar uchun bitta tanlov savoli (provayder id),
+   oʻtkazish mumkin. Uch holat ekranda farqlanadi: topildi / 1688 da
+   oʻxshash yoʻq / qidirilmadi (sabab). 6-qadam "tez orada": kargo
+   stavkasi — nazoratchi qarori.
+
 ## Dizayndan ataylab chetga chiqilgan joylar
 
 Dizayn fayllari ishlayotgan mahsulotni koʻrsatadi. Bugungi tizim

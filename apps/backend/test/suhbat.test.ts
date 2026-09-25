@@ -22,8 +22,15 @@ const YONALISHLAR = { olchov_yoq: false, royxat: [
   { categoryId: 11, name: 'Quloqchinlar', yetadi: true, ball: { value: 72 } },
 ] };
 const TOVARLAR = { olchov_yoq: false, royxat: [
-  { nomzod: { productId: 100, title: 'Quloqchin A', narxSom: 95000 }, miqdor: { dona: 30, hisob: '30 kun = 30' } },
+  { nomzod: { productId: 100, title: 'Quloqchin A', narxSom: 95000, rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg' }, miqdor: { dona: 30, hisob: '30 kun = 30' } },
 ], chiqarildi: [] };
+const XITOY = { olchov_yoq: false, kurs: { somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' }, qatorlar: [{
+  productId: 100, title: 'Quloqchin A', rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg',
+  chegaraSom: 60_000, holat: 'topildi', sabab: null, jami: 680,
+  takliflar: [{ sourceId: '983093623752', title: 'T', narxYuan: 27, rasmUrl: 'https://cbu01.alicdn.com/a.jpg', moq: 1, reyting: 4.5, manba: '1688',
+    manzil: null, sotilgan: 5160, buyurtmalar: 111, zavod: true, sotuvchi: null, joy: null, dokonYili: 5, takrorXaridFoizi: 54, reklama: false,
+    narxSom: 47_587, chegaradaMi: true }],
+}] };
 
 /** Xotiradagi soxta baza — so_suhbat_* RPC lari. */
 function soxtaBaza(boshlangich: YolHolati | null = null) {
@@ -53,6 +60,7 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       yonalishlar: async () => YONALISHLAR,
       tovarlar: async () => TOVARLAR,
       tannarx: async () => ({ hisoblandi: true }),
+      xitoy: async () => XITOY,
     },
     ...(llm ? { llm } : {}),
   };
@@ -157,7 +165,7 @@ describe('suhbatTurn', () => {
     expect(r.xabarlar[1]!.matn).toBe('Uzumda doʻkoningiz bormi?');
   });
 
-  it('to\'liq yo\'l: 1-qadamdan 5-qadam "tez orada" gacha, har turnda bitta savol', async () => {
+  it('to\'liq yo\'l: 1-qadamdan 6-qadam "tez orada" gacha, har turnda bitta savol', async () => {
     const b = soxtaBaza();
     const d = bogliq(b);
     const qadamlar: Array<{ savolId?: string; javob?: unknown }> = [
@@ -168,6 +176,7 @@ describe('suhbatTurn', () => {
       { savolId: 'miqdor:100', javob: 30 },
       { savolId: 'marja', javob: 30 },
       { savolId: 'xitoy_tasdiq', javob: 'ha' },
+      { savolId: 'xitoy_tanlov:100', javob: '983093623752' },
     ];
     let oxirgi: Awaited<ReturnType<typeof suhbatTurn>> | null = null;
     for (const q of qadamlar) {
@@ -175,7 +184,10 @@ describe('suhbatTurn', () => {
       expect(oxirgi.xato, `${q.savolId}: ${oxirgi.xato}`).toBeUndefined();
     }
     expect(oxirgi!.keyingi.tur).toBe('tezOrada');
-    expect(oxirgi!.qadam).toBe(5);
+    expect(oxirgi!.qadam).toBe(6);
+    // 5-qadam kod xabari jurnalda va uning matni natijadan.
+    const xitoyKod = b.jurnal.find((x) => (x as { savolId?: string }).savolId === 'xitoy' && (x as { rol: string }).rol === 'kod') as { matn: string } | undefined;
+    expect(xitoyKod?.matn).toMatch(/1 ta tovar uchun 1688 qidirildi: 1 tasida taklif bor/);
     // Har menejer xabari savolId bilan (tez orada dan tashqari).
     const menejer = b.jurnal.filter((x) => (x as { rol: string }).rol === 'menejer');
     expect(menejer.length).toBe(qadamlar.length);

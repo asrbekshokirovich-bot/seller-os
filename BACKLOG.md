@@ -37,9 +37,13 @@ narxi kargosiz chiqadi va buni `yetishmaydi` bilan aytadi. Stavka
 (soʻm/kg, soʻm/m³, yoʻl boʻyicha) qaysi jadvalda turishi va kim
 toʻldirishi — nazoratchi qarori. Ssenariyning 6-qadami ham shuni kutadi.
 
-— [agent, 2026-09-25] **Ssenariy 5–12-qadamlari qurilmagan.** Mashina
-ularga yetganda rostini aytadi ("tez orada"). Tartib: 5 Xitoy (provayder
-ULANDI — TMAPI, `xitoy.ts`; suhbatga ulash alohida PR), 6 kargo, 7 rasmiylashtirish (YATT/bank/kabinet qadam
+— [agent, 2026-09-25] **Ssenariy 6–12-qadamlari qurilmagan.** Mashina
+ularga yetganda rostini aytadi ("tez orada"). 5-qadam (Xitoydan topish)
+QURILDI: rasm → kesh → limit → TMAPI → CBU kursi → chegaraga solishtirish
+→ har tovar uchun tanlov. Rasm bazada boʻlmasa (0054 qoʻllanmagan yoki
+tovar ogʻir soʻrovda oʻlchanmagan) obunachidan manzil soʻraladi — bu
+vaqtinchalik; 0054 + supurishdan keyin savol oʻz-oʻzidan chiqmaydi.
+Tartib: 6 kargo, 7 rasmiylashtirish (YATT/bank/kabinet qadam
 kartalari — davlat saytlari oʻzgaradi, "bu tugma yoʻq" tugmasi shart),
 8 qabul, 9 studiya, 10 yuklash, 11 sotuv signallari, 12 hisobot. Har biri
 alohida bosqich va oʻz faktlarini (`fakt` jadvali) talab qiladi.

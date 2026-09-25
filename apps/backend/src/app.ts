@@ -385,9 +385,10 @@ export function build(): FastifyInstance {
   //
   // Bu uch Edge Function dagi `/suhbat` bilan BIR XIL javob berishi
   // SHART — ikkalasi ham `suhbatTurn` ni chaqiradi.
-  const suhbatBogliq = () => ({
+  const suhbatBogliq = (token: string) => ({
     rpc,
-    kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy),
+    kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
+      { kalit: process.env.XITOY_API_KEY ?? null, fetch, token }),
     ...(process.env.GEMINI_API_KEY
       ? { llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m) }
       : {}),
@@ -398,7 +399,7 @@ export function build(): FastifyInstance {
     if (typeof token !== 'string' || !token) {
       return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
     }
-    const r = await suhbatOqi(suhbatBogliq(), token);
+    const r = await suhbatOqi(suhbatBogliq(token), token);
     if ('xato' in r && !('keyingi' in r)) {
       return javob.code(r.xato === 'baza javob bermadi' ? 503 : 401).send(r);
     }
@@ -411,7 +412,7 @@ export function build(): FastifyInstance {
       return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
     }
     const tana = (request.body ?? {}) as Record<string, unknown>;
-    const d = suhbatBogliq();
+    const d = suhbatBogliq(token);
     if (tana.boshdan === true) return suhbatBoshdan(d, token);
     const r = await suhbatTurn(d, token, {
       ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
