@@ -9,6 +9,7 @@ Manzil: `https://duequijnnzcngzzvjqst.supabase.co/functions/v1/selleros`
 |---|---|
 | `/health` | tirikmi + jonli rejim flaglari |
 | `/tuzoqlar` | tovar va turkumlarni filtrdan o'tkazadi |
+| `/suhbat` | ssenariy suhbati: GET — tarix va savol, POST — javob |
 
 ## Kerakli sirlar (bir marta)
 
@@ -22,6 +23,13 @@ GitHub → **Settings** → **Secrets and variables** → **Actions** →
 
 `service_role` kaliti **kerak emas va qo'yilmasin**. Edge Function uni
 Supabase muhitidan o'zi oladi.
+
+## Suhbat uchun ixtiyoriy sir
+
+Edge Function da `GEMINI_API_KEY` (va ixtiyoriy `LLM_MODEL`) — `supabase secrets set`
+bilan. **Boʻlmasa ham suhbat ishlaydi**: LLM faqat jumlani odamdek aytadi,
+kalit yoʻq boʻlsa kodning jumlasi ketadi. Kalit qoʻyilgach javob
+`tekshiruv.ts` darvozasidan oʻtadi — LLM raqam qoʻshsa kod jumlasi qoladi.
 
 ## Sir yo'q bo'lsa nima bo'ladi
 

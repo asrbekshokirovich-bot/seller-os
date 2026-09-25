@@ -16,6 +16,31 @@ oʻzbekcha chiqadi. Toʻgʻri yoʻl — API matn emas, KOD + dalil qaytarsin,
 matnni web yigʻsin. Nega keyinroq: bu `packages/shared` dagi 8 filtr
 va backend javob shaklini oʻzgartiradi (QOIDALAR 5-boʻlim, h-shakl).
 
+— [agent, 2026-09-25] **`so_profil_oqi` / `so_profil_yoz` migratsiyada
+YOʻQ.** Ikkala backend (`app.ts:348,362`, Edge `index.ts:359,372`) ularni
+chaqiradi, lekin `supabase/migrations/` da taʼrif topilmadi — bazada
+qoʻlda yaratilgan boʻlishi mumkin (QOIDALAR 8-boʻlim, jim oʻlim). Suhbat
+(`0053`) ularga suyanmaydi: profilni oʻz RPC si yozadi. Kerak: yo
+migratsiya yozish, yo `/profil` uchlarini `so_suhbat_*` ga oʻtkazish.
+
+— [agent, 2026-09-25] **Kargo stavkasi bazada yoʻq.** 4-qadam chegara
+narxi kargosiz chiqadi va buni `yetishmaydi` bilan aytadi. Stavka
+(soʻm/kg, soʻm/m³, yoʻl boʻyicha) qaysi jadvalda turishi va kim
+toʻldirishi — nazoratchi qarori. Ssenariyning 6-qadami ham shuni kutadi.
+
+— [agent, 2026-09-25] **Ssenariy 5–12-qadamlari qurilmagan.** Mashina
+ularga yetganda rostini aytadi ("tez orada"). Tartib: 5 Xitoy (provayder
+kaliti kutilmoqda), 6 kargo, 7 rasmiylashtirish (YATT/bank/kabinet qadam
+kartalari — davlat saytlari oʻzgaradi, "bu tugma yoʻq" tugmasi shart),
+8 qabul, 9 studiya, 10 yuklash, 11 sotuv signallari, 12 hisobot. Har biri
+alohida bosqich va oʻz faktlarini (`fakt` jadvali) talab qiladi.
+
+— [agent, 2026-09-25] **`supabase/test/dokon-yozish.test.ts` Windowsda
+yiqiladi.** `core.autocrlf=true` bilan migratsiya CRLF oʻqiladi va izoh
+olib tashlanmaydi, izohdagi `coalesce(rasmiy, false)` matni testni
+qizartiradi. CI (Linux) da yashil. `kodi()` izoh kesuvchi `` ga
+chidamli boʻlishi kerak.
+
 ## Rad etilgan
 
 *(bo'sh)*

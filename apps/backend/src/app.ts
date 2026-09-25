@@ -4,6 +4,7 @@ import {
   tovarniTekshir, turkumBayroqlariniTarqat, turkumniTekshir, xulosa,
 } from './tahlil.js';
 import type { TarqalganBayroq, TurkumXaritasi } from './tahlil.js';
+import { suhbatKodHarakatlari } from './suhbat-kod.js';
 import { paymeCheckoutUrl, paymeWebhookTekshir, paymeWebhookParse, paymeJavob, paymeXato } from './payme.js';
 import { clickCheckoutUrl, clickImzoTekshir, clickWebhookParse, clickPrepareJavob, clickCompleteJavob, CLICK_XATO, type ClickWebhookTana } from './click.js';
 
@@ -15,6 +16,10 @@ interface TovarJavobi {
 import {
   KESH_ESKI_SOAT,
   demping,
+  odamlashtir,
+  suhbatBoshdan,
+  suhbatOqi,
+  suhbatTurn,
   REJA_QADAMI,
   kerakliRejalar,
   kpiXulosa,
@@ -365,6 +370,54 @@ export function build(): FastifyInstance {
     if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
     if (n.xato) return javob.code(401).send(n);
     return n;
+  });
+
+  // ── Suhbat — ssenariy holat mashinasi (nazoratchi topshirig'i, 2026-09-25) ──
+  //
+  // Savol tartibini KOD hal qiladi (`@selleros/shared` `ssenariy.ts`),
+  // hisoblar `suhbat-kod.ts` da, LLM faqat jumlani odamdek aytadi va
+  // tekshiruvdan o'tadi. Kalit bo'lmasa ham ishlaydi.
+  //
+  // Bu uch Edge Function dagi `/suhbat` bilan BIR XIL javob berishi
+  // SHART — ikkalasi ham `suhbatTurn` ni chaqiradi.
+  const suhbatBogliq = () => ({
+    rpc,
+    kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy),
+    ...(process.env.GEMINI_API_KEY
+      ? { llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m) }
+      : {}),
+  });
+
+  app.get('/suhbat', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const r = await suhbatOqi(suhbatBogliq(), token);
+    if ('xato' in r && !('keyingi' in r)) {
+      return javob.code(r.xato === 'baza javob bermadi' ? 503 : 401).send(r);
+    }
+    return r;
+  });
+
+  app.post('/suhbat', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const d = suhbatBogliq();
+    if (tana.boshdan === true) return suhbatBoshdan(d, token);
+    const r = await suhbatTurn(d, token, {
+      ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
+      ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
+    });
+    // Sessiya/baza xatosi — HTTP kodi bilan. Navbat xatosi esa 200:
+    // u obunachiga ko'rsatiladigan oddiy javob, nosozlik emas.
+    if (r.xato && r.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(r.xato)) {
+      return javob.code(r.xato.includes('baza') ? 503 : 401).send(r);
+    }
+    return r;
   });
 
   /**

@@ -35,6 +35,17 @@ uchun bitta.
    yerda: **Oʻzbekcha / Русский**. Kirill uchun shrift — Onest
    (Instrument Sans da kirill yoʻq), `shriftlar.ts` dagi izohga qarang.
 
+7. *(2026-09-25)* **Suhbat — ssenariy holat mashinasi.** Nazoratchi
+   topshirigʻi: 12 qadamli ssenariy sunʼiy intellektga joylashsin, bir
+   vaqtda BITTA savol. Tanishuv endi **2 savol** (byudjet, Uzum doʻkoni);
+   qiziqish va tajriba savollari webda soʻralmaydi (1-banddagi "3 savol"
+   oʻrniga). 3–4-savollar ("qaysi yoʻnalish", "qaysi tovar") ssenariyda
+   2 va 3-qadamning oʻzi — ular deterministik hisobdan keladi. Savol
+   tartibini kod hal qiladi (`packages/shared/src/ssenariy.ts`), LLM
+   faqat jumlani odamdek aytadi. Yon panelda **12 qadam** koʻrinadi,
+   5–12 "tez orada". Byudjet tugmalari aniq son (soʻm), oraliq emas —
+   2026-08-24 qarori saqlanadi.
+
 ## Dizayndan ataylab chetga chiqilgan joylar
 
 Dizayn fayllari ishlayotgan mahsulotni koʻrsatadi. Bugungi tizim
