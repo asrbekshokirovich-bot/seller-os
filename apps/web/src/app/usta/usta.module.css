@@ -1193,3 +1193,84 @@
   .panel { border-radius: 20px 20px 0 0; max-height: 92%; }
   .rejalar { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------------------------ tovar katalogi (2026-09-25)
+ * Tovar tanlovi suhbat OQIMI ichida, pastki panelda emas. Nazoratchi
+ * sinovi: 20 ta uzun tugma pastki panelni butun ekranga cho'zib,
+ * suhbat siljimay qolgan edi. Karta: rasm (bo'lsa), nom, narx, sotuv,
+ * ro'yxatdagi ulush, reyting, tuzoq belgisi. */
+.katalog {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  animation: kirish 0.4s ease-out both;
+}
+.katalogKarta {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--a06);
+  border: 1.5px solid var(--a13);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.katalogKarta:hover { border-color: var(--a17); }
+.katalogKarta:disabled { cursor: default; opacity: 0.85; }
+.katalogTanlangan {
+  border-color: var(--acc);
+  background: var(--a13);
+}
+.katalogRasm {
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: var(--a13);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+.katalogRasm img { width: 100%; height: 100%; object-fit: cover; }
+.katalogNomi {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.katalogDokon { font-size: 12px; color: var(--ink2); }
+.katalogNarx { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.katalogQator { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--ink2); }
+.ulush { display: flex; flex-direction: column; gap: 4px; }
+.ulushIz { height: 5px; border-radius: 999px; background: var(--a13); overflow: hidden; }
+.ulushIz > i { display: block; height: 100%; background: var(--acc); }
+.katalogBelgi {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--a17);
+  color: var(--ink2);
+}
+.katalogTanlov {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 22px; height: 22px;
+  border-radius: 999px;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700;
+  background: var(--acc);
+  color: #111;
+}
+.katalogKarta { position: relative; }
+
+/* Pastki panel hech qachon ekranni yeb qo'ymasin — himoya chegarasi. */
+.past_ .chiplar { max-height: 34vh; overflow-y: auto; }

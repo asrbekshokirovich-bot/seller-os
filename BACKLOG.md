@@ -61,6 +61,21 @@ turadigan barg turkumlar uchun toʻldirish (`docs/KOMISSIYA.md` usuli),
 yoki ota turkumdan meros qoidasi — bu nazoratchi qarori, chunki Uzum
 komissiyasi barg boʻyicha farq qiladi.
 
+— [agent, 2026-09-25] **Sotuvi 0 boʻlgan tovarga "taklif: 1 dona".**
+`miqdor()` (`qadamlar.ts`) `Math.max(1, …)` qiladi: 30 kunda 0 dona
+oʻlchangan tovarga ham 1 dona taklif chiqadi. Katalogda bu "olish
+mumkin" degan signal boʻlib koʻrinadi. Toʻgʻrisi: oʻlchangan sotuv 0
+boʻlsa `miqdor` `null` va sabab "oynada sotuv koʻrinmadi". Bu FORMULA
+xulqi — nazoratchi tasdigʻi bilan, alohida PR.
+
+— [agent, 2026-09-25] **Tovar rasmi.** Katalog rasm uchun joy bilan
+qurildi, lekin bazada rasm manzili yoʻq va ikkala skreyper ham uni
+soʻramaydi. Kerak: (1) Uzum GraphQL da rasm maydonini `skreyper-sinov`
+workflow quruq yurishi bilan oʻlchash (laptopdan zond taqiqlangan);
+(2) `product.image_url` migratsiyasi; (3) skreyper `parse()` va
+`so_ingest_batch`; (4) `so_tovar_royxati` da `rasmUrl`. UI `rasmUrl`
+kelsa oʻzi koʻrsatadi.
+
 ## Rad etilgan
 
 *(bo'sh)*
