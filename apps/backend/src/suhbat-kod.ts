@@ -16,23 +16,71 @@
  * "shu sotuv narxi va marja bilan Xitoyda maksimum qancha?". Kargo
  * stavkasi bugun bazada YO'Q — chegara kargosiz chiqadi va bu har
  * qatorda `yetishmaydi` bilan ochiq yoziladi (QOIDALAR.md, 4-bo'lim).
+ *
+ * XITOY 5-QADAMDA (2026-09-25). Har tanlangan tovar uchun: rasm
+ * (bazadan yoki obunachi yuborgan manzil) → 72 soatlik kesh → kunlik
+ * limit (reja bo'yicha, `/xitoy-qidiruv` bilan bir xil) → provayder
+ * (`xitoyQidir`) → kesh yozish + sanoq. Yuan narx CBU kursi bilan
+ * so'mga o'giriladi va 4-qadam chegarasiga solishtiriladi. Kurs
+ * olinmasa so'm yo'q va bu aytiladi. Uch holat ATAYLAB farqlanadi:
+ * topildi / topilmadi (javob) / qidirilmadi (sabab).
  */
 
 import {
   chegaraNarxi,
+  httpsManzilmi,
   KESH_ESKI_SOAT,
+  kursniOl,
+  qadamOchiq,
+  reja,
   type Flag,
   sohalar,
   tovarlar,
   uzumLogistikaSom,
+  xitoyLimitHolati,
+  xitoyQidiruvniBoshla,
+  xitoyQidiruvniTekshir,
+  XITOY_LIMIT,
   yonalishlar,
   type NomzodJavobi,
+  type ObunaXom,
   type ProfilJavoblari,
   type SuhbatBogliqliklari,
   type TovarNomzodi,
   type TovarToliq,
+  type XitoyLimitJavobi,
+  type XitoyNatijasi,
+  type XitoyQatori,
+  type XitoyTaklif,
+  type XitoyTovar,
   type YolHolati,
 } from '@selleros/shared';
+
+/** 5-qadam uchun tashqi narsalar — hammasi chaqiruvchidan (env, sessiya). */
+export interface XitoyBogliqligi {
+  /** `XITOY_API_KEY` (Apify tokeni). `null` — ulanmagan; qidiruv bo'lmaydi va shu aytiladi. */
+  kalit: string | null;
+  fetch: typeof fetch;
+  /** Sessiya tokeni — kunlik limit va reja shu odamniki. */
+  token: string;
+  /** `TARIF_CHEKLOVI=1` — `/xitoy-qidiruv` bilan bir xil darvoza. */
+  tarifCheklovi: boolean;
+  hozir?: () => Date;
+}
+
+/** Bir turnda (bitta yurishda) ko'pi bilan shuncha rasm — Edge/Vercel vaqti va xarajat uchun. */
+const BIR_TURNDA_MAX = 5;
+/** Tarmoq xatosi bilan tugagan tekshiruvlar — shundan keyin "qidirilmadi". */
+const TEKSHIRUV_URINISH_MAX = 3;
+
+/** Bitta tovar uchun 5-qadam qatori. Hamma maydon har doim to'ldiriladi. */
+function xitoyQatori(
+  productId: number, title: string, rasmUrl: string | null, chegaraSom: number | null, yetishmaydi: string[],
+  holat: XitoyQatori['holat'], sabab: string | null, jami: number | null, takliflar: XitoyTaklif[],
+  keshdan: boolean, tashlandi: number,
+): XitoyQatori {
+  return { productId, title, rasmUrl, chegaraSom, yetishmaydi, holat, sabab, jami, takliflar, keshdan, tashlandi };
+}
 
 /** `so_tovar_royxati()` javobi. */
 interface TovarJavobi {
@@ -50,6 +98,7 @@ export function suhbatKodHarakatlari(
   rpc: Rpc,
   tekshir: Tekshir,
   hozirgiOy: () => number,
+  xitoy: XitoyBogliqligi | null = null,
 ): SuhbatBogliqliklari['kod'] {
   return {
     async yonalishlar(profil: Partial<ProfilJavoblari>) {
@@ -125,6 +174,152 @@ export function suhbatKodHarakatlari(
         qatorlar,
         izoh: 'Chegara — Xitoyda 1 dona uchun maksimal narx, soʻmda. Yetishmagan qism roʻyxatda; u hisobga kirmagan, demak haqiqiy chegara PASTROQ.',
       };
+    },
+
+    async xitoy(holat: YolHolati): Promise<XitoyNatijasi> {
+      const tanlangan = Array.isArray(holat.javoblar['tovarlar'])
+        ? (holat.javoblar['tovarlar'] as unknown[]).map(Number).filter(Number.isInteger) : [];
+      const tn = holat.natijalar.tovarlar as
+        | { royxat?: Array<{ nomzod: TovarNomzodi & { rasmUrl?: string | null } }> } | undefined;
+      const tannarx = holat.natijalar.tannarx as
+        | { qatorlar?: Array<{ productId: number; chegaraSom: number | null; yetishmaydi?: string[] }> } | undefined;
+      const tovar = (id: number) => tn?.royxat?.find((x) => x.nomzod.productId === id)?.nomzod;
+      const tannarxQatori = (id: number) => tannarx?.qatorlar?.find((x) => x.productId === id);
+      const chegara = (id: number) => tannarxQatori(id)?.chegaraSom ?? null;
+      const yetishmaydi = (id: number) => tannarxQatori(id)?.yetishmaydi ?? [];
+      const rasm = (id: number): string | null => {
+        const bazadan = tovar(id)?.rasmUrl;
+        if (httpsManzilmi(bazadan)) return bazadan;
+        const yuborgan = holat.javoblar[`rasm:${id}`];
+        return httpsManzilmi(yuborgan) ? yuborgan.trim() : null;
+      };
+      const nom = (id: number) => tovar(id)?.title ?? `#${id}`;
+      const IZOH = 'Takliflar 1688 dan, rasm boʻyicha (Apify). Narx yuanda provayderdan; soʻm — CBU kursi bilan. "Chegarada" — soʻmdagi narx 4-qadam chegarasidan oshmaydi; chegaraga kirmagan qism (kargo) har qatorda yozilgan. Buyurtmalar soni jami, davri yozilmagan.';
+      const eski = holat.natijalar.xitoy as XitoyNatijasi | undefined;
+
+      const qidirilmadi = (id: number, sabab: string, rasmUrl: string | null = rasm(id)) =>
+        xitoyQatori(id, nom(id), rasmUrl, chegara(id), yetishmaydi(id), 'qidirilmadi', sabab, null, [], false, 0);
+      const takliflarniYasa = (natijalar: XitoyTovar[], chegaraSom: number | null, kurs: XitoyNatijasi['kurs']): XitoyTaklif[] => {
+        const t = natijalar.map((x) => {
+          const narxSom = kurs === null ? null : Math.round(x.narxYuan * kurs.somPerYuan);
+          const chegaradaMi = narxSom !== null && chegaraSom !== null ? narxSom <= chegaraSom : null;
+          return { ...x, narxSom, chegaradaMi };
+        });
+        // Chegarada bo'lganlar oldinda, qolgani o'xshashlik tartibida. Ko'pi bilan 10 ta.
+        t.sort((a, b) => Number(b.chegaradaMi === true) - Number(a.chegaradaMi === true));
+        return t.slice(0, 10);
+      };
+      const yakun = (kurs: XitoyNatijasi['kurs'], qatorlar: XitoyQatori[], kutilmoqda: XitoyNatijasi['kutilmoqda']): XitoyNatijasi => ({
+        olchov_yoq: kutilmoqda === null && (qatorlar.length === 0 || qatorlar.every((q) => q.holat === 'qidirilmadi')),
+        kurs,
+        qatorlar: [...qatorlar].sort((a, b) => tanlangan.indexOf(a.productId) - tanlangan.indexOf(b.productId)),
+        kutilmoqda,
+        izoh: IZOH,
+      });
+
+      if (xitoy === null || !xitoy.kalit) {
+        return yakun(null, tanlangan.map((id) => qidirilmadi(id, 'provayder kaliti yoʻq')), null);
+      }
+      const p = { kalit: xitoy.kalit, fetch: xitoy.fetch };
+      const qaytar = () => rpc('so_xitoy_limit', { p_token: xitoy.token, p_qaytar: true });
+
+      // ---- TEKSHIRISH: yurish boshlangan edi.
+      if (eski?.kutilmoqda) {
+        const k = eski.kutilmoqda;
+        const t = await xitoyQidiruvniTekshir(p, k.runId);
+        if (t.holat === 'kutilmoqda') return eski;
+        const qatorlar = [...eski.qatorlar];
+        if (t.holat === 'xato' && t.runHolati === null) {
+          // Tarmoq/API vaqtinchalik xatosi — yurish Apify'da davom etadi;
+          // bir necha marta yana kutamiz, keyin rostini aytamiz.
+          const urinish = (k.urinish ?? 0) + 1;
+          if (urinish <= TEKSHIRUV_URINISH_MAX) return { ...eski, kutilmoqda: { ...k, urinish } };
+        }
+        if (t.holat === 'xato') {
+          for (const r of k.rasmlar) {
+            await qaytar();
+            qatorlar.push(qidirilmadi(r.productId, `provayder: ${t.xato}`, r.rasmUrl));
+          }
+          return yakun(eski.kurs, qatorlar, null);
+        }
+        for (const r of k.rasmlar) {
+          const natija = t.rasmlar.find((x) => x.rasmUrl === r.rasmUrl);
+          if (natija === undefined || natija.xato !== null) {
+            // RISK_CONTROL, o'qilmagan kartalar yoki natija kelmadi — qidiruv
+            // BO'LMADI: band qaytadi, kesh yozilmaydi.
+            await qaytar();
+            qatorlar.push(qidirilmadi(r.productId, `provayder: ${natija?.xato ?? 'bu rasm uchun natija kelmadi'}`, r.rasmUrl));
+            continue;
+          }
+          // Qidiruv BO'LDI: kesh (bo'sh natija ham — u javob).
+          await rpc('so_xitoy_kesh_yoz', { p_rasm_hash: r.rasmUrl, p_natijalar: natija.natijalar, p_manba: '1688' });
+          const takliflar = takliflarniYasa(natija.natijalar, chegara(r.productId), eski.kurs);
+          qatorlar.push(xitoyQatori(r.productId, nom(r.productId), r.rasmUrl, chegara(r.productId), yetishmaydi(r.productId),
+            takliflar.length ? 'topildi' : 'topilmadi', null, natija.jami, takliflar, false, natija.tashlandi));
+        }
+        return yakun(eski.kurs, qatorlar, null);
+      }
+
+      // ---- BOSHLASH
+      const obuna = await rpc<{ xato?: string; obuna: ObunaXom | null }>('so_obuna', { p_token: xitoy.token });
+      const r = reja(obuna?.obuna ?? null, new Date()).reja;
+      if (xitoy.tarifCheklovi && !qadamOchiq(r, 4)) {
+        return yakun(null, tanlangan.map((id) => qidirilmadi(id, `tarif: "${r}" rejada Xitoy qidiruvi yopiq`)), null);
+      }
+      // Sanoq — O'LCHOV; kelmasa qidirmaymiz (nol emas).
+      const limitH = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', { p_token: xitoy.token }), r);
+      if (!limitH.ok) {
+        return yakun(null, tanlangan.map((id) => qidirilmadi(id, `limit oʻlchanmadi: ${limitH.xato}`)), null);
+      }
+      // Kurs — o'lchov. Olinmasa so'mga o'girilmaydi va bu aytiladi.
+      const kurs = await kursniOl(xitoy.fetch);
+
+      const qatorlar: XitoyQatori[] = [];
+      const boshlanadigan: Array<{ productId: number; rasmUrl: string }> = [];
+      for (const id of tanlangan) {
+        const rasmUrl = rasm(id);
+        if (rasmUrl === null) {
+          qatorlar.push(qidirilmadi(id, 'rasm yoʻq — bazada ham, obunachidan ham kelmadi', null));
+          continue;
+        }
+        const kesh = await rpc<{ topildi: boolean; natijalar?: XitoyTovar[] }>('so_xitoy_kesh_ol', { p_rasm_hash: rasmUrl });
+        if (kesh?.topildi && Array.isArray(kesh.natijalar)) {
+          const takliflar = takliflarniYasa(kesh.natijalar, chegara(id), kurs);
+          qatorlar.push(xitoyQatori(id, nom(id), rasmUrl, chegara(id), yetishmaydi(id),
+            takliflar.length ? 'topildi' : 'topilmadi', null, kesh.natijalar.length, takliflar, true, 0));
+          continue;
+        }
+        if (boshlanadigan.length >= BIR_TURNDA_MAX) {
+          qatorlar.push(qidirilmadi(id, `bir turnda ${BIR_TURNDA_MAX} tagacha rasm qidiriladi — qayta qidirishda davom etadi`, rasmUrl));
+          continue;
+        }
+        // Band qilish — yurishdan OLDIN, har rasm uchun, atomik (0055).
+        const band = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', {
+          p_token: xitoy.token, p_oshir: true, p_limit: limitH.natija.limit, p_umumiy_limit: XITOY_LIMIT.jamiKunlik,
+        }), r);
+        if (!band.ok) { qatorlar.push(qidirilmadi(id, `limit oʻlchanmadi: ${band.xato}`, rasmUrl)); continue; }
+        if (!band.ruxsat) {
+          const umumiy = band.natija.umumiy !== null && band.natija.umumiy.ishlatilgan >= band.natija.umumiy.limit;
+          qatorlar.push(qidirilmadi(id, `kunlik limit tugadi (${umumiy ? `umumiy ${band.natija.umumiy!.limit}` : `${band.natija.limit} ta, "${r}" rejasi`})`, rasmUrl));
+          continue;
+        }
+        boshlanadigan.push({ productId: id, rasmUrl });
+      }
+      if (boshlanadigan.length === 0) return yakun(kurs, qatorlar, null);
+
+      const b = await xitoyQidiruvniBoshla(p, { rasmlar: boshlanadigan.map((x) => x.rasmUrl) });
+      if (b.runId === null) {
+        for (const x of boshlanadigan) {
+          await qaytar();
+          qatorlar.push(qidirilmadi(x.productId, `provayder: ${b.xato}`, x.rasmUrl));
+        }
+        return yakun(kurs, qatorlar, null);
+      }
+      return yakun(kurs, qatorlar, {
+        runId: b.runId,
+        boshlandi: (xitoy.hozir ?? (() => new Date()))().toISOString(),
+        rasmlar: boshlanadigan,
+      });
     },
   };
 }

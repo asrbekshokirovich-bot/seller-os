@@ -22,8 +22,19 @@ const YONALISHLAR = { olchov_yoq: false, royxat: [
   { categoryId: 11, name: 'Quloqchinlar', yetadi: true, ball: { value: 72 } },
 ] };
 const TOVARLAR = { olchov_yoq: false, royxat: [
-  { nomzod: { productId: 100, title: 'Quloqchin A', narxSom: 95000 }, miqdor: { dona: 30, hisob: '30 kun = 30' } },
+  { nomzod: { productId: 100, title: 'Quloqchin A', narxSom: 95000, rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg' }, miqdor: { dona: 30, hisob: '30 kun = 30' } },
 ], chiqarildi: [] };
+const RASM = 'https://images.uzum.uz/aaa/t_product_540_high.jpg';
+const XITOY = { olchov_yoq: false, kurs: { somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' }, qatorlar: [{
+  productId: 100, title: 'Quloqchin A', rasmUrl: RASM,
+  chegaraSom: 60_000, yetishmaydi: ['kargo'], holat: 'topildi', sabab: null, jami: 680,
+  takliflar: [{ sourceId: '983093623752', title: 'T', narxYuan: 27, rasmUrl: 'https://cbu01.alicdn.com/a.jpg', moq: 1, reyting: 4.15, manba: '1688',
+    manzil: null, oxshashlikOrni: 1, dropshipNarxYuan: null, buyurtmalar: 88655, zavod: true, superZavod: false, sotuvchi: null, joy: null, dokonYili: 12,
+    narxSom: 47_587, chegaradaMi: true }],
+  keshdan: false, tashlandi: 0,
+}], kutilmoqda: null };
+/** Yurish boshlandi — natija hali yoʻq. */
+const XITOY_KUTISH = { ...XITOY, qatorlar: [], kutilmoqda: { runId: 'HG7ML7M8z78YcAPEB', boshlandi: '2026-09-25T20:00:00.000Z', rasmlar: [{ productId: 100, rasmUrl: RASM }] } };
 
 /** Xotiradagi soxta baza — so_suhbat_* RPC lari. */
 function soxtaBaza(boshlangich: YolHolati | null = null) {
@@ -53,6 +64,8 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       yonalishlar: async () => YONALISHLAR,
       tovarlar: async () => TOVARLAR,
       tannarx: async () => ({ hisoblandi: true }),
+      // Birinchi chaqiruv yurishni boshlaydi (kutilmoqda), tekshiruvda tugaydi.
+      xitoy: async (h: YolHolati) => ((h.natijalar.xitoy as { kutilmoqda?: unknown } | undefined)?.kutilmoqda ? XITOY : XITOY_KUTISH),
     },
     ...(llm ? { llm } : {}),
   };
@@ -157,7 +170,7 @@ describe('suhbatTurn', () => {
     expect(r.xabarlar[1]!.matn).toBe('Uzumda doʻkoningiz bormi?');
   });
 
-  it('to\'liq yo\'l: 1-qadamdan 5-qadam "tez orada" gacha, har turnda bitta savol', async () => {
+  it('to\'liq yo\'l: 1-qadamdan 6-qadam "tez orada" gacha, har turnda bitta savol', async () => {
     const b = soxtaBaza();
     const d = bogliq(b);
     const qadamlar: Array<{ savolId?: string; javob?: unknown }> = [
@@ -174,11 +187,45 @@ describe('suhbatTurn', () => {
       oxirgi = await suhbatTurn(d, 'tok', q);
       expect(oxirgi.xato, `${q.savolId}: ${oxirgi.xato}`).toBeUndefined();
     }
-    expect(oxirgi!.keyingi.tur).toBe('tezOrada');
+    // Tasdiqdan keyin yurish boshlandi: kutish, menejer xabari bitta.
+    expect(oxirgi!.keyingi.tur).toBe('kutish');
     expect(oxirgi!.qadam).toBe(5);
+    expect(oxirgi!.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    const jurnalOldin = b.jurnal.length;
+
+    // tekshir: natija kelgach kod + menejer (tanlov savoli) yoziladi.
+    const t = await suhbatTurn(d, 'tok', { tekshir: true });
+    expect(t.xato).toBeUndefined();
+    expect(t.xabarlar.map((x) => x.rol)).toEqual(['kod', 'menejer']);
+    expect(t.xabarlar[0]!.matn).toMatch(/1 ta tovar uchun 1688 qidirildi: 1 tasida taklif bor/);
+    if (t.keyingi.tur !== 'savol') throw new Error(t.keyingi.tur);
+    expect(t.keyingi.savol.id).toBe('xitoy_tanlov:100');
+    expect(b.jurnal.length).toBe(jurnalOldin + 2);
+
+    // tekshir kutish yoʻq paytda — hech narsa yozilmaydi, oʻsha savol.
+    const t2 = await suhbatTurn(d, 'tok', { tekshir: true });
+    expect(t2.xabarlar).toEqual([]);
+    expect(b.jurnal.length).toBe(jurnalOldin + 2);
+
+    const oxir = await suhbatTurn(d, 'tok', { savolId: 'xitoy_tanlov:100', javob: '983093623752' });
+    expect(oxir.keyingi.tur).toBe('tezOrada');
+    expect(oxir.qadam).toBe(6);
     // Har menejer xabari savolId bilan (tez orada dan tashqari).
     const menejer = b.jurnal.filter((x) => (x as { rol: string }).rol === 'menejer');
-    expect(menejer.length).toBe(qadamlar.length);
+    // 7 javob + qidiruv natijasi (tekshir) + tanlov javobi = har turnda bitta menejer gapi.
+    expect(menejer.length).toBe(qadamlar.length + 2);
+  });
+
+  it('tekshir: yurish hali tugamagan — xabar yoʻq, jurnal oʻzgarmaydi, holat kutishda qoladi', async () => {
+    const b = soxtaBaza({ javoblar: { byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+      natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY_KUTISH } });
+    const d = bogliq(b);
+    d.kod.xitoy = async () => XITOY_KUTISH;
+    const r = await suhbatTurn(d, 'tok', { tekshir: true });
+    expect(r.xato).toBeUndefined();
+    expect(r.xabarlar).toEqual([]);
+    expect(r.keyingi.tur).toBe('kutish');
+    expect(b.jurnal.length).toBe(0);
   });
 
   it('boshdan: holat tozalanadi, jurnal QOLADI', async () => {
