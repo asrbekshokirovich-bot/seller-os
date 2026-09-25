@@ -16,6 +16,25 @@ function tovarIdOl(): number | null {
   return mos ? Number(mos[1]) : null;
 }
 
+/**
+ * Sahifadagi tovar rasmi — provayder RASM boʻyicha qidiradi.
+ *
+ * Oʻlchandi 2026-09-25 (Uzum GraphQL `Product.photos[].key`,
+ * serverdan): rasm manzili `https://images.uzum.uz/<key>/<oʻlcham>`
+ * shaklida; `t_product_540_high.jpg` HEAD 200 (image/webp) qaytardi.
+ * Sahifadagi birinchi shunday rasm tovarning asosiy rasmi. Bazada
+ * rasm hali yoʻq, shuning uchun u shu yerdan olinadi.
+ *
+ * Topilmasa `null` — uch buni "rasm kelmadi" deb ochiq aytadi.
+ */
+function rasmUrlOl(): string | null {
+  for (const img of Array.from(document.images)) {
+    const m = (img.currentSrc || img.src || '').match(/images\.uzum\.uz\/([a-z0-9]+)\//);
+    if (m) return `https://images.uzum.uz/${m[1]}/t_product_540_high.jpg`;
+  }
+  return null;
+}
+
 interface Javob {
   natijalar?: Natija[];
   izoh?: string;
@@ -34,13 +53,15 @@ function tugmaYarat(): HTMLButtonElement {
       return;
     }
 
-    tugma.textContent = 'Qidirilmoqda...';
+    // Apify qidiruvi 30–90 s (background.ts har 5 s da tekshiradi).
+    tugma.textContent = 'Qidirilmoqda… (1–2 daqiqa)';
     tugma.disabled = true;
 
     try {
       const javob: Javob = await chrome.runtime.sendMessage({
         tur: 'xitoy-qidiruv',
         productId: pid,
+        rasmUrl: rasmUrlOl(),
       });
 
       if (!javob) {
@@ -70,8 +91,17 @@ function tugmaYarat(): HTMLButtonElement {
 interface Natija {
   title: string;
   narxYuan: number;
-  rasmUrl: string;
-  moq: number;
+  /** `null` — provayder rasm bermadi. */
+  rasmUrl: string | null;
+  /** `null` — provayder bermadi; chiziqcha, nol emas. */
+  moq: number | null;
+  manzil?: string | null;
+  /** Buyurtmalar soni (jami, davri yoʻq) — Apify `bookedCount`. */
+  buyurtmalar?: number | null;
+  zavod?: boolean | null;
+  superZavod?: boolean | null;
+  reyting?: number | null;
+  oxshashlikOrni?: number | null;
 }
 
 function natijalarniKorsat(natijalar: Natija[]): void {
@@ -89,18 +119,46 @@ function natijalarniKorsat(natijalar: Natija[]): void {
     const qator = document.createElement('div');
     qator.className = 'selleros-natija';
 
-    const rasm = document.createElement('img');
-    rasm.src = n.rasmUrl;
-    rasm.alt = n.title;
-    qator.appendChild(rasm);
+    if (typeof n.rasmUrl === 'string' && /^https?:\/\//i.test(n.rasmUrl)) {
+      const rasm = document.createElement('img');
+      rasm.src = n.rasmUrl;
+      rasm.alt = n.title;
+      rasm.referrerPolicy = 'no-referrer';
+      qator.appendChild(rasm);
+    }
 
     const matn = document.createElement('div');
     matn.className = 'selleros-natija-matn';
-    matn.innerHTML = `
-      <strong>${escapeHtml(n.title)}</strong>
-      <span>¥${n.narxYuan}</span>
-      <span>MOQ: ${n.moq}</span>
-    `;
+    // Raqamlar provayderdan, hech narsa hisoblanmaydi. Sotuv davri
+    // provayderda yozilmagan — shuning uchun "sotilgan", "oyiga" emas.
+    //
+    // `innerHTML` EMAS — DOM bilan. Provayder javobi ishonchsiz kirish:
+    // `manzil` `javascript:` boʻlsa, havola sifatida chizilganda u
+    // uzum.uz sahifasida kod boʻlib ishlardi. Sxema uchta joyda
+    // kesiladi: parser (`httpManzil`), shu yerdagi tekshiruv, va
+    // `a.href` ga DOM orqali berish.
+    const nom = document.createElement('strong');
+    if (typeof n.manzil === 'string' && /^https?:\/\//i.test(n.manzil)) {
+      const a = document.createElement('a');
+      a.href = n.manzil;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = n.title;
+      nom.appendChild(a);
+    } else {
+      nom.textContent = n.title;
+    }
+    matn.appendChild(nom);
+    const qismlar = [`¥${n.narxYuan}`, typeof n.moq === 'number' ? `MOQ: ${n.moq}` : 'MOQ: —'];
+    if (typeof n.buyurtmalar === 'number') qismlar.push(`buyurtma: ${n.buyurtmalar}`);
+    if (n.superZavod === true) qismlar.push('super zavod');
+    else if (n.zavod === true) qismlar.push('zavod');
+    if (typeof n.reyting === 'number') qismlar.push(`★ ${n.reyting}`);
+    for (const q of qismlar) {
+      const span = document.createElement('span');
+      span.textContent = q;
+      matn.appendChild(span);
+    }
     qator.appendChild(matn);
 
     panel.appendChild(qator);
@@ -108,12 +166,6 @@ function natijalarniKorsat(natijalar: Natija[]): void {
 
   const tugma = document.getElementById(TUGMA_ID);
   tugma?.parentElement?.insertBefore(panel, tugma.nextSibling);
-}
-
-function escapeHtml(s: string): string {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
 }
 
 function joylashtir(): void {

@@ -39,7 +39,7 @@ toʻldirishi — nazoratchi qarori. Ssenariyning 6-qadami ham shuni kutadi.
 
 — [agent, 2026-09-25] **Ssenariy 5–12-qadamlari qurilmagan.** Mashina
 ularga yetganda rostini aytadi ("tez orada"). Tartib: 5 Xitoy (provayder
-kaliti kutilmoqda), 6 kargo, 7 rasmiylashtirish (YATT/bank/kabinet qadam
+ULANDI — TMAPI, `xitoy.ts`; suhbatga ulash alohida PR), 6 kargo, 7 rasmiylashtirish (YATT/bank/kabinet qadam
 kartalari — davlat saytlari oʻzgaradi, "bu tugma yoʻq" tugmasi shart),
 8 qabul, 9 studiya, 10 yuklash, 11 sotuv signallari, 12 hisobot. Har biri
 alohida bosqich va oʻz faktlarini (`fakt` jadvali) talab qiladi.
@@ -70,11 +70,34 @@ xulqi — nazoratchi tasdigʻi bilan, alohida PR.
 
 — [agent, 2026-09-25] **Tovar rasmi.** Katalog rasm uchun joy bilan
 qurildi, lekin bazada rasm manzili yoʻq va ikkala skreyper ham uni
-soʻramaydi. Kerak: (1) Uzum GraphQL da rasm maydonini `skreyper-sinov`
-workflow quruq yurishi bilan oʻlchash (laptopdan zond taqiqlangan);
-(2) `product.image_url` migratsiyasi; (3) skreyper `parse()` va
-`so_ingest_batch`; (4) `so_tovar_royxati` da `rasmUrl`. UI `rasmUrl`
-kelsa oʻzi koʻrsatadi.
+soʻramaydi. (1) OʻLCHANDI (Hetzner serveridan, zumsavdo mijozi bilan,
+2026-09-25): `Product.photos[].key`, `original{high,low}`,
+`link(trans: PRODUCT_540){high,low}`; manzil
+`https://images.uzum.uz/<key>/t_product_540_high.jpg` (HEAD 200,
+image/webp); `photos { key }` yengil javobga ~+30 B/rasm qoʻshadi
+(12 rasm: 93 → 476 B). Qolgani: (2) `product.image_key` migratsiyasi;
+(3) skreyper `parse()` va `so_ingest_batch` — faqat ogʻir soʻrovda
+(`--stok`, kuzatilayotgan tovarlar); (4) `so_tovar_royxati` da
+`rasmUrl`. UI `rasmUrl` kelsa oʻzi koʻrsatadi. Kengaytma hozircha
+rasmni sahifadan oladi (`content.ts`, `rasmUrlOl`).
+
+— [agent, 2026-09-25] **Anonim sessiya = cheksiz limit.** `POST /sessiya`
+har chaqiruvda yangi foydalanuvchi ochadi (cheklovsiz), `so_xitoy_limit`
+esa foydalanuvchi boshiga sanaydi — provayder pullik boʻlgach bu xarajat
+teshigi. Vaqtinchalik shift: `0055` umumiy kunlik limit
+(`XITOY_LIMIT.jamiKunlik = 200`, operator tanlovi). Haqiqiy yechim —
+autentifikatsiya (telefon/Telegram) yoki `/sessiya` ga IP boʻyicha
+sekinlashtirish — nazoratchi qarori. `/kartochka` uchidagi
+`limitJ?.soni ?? 0` ham shu naqsh (nomaʼlum = nol), alohida tuzatiladi.
+
+— [agent, 2026-09-25] **Apify jonli javobi oʻlchanmagan.** Provayder
+TMAPI dan Apify (`crawleast/1688-image-search-scraper`) ga oʻtdi
+(nazoratchi qarori). `apps/backend/test/fixtures/apify-1688-rasm.json` —
+aktor dataset SXEMASI namunasi, jonli javob emas. Nazoratchi Apify
+tokenini `XITOY_API_KEY` ga qoʻygach birinchi qidiruv
+(`selleros.xitoy_kesh`) bilan almashtirish kerak (QOIDALAR §8-1).
+`so_xitoy_kesh` dagi eski TMAPI shaklidagi qatorlar yoʻq (provayder
+hech qachon chaqirilmagan).
 
 ## Rad etilgan
 

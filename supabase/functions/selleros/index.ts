@@ -36,7 +36,11 @@ import {
   kpilar,
   demping,
   tannarxHisobi,
-  limitTekshir,
+  rasmManzili,
+  xitoyLimitHolati,
+  xitoyQidiruvniBoshla,
+  xitoyQidiruvniTekshir,
+  XITOY_LIMIT,
   xatoniYubor,
   profilOqi,
   qadamOchiq,
@@ -46,6 +50,7 @@ import {
   yonalishlar,
   type KpiXom,
   type TannarxKirishi,
+  type XitoyLimitJavobi,
   type XitoyTovar,
   type NomzodJavobi,
   type ObunaXom,
@@ -509,11 +514,18 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   // lekin uning "Xitoydan top" tugmasi hech qachon ishlamagan —
   // chaqirayotgan uchi mavjud emas edi.
   //
-  // PROVAYDER HALI ULANMAGAN: TMAPI va OneBound sinov kaliti
-  // kutilmoqda. Uch tayyor; provayder ulanganda faqat shu yerdagi
-  // chaqiruv qoʻshiladi.
+  // PROVAYDER — Apify aktori (nazoratchi qarori, 2026-09-25;
+  // `shared/xitoy.ts`). Qidiruv RASM boʻyicha: kengaytma Uzum
+  // sahifasidagi tovar rasmini (`images.uzum.uz/<key>/…`) yuboradi.
   //
-  // Oqim: sessiya → tarif darvozasi → kunlik limit → kesh → provayder.
+  // ASINXRON: qidiruv 30–90 s. `{rasmUrl}` — yurishni boshlaydi va 202
+  // `{runId}` qaytaradi; `{runId, rasmUrl}` — tekshiradi: 202 kutilmoqda /
+  // 200 natija / 502 xato. Kengaytma har 5 s da tekshirib turadi.
+  //
+  // Oqim (boshlash): sessiya → tarif darvozasi → kunlik limit (oʻlchov,
+  // nol emas) → kesh → BAND QILISH (atomik, 0055) → yurish boshlash
+  // (yiqilsa band qaytariladi). Oqim (tekshirish): holat → tugagan boʻlsa
+  // natija → kesh yozish; RISK_CONTROL / oʻqilmagan — 502 + band qaytadi.
   if (yol === '/xitoy-qidiruv' && req.method === 'POST') {
     const token = req.headers.get('x-sessiya');
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
@@ -524,21 +536,75 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     let tana: Record<string, unknown> = {};
     try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
     const productId = Number(tana.productId);
-    const rasmUrl = typeof tana.rasmUrl === 'string' ? tana.rasmUrl : null;
-
-    if (!Number.isInteger(productId) && !rasmUrl) {
+    const rasmUrl = rasmManzili(tana.rasmUrl);
+    if (typeof tana.rasmUrl === 'string' && rasmUrl === null) {
+      // Manzil provayderga BIZNING kalit bilan ketadi va kesh kaliti
+      // boʻladi — faqat http(s), 2048 belgigacha.
+      return javob({ xato: 'rasmUrl http(s):// bilan boshlanishi va 2048 belgidan oshmasligi kerak' }, 400);
+    }
+    const runId = typeof tana.runId === 'string' && /^[A-Za-z0-9]{8,64}$/.test(tana.runId) ? tana.runId : null;
+    if (typeof tana.runId === 'string' && runId === null) return javob({ xato: 'runId notoʻgʻri' }, 400);
+    if (runId === null && !Number.isInteger(productId) && !rasmUrl) {
       return javob({ xato: 'productId yoki rasmUrl kerak' }, 400);
     }
 
     const n = await rejaniOl(token);
-    const limitJ = await rpc<{ xato?: string; soni?: number }>(
-      'so_xitoy_limit', { p_token: token },
-    );
-    const ishlatilgan = limitJ?.soni ?? 0;
-    const limitNatija = limitTekshir(ishlatilgan, n.reja);
+    // Sanoq — OʻLCHOV. Kelmasa (baza yoʻq, sessiya notoʻgʻri) bu "nol
+    // ishlatilgan" EMAS — toʻxtaymiz. Ilgari `?? 0` edi: notoʻgʻri token
+    // bilan ham pullik provayder chaqirilardi (tekshiruv, 2026-09-25).
+    const limitH = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', { p_token: token }), n.reja);
+    if (!limitH.ok) return javob({ xato: limitH.xato }, limitH.kod);
+    const provayderKaliti = Deno.env.get('XITOY_API_KEY');
+
+    // ---- TEKSHIRISH: boshlangan yurish tugadimi.
+    if (runId !== null) {
+      if (!provayderKaliti) return javob({ xato: 'provayder kaliti yoʻq' }, 503);
+      const t = await xitoyQidiruvniTekshir({ kalit: provayderKaliti, fetch }, runId);
+      if (t.holat === 'kutilmoqda') {
+        return javob({ kutilmoqda: true, runId, runHolati: t.runHolati, limit: limitH.natija }, 202);
+      }
+      if (t.holat === 'xato') {
+        // Yurish YAKUNIY yiqilgan boʻlsa band qaytariladi (Apify ham
+        // pul olmaydi). Tarmoq/API xatosi — qayta tekshirish mumkin,
+        // band qoladi.
+        const yakuniy = t.runHolati !== null;
+        if (yakuniy) await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
+        return javob({
+          natijalar: [], manba: null, keshdan: false, limit: limitH.natija,
+          xato: `provayder: ${t.xato}`, qaytaUrinish: !yakuniy,
+        }, 502);
+      }
+      const rasm = t.rasmlar.find((r) => rasmUrl !== null && r.rasmUrl === rasmUrl) ?? t.rasmlar[0];
+      if (rasm === undefined || rasm.xato !== null) {
+        // RISK_CONTROL, oʻqilmagan kartalar yoki natijasiz yurish —
+        // qidiruv BOʻLMADI: band qaytadi, kesh yozilmaydi.
+        await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
+        return javob({
+          natijalar: [], manba: null, keshdan: false, limit: limitH.natija,
+          xato: `provayder: ${rasm?.xato ?? 'yurish natijasiz tugadi'}`, qaytaUrinish: false,
+        }, 502);
+      }
+      // Qidiruv BOʻLDI: kesh. Boʻsh natija ham keshlanadi — u javob.
+      await rpc('so_xitoy_kesh_yoz', {
+        p_rasm_hash: rasmUrl ?? rasm.rasmUrl, p_natijalar: rasm.natijalar, p_manba: '1688',
+      });
+      return javob({
+        natijalar: rasm.natijalar,
+        manba: '1688',
+        keshdan: false,
+        jami: rasm.jami,
+        tashlandi: rasm.tashlandi,
+        limit: limitH.natija,
+        ...(rasm.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
+        ...(rasm.tashlandi > 0 ? { izoh_tashlandi: `${rasm.tashlandi} ta karta oʻqilmadi va koʻrsatilmadi.` } : {}),
+      });
+    }
+
+    // ---- BOSHLASH
+    const limitNatija = limitH.natija;
     if (!limitNatija.ruxsat) {
       return javob({
-        xato: 'kunlik limit tugadi',
+        xato: limitNatija.sabab === 'umumiy' ? 'umumiy kunlik limit tugadi' : 'kunlik limit tugadi',
         ...limitNatija,
         reja: n.reja,
       }, 429);
@@ -555,33 +621,53 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         manba: kesh.manba,
         keshdan: true,
         limit: limitNatija,
+        // Keshdagi boʻsh roʻyxat ham JAVOB — sababi bilan.
+        ...(kesh.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi (72 soatlik keshdan).' } : {}),
       });
     }
 
-    // Provayder chaqiruvi — HALI ULANMAGAN.
-    //
     // `izoh` ATAYLAB qaytariladi: boʻsh roʻyxatni "Xitoyda oʻxshashi
     // yoʻq" deb oʻqish mumkin edi, holbuki hech kim qidirmagan.
-    // Kengaytma shu matnni foydalanuvchiga koʻrsatadi.
-    const provayderKaliti = Deno.env.get('XITOY_API_KEY');
     if (!provayderKaliti) {
       return javob({
-        natijalar: [],
-        manba: null,
-        keshdan: false,
-        limit: limitNatija,
+        natijalar: [], manba: null, keshdan: false, limit: limitNatija,
         izoh: 'Qidiruv provayderi hali ulanmagan — kalit kutilmoqda.',
       });
     }
+    if (!rasmUrl) {
+      return javob({
+        natijalar: [], manba: null, keshdan: false, limit: limitNatija,
+        izoh: 'Tovar rasmi kelmadi — qidiruv rasm boʻyicha ishlaydi. Sahifani yangilab qayta urinib koʻring.',
+      });
+    }
 
-    // Provayder ulangach shu yerda API chaqiruvi va `so_xitoy_kesh_yoz`
-    // boʻladi.
+    // BAND QILISH — yurishdan OLDIN, bazada atomik (0055). Poyga: bir
+    // vaqtda kelgan soʻrovlardan faqat limit ichidagisi oʻtadi.
+    const band = xitoyLimitHolati(await rpc<XitoyLimitJavobi>('so_xitoy_limit', {
+      p_token: token, p_oshir: true, p_limit: limitNatija.limit, p_umumiy_limit: XITOY_LIMIT.jamiKunlik,
+    }), n.reja);
+    if (!band.ok) return javob({ xato: band.xato }, band.kod);
+    if (!band.ruxsat) {
+      return javob({
+        xato: band.natija.umumiy !== null && band.natija.umumiy.ishlatilgan >= band.natija.umumiy.limit
+          ? 'umumiy kunlik limit tugadi' : 'kunlik limit tugadi',
+        ...band.natija,
+        reja: n.reja,
+      }, 429);
+    }
+
+    const b = await xitoyQidiruvniBoshla({ kalit: provayderKaliti, fetch }, { rasmlar: [rasmUrl] });
+    if (b.runId === null) {
+      await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
+      return javob({
+        natijalar: [], manba: null, keshdan: false, limit: limitNatija,
+        xato: `provayder: ${b.xato}`, qaytaUrinish: false,
+      }, 502);
+    }
     return javob({
-      natijalar: [],
-      manba: null,
-      keshdan: false,
-      limit: limitNatija,
-    });
+      kutilmoqda: true, runId: b.runId, rasmUrl, limit: band.natija,
+      izoh: '1688 da qidirilmoqda — odatda 1–2 daqiqa. Natija tayyor boʻlgach shu yerda koʻrinadi.',
+    }, 202);
   }
 
   if (yol === '/tannarx' && req.method === 'POST') {
