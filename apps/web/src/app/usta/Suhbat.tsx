@@ -106,21 +106,29 @@ export default function Suhbat() {
     setMatn('');
   }, []);
 
+  /*
+   * BIR MARTA yuklanadi. `tr` har renderda yangi funksiya — u
+   * bogʻliqlikka kirsa `useEffect` har renderda qayta ishlaydi:
+   * jonli tekshiruvda (2026-09-25) `/api/suhbat` bitta ochilishda
+   * 4 marta chaqirildi. Shuning uchun til bu yerda saqlangan
+   * qiymatdan oʻqiladi, `tr` dan emas.
+   */
   const yukla = useCallback(async () => {
+    const t = tarjima(saqlanganTil() ?? 'uz');
     try {
       const r = await fetch('/api/suhbat', { cache: 'no-store' });
       const d = (await r.json()) as SuhbatJavobi & { xato?: string };
       if (!r.ok || (d.xato && !d.keyingi)) {
-        setXato(d.xato ?? tr('Ulanib boʻlmadi', 'Не удалось подключиться'));
+        setXato(d.xato ?? t('Ulanib boʻlmadi', 'Не удалось подключиться'));
       } else {
         qabul(d, true);
       }
     } catch (q) {
-      setXato(`${tr('Soʻrov yuborilmadi', 'Запрос не отправлен')}: ${String(q)}`);
+      setXato(`${t('Soʻrov yuborilmadi', 'Запрос не отправлен')}: ${String(q)}`);
     } finally {
       setYuklandi(true);
     }
-  }, [qabul, tr]);
+  }, [qabul]);
 
   useEffect(() => { void yukla(); }, [yukla]);
 
