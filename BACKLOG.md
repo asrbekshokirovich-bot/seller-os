@@ -18,10 +18,19 @@ va backend javob shaklini oʻzgartiradi (QOIDALAR 5-boʻlim, h-shakl).
 
 — [agent, 2026-09-25] **`so_profil_oqi` / `so_profil_yoz` migratsiyada
 YOʻQ.** Ikkala backend (`app.ts:348,362`, Edge `index.ts:359,372`) ularni
-chaqiradi, lekin `supabase/migrations/` da taʼrif topilmadi — bazada
-qoʻlda yaratilgan boʻlishi mumkin (QOIDALAR 8-boʻlim, jim oʻlim). Suhbat
-(`0053`) ularga suyanmaydi: profilni oʻz RPC si yozadi. Kerak: yo
-migratsiya yozish, yo `/profil` uchlarini `so_suhbat_*` ga oʻtkazish.
+chaqiradi, lekin `supabase/migrations/` da taʼrif YOʻQ. Bazada esa BOR:
+`list_migrations` (2026-09-25) `selleros_profil_oqish_yozish` (2026-08-25)
+ni koʻrsatadi — yaʼni migratsiya bazaga qoʻllangan, fayli omborga
+tushmagan. Ombor bilan baza ajralgan (QOIDALAR 8-boʻlim). Kerak: bazadagi
+taʼrifni `pg_get_functiondef` bilan olib, `00xx_selleros_profil.sql`
+sifatida omborga qaytarish. Suhbat (`0053`) ularga suyanmaydi.
+
+— [agent, 2026-09-25] **Deploy migratsiyani QOʻLLAMAYDI.** `deploy.yml`
+faqat `supabase functions deploy` qiladi; `supabase db push` yoʻq. Har
+yangi migratsiya qoʻlda (MCP yoki dashboard) qoʻllanadi — `0046` ham,
+`0053` ham shunday. Merge "ishlayapti" degani emas: `0053` siz `/suhbat`
+503 "baza javob bermadi" beradi (jonli oʻlchandi). Kerak: deploy ga
+`supabase db push` qadami, `SUPABASE_DB_PASSWORD` siri bilan.
 
 — [agent, 2026-09-25] **Kargo stavkasi bazada yoʻq.** 4-qadam chegara
 narxi kargosiz chiqadi va buni `yetishmaydi` bilan aytadi. Stavka
