@@ -35,8 +35,17 @@ function Toxta($xabar) {
 
 if ($Nom -notmatch '^[A-Z][A-Z0-9_]*$') { Toxta "Secret nomi faqat KATTA harf, raqam va _ : '$Nom'" }
 
+# CLI PATH'da bo'lmasa (nazoratchida u ~/bin da, faqat Git Bash ko'radi -
+# ikki marta bosilganda topilmadi, 2026-09-25) - ma'lum joylardan qidiramiz.
 $cli = Get-Command supabase -ErrorAction SilentlyContinue
+if (-not $cli) {
+  foreach ($j in @((Join-Path $env:USERPROFILE 'bin'), (Join-Path $env:USERPROFILE 'scoop/shims'), (Join-Path $env:APPDATA 'npm'), (Join-Path $env:LOCALAPPDATA 'Microsoft/WinGet/Links'))) {
+    if (Test-Path (Join-Path $j 'supabase.exe')) { $env:Path = "$j;$env:Path"; break }
+  }
+  $cli = Get-Command supabase -ErrorAction SilentlyContinue
+}
 if (-not $cli) { Toxta "supabase CLI topilmadi. O'rnatish: https://supabase.com/docs/guides/cli" }
+Write-Host "CLI    : $($cli.Source)"
 
 Write-Host ''
 Write-Host '=== Supabase secret qo''yish ===' -ForegroundColor Cyan
