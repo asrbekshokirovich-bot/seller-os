@@ -605,7 +605,7 @@ interface XitoyTaklifQ {
 interface XitoyQatorQ {
   productId: number; title: string; rasmUrl: string | null; chegaraSom: number | null; yetishmaydi?: string[];
   holat: 'topildi' | 'topilmadi' | 'qidirilmadi'; sabab: string | null; jami: number | null;
-  takliflar: XitoyTaklifQ[]; keshdan?: boolean; tashlandi?: number;
+  takliflar: XitoyTaklifQ[]; keshdan?: boolean; tashlandi?: number; tashxis?: string | null;
 }
 interface XitoyKursQ { somPerYuan: number; sana: string; manba: string }
 
@@ -638,6 +638,7 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
             <p className={u.ogohlik}>{tr('Chegaraga kirmadi:', 'В потолок не вошло:')} {q.yetishmaydi!.join(', ')} — {tr('haqiqiy chegara pastroq', 'реальный потолок ниже')}</p>
           )}
           {q.sabab && <p className={u.ogohlik}>{q.sabab}</p>}
+          {q.holat === 'topilmadi' && q.tashxis && <p className={u.kichikIzoh}>{q.tashxis}</p>}
           {(q.tashlandi ?? 0) > 0 && <p className={u.kichikIzoh}>{q.tashlandi} {tr('ta karta oʻqilmadi va koʻrsatilmadi', 'карточек не прочитано и не показано')}</p>}
           {q.takliflar.length > 0 && (
             <div className={u.katalog}>

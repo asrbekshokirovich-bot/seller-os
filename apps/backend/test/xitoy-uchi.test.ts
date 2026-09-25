@@ -62,12 +62,16 @@ interface Soxta {
   provayder: string[];
   /** Apify soxtasi: holat javobi va boshlash javobi. */
   apify: { boshlash: unknown; holat: unknown; natijalar: unknown };
+  /** Yurish boshlash tanasi (imagesBase64 / imageUrls) va CDN yuklashlari. */
+  yurishTanasi: Record<string, unknown> | null;
+  cdn: string[];
 }
 
 function muhit(q: { bazaBor?: boolean; soni?: number; jami?: number; kesh?: Record<string, unknown[]>; apify?: Partial<Soxta['apify']> } = {}): Soxta {
   const b: Soxta = {
     soni: q.soni ?? 0, jami: q.jami ?? 0, kesh: q.kesh ?? {}, yozilgan: [], chaqiruvlar: [], provayder: [],
     apify: { boshlash: F.boshlandi, holat: F.ishlayapti, natijalar: F.natijalar, ...(q.apify ?? {}) },
+    yurishTanasi: null, cdn: [],
   };
   if (q.bazaBor !== false) {
     process.env.SUPABASE_URL = BAZA;
@@ -102,9 +106,14 @@ function muhit(q: { bazaBor?: boolean; soni?: number; jami?: number; kesh?: Reco
     }
     if (url.includes('api.apify.com')) {
       b.provayder.push(url);
-      if (url.endsWith('/runs')) return json(b.apify.boshlash, 201);
+      if (url.endsWith('/runs')) { b.yurishTanasi = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>; return json(b.apify.boshlash, 201); }
       if (url.includes('/dataset/items')) return json(b.apify.natijalar);
       if (url.includes('/actor-runs/')) return json(b.apify.holat);
+    }
+    // Uzum CDN: rasm baytlari (WebP) — uch uni yuklab base64 qiladi.
+    if (url.startsWith('https://images.uzum.uz/')) {
+      b.cdn.push(url);
+      return new Response(new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20]), { status: 200, headers: { 'Content-Type': 'image/webp' } });
     }
     throw new Error(`kutilmagan URL: ${url}`);
   }) as unknown as typeof fetch;
@@ -196,12 +205,15 @@ describe('/xitoy-qidiruv — boshlash', () => {
     expect(b.provayder).toEqual([]);
     expect(b.soni).toBe(0);
   });
-  it('yurish boshlanadi: 202 + runId, band 1, kesh yozilmaydi, kalit sizmaydi', async () => {
+  it('yurish boshlanadi: rasm CDN dan yuklanib base64 bilan ketadi; 202 + runId, band 1, kesh yozilmaydi, kalit sizmaydi', async () => {
     process.env.XITOY_API_KEY = 'SINOV';
     const b = muhit();
     const res = await sora({ productId: 1, rasmUrl: UZUM_A });
     expect(res.statusCode).toBe(202);
-    expect(res.json()).toMatchObject({ kutilmoqda: true, runId: RUN, rasmUrl: UZUM_A, izoh: expect.stringMatching(/qidirilmoqda/) });
+    expect(res.json()).toMatchObject({ kutilmoqda: true, runId: RUN, rasmUrl: UZUM_A, usul: 'base64', rasmTuri: 'webp', rasmBayt: 16, izoh: expect.stringMatching(/qidirilmoqda/) });
+    expect(b.cdn).toEqual([UZUM_A]);
+    expect((b.yurishTanasi?.imagesBase64 as unknown[]).length).toBe(1);
+    expect(b.yurishTanasi?.imageUrls).toBeUndefined();
     expect(b.provayder.length).toBe(1);
     expect(b.provayder[0]).toMatch(/\/runs$/);
     expect(b.chaqiruvlar.indexOf('so_xitoy_limit:oshir')).toBeGreaterThan(-1);
@@ -265,12 +277,12 @@ describe('/xitoy-qidiruv — tekshirish (runId)', () => {
     expect(b.soni).toBe(0);
     expect(b.yozilgan).toEqual([]);
   });
-  it('SUCCEEDED, 0 ta — 200 izoh bilan (javob), keshlanadi, band qoladi', async () => {
+  it('SUCCEEDED, 0 ta — 200 izoh + tashxis bilan (javob), keshlanadi, band qoladi', async () => {
     process.env.XITOY_API_KEY = 'SINOV';
     const b = muhit({ soni: 1, apify: { holat: F.tugadi } });
     const res = await sora({ runId: RUN, rasmUrl: UZUM_C });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ natijalar: [], manba: '1688', jami: 0, izoh: expect.stringMatching(/1688/) });
+    expect(res.json()).toMatchObject({ natijalar: [], manba: '1688', jami: 0, tashxis: 'rasm: webp, 195 KB, yuklandi: direct, URL', izoh: expect.stringMatching(/1688 .*webp/) });
     expect(b.yozilgan.length).toBe(1);
     expect(b.soni).toBe(1);
   });
@@ -293,5 +305,21 @@ describe('/xitoy-qidiruv — tekshirish (runId)', () => {
     expect(res.statusCode).toBe(502);
     expect(res.json()).toMatchObject({ qaytaUrinish: true });
     expect(b.soni).toBe(1);
+  });
+});
+
+describe('/xitoy-qidiruv — rasm yuklanmasa', () => {
+  it('CDN 404 bersa yurish URL bilan boshlanadi (usul: url), rostini aytadi', async () => {
+    process.env.XITOY_API_KEY = 'SINOV';
+    const b = muhit();
+    globalThis.fetch = ((f) => (async (kirish: string | URL | Request, init?: RequestInit) => {
+      if (String(kirish).startsWith('https://images.uzum.uz/')) return new Response('yoq', { status: 404 });
+      return f(kirish, init);
+    }) as unknown as typeof fetch)(globalThis.fetch);
+    const res = await sora({ productId: 1, rasmUrl: UZUM_A });
+    expect(res.statusCode).toBe(202);
+    expect(res.json()).toMatchObject({ usul: 'url', rasmTuri: null });
+    expect(b.yurishTanasi?.imageUrls).toEqual([UZUM_A]);
+    expect(b.yurishTanasi?.imagesBase64).toBeUndefined();
   });
 });

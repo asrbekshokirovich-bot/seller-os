@@ -95,12 +95,23 @@ autentifikatsiya (telefon/Telegram) yoki `/sessiya` ga IP boʻyicha
 sekinlashtirish — nazoratchi qarori. `/kartochka` uchidagi
 `limitJ?.soni ?? 0` ham shu naqsh (nomaʼlum = nol), alohida tuzatiladi.
 
+— [agent, 2026-09-26] **Uzum rasmi 1688 da 0 natija — WebP.** Jonli:
+1688 JPEG rasmi (URL) → 20 ta; Uzum rasmi (URL) → 0 ta, ikki tovar
+(run QckfBksI7bFkLu6nt, ITTnGOYlDooLdSu0H). Uzum CDN faqat WebP beradi
+(`Accept` ga qaramay, JPEG/PNG yoʻli yoʻq; 800+ oʻlchamlar 400/404).
+Yechim 1 (shu PR): rasmni oʻzimiz yuklab base64 bilan yuborish +
+aktor tashxisi. Agar base64 WebP ham 0 bersa — yechim 2: Edge da
+WebP → JPEG oʻgirish (wasm, `@jsquash/webp` + `@jsquash/jpeg`), yoki
+Uzum `original.jpg` oʻrniga boshqa manba. Birinchi jonli base64
+qidiruvidan keyin hal qilinadi.
+
 — [agent, 2026-09-25] **Apify jonli javobi oʻlchanmagan.** Provayder
 TMAPI dan Apify (`crawleast/1688-image-search-scraper`) ga oʻtdi
 (nazoratchi qarori). `apps/backend/test/fixtures/apify-1688-rasm.json` —
-aktor dataset SXEMASI namunasi, jonli javob emas. Nazoratchi Apify
-tokenini `XITOY_API_KEY` ga qoʻygach birinchi qidiruv
-(`selleros.xitoy_kesh`) bilan almashtirish kerak (QOIDALAR §8-1).
+aktor dataset SXEMASI namunasi, jonli javob emas. JONLI parse qilingan
+javob (20 ta, 2026-09-25, run NidCKmobALueYAioz) —
+`apps/backend/test/fixtures/jonli-1688-natija.json`, testda tekshiriladi.
+Aktorning XOM dataset qatori hali fiksturada yoʻq (Apify konsolida bor).
 `so_xitoy_kesh` dagi eski TMAPI shaklidagi qatorlar yoʻq (provayder
 hech qachon chaqirilmagan).
 

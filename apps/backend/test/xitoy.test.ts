@@ -18,15 +18,22 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  apifyKartaniOqi, apifyNatijalarniOqi, apifyRunniOqi, limitTekshir, qidiruvniBoshlashSorovi, rasmManzili,
-  runHolatiSorovi, runNatijasiSorovi, xitoyLimitHolati, xitoyQidiruvniBoshla, xitoyQidiruvniTekshir,
-  yurishByudjetiUsd, APIFY_AKTOR, APIFY_MANZIL, XITOY_LIMIT, XITOY_RASM_MAX, XITOY_SAHIFA_MAX,
+  apifyKartaniOqi, apifyNatijalarniOqi, apifyRunniOqi, limitTekshir, qidiruvniBoshlashSorovi, rasmManzili, rasmTuri,
+  rasmYuklovchi, runHolatiSorovi, runNatijasiSorovi, tashxisMatni, xitoyLimitHolati, xitoyQidiruvniBoshla,
+  xitoyQidiruvniTekshir, yurishByudjetiUsd, APIFY_AKTOR, APIFY_MANZIL, XITOY_LIMIT, XITOY_RASM_MAX, XITOY_SAHIFA_MAX,
+  type XitoyTovar,
 } from '@selleros/shared';
 
 const F = JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/apify-1688-rasm.json'), 'utf8')) as {
   boshlandi: unknown; ishlayapti: unknown; tugadi: unknown; yiqildi: unknown;
-  kalit_notogri: unknown; balans: unknown; natijalar: unknown[];
+  kalit_notogri: unknown; balans: unknown; natijalar: unknown[]; natijalar_base64: unknown[];
 };
+/** JONLI javob (2026-09-25): 1688 JPEG rasmi → 20 ta natija, parse qilingan shakl. */
+const JONLI = JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/jonli-1688-natija.json'), 'utf8')) as {
+  jami: number; tashlandi: number; natijalar: XitoyTovar[];
+};
+/** WebP sehrli baytlari: RIFF....WEBP */
+const WEBP = new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20]);
 const UZUM_A = 'https://images.uzum.uz/aaa/t_product_540_high.jpg';
 const UZUM_B = 'https://images.uzum.uz/bbb/original.jpg';
 const UZUM_C = 'https://images.uzum.uz/ccc/original.jpg';
@@ -34,7 +41,7 @@ const KARTA = (i: number) => ((F.natijalar[0] as { results: unknown[] }).results
 
 describe('soʻrov yasash', () => {
   it('boshlash: POST aktor manziliga, Bearer kalit, kiritma va shift', () => {
-    const s = qidiruvniBoshlashSorovi('KALIT', [UZUM_A, UZUM_B], { sahifaHajmi: 99 });
+    const s = qidiruvniBoshlashSorovi('KALIT', [{ url: UZUM_A }, { url: UZUM_B }], { sahifaHajmi: 99 });
     expect(s.url).toBe(`${APIFY_MANZIL}/acts/${APIFY_AKTOR}/runs`);
     expect(s.init.method).toBe('POST');
     expect(s.init.headers.Authorization).toBe('Bearer KALIT');
@@ -45,10 +52,19 @@ describe('soʻrov yasash', () => {
     });
   });
   it('bir yurishga koʻpi bilan XITOY_RASM_MAX rasm', () => {
-    const rasmlar = Array.from({ length: 15 }, (_, i) => `https://images.uzum.uz/k${i}/original.jpg`);
+    const rasmlar = Array.from({ length: 15 }, (_, i) => ({ url: `https://images.uzum.uz/k${i}/original.jpg` }));
     const b = JSON.parse(qidiruvniBoshlashSorovi('K', rasmlar).init.body ?? '{}') as { imageUrls: string[]; maxImages: number };
     expect(b.imageUrls.length).toBe(XITOY_RASM_MAX);
     expect(b.maxImages).toBe(XITOY_RASM_MAX);
+  });
+  it('yuklangan rasm base64 bilan (`imagesBase64`), yuklanmagani URL bilan — aralash', () => {
+    const y = { base64: 'QUJD', fileName: '0123456789abcdef.webp', sha256: '0123456789abcdef'.repeat(4), bayt: 3, tur: 'webp' as const };
+    const b = JSON.parse(qidiruvniBoshlashSorovi('K', [{ url: UZUM_A, yuklangan: y }, { url: UZUM_B, yuklangan: null }]).init.body ?? '{}') as Record<string, unknown>;
+    expect(b.imagesBase64).toEqual([{ base64: 'QUJD', fileName: '0123456789abcdef.webp' }]);
+    expect(b.imageUrls).toEqual([UZUM_B]);
+    expect(b.maxImages).toBe(2);
+    const faqat = JSON.parse(qidiruvniBoshlashSorovi('K', [{ url: UZUM_A, yuklangan: y }]).init.body ?? '{}') as Record<string, unknown>;
+    expect(faqat.imageUrls).toBeUndefined();
   });
   it('shift: aktor narxidan, eng kami 0.04', () => {
     expect(yurishByudjetiUsd(1)).toBe(0.04);
@@ -143,6 +159,24 @@ describe('apifyNatijalarniOqi', () => {
     if (!n.ok) throw new Error(n.sabab);
     expect(n.rasmlar[0]).toMatchObject({ natijalar: [], tashlandi: 2, xato: expect.stringMatching(/2 ta karta berdi, birortasi oʻqilmadi/) });
   });
+  it('tashxis: aktorning rasm haqidagi maʼlumoti qatorda, matn sifatida ham', () => {
+    const n = apifyNatijalarniOqi(F.natijalar);
+    if (!n.ok) throw new Error(n.sabab);
+    expect(n.rasmlar[1]!.tashxis).toEqual({ manba: 'url', tur: 'webp', bayt: 233896, yuklash: 'direct' });
+    expect(tashxisMatni(n.rasmlar[1]!.tashxis)).toBe('rasm: webp, 228 KB, yuklandi: direct, URL');
+    expect(tashxisMatni({ manba: 'base64', tur: null, bayt: null, yuklash: 'none' })).toBe('rasm: yuklanmadi, biz yubordik');
+    expect(tashxisMatni(null)).toBeNull();
+  });
+  it('base64 kirish: natija SHA-256 prefiksi yoki img-N tartibi bilan bogʻlanadi', () => {
+    const kirish = [{ url: UZUM_A, sha256: '0123456789abcdef' + 'ff'.repeat(24) }, { url: UZUM_B, sha256: null }];
+    const n = apifyNatijalarniOqi(F.natijalar_base64, kirish);
+    if (!n.ok) throw new Error(n.sabab);
+    expect(n.rasmlar.map((r) => [r.rasmUrl, r.natijalar.length, r.tashxis?.manba])).toEqual([[UZUM_A, 1, 'base64'], [UZUM_B, 0, 'base64']]);
+    // kirish berilmasa — id bilan qoladi, yoʻqolmaydi
+    const n2 = apifyNatijalarniOqi(F.natijalar_base64);
+    if (!n2.ok) throw new Error(n2.sabab);
+    expect(n2.rasmlar.map((r) => r.rasmUrl)).toEqual(['img-0', 'img-1']);
+  });
   it('roʻyxat emas — xato (provayder xatosi boʻlsa uning matni)', () => {
     expect(apifyNatijalarniOqi(F.balans)).toMatchObject({ ok: false, sabab: expect.stringMatching(/balans/) });
     expect(apifyNatijalarniOqi({ data: [] }).ok).toBe(false);
@@ -165,11 +199,54 @@ function soxtaFetch(javoblar: Array<[string, unknown | (() => never)]>) {
   return { fetch: f, chaqiruvlar };
 }
 
+describe('rasmYuklovchi', () => {
+  it('yuklaydi: base64, SHA-256, tur sehrli baytlardan (Uzum .jpg — aslida webp)', async () => {
+    const f = (async () => new Response(WEBP, { status: 200, headers: { 'Content-Type': 'image/webp' } })) as unknown as typeof fetch;
+    const y = await rasmYuklovchi(f)(UZUM_A);
+    expect(y).not.toBeNull();
+    expect(y!.tur).toBe('webp');
+    expect(y!.bayt).toBe(WEBP.length);
+    expect(y!.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(y!.fileName).toBe(`${y!.sha256.slice(0, 16)}.webp`);
+    expect(atob(y!.base64).length).toBe(WEBP.length);
+    expect(rasmTuri(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe('jpeg');
+    expect(rasmTuri(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]))).toBe('png');
+    expect(rasmTuri(new Uint8Array([1, 2, 3]))).toBeNull();
+  });
+  it('HTTP xato, boʻsh, juda katta, tarmoq yiqilishi — null (URL bilan davom etiladi)', async () => {
+    const r = (x: Response) => (async () => x) as unknown as typeof fetch;
+    expect(await rasmYuklovchi(r(new Response('x', { status: 404 })))(UZUM_A)).toBeNull();
+    expect(await rasmYuklovchi(r(new Response(new Uint8Array(0), { status: 200 })))(UZUM_A)).toBeNull();
+    expect(await rasmYuklovchi(r(new Response(new Uint8Array(20), { status: 200 })), { maxBayt: 10 })(UZUM_A)).toBeNull();
+    const yiqil = (async () => { throw new Error('ECONNRESET'); }) as unknown as typeof fetch;
+    expect(await rasmYuklovchi(yiqil)(UZUM_A)).toBeNull();
+  });
+});
+
 describe('xitoyQidiruvniBoshla', () => {
+  it('yukla berilsa: rasm avval yuklanadi, base64 bilan ketadi, SHA qaytadi; yuklanmasa URL bilan', async () => {
+    const s = soxtaFetch([['/runs', F.boshlandi]]);
+    const yukla = async (url: string) => (url === UZUM_A
+      ? { base64: 'QUJD', fileName: 'x.webp', sha256: 'ab'.repeat(32), bayt: 3, tur: 'webp' as const }
+      : null);
+    const b = await xitoyQidiruvniBoshla({ kalit: 'K', fetch: s.fetch }, { rasmlar: [UZUM_A, UZUM_B], yukla });
+    expect(b.runId).toBe('HG7ML7M8z78YcAPEB');
+    if (b.runId === null) return;
+    expect(b.rasmlar).toEqual([
+      { url: UZUM_A, usul: 'base64', sha256: 'ab'.repeat(32), tur: 'webp', bayt: 3 },
+      { url: UZUM_B, usul: 'url', sha256: null, tur: null, bayt: null },
+    ]);
+    const tana = JSON.parse(String(s.chaqiruvlar[0]!.init?.body)) as Record<string, unknown>;
+    expect(tana.imagesBase64).toEqual([{ base64: 'QUJD', fileName: 'x.webp' }]);
+    expect(tana.imageUrls).toEqual([UZUM_B]);
+  });
   it('yurish boshlanadi: runId qaytadi, bitta POST, kalit faqat sarlavhada', async () => {
     const s = soxtaFetch([['/runs', F.boshlandi]]);
     const b = await xitoyQidiruvniBoshla({ kalit: 'KALIT', fetch: s.fetch }, { rasmlar: [UZUM_A, UZUM_B] });
-    expect(b).toEqual({ runId: 'HG7ML7M8z78YcAPEB', xato: null });
+    expect(b).toEqual({ runId: 'HG7ML7M8z78YcAPEB', xato: null, rasmlar: [
+      { url: UZUM_A, usul: 'url', sha256: null, tur: null, bayt: null },
+      { url: UZUM_B, usul: 'url', sha256: null, tur: null, bayt: null },
+    ] });
     expect(s.chaqiruvlar.length).toBe(1);
     expect((s.chaqiruvlar[0]!.init?.headers as Record<string, string>).Authorization).toBe('Bearer KALIT');
     expect(JSON.parse(String(s.chaqiruvlar[0]!.init?.body)).imageUrls).toEqual([UZUM_A, UZUM_B]);
@@ -197,6 +274,12 @@ describe('xitoyQidiruvniTekshir', () => {
     const s = soxtaFetch([['/dataset/items', F.natijalar], ['/actor-runs/', F.ishlayapti]]);
     expect(await xitoyQidiruvniTekshir({ kalit: 'K', fetch: s.fetch }, 'HG7ML7M8z78YcAPEB')).toEqual({ holat: 'kutilmoqda', runHolati: 'RUNNING' });
     expect(s.chaqiruvlar.length).toBe(1);
+  });
+  it('SUCCEEDED, base64 kirish — natija kirish roʻyxati bilan bogʻlanadi', async () => {
+    const s = soxtaFetch([['/dataset/items', F.natijalar_base64], ['/actor-runs/', F.tugadi]]);
+    const t = await xitoyQidiruvniTekshir({ kalit: 'K', fetch: s.fetch }, 'x', [{ url: UZUM_A, sha256: '0123456789abcdef' + '00'.repeat(24) }, { url: UZUM_B }]);
+    if (t.holat !== 'tugadi') throw new Error(t.holat);
+    expect(t.rasmlar.map((r) => r.rasmUrl)).toEqual([UZUM_A, UZUM_B]);
   });
   it('SUCCEEDED — natija oʻqiladi, har rasm uchun', async () => {
     const s = soxtaFetch([['/dataset/items', F.natijalar], ['/actor-runs/', F.tugadi]]);
@@ -244,5 +327,27 @@ describe('limit — oʻlchov, nol emas', () => {
     expect(xitoyLimitHolati({}, 'bepul')).toMatchObject({ ok: false, kod: 503 });
     expect(xitoyLimitHolati({ soni: 2 }, 'bepul')).toMatchObject({ ok: true, ishlatilgan: 2, jami: null, ruxsat: true, natija: { ruxsat: true, qolgan: 1 } });
     expect(xitoyLimitHolati({ soni: 3, jami: 10, ruxsat: false }, 'bepul')).toMatchObject({ ok: true, ruxsat: false, jami: 10 });
+  });
+});
+
+describe('JONLI javob (2026-09-25) — haqiqiy oʻlchov, hujjat namunasi emas', () => {
+  it('20 ta natija, oʻxshashlik tartibida, har birida XitoyTovar majburiy maydonlari', () => {
+    expect(JONLI.jami).toBe(20);
+    expect(JONLI.tashlandi).toBe(0);
+    expect(JONLI.natijalar.length).toBe(20);
+    expect(JONLI.natijalar.map((t) => t.oxshashlikOrni)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    for (const t of JONLI.natijalar) {
+      expect(typeof t.sourceId).toBe('string');
+      expect(t.title.length).toBeGreaterThan(0);
+      expect(t.narxYuan).toBeGreaterThan(0);
+      expect(t.manba).toBe('1688');
+      expect(t.manzil).toMatch(/^https:\/\/detail\.1688\.com\//);
+      expect(t.rasmUrl).toMatch(/^https:\/\//);
+      expect(t.moq === null || t.moq > 0).toBe(true);
+      expect(typeof t.zavod === 'boolean' || t.zavod === null).toBe(true);
+    }
+    // Jonli maʼlumotda oʻlchangan: buyurtmalar soni ham, zavod belgisi ham keladi.
+    expect(JONLI.natijalar.some((t) => typeof t.buyurtmalar === 'number' && t.buyurtmalar > 0)).toBe(true);
+    expect(JONLI.natijalar.some((t) => t.zavod === true)).toBe(true);
   });
 });

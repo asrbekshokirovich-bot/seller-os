@@ -72,6 +72,15 @@ content.ts → background.ts → POST /xitoy-qidiruv {productId, rasmUrl}
 `content.ts` sahifadagi birinchi `images.uzum.uz/<key>/…` rasmini
 `rasmUrl` sifatida yuboradi (bazada rasm boʻlmasa ham ishlaydi).
 
+**Rasm base64 bilan ketadi (2026-09-26).** Jonli oʻlchov: 1688 ning oʻz
+JPEG rasmi URL bilan → 20 ta natija; Uzum rasmi URL bilan → 0 ta (ikki
+tovar). Uzum CDN faqat WebP beradi (`.jpg` nomiga qaramay, JPEG
+varianti yoʻq — serverdan oʻlchandi). Endi uch rasmni oʻzi yuklab
+(`rasmYuklovchi`, ≤1 MB) aktorga `imagesBase64` bilan beradi; natija
+`sha256Prefix16` / `img-N` bilan bogʻlanadi; aktor tashxisi (`tashxis`:
+tur, bayt, yuklandimi) javobda — 0 natija sababi koʻrinadi. 202 javobida
+`usul` (`base64`/`url`), `rasmTuri`, `rasmBayt` bor.
+
 Uch javoblari ATAYLAB farqlanadi:
 
 | Holat | Javob |

@@ -36,6 +36,8 @@ import {
   tarifNarxi,
   type DavrTuri,
   rasmManzili,
+  rasmYuklovchi,
+  tashxisMatni,
   xitoyLimitHolati,
   xitoyQidiruvniBoshla,
   xitoyQidiruvniTekshir,
@@ -940,7 +942,7 @@ export function build(): FastifyInstance {
     // ---- TEKSHIRISH
     if (runId !== null) {
       if (!provayderKaliti) return javob.code(503).send({ xato: 'provayder kaliti yoʻq' });
-      const t = await xitoyQidiruvniTekshir({ kalit: provayderKaliti, fetch }, runId);
+      const t = await xitoyQidiruvniTekshir({ kalit: provayderKaliti, fetch }, runId, rasmUrl ? [{ url: rasmUrl }] : []);
       if (t.holat === 'kutilmoqda') {
         return javob.code(202).send({ kutilmoqda: true, runId, runHolati: t.runHolati, limit: limitH.natija });
       }
@@ -963,14 +965,16 @@ export function build(): FastifyInstance {
       await rpc('so_xitoy_kesh_yoz', {
         p_rasm_hash: rasmUrl ?? rasm.rasmUrl, p_natijalar: rasm.natijalar, p_manba: '1688',
       });
+      const tashxis = tashxisMatni(rasm.tashxis);
       return {
         natijalar: rasm.natijalar,
         manba: '1688',
         keshdan: false,
         jami: rasm.jami,
         tashlandi: rasm.tashlandi,
+        tashxis,
         limit: limitH.natija,
-        ...(rasm.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
+        ...(rasm.natijalar.length === 0 ? { izoh: `1688 bu rasmga oʻxshash tovar bermadi${tashxis ? ` (${tashxis})` : ''}.` } : {}),
         ...(rasm.tashlandi > 0 ? { izoh_tashlandi: `${rasm.tashlandi} ta karta oʻqilmadi va koʻrsatilmadi.` } : {}),
       };
     }
@@ -1026,7 +1030,7 @@ export function build(): FastifyInstance {
       });
     }
 
-    const b = await xitoyQidiruvniBoshla({ kalit: provayderKaliti, fetch }, { rasmlar: [rasmUrl] });
+    const b = await xitoyQidiruvniBoshla({ kalit: provayderKaliti, fetch }, { rasmlar: [rasmUrl], yukla: rasmYuklovchi(fetch) });
     if (b.runId === null) {
       await rpc('so_xitoy_limit', { p_token: token, p_qaytar: true });
       return javob.code(502).send({
@@ -1034,8 +1038,10 @@ export function build(): FastifyInstance {
         xato: `provayder: ${b.xato}`, qaytaUrinish: false,
       });
     }
+    const yuborilgan = b.rasmlar[0];
     return javob.code(202).send({
       kutilmoqda: true, runId: b.runId, rasmUrl, limit: band.natija,
+      usul: yuborilgan?.usul ?? 'url', rasmTuri: yuborilgan?.tur ?? null, rasmBayt: yuborilgan?.bayt ?? null,
       izoh: '1688 da qidirilmoqda — odatda 1–2 daqiqa. Natija tayyor boʻlgach shu yerda koʻrinadi.',
     });
   });
