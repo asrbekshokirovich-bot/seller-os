@@ -60,7 +60,20 @@ olmaydi. Bu ongli tanlov: savollar hali oʻzgaradi va ikki tilni
 barobar olib borish har oʻzgarishni ikki barobar qiladi. Matn
 barqarorlashgach ruschasi qoʻshiladi.
 
-### Webda: 3 savol suhbatda, 9 tasi «Profilim» da (2026-09-24)
+### Webda: faqat 3 savol, «Profilim» da savol yoʻq (2026-09-25)
+
+Nazoratchi qarori: «suhbatda 3 savol yetadi, profilda savol
+boʻlmasin — obuna, sozlamalar koʻrinib tursin». Qolgan 9 savol webda
+**hozircha soʻralmaydi**. Matni `@selleros/shared` (`SAVOLLAR`) da
+qoladi — oʻchirilmadi, keyin qayerda soʻralishi birga rejalashtiriladi.
+Oqibati: oila sohasi (2) ham endi soʻralmaydi, yaʼni «Sizga moslik»
+balliga faqat qiziqish va tajriba kiradi.
+
+«Profilim» endi: hisob (mehmon; kirish tez orada), obuna (joriy —
+Bepul; Pro/Biznes narxi `TARIF_NARXI` dan, toʻlov ulanmagani uchun
+"tez orada"), sozlamalar (mavzu, til, javoblarni qayta berish).
+
+### Oldingi qaror (tarix): 3 savol suhbatda, 9 tasi «Profilim» da (2026-09-24)
 
 Nazoratchi qarori, yangi chat dizayni bilan birga. 12 savolning
 hammasi QOLADI — faqat qayerda soʻralishi oʻzgaradi:

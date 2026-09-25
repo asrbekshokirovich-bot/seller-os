@@ -446,9 +446,6 @@
   color: var(--ink3);
 }
 
-.pufakTugmalar {
-  margin-top: 10px;
-}
 
 .yozmoqda {
   align-self: flex-start;
@@ -943,22 +940,8 @@
 
 .kiritish input::placeholder { color: var(--ink3); }
 
-.kiritishKichik {
-  border-radius: 14px;
-  padding: 4px 12px;
-  max-width: 320px;
-}
 
-.kiritishKichik input {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 14px;
-  padding: 8px 0;
-}
 
-.birlik {
-  font-size: 12.5px;
-  color: var(--ink3);
-}
 
 .yubor {
   flex: none;
@@ -1085,32 +1068,86 @@
   padding: 6px 20px 16px;
 }
 
-.profilSavol {
+.profilBolim {
   padding: 14px 0;
   border-bottom: 1px solid var(--a13);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.profilSavol .yorliq {
-  padding: 4px 0 10px;
+.profilBolim:last-child { border-bottom: 0; }
+
+.profilBolim .yorliq {
+  padding: 4px 0 0;
   color: var(--accMatn);
 }
 
-.profilMatn {
-  margin: 0;
+.profilQator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profilQator .kichikIzoh { margin: 2px 0 0; }
+
+.profilNom {
   font-size: 14.5px;
   font-weight: 500;
 }
 
-.profilSavol .nega { margin: 3px 0 10px; }
+.profilQiymat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--ink2);
+}
 
-.panelOxiri {
-  flex: none;
+.rejalar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.reja {
+  border: 1px solid var(--a17);
+  border-radius: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 20px 18px;
-  border-top: 1px solid var(--a17);
+  gap: 6px;
 }
+
+.rejaJoriy {
+  border-color: var(--acc);
+  background: var(--a06);
+}
+
+.rejaBosh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rejaNarx {
+  white-space: nowrap;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rejaNarx span {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink3);
+}
+
+.reja .kichikIzoh { margin: 0; }
+
 
 /* ---------------------------------------------------------- telefon */
 
@@ -1154,4 +1191,5 @@
 
   .panelFon { padding: 0; align-items: flex-end; }
   .panel { border-radius: 20px 20px 0 0; max-height: 92%; }
+  .rejalar { grid-template-columns: 1fr; }
 }
