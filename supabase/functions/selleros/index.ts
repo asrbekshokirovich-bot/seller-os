@@ -22,10 +22,15 @@ import {
   type TarqalganBayroq,
   type TurkumXaritasi,
 } from './tahlil.ts';
+import { suhbatKodHarakatlari } from './suhbat-kod.ts';
 import {
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
   REJA_QADAMI,
+  odamlashtir,
+  suhbatBoshdan,
+  suhbatOqi,
+  suhbatTurn,
   kerakliRejalar,
   kpiXulosa,
   kpilar,
@@ -373,6 +378,37 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       if (n === null) return javob({ xato: 'baza javob bermadi' }, 503);
       if (n.xato) return javob(n, 401);
       return javob(n);
+    }
+  }
+
+  // Suhbat — ssenariy holat mashinasi (nazoratchi, 2026-09-25).
+  // `apps/backend` dagi `/suhbat` bilan bir xil: ikkalasi `suhbatTurn`.
+  if (yol === '/suhbat') {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    const kalit = Deno.env.get('GEMINI_API_KEY');
+    const d = {
+      rpc,
+      kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy),
+      ...(kalit ? { llm: (m: string) => odamlashtir({ kalit, model: Deno.env.get('LLM_MODEL') }, m) } : {}),
+    };
+    if (req.method === 'GET') {
+      const r = await suhbatOqi(d, token);
+      if ('xato' in r && !('keyingi' in r)) return javob(r, r.xato === 'baza javob bermadi' ? 503 : 401);
+      return javob(r);
+    }
+    if (req.method === 'POST') {
+      let tana: Record<string, unknown> = {};
+      try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+      if (tana.boshdan === true) return javob(await suhbatBoshdan(d, token));
+      const r = await suhbatTurn(d, token, {
+        ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
+        ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
+      });
+      if (r.xato && r.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(r.xato)) {
+        return javob(r, r.xato.includes('baza') ? 503 : 401);
+      }
+      return javob(r);
     }
   }
 

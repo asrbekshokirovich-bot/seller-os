@@ -294,3 +294,31 @@ Qoldiq hali o'lchanmagan tovarda sotuv `buyers_per_week x 4.3` bilan
 taxmin qilinadi. Bu **aniqroq emas**, shuning uchun javobda
 `sotuvManbasi` maydoni bor: `olchandi` yoki `taxmin`. Foydalanuvchi
 raqam qayerdan kelganini bilishi kerak.
+
+## 6. Suhbat (2026-09-25)
+
+Nazoratchi topshirigʻi: ssenariy sunʼiy intellektga joylashsin, bir
+vaqtda bitta savol. Tartibni **kod** hal qiladi
+(`packages/shared/src/ssenariy.ts`), LLM faqat jumlani odamdek aytadi va
+`tekshiruv.ts` darvozasidan oʻtadi (raqam qoʻshsa — kod jumlasi ketadi).
+
+### `suhbat_xabar` — jurnal, faqat qoʻshiladi
+`(user_id, seq)` kalit. `rol` — `obunachi` / `menejer` / `kod`.
+`savol_id` — qaysi savolga; `javob` — xom javob (`jsonb`). Tahrir va
+oʻchirish trigger bilan taqiqlangan (`recommendations` bilan bir xil sabab).
+
+### `yol` — hozirgi oʻrin
+`user_id` kalit. `holat` (`jsonb`) — `ssenariy.ts` dagi `YolHolati`:
+`{javoblar, natijalar}`. `qadam` 1–12. **Ustunlarda emas, jsonb da** —
+ssenariy oʻzgarganda migratsiya kerak boʻlmasin.
+
+`so_suhbat_yoz` `yol` qatorini `for update` bilan qulflaydi: bir odamning
+ikki soʻrovi bir vaqtda kelsa `seq` toʻqnashmaydi.
+
+Byudjet va Uzum doʻkoni javoblari `user_profiles` ga ham yoziladi
+(`budget_uzs`, `answers`) — 2-qadam profilni oʻsha yerdan oʻqiydi. Boʻsh
+javob `null`, nol emas.
+
+> **Topilma (2026-09-25).** `so_profil_oqi` va `so_profil_yoz` ikkala
+> backendda chaqiriladi, lekin **birorta migratsiyada taʼriflanmagan**.
+> Suhbat ularga suyanmaydi; masala BACKLOG da.

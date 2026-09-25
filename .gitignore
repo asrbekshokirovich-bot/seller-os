@@ -22,3 +22,6 @@ venv/
 .next/
 
 apps/scraper/*.egg-info/
+
+# Mahalliy agent sozlamalari
+.claude/

@@ -14,9 +14,9 @@
  * ikkalasini solishtiradi — savolsiz maydon ham, maydonsiz savol
  * ham xato.
  *
- * FAQAT OʻZBEKCHA — ongli tanlov (hujjat, "Faqat oʻzbekcha" boʻlimi):
- * savollar hali oʻzgaradi va ikki tilni barobar olib borish har
- * oʻzgarishni ikki barobar qiladi.
+ * Matn bu yerda OʻZBEKCHA. Webdagi uch savolning ruschasi (2026-09-25)
+ * `apps/web/src/app/usta/page.tsx` dagi `SAVOL_RU` da — faqat
+ * koʻrinadigan matn; maydon va qiymatlar shu yerda, bitta.
  */
 
 import {

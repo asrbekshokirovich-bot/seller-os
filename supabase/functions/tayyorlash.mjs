@@ -33,6 +33,11 @@ export const FAYLLAR = [
   ['packages/shared/src/qismlar.ts', 'shared/qismlar.ts'],
   ['packages/shared/src/qadamlar.ts', 'shared/qadamlar.ts'],
   ['packages/shared/src/savollar.ts', 'shared/savollar.ts'],
+  ['packages/shared/src/ssenariy.ts', 'shared/ssenariy.ts'],
+  ['packages/shared/src/suhbat.ts', 'shared/suhbat.ts'],
+  ['packages/shared/src/chegara.ts', 'shared/chegara.ts'],
+  ['packages/shared/src/llm.ts', 'shared/llm.ts'],
+  ['packages/shared/src/tekshiruv.ts', 'shared/tekshiruv.ts'],
   ['packages/shared/src/tarif.ts', 'shared/tarif.ts'],
   ['packages/shared/src/tolov.ts', 'shared/tolov.ts'],
   ['packages/shared/src/kpi.ts', 'shared/kpi.ts'],
@@ -42,6 +47,7 @@ export const FAYLLAR = [
   ['packages/shared/src/xizmat.ts', 'shared/xizmat.ts'],
   ['packages/shared/src/kartochka.ts', 'shared/kartochka.ts'],
   ['apps/backend/src/tahlil.ts', 'tahlil.ts'],
+  ['apps/backend/src/suhbat-kod.ts', 'suhbat-kod.ts'],
 ];
 
 /*
