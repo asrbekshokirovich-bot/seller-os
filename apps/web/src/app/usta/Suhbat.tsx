@@ -191,7 +191,6 @@ export default function Suhbat() {
     if (!kutishBormi) return;
     const id = setInterval(() => { void yubor({ tekshir: true }, true); }, 8000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kutishBormi]);
   const boshdan = () => void yubor({ boshdan: true });
 
