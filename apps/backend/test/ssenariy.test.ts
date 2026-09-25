@@ -265,3 +265,23 @@ describe('zanjir hech qayerda uzilmaydi', () => {
     expect(new Set(savollar).size).toBe(savollar.length);
   });
 });
+
+describe('tushuntir — tannarx rostini aytadi', () => {
+  it('hech narsa hisoblanmasa "hisoblandi" DEMAYDI, sababini aytadi', () => {
+    const m = tushuntir('tannarx', { olchov_yoq: true, qatorlar: [
+      { chegaraSom: null, yetishmaydi: ['komissiya'] },
+      { chegaraSom: null, yetishmaydi: ['komissiya', 'kargo'] },
+    ] });
+    expect(m).not.toMatch(/hisoblandi\./);
+    expect(m).toMatch(/komissiya, kargo yetishmaydi/);
+    expect(m).toMatch(/foyda yoʻq" degani EMAS/);
+  });
+  it('qisman hisoblansa sonini va yetishmaganini aytadi', () => {
+    const m = tushuntir('tannarx', { qatorlar: [
+      { chegaraSom: 50_000, yetishmaydi: ['kargo'] },
+      { chegaraSom: null, yetishmaydi: ['komissiya'] },
+    ] });
+    expect(m).toMatch(/1 ta tovar uchun/);
+    expect(m).toMatch(/1 tasida yetishmagan/);
+  });
+});
