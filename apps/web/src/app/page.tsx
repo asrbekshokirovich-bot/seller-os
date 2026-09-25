@@ -17,7 +17,7 @@
 import type { Metadata, Viewport } from 'next';
 import { holatMatni } from '@/lib/bazamiz';
 import { bazamizniOl } from '@/lib/bazamizOl';
-import { mono, sans } from './shriftlar';
+import { kirill, mono, sans } from './shriftlar';
 import BoshSahifa from './BoshSahifa';
 
 /*
@@ -41,10 +41,11 @@ export default async function Page() {
   const hozir = Date.now();
   const o = await bazamizniOl(hozir);
   return (
-    <div className={`${sans.variable} ${mono.variable}`}>
+    <div className={`${sans.variable} ${kirill.variable} ${mono.variable}`}>
       <BoshSahifa
         tovar={o && typeof o.qiymat.tovar === 'number' ? o.qiymat.tovar : null}
         holat={holatMatni(o, hozir)}
+        holatRu={holatMatni(o, hozir, 'ru')}
       />
     </div>
   );

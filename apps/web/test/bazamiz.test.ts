@@ -81,3 +81,37 @@ describe('holatMatni — uch holat ARALASHMAYDI', () => {
     expect(m).toContain('Eski raqam koʻrsatilmaydi');
   });
 });
+
+/*
+ * Ruscha (2026-09-25). Tekshiruv matnning soʻzma-soʻz tarjimasini
+ * emas, oʻzbekcha testlardagi UCH holat ruschada ham ajralishini
+ * tekshiradi — eskirgan raqam "bugungi" boʻlib qolmasin.
+ */
+describe('ruscha — holatlar oʻzbekchadagidek ajraladi', () => {
+  it('yosh: qisqartma bilan, kelishiksiz', () => {
+    expect(yosh(30_000, 'ru')).toBe('только что');
+    expect(yosh(5 * 60_000, 'ru')).toBe('5 мин. назад');
+    expect(yosh(3 * 3_600_000, 'ru')).toBe('3 ч. назад');
+    expect(yosh(2 * 86_400_000, 'ru')).toBe('2 дн. назад');
+  });
+
+  it('yangi oʻlchov: sana bor, yosh yoʻq', () => {
+    const m = holatMatni(OLCHOV, HOZIR + 60_000, 'ru');
+    expect(m).toContain('2026-08-25');
+    expect(m).not.toContain('назад');
+  });
+
+  it('eskirgan oʻlchov: yoshi AYTILADI', () => {
+    const m = holatMatni(OLCHOV, HOZIR + 5 * 3_600_000, 'ru');
+    expect(m).toContain('5 ч. назад');
+    expect(m).toContain('не обновлены');
+  });
+
+  it('oʻlchov yoʻq: eski raqam koʻrsatilmasligi AYTILADI', () => {
+    expect(holatMatni(null, HOZIR, 'ru')).toContain('Старые цифры не показываем');
+  });
+
+  it('til koʻrsatilmasa — oʻzbekcha (eski chaqiruvlar oʻzgarmaydi)', () => {
+    expect(holatMatni(null, HOZIR)).toBe(holatMatni(null, HOZIR, 'uz'));
+  });
+});

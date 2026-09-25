@@ -53,7 +53,17 @@ puli yoʻq odamga oʻxshab qoladi va tavsiya notoʻgʻri chiqadi.
 Byudjet `null` boʻlsa 2-qadam miqdorni hisoblamaydi — "byudjet
 koʻrsatilmagan" deb yozadi va yoʻnalishni baribir beradi.
 
-### Faqat oʻzbekcha — nima yoʻqotamiz
+### Ruscha qoʻshildi (2026-09-25)
+
+Nazoratchi qarori: «Profilim» da til tanlanadi — Oʻzbekcha / Русский.
+Webda (bosh sahifa va Usta) butun interfeys ikki tilda; suhbatdagi uch
+savol va soha variantlari ham. Ruscha matn `apps/web` da, `tr(uz, ru)`
+bilan oʻzbekchasi yonida turadi — savolning oʻzi (maydon, qiymatlar)
+`@selleros/shared` da bitta. Qolgan 9 savolning ruschasi YOʻQ — ular
+webda soʻralmaydi. Backend yozgan matnlar (tuzoq sababi, miqdor hisobi)
+hozircha oʻzbekcha — BACKLOG ga qarang.
+
+### Faqat oʻzbekcha — nima yoʻqotamiz (tarix, 2026-08-24)
 
 Rus tilida gaplashadigan sotuvchilar birinchi versiyada qatnasha
 olmaydi. Bu ongli tanlov: savollar hali oʻzgaradi va ikki tilni

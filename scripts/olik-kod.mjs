@@ -138,10 +138,16 @@ function chetda(f) {
 const royxat = (buyruq) =>
   execSync(buyruq, { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
 
+/*
+ * `.tsx` 2026-09-25 da qoʻshildi. Ungacha qorovul React fayllarni
+ * umuman koʻrmasdi: `lib/til.ts` dagi funksiyalar faqat `page.tsx`
+ * dan chaqiriladi va "oʻlik" deb chiqdi. Bu (f) shaklining uchinchi
+ * marta takrorlanishi — koʻrish maydoni vaʼdasidan tor edi.
+ */
 const fayllar = [...new Set([
-  ...royxat("git ls-files '*.ts' '*.mjs' '*.py' | grep -v node_modules | grep -v dist"),
+  ...royxat("git ls-files '*.ts' '*.tsx' '*.mjs' '*.py' | grep -v node_modules | grep -v dist"),
   ...royxat(
-    "git ls-files --others --exclude-standard '*.ts' '*.mjs' '*.py' "
+    "git ls-files --others --exclude-standard '*.ts' '*.tsx' '*.mjs' '*.py' "
     + '| grep -v node_modules | grep -v dist || true',
   ),
 ])];

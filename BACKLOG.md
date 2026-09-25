@@ -7,7 +7,14 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
-*(bo'sh)*
+— [agent, 2026-09-25] **Backend matnlarining ruschasi.** Web ikki tilli
+boʻldi, lekin API tayyor oʻzbekcha jumla qaytaradigan joylar bor:
+tuzoq sababi (`Flag.reason`), `miqdorSababi`, `miqdor.hisob`,
+`bolishTaklifi.sabab`, `chiqarildi[].sabab`, `olchov_yoq` sababi,
+`yetishmaydi`/`missing` maydon nomlari. Ruscha interfeysda ular
+oʻzbekcha chiqadi. Toʻgʻri yoʻl — API matn emas, KOD + dalil qaytarsin,
+matnni web yigʻsin. Nega keyinroq: bu `packages/shared` dagi 8 filtr
+va backend javob shaklini oʻzgartiradi (QOIDALAR 5-boʻlim, h-shakl).
 
 ## Rad etilgan
 

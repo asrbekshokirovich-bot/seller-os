@@ -20,18 +20,27 @@
  *      tugma shunchaki Ustani ochadi.
  *   5. Jonli son: kuzatilayotgan tovarlar. U bazadan keladi, yoshi
  *      aytiladi, olinmasa — chiziqcha (QOIDALAR.md, 4-boʻlim).
+ *
+ * TIL. Bu sahifada til tugmasi yoʻq — til Ustada, «Profilim» da
+ * tanlanadi (`so_til`), bu yerda faqat oʻqiladi. Holat jumlasi
+ * serverda ikkala tilda tayyorlanadi: raqam brauzerda sakramasin.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { son } from '@/lib/bazamiz';
+import { saqlanganTil, tarjima, tilniQoy, type Til } from '@/lib/til';
 import b from './bosh.module.css';
 
 type Mavzu = 'tungi' | 'yorug';
 
 interface Bekat {
   joy: string;
+  /** Joy nomi ruschada farq qilsa. Yiwu, Uzum, Chrome — oʻzgarmaydi. */
+  joyRu?: string;
   nom: string;
   matn: string;
+  /** Ruscha: `[nom, matn, meta?]`. */
+  ru: readonly [string, string, (readonly [string, string])?];
   ishlaydi: boolean;
   /** Bekatda haqiqatan bor narsa. Yoʻq boʻlsa — koʻrsatilmaydi. */
   meta?: readonly [string, string];
@@ -42,6 +51,11 @@ const BEKATLAR: readonly Bekat[] = [
     joy: 'Uzum',
     nom: 'Nisha tanlash',
     matn: 'Yoʻnalish va tovar: 6 qismli ball, 8 ta tuzoq-filtr va tavsiya miqdor.',
+    ru: [
+      'Выбор ниши',
+      'Направление и товар: балл из 6 частей, 8 фильтров-ловушек и рекомендуемое количество.',
+      ['фильтры-ловушки', '8'],
+    ],
     ishlaydi: true,
     meta: ['tuzoq-filtr', '8 ta'],
   },
@@ -49,6 +63,11 @@ const BEKATLAR: readonly Bekat[] = [
     joy: 'Yiwu',
     nom: 'Zavod topish',
     matn: '1688 va Taobao lotlarini solishtirish. Hozircha Xitoy narxini oʻzingiz kiritasiz.',
+    ru: [
+      'Поиск фабрики',
+      'Сравнение лотов 1688 и Taobao. Пока цену в Китае вводите сами.',
+      ['расчёт себестоимости', 'работает'],
+    ],
     ishlaydi: false,
     meta: ['tannarx hisobi', 'ishlaydi'],
   },
@@ -56,18 +75,22 @@ const BEKATLAR: readonly Bekat[] = [
     joy: 'Chrome',
     nom: 'Buyurtma',
     matn: 'Kengaytma savatni toʻldiradi va zavodga soʻrov yuboradi.',
+    ru: ['Заказ', 'Расширение заполняет корзину и отправляет запрос фабрике.'],
     ishlaydi: false,
   },
   {
     joy: 'Toshkent',
+    joyRu: 'Ташкент',
     nom: 'Yetkazish',
     matn: 'Kargo, bojxona va broker hisobi, yuk kuzatuvi.',
+    ru: ['Доставка', 'Расчёт карго, таможни и брокера, отслеживание груза.'],
     ishlaydi: false,
   },
   {
     joy: 'Uzum Market',
     nom: 'Doʻkonda',
     matn: 'Kartochka matni, narx va moderatsiya holati.',
+    ru: ['В магазине', 'Текст карточки, цена и статус модерации.'],
     ishlaydi: false,
   },
 ];
@@ -103,8 +126,13 @@ const SOF_TUSHUM = TUSHUM - UZUM;
 const FOYDA = SOF_TUSHUM - SARMOYA;
 const MARJA = (FOYDA / TUSHUM) * 100;
 
-export default function BoshSahifa({ tovar, holat }: { tovar: number | null; holat: string }) {
+export default function BoshSahifa({ tovar, holat, holatRu }: {
+  tovar: number | null; holat: string; holatRu: string;
+}) {
   const [mavzu, setMavzu] = useState<Mavzu>('tungi');
+  const [til, setTil] = useState<Til>('uz');
+  const tr = tarjima(til);
+  const mlnB = tr('mln', 'млн');
   const [i, setI] = useState(0);
   const [toxta, setToxta] = useState(false);
   const [harakatsiz, setHarakatsiz] = useState(false);
@@ -119,6 +147,8 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
       const s = localStorage.getItem('so_mavzu');
       if (s === 'yorug' || s === 'tungi') setMavzu(s);
     } catch { /* saqlangan qiymat yoʻq — standart tungi */ }
+    const t = saqlanganTil();
+    if (t) { setTil(t); tilniQoy(t); }
     const m = window.matchMedia('(prefers-reduced-motion: reduce)');
     setHarakatsiz(m.matches);
   }, []);
@@ -185,9 +215,9 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
             <span className={b.nishon} aria-hidden="true">Z</span>
             ZumSavdo
           </a>
-          <nav className={b.navOng} aria-label="Asosiy">
-            <a className={b.navHavola} href="#yol">Yoʻl</a>
-            <a className={b.kirish} href="/usta">Ustaga oʻtish</a>
+          <nav className={b.navOng} aria-label={tr('Asosiy', 'Главное')}>
+            <a className={b.navHavola} href="#yol">{tr('Yoʻl', 'Путь')}</a>
+            <a className={b.kirish} href="/usta">{tr('Ustaga oʻtish', 'Перейти к Мастеру')}</a>
           </nav>
         </div>
       </header>
@@ -195,43 +225,56 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
       <main>
         <section className={b.hero}>
           <div>
-            <div className={b.kicker}><span className={b.tirik} aria-hidden="true" />Guangzhou → Toshkent → Uzum</div>
+            <div className={b.kicker}><span className={b.tirik} aria-hidden="true" />
+              {tr('Guangzhou → Toshkent → Uzum', 'Гуанчжоу → Ташкент → Uzum')}
+            </div>
             <h1 className={b.h1}>
-              Bir dona tovarning doʻkoningizgacha yoʻli — besh bekat, har birida raqam.
+              {tr(
+                'Bir dona tovarning doʻkoningizgacha yoʻli — besh bekat, har birida raqam.',
+                'Путь одного товара до вашего магазина — пять станций, на каждой цифры.',
+              )}
             </h1>
             <p className={b.lead}>
-              Nisha tanlash va tannarx bugun ishlaydi. Xitoydan zavod, buyurtma,
-              yetkazish va Uzum kartochkasi — tez orada. Qaror har doim sizniki.
+              {tr(
+                'Nisha tanlash va tannarx bugun ishlaydi. Xitoydan zavod, buyurtma, yetkazish va Uzum kartochkasi — tez orada. Qaror har doim sizniki.',
+                'Выбор ниши и себестоимость работают уже сегодня. Фабрика в Китае, заказ, доставка и карточка Uzum — скоро. Решение всегда за вами.',
+              )}
             </p>
             <div className={b.tugmalar}>
-              <a className={b.asosiyTugma} href="/usta">Suhbatni boshlash</a>
-              <a className={b.ikkinchiTugma} href="#yol">Bekatlarni koʻrish</a>
+              <a className={b.asosiyTugma} href="/usta">{tr('Suhbatni boshlash', 'Начать чат')}</a>
+              <a className={b.ikkinchiTugma} href="#yol">{tr('Bekatlarni koʻrish', 'Смотреть станции')}</a>
             </div>
             <div className={b.jonli}>
               <div className={b.jonliSon}>
                 <span className={tovar === null ? b.ochiq : b.tirik} aria-hidden="true" />
-                <span className={b.mono}>{tovar === null ? '—' : son(tovar)}</span> tovar kuzatilmoqda · Uzum
+                <span className={b.mono}>{tovar === null ? '—' : son(tovar)}</span>{' '}
+                {tr('tovar kuzatilmoqda', 'товаров отслеживается')} · Uzum
               </div>
-              <div className={b.jonliIzoh}>{holat}</div>
+              <div className={b.jonliIzoh}>{til === 'ru' ? holatRu : holat}</div>
             </div>
           </div>
 
           <div className={`${b.shisha} ${b.oqim}`}>
             <div className={b.oqimBosh}>
-              <span>Pul oqimi · {MISOL.dona} dona · silikon toʻplam</span>
-              <span className={b.misolTeg}>misol</span>
+              <span>
+                {tr(
+                  `Pul oqimi · ${MISOL.dona} dona · silikon toʻplam`,
+                  `Денежный поток · ${MISOL.dona} шт. · силиконовый набор`,
+                )}
+              </span>
+              <span className={b.misolTeg}>{tr('misol', 'пример')}</span>
             </div>
 
             <div className={b.oqimQator}>
               <div className={b.kichikKarta}>
-                <div className={b.yorliq}>Sarmoya</div>
-                <div className={b.katta}>{mln(SARMOYA * mSarmoya)}</div>
+                <div className={b.yorliq}>{tr('Sarmoya', 'Вложения')}</div>
+                <div className={b.katta}>{mln(SARMOYA * mSarmoya, mlnB)}</div>
                 <div className={b.chiziqlar}>
                   <Chiziq w={(MISOL.xitoy / SARMOYA_DONA) * 100 * mSarmoya} rang="ink" />
                   <Chiziq w={(MISOL.kargo / SARMOYA_DONA) * 100 * mSarmoya} rang="ink2" />
                   <Chiziq w={(MISOL.bojxona / SARMOYA_DONA) * 100 * mSarmoya} rang="qum" />
                 </div>
-                <div className={b.izoh}>tovar · kargo · bojxona</div>
+                <div className={b.izoh}>{tr('tovar · kargo · bojxona', 'товар · карго · таможня')}</div>
               </div>
 
               <div className={b.yol} aria-hidden="true">
@@ -243,44 +286,53 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
                     <span className={b.zarra} style={{ animationDelay: '2.1s' }} />
                   </>
                 )}
-                <div className={b.yolNomlar}><span>Xitoy</span><span>Toshkent</span><span>Uzum</span></div>
+                <div className={b.yolNomlar}>
+                  <span>{tr('Xitoy', 'Китай')}</span><span>{tr('Toshkent', 'Ташкент')}</span><span>Uzum</span>
+                </div>
                 <div className={b.yolHolat}>
-                  {kun} kun · {mYol < 1 ? 'yoʻlda' : mTushum < 1 ? 'sotuvda' : 'yakunlandi'}
+                  {tr(`${kun} kun`, `${kun} дн.`)} ·{' '}
+                  {mYol < 1
+                    ? tr('yoʻlda', 'в пути')
+                    : mTushum < 1 ? tr('sotuvda', 'в продаже') : tr('yakunlandi', 'завершено')}
                 </div>
               </div>
 
               <div className={b.sariqKarta}>
-                <div className={b.yorliqQora}>Tushum</div>
-                <div className={b.katta}>{mln(TUSHUM * mTushum)}</div>
-                <div className={b.izohQora}>{MISOL.dona} × {son(MISOL.sotuv)} soʻm</div>
-                <div className={b.izohQora}>Uzum ushlaydi −{mln(UZUM * mTushum)}</div>
+                <div className={b.yorliqQora}>{tr('Tushum', 'Выручка')}</div>
+                <div className={b.katta}>{mln(TUSHUM * mTushum, mlnB)}</div>
+                <div className={b.izohQora}>{MISOL.dona} × {son(MISOL.sotuv)} {tr('soʻm', 'сум')}</div>
+                <div className={b.izohQora}>{tr('Uzum ushlaydi', 'Uzum удерживает')} −{mln(UZUM * mTushum, mlnB)}</div>
               </div>
             </div>
 
             <div className={b.kichikKarta} style={{ marginTop: 16 }}>
-              <Qator nom="Sarmoya" q={mln(SARMOYA * mSarmoya)} />
+              <Qator nom={tr('Sarmoya', 'Вложения')} q={mln(SARMOYA * mSarmoya, mlnB)} />
               <div className={b.bar}><i className={b.barQum} style={{ width: `${(SARMOYA / SOF_TUSHUM) * 100 * mSarmoya}%` }} /></div>
-              <Qator nom="Sof tushum (Uzumdan keyin)" q={mln(SOF_TUSHUM * mTushum)} />
+              <Qator nom={tr('Sof tushum (Uzumdan keyin)', 'Чистая выручка (после Uzum)')} q={mln(SOF_TUSHUM * mTushum, mlnB)} />
               <div className={b.bar}><i className={b.barSariq} style={{ width: `${100 * mTushum}%` }} /></div>
               <div className={b.foyda}>
-                <span>Sof foyda</span>
+                <span>{tr('Sof foyda', 'Чистая прибыль')}</span>
                 <span>
-                  <span className={b.foydaMln}>{mln(FOYDA * mTushum)}</span>
+                  <span className={b.foydaMln}>{mln(FOYDA * mTushum, mlnB)}</span>
                   <b>{Math.round(MARJA * mTushum)}%</b>
                 </span>
               </div>
             </div>
             <p className={b.oqimOst}>
-              Raqamlar misol. Oʻz tovaringiz uchun — Ustada, 4-qadam: har qator manbasi bilan.
+              {tr(
+                'Raqamlar misol. Oʻz tovaringiz uchun — Ustada, 4-qadam: har qator manbasi bilan.',
+                'Цифры — пример. Для вашего товара — в Мастере, шаг 4: каждая строка с источником.',
+              )}
             </p>
           </div>
         </section>
 
-        <section id="yol" className={b.yolBolim} aria-label="Besh bekat">
+        <section id="yol" className={b.yolBolim} aria-label={tr('Besh bekat', 'Пять станций')}>
           <div className={b.bolimBosh}>
-            <h2 className={b.h2}>Besh bekat</h2>
+            <h2 className={b.h2}>{tr('Besh bekat', 'Пять станций')}</h2>
             <div className={b.bolimMeta}>
-              Bekat {i + 1} / {BEKATLAR.length}{!toxta && !harakatsiz ? ' · avtomatik' : ''}
+              {tr('Bekat', 'Станция')} {i + 1} / {BEKATLAR.length}
+              {!toxta && !harakatsiz ? tr(' · avtomatik', ' · автоматически') : ''}
             </div>
           </div>
 
@@ -293,7 +345,7 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
                 type="button"
                 className={b.trekNuqta}
                 style={{ left: `${joy[n] ?? 10}%`, background: n <= i ? 'var(--acc)' : 'var(--a30)' }}
-                aria-label={`Bekat ${n + 1}: ${q.nom}`}
+                aria-label={`${tr('Bekat', 'Станция')} ${n + 1}: ${tr(q.nom, q.ru[0])}`}
                 aria-current={n === i ? 'step' : undefined}
                 onClick={() => tanla(n)}
               />
@@ -305,7 +357,7 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
                 className={`${b.trekNom} ${n === i ? b.trekNomFaol : ''}`}
                 style={{ left: `${joy[n] ?? 10}%` }}
               >
-                {q.joy}
+                {tr(q.joy, q.joyRu ?? q.joy)}
               </span>
             ))}
           </div>
@@ -331,21 +383,23 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
                     aria-pressed={n === i}
                   >
                     <span className={b.bekatBosh}>
-                      <span>Bekat 0{n + 1}</span><span>{q.joy}</span>
+                      <span>{tr('Bekat', 'Станция')} 0{n + 1}</span><span>{tr(q.joy, q.joyRu ?? q.joy)}</span>
                     </span>
                     <span className={b.bekatNom}>
-                      {q.nom}
+                      {tr(q.nom, q.ru[0])}
                       <span className={`${b.holatTeg} ${q.ishlaydi ? b.holatBor : ''}`}>
-                        {q.ishlaydi ? 'ishlaydi' : 'tez orada'}
+                        {q.ishlaydi ? tr('ishlaydi', 'работает') : tr('tez orada', 'скоро')}
                       </span>
                     </span>
-                    <span className={b.bekatMatn}>{q.matn}</span>
+                    <span className={b.bekatMatn}>{tr(q.matn, q.ru[1])}</span>
                     <span className={b.bekatBar}>
                       <i style={{ width: n === i && !toxta && !harakatsiz ? `${progress * 100}%` : n === i ? '100%' : '0%' }} />
                     </span>
                     <span className={b.bekatOxir}>
-                      <span>{q.meta ? q.meta[0] : 'holat'}</span>
-                      <b className={q.meta ? '' : b.metaYoq}>{q.meta ? q.meta[1] : 'tez orada'}</b>
+                      <span>{q.meta ? tr(q.meta[0], q.ru[2]?.[0] ?? q.meta[0]) : tr('holat', 'статус')}</span>
+                      <b className={q.meta ? '' : b.metaYoq}>
+                        {q.meta ? tr(q.meta[1], q.ru[2]?.[1] ?? q.meta[1]) : tr('tez orada', 'скоро')}
+                      </b>
                     </span>
                   </button>
                 );
@@ -359,13 +413,15 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
         <section className={b.cta}>
           <div className={b.ctaIchi}>
             <div>
-              <h2 className={b.ctaSarlavha}>Yoʻlni byudjetingiz boshlaydi.</h2>
+              <h2 className={b.ctaSarlavha}>{tr('Yoʻlni byudjetingiz boshlaydi.', 'Путь начинается с вашего бюджета.')}</h2>
               <p className={b.ctaMatn}>
-                Uch savol — byudjet, qiziqish, tajriba. Keyin Usta yoʻnalish va tovarni
-                Uzum bazasidan, raqamlar bilan tanlaydi.
+                {tr(
+                  'Uch savol — byudjet, qiziqish, tajriba. Keyin Usta yoʻnalish va tovarni Uzum bazasidan, raqamlar bilan tanlaydi.',
+                  'Три вопроса — бюджет, интерес, опыт. Затем Мастер подберёт направление и товар по базе Uzum, с цифрами.',
+                )}
               </p>
             </div>
-            <a className={b.asosiyTugma} href="/usta">Suhbatni boshlash</a>
+            <a className={b.asosiyTugma} href="/usta">{tr('Suhbatni boshlash', 'Начать чат')}</a>
           </div>
         </section>
       </main>
@@ -373,8 +429,8 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
       <footer className={b.pastki}>
         <div className={b.pastkiIchi}>
           <span>ZumSavdo · Uzum Market</span>
-          <a href="/maxfiylik">Maxfiylik siyosati</a>
-          <span>Toshkent · 2026</span>
+          <a href="/maxfiylik">{tr('Maxfiylik siyosati', 'Политика конфиденциальности')}</a>
+          <span>{tr('Toshkent', 'Ташкент')} · 2026</span>
         </div>
       </footer>
     </div>
@@ -396,6 +452,6 @@ function Qator({ nom, q }: { nom: string; q: string }) {
 }
 
 /** `10 950 000` → `11,0 mln`. Bir xona kasr — "11 mln" yaxlitlashi 50 ming yashiradi. */
-function mln(n: number): string {
-  return `${(n / 1_000_000).toFixed(1).replace('.', ',')} mln`;
+function mln(n: number, birlik: string): string {
+  return `${(n / 1_000_000).toFixed(1).replace('.', ',')} ${birlik}`;
 }
