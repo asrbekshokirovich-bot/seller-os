@@ -35,7 +35,7 @@ uchun bitta.
    yerda: **Oʻzbekcha / Русский**. Kirill uchun shrift — Onest
    (Instrument Sans da kirill yoʻq), `shriftlar.ts` dagi izohga qarang.
 
-7. *(2026-09-25)* **Suhbat — ssenariy holat mashinasi.** Nazoratchi
+7. *(2026-09-25, nazoratchi TASDIQLADI)* **Suhbat — ssenariy holat mashinasi.** Nazoratchi
    topshirigʻi: 12 qadamli ssenariy sunʼiy intellektga joylashsin, bir
    vaqtda BITTA savol. Tanishuv endi **2 savol** (byudjet, Uzum doʻkoni);
    qiziqish va tajriba savollari webda soʻralmaydi (1-banddagi "3 savol"
