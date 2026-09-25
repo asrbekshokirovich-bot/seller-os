@@ -16,6 +16,25 @@ function tovarIdOl(): number | null {
   return mos ? Number(mos[1]) : null;
 }
 
+/**
+ * Sahifadagi tovar rasmi — provayder RASM boʻyicha qidiradi.
+ *
+ * Oʻlchandi 2026-09-25 (Uzum GraphQL `Product.photos[].key`,
+ * serverdan): rasm manzili `https://images.uzum.uz/<key>/<oʻlcham>`
+ * shaklida; `t_product_540_high.jpg` HEAD 200 (image/webp) qaytardi.
+ * Sahifadagi birinchi shunday rasm tovarning asosiy rasmi. Bazada
+ * rasm hali yoʻq, shuning uchun u shu yerdan olinadi.
+ *
+ * Topilmasa `null` — uch buni "rasm kelmadi" deb ochiq aytadi.
+ */
+function rasmUrlOl(): string | null {
+  for (const img of Array.from(document.images)) {
+    const m = (img.currentSrc || img.src || '').match(/images\.uzum\.uz\/([a-z0-9]+)\//);
+    if (m) return `https://images.uzum.uz/${m[1]}/t_product_540_high.jpg`;
+  }
+  return null;
+}
+
 interface Javob {
   natijalar?: Natija[];
   izoh?: string;
@@ -41,6 +60,7 @@ function tugmaYarat(): HTMLButtonElement {
       const javob: Javob = await chrome.runtime.sendMessage({
         tur: 'xitoy-qidiruv',
         productId: pid,
+        rasmUrl: rasmUrlOl(),
       });
 
       if (!javob) {
@@ -72,6 +92,11 @@ interface Natija {
   narxYuan: number;
   rasmUrl: string;
   moq: number;
+  /** 2026-09-25 dan provayder beradi; eski keshda boʻlmasligi mumkin. */
+  manzil?: string | null;
+  sotilgan?: number | null;
+  zavod?: boolean | null;
+  reyting?: number | null;
 }
 
 function natijalarniKorsat(natijalar: Natija[]): void {
@@ -96,11 +121,16 @@ function natijalarniKorsat(natijalar: Natija[]): void {
 
     const matn = document.createElement('div');
     matn.className = 'selleros-natija-matn';
-    matn.innerHTML = `
-      <strong>${escapeHtml(n.title)}</strong>
-      <span>¥${n.narxYuan}</span>
-      <span>MOQ: ${n.moq}</span>
-    `;
+    // Raqamlar provayderdan, hech narsa hisoblanmaydi. Sotuv davri
+    // provayderda yozilmagan — shuning uchun "sotilgan", "oyiga" emas.
+    const qismlar = [`¥${n.narxYuan}`, `MOQ: ${n.moq}`];
+    if (typeof n.sotilgan === 'number') qismlar.push(`sotilgan: ${n.sotilgan}`);
+    if (n.zavod === true) qismlar.push('zavod');
+    if (typeof n.reyting === 'number') qismlar.push(`★ ${n.reyting}`);
+    const nom = n.manzil
+      ? `<a href="${escapeHtml(n.manzil)}" target="_blank" rel="noopener noreferrer">${escapeHtml(n.title)}</a>`
+      : escapeHtml(n.title);
+    matn.innerHTML = `<strong>${nom}</strong>` + qismlar.map((q) => `<span>${escapeHtml(q)}</span>`).join('');
     qator.appendChild(matn);
 
     panel.appendChild(qator);

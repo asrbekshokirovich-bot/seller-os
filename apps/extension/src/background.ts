@@ -83,15 +83,17 @@ async function sessiyaOl(yangidan = false): Promise<string | null> {
  * boʻlishi mumkin, va bunda foydalanuvchiga "sessiya xatosi" deb
  * koʻrsatish notoʻgʻri boʻlardi — u hech narsa qila olmaydi.
  */
-async function xitoyQidir(productId: number): Promise<QidiruvJavobi> {
+async function xitoyQidir(productId: number, rasmUrl: string | null): Promise<QidiruvJavobi> {
   let token = await sessiyaOl();
   if (!token) return { xato: 'sessiya ochilmadi' };
 
+  // Provayder RASM boʻyicha qidiradi (2026-09-25). Rasm manzilini
+  // content script sahifadan oladi; bazada tovar rasmi hali yoʻq.
   const sorov = (t: string) =>
     fetch(`${BACKEND_URL}/xitoy-qidiruv`, {
       method: 'POST',
       headers: sarlavhalar(t),
-      body: JSON.stringify({ productId }),
+      body: JSON.stringify({ productId, ...(rasmUrl ? { rasmUrl } : {}) }),
     });
 
   let javob = await sorov(token);
@@ -109,7 +111,7 @@ async function xitoyQidir(productId: number): Promise<QidiruvJavobi> {
 chrome.runtime.onMessage.addListener((xabar, _yuboruvchi, javobBer) => {
   if (xabar?.tur !== 'xitoy-qidiruv') return false;
 
-  xitoyQidir(Number(xabar.productId))
+  xitoyQidir(Number(xabar.productId), typeof xabar.rasmUrl === 'string' ? xabar.rasmUrl : null)
     .then(javobBer)
     .catch((e) => javobBer({ xato: String(e?.message ?? e) }));
 

@@ -36,6 +36,7 @@ import {
   tarifNarxi,
   type DavrTuri,
   limitTekshir,
+  xitoyQidir,
   moqHisobi,
   kartochkaLimitTekshir,
   xizmatNarxi,
@@ -897,12 +898,11 @@ export function build(): FastifyInstance {
   /**
    * 4-qadam: rasm-qidiruv — Uzum tovarining 1688 muqobillarini topadi (B4).
    *
-   * PROVAYDER HALI ULANMAGAN: TMAPI va OneBound sinov kaliti
-   * kutilmoqda. Hozircha endpointning oʻzi tayyor — provayder
-   * ulanganda faqat `xitoyQidiruvProvayderiga` funksiyasi almashadi.
+   * PROVAYDER — TMAPI, 2026-09-25 da ulandi (`@selleros/shared`
+   * `xitoy.ts`). Edge Function dagi `/xitoy-qidiruv` bilan BIR XIL.
    *
-   * Oqim: limit tekshir → keshdan izla → (provayder chaqir) →
-   * keshga yoz → natija qaytar.
+   * Oqim: limit tekshir → keshdan izla → provayder chaqir →
+   * keshga yoz + kunlik sanoq → natija qaytar.
    */
   app.post('/xitoy-qidiruv', async (request, javob) => {
     const token = request.headers['x-sessiya'];
@@ -948,10 +948,10 @@ export function build(): FastifyInstance {
         manba: kesh.manba,
         keshdan: true,
         limit: limitNatija,
+        ...(kesh.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi (72 soatlik keshdan).' } : {}),
       };
     }
 
-    // Provayder chaqiruvi — HALI ULANMAGAN
     const provayderKaliti = process.env.XITOY_API_KEY;
     if (!provayderKaliti) {
       return {
@@ -962,14 +962,40 @@ export function build(): FastifyInstance {
         izoh: 'Qidiruv provayderi hali ulanmagan — kalit kutilmoqda.',
       };
     }
+    if (!rasmUrl) {
+      return {
+        natijalar: [],
+        manba: null,
+        keshdan: false,
+        limit: limitNatija,
+        izoh: 'Tovar rasmi kelmadi — qidiruv rasm boʻyicha ishlaydi. Sahifani yangilab qayta urinib koʻring.',
+      };
+    }
 
-    // Provayder ulangach shu yerda API chaqiruvi boʻladi.
-    // Hozircha boʻsh javob.
+    const q = await xitoyQidir({ kalit: provayderKaliti, fetch }, { rasmUrl });
+    if (q.xato !== null) {
+      return javob.code(502).send({
+        natijalar: [],
+        manba: null,
+        keshdan: false,
+        limit: limitNatija,
+        xato: `provayder: ${q.xato}`,
+      });
+    }
+
+    await rpc('so_xitoy_kesh_yoz', {
+      p_rasm_hash: rasmHash, p_natijalar: q.natijalar, p_manba: q.manba ?? '1688',
+    });
+    const sanoq = await rpc<{ soni?: number }>('so_xitoy_limit', { p_token: token, p_oshir: true });
     return {
-      natijalar: [],
-      manba: null,
+      natijalar: q.natijalar,
+      manba: q.manba,
       keshdan: false,
-      limit: limitNatija,
+      jami: q.jami,
+      tashlandi: q.tashlandi,
+      vaqtMs: q.vaqtMs,
+      limit: limitTekshir(sanoq?.soni ?? ishlatilgan + 1, n.reja),
+      ...(q.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
     };
   });
 

@@ -39,7 +39,7 @@ toʻldirishi — nazoratchi qarori. Ssenariyning 6-qadami ham shuni kutadi.
 
 — [agent, 2026-09-25] **Ssenariy 5–12-qadamlari qurilmagan.** Mashina
 ularga yetganda rostini aytadi ("tez orada"). Tartib: 5 Xitoy (provayder
-kaliti kutilmoqda), 6 kargo, 7 rasmiylashtirish (YATT/bank/kabinet qadam
+ULANDI — TMAPI, `xitoy.ts`; suhbatga ulash alohida PR), 6 kargo, 7 rasmiylashtirish (YATT/bank/kabinet qadam
 kartalari — davlat saytlari oʻzgaradi, "bu tugma yoʻq" tugmasi shart),
 8 qabul, 9 studiya, 10 yuklash, 11 sotuv signallari, 12 hisobot. Har biri
 alohida bosqich va oʻz faktlarini (`fakt` jadvali) talab qiladi.
@@ -70,11 +70,24 @@ xulqi — nazoratchi tasdigʻi bilan, alohida PR.
 
 — [agent, 2026-09-25] **Tovar rasmi.** Katalog rasm uchun joy bilan
 qurildi, lekin bazada rasm manzili yoʻq va ikkala skreyper ham uni
-soʻramaydi. Kerak: (1) Uzum GraphQL da rasm maydonini `skreyper-sinov`
-workflow quruq yurishi bilan oʻlchash (laptopdan zond taqiqlangan);
-(2) `product.image_url` migratsiyasi; (3) skreyper `parse()` va
-`so_ingest_batch`; (4) `so_tovar_royxati` da `rasmUrl`. UI `rasmUrl`
-kelsa oʻzi koʻrsatadi.
+soʻramaydi. (1) OʻLCHANDI (Hetzner serveridan, zumsavdo mijozi bilan,
+2026-09-25): `Product.photos[].key`, `original{high,low}`,
+`link(trans: PRODUCT_540){high,low}`; manzil
+`https://images.uzum.uz/<key>/t_product_540_high.jpg` (HEAD 200,
+image/webp); `photos { key }` yengil javobga ~+30 B/rasm qoʻshadi
+(12 rasm: 93 → 476 B). Qolgani: (2) `product.image_key` migratsiyasi;
+(3) skreyper `parse()` va `so_ingest_batch` — faqat ogʻir soʻrovda
+(`--stok`, kuzatilayotgan tovarlar); (4) `so_tovar_royxati` da
+`rasmUrl`. UI `rasmUrl` kelsa oʻzi koʻrsatadi. Kengaytma hozircha
+rasmni sahifadan oladi (`content.ts`, `rasmUrlOl`).
+
+— [agent, 2026-09-25] **TMAPI jonli javobi oʻlchanmagan.**
+`apps/backend/test/fixtures/tmapi-1688-rasm.json` — hujjat namunasi.
+Birinchi haqiqiy qidiruv (`selleros.xitoy_kesh`) bilan almashtirish
+kerak (QOIDALAR §8-1: darvoza testi haqiqiy oʻlchov bilan). Test
+kalitida `Test quota: 0 Credits` koʻrindi — sinov krediti bormi,
+nazoratchi konsolda tekshiradi; boʻlmasa birinchi qidiruv 439
+(balans) qaytaradi va uch buni ochiq aytadi.
 
 ## Rad etilgan
 

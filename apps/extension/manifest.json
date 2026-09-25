@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Seller OS — Xitoydan top",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Uzum.uz sahifasida \"Xitoydan top\" tugmasi — 1688 dan oʻxshash tovar topadi.",
   "permissions": [
     "activeTab",

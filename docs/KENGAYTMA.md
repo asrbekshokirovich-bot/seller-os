@@ -3,7 +3,8 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
-Doʻkonda: **Published — public**, 2026-09-02 dan beri.
+Doʻkonda: **Published — public**, 2026-09-02 dan beri. Provayder
+ulangan versiya — **0.1.2** (2026-09-25), doʻkonga qayta yuklanishi kerak.
 
 ## 2026-09-05 — nashr qilingan, lekin hech qachon ishlamagan
 
@@ -49,25 +50,44 @@ Kalit — Supabase ning **ommaviy** (`publishable`) kaliti. Panel ham
 shuni ishlatadi. `service_role` kengaytmaga hech qachon tushmaydi
 (QOIDALAR.md, 3-qoida).
 
-## Hozir nima chiqadi
+## 2026-09-25 — provayder ulandi (TMAPI)
 
-Zanjir uланган, lekin **1688 provayderi ulanmagan** — TMAPI/OneBound
-sinov kaliti kutilmoqda. `XITOY_API_KEY` boʻsh boʻlgani uchun uch
-shunday javob beradi:
+`XITOY_API_KEY` Supabase secret sifatida qoʻyildi (nazoratchi,
+`scripts/kalit-qoy.cmd` orqali — kalit chatga ham, repoga ham
+tushmaydi). Provayder — TMAPI, hujjatning Markdown eksporti
+`tmapi.top/docs/ali/search/search-items-by-image-url.md`:
 
-```json
-{ "natijalar": [], "izoh": "Qidiruv provayderi hali ulanmagan — kalit kutilmoqda." }
+```
+GET  https://api.tmapi.top/1688/search/image?img_url=…&page_size=20&sort=default
+POST https://api.tmapi.top/1688/tools/image/convert_url   {"url": "…"}
+sarlavha: apikey: <kalit>
 ```
 
-Tugma oʻsha matnni koʻrsatadi. Bu ataylab: boʻsh roʻyxatni
-«Xitoyda oʻxshashi yoʻq» deb oʻqish mumkin edi, holbuki hech kim
-qidirmagan (QOIDALAR.md, 4-qoida).
+**Qidiruv RASM boʻyicha**, tovar id si boʻyicha emas. Bazada tovar
+rasmi hali yoʻq (BACKLOG: "Tovar rasmi"), shuning uchun `content.ts`
+sahifadagi birinchi `images.uzum.uz/<key>/…` rasmini olib
+`rasmUrl` sifatida yuboradi. Uzum rasmi Ali platformasiniki emas —
+uch avval `convert_url` bilan oʻgiradi, keyin qidiradi
+(`packages/shared/src/xitoy.ts`, `xitoyQidir`).
 
-## Provayder ulanganda
+Uch endi uch xil javob beradi va ular ATAYLAB farqlanadi:
 
-Bittagina joy oʻzgaradi: `supabase/functions/selleros/index.ts`
-dagi `/xitoy-qidiruv` ichida `XITOY_API_KEY` tekshiruvidan keyingi
-blok. Kesh (`so_xitoy_kesh_yoz`) va kunlik limit allaqachon tayyor.
+| Holat | Javob |
+|---|---|
+| Qidiruv boʻldi, topildi | `natijalar: [...]`, `jami`, `limit` |
+| Qidiruv boʻldi, 0 ta | `natijalar: []`, `izoh: "1688 bu rasmga oʻxshash tovar bermadi."` |
+| Qidiruv BOʻLMADI (provayder xatosi, balans, tarmoq) | HTTP 502, `xato: "provayder: …"`; limit sanalmaydi |
+| Rasm kelmadi | `izoh: "Tovar rasmi kelmadi …"` |
+
+Kunlik sanoq (`so_xitoy_limit`, `p_oshir`) ILGARI hech qachon
+oshirilmasdi — limit qogʻozda edi. Endi faqat BOʻLGAN qidiruv
+sanaladi. Kesh (`so_xitoy_kesh_yoz`) ham shu yerda yoziladi; boʻsh
+natija ham keshlanadi — u javob.
+
+Jonli javob hali oʻlchanmagan: fikstura
+`apps/backend/test/fixtures/tmapi-1688-rasm.json` hujjat namunasi.
+Birinchi haqiqiy qidiruv `selleros.xitoy_kesh` ga tushadi — fikstura
+oʻsha bilan almashtirilishi kerak.
 
 ## Doʻkonga yuklash
 

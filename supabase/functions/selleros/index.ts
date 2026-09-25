@@ -37,6 +37,7 @@ import {
   demping,
   tannarxHisobi,
   limitTekshir,
+  xitoyQidir,
   xatoniYubor,
   profilOqi,
   qadamOchiq,
@@ -509,11 +510,12 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   // lekin uning "Xitoydan top" tugmasi hech qachon ishlamagan —
   // chaqirayotgan uchi mavjud emas edi.
   //
-  // PROVAYDER HALI ULANMAGAN: TMAPI va OneBound sinov kaliti
-  // kutilmoqda. Uch tayyor; provayder ulanganda faqat shu yerdagi
-  // chaqiruv qoʻshiladi.
+  // PROVAYDER — TMAPI, 2026-09-25 da ulandi (`shared/xitoy.ts`).
+  // Qidiruv RASM boʻyicha: kengaytma Uzum sahifasidagi tovar rasmini
+  // (`images.uzum.uz/<key>/…`) yuboradi; bazada rasm hali yoʻq.
   //
-  // Oqim: sessiya → tarif darvozasi → kunlik limit → kesh → provayder.
+  // Oqim: sessiya → tarif darvozasi → kunlik limit → kesh → provayder
+  // → kesh yozish + kunlik sanoq.
   if (yol === '/xitoy-qidiruv' && req.method === 'POST') {
     const token = req.headers.get('x-sessiya');
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
@@ -555,11 +557,11 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         manba: kesh.manba,
         keshdan: true,
         limit: limitNatija,
+        // Keshdagi boʻsh roʻyxat ham JAVOB — sababi bilan.
+        ...(kesh.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi (72 soatlik keshdan).' } : {}),
       });
     }
 
-    // Provayder chaqiruvi — HALI ULANMAGAN.
-    //
     // `izoh` ATAYLAB qaytariladi: boʻsh roʻyxatni "Xitoyda oʻxshashi
     // yoʻq" deb oʻqish mumkin edi, holbuki hech kim qidirmagan.
     // Kengaytma shu matnni foydalanuvchiga koʻrsatadi.
@@ -573,14 +575,49 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         izoh: 'Qidiruv provayderi hali ulanmagan — kalit kutilmoqda.',
       });
     }
+    if (!rasmUrl) {
+      // Tovar id si bor, rasm yoʻq. Provayder rasm boʻyicha qidiradi,
+      // bazada esa rasm hali yoʻq (BACKLOG: "Tovar rasmi"). Bu
+      // "topilmadi" emas — "qidirilmadi".
+      return javob({
+        natijalar: [],
+        manba: null,
+        keshdan: false,
+        limit: limitNatija,
+        izoh: 'Tovar rasmi kelmadi — qidiruv rasm boʻyicha ishlaydi. Sahifani yangilab qayta urinib koʻring.',
+      });
+    }
 
-    // Provayder ulangach shu yerda API chaqiruvi va `so_xitoy_kesh_yoz`
-    // boʻladi.
+    const q = await xitoyQidir({ kalit: provayderKaliti, fetch }, { rasmUrl });
+    if (q.xato !== null) {
+      // Qidiruv BOʻLMADI: limit sanalmaydi, kesh yozilmaydi, sabab
+      // aytiladi. 502 — nosozlik provayderda, foydalanuvchida emas.
+      return javob({
+        natijalar: [],
+        manba: null,
+        keshdan: false,
+        limit: limitNatija,
+        xato: `provayder: ${q.xato}`,
+      }, 502);
+    }
+
+    // Qidiruv BOʻLDI: kesh + kunlik sanoq. Boʻsh natija ham keshlanadi —
+    // u javob, va uni 72 soat ichida qayta sotib olish shart emas.
+    // Sanoq ILGARI hech qachon oshirilmasdi (`p_oshir` chaqirilmagan),
+    // yaʼni limit qogʻozda edi.
+    await rpc('so_xitoy_kesh_yoz', {
+      p_rasm_hash: rasmHash, p_natijalar: q.natijalar, p_manba: q.manba ?? '1688',
+    });
+    const sanoq = await rpc<{ soni?: number }>('so_xitoy_limit', { p_token: token, p_oshir: true });
     return javob({
-      natijalar: [],
-      manba: null,
+      natijalar: q.natijalar,
+      manba: q.manba,
       keshdan: false,
-      limit: limitNatija,
+      jami: q.jami,
+      tashlandi: q.tashlandi,
+      vaqtMs: q.vaqtMs,
+      limit: limitTekshir(sanoq?.soni ?? ishlatilgan + 1, n.reja),
+      ...(q.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi.' } : {}),
     });
   }
 
