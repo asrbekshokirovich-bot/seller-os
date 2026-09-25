@@ -113,6 +113,8 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    // Tugma yoʻq (nazoratchi, 2026-09-25): mavzu Ustada, «Profilim»
+    // da tanlanadi; bosh sahifa oʻsha tanlovni faqat oʻqiydi.
     try {
       const s = localStorage.getItem('so_mavzu');
       if (s === 'yorug' || s === 'tungi') setMavzu(s);
@@ -120,12 +122,6 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
     const m = window.matchMedia('(prefers-reduced-motion: reduce)');
     setHarakatsiz(m.matches);
   }, []);
-
-  function mavzuniAlmashtir() {
-    const n: Mavzu = mavzu === 'tungi' ? 'yorug' : 'tungi';
-    setMavzu(n);
-    try { localStorage.setItem('so_mavzu', n); } catch { /* jim */ }
-  }
 
   /*
    * Pul oqimi: 3,4 s da yigʻiladi, keyin 7 s gacha turadi va qaytadan.
@@ -191,9 +187,6 @@ export default function BoshSahifa({ tovar, holat }: { tovar: number | null; hol
           </a>
           <nav className={b.navOng} aria-label="Asosiy">
             <a className={b.navHavola} href="#yol">Yoʻl</a>
-            <button type="button" className={b.mavzuTugma} onClick={mavzuniAlmashtir}>
-              {mavzu === 'tungi' ? 'Yorugʻ' : 'Tungi'}
-            </button>
             <a className={b.kirish} href="/usta">Ustaga oʻtish</a>
           </nav>
         </div>
