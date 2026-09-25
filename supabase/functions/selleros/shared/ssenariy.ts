@@ -425,5 +425,17 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
       + (chiq ? ` ${chiq} tasi tuzoq sababli roʻyxatdan chiqarildi — sababi har birida yozilgan.` : '')
       + ' Sotuv raqamlari zaxira kamayishidan chiqarilgan taxmin, Uzum bermaydi.';
   }
-  return 'Tannarx hisoblandi. Har tovar uchun Xitoydagi chegara narx jadvalda.';
+  // tannarx — HISOBLANGANMI, rostini aytamiz. Jonli o'lchov (2026-09-25):
+  // komissiya kelmagan tovarda chegara `null` edi, xabar esa "hisoblandi"
+  // derdi. Nol/yo'q va "hisoblandi" bir xil ko'rinishi taqiqlangan.
+  const n = natija as { qatorlar?: Array<{ chegaraSom: number | null; yetishmaydi?: string[] }> };
+  const q = n.qatorlar ?? [];
+  const bor = q.filter((x) => x.chegaraSom !== null).length;
+  if (bor === 0) {
+    const sabab = [...new Set(q.flatMap((x) => x.yetishmaydi ?? []))].join(', ');
+    return `Chegara narxni hisoblab bera olmadim: ${sabab || 'kirish raqamlari'} yetishmaydi. Bu "foyda yoʻq" degani EMAS — hisob uchun raqam yoʻq.`;
+  }
+  return `${bor} ta tovar uchun Xitoydagi chegara narx hisoblandi.`
+    + (bor < q.length ? ` ${q.length - bor} tasida yetishmagan qism bor.` : '')
+    + ' Yetishmagan qism roʻyxatda — u hisobga kirmagan, demak haqiqiy chegara pastroq.';
 }

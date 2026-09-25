@@ -38,8 +38,19 @@ alohida bosqich va oʻz faktlarini (`fakt` jadvali) talab qiladi.
 — [agent, 2026-09-25] **`supabase/test/dokon-yozish.test.ts` Windowsda
 yiqiladi.** `core.autocrlf=true` bilan migratsiya CRLF oʻqiladi va izoh
 olib tashlanmaydi, izohdagi `coalesce(rasmiy, false)` matni testni
-qizartiradi. CI (Linux) da yashil. `kodi()` izoh kesuvchi `` ga
+qizartiradi. CI (Linux) da yashil. `kodi()` izoh kesuvchi `
+` ga
 chidamli boʻlishi kerak.
+
+— [agent, 2026-09-25] **Komissiya jadvali tovarlar turkumini qamramaydi —
+4-qadam deyarli hamma uchun boʻsh.** Jonli oʻlchov: `uzum_komissiya` da 223
+qator (331 turkumdan), lekin `selleros.product` dagi 6 025 tovarning **5 682
+tasi (94%)** komissiyasiz — ularning turkumi (masalan Sumkalar, 11770)
+jadvalda yoʻq. Natija: `chegaraNarxi` `null`, suhbat "komissiya yetishmaydi"
+deydi (rost, lekin foydasiz). Kerak: komissiya qatorlarini aynan tovarlar
+turadigan barg turkumlar uchun toʻldirish (`docs/KOMISSIYA.md` usuli),
+yoki ota turkumdan meros qoidasi — bu nazoratchi qarori, chunki Uzum
+komissiyasi barg boʻyicha farq qiladi.
 
 ## Rad etilgan
 
