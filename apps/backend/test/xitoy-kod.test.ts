@@ -88,6 +88,8 @@ function soxtaFetch(q: { cbu?: unknown | (() => never); boshlash?: unknown; hola
     urllar.push(url);
     const json = (x: unknown) => { if (typeof x === 'function') (x as () => never)(); return new Response(JSON.stringify(x), { status: 200, headers: { 'Content-Type': 'application/json' } }); };
     if (url.includes('cbu.uz')) return json(q.cbu ?? CBU);
+    // Uzum CDN — rasm baytlari (WebP), uch uni base64 qiladi.
+    if (url.startsWith('https://images.uzum.uz/')) return new Response(new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20]), { status: 200, headers: { 'Content-Type': 'image/webp' } });
     if (url.endsWith('/runs')) return json(q.boshlash ?? F.boshlandi);
     if (url.includes('/dataset/items')) return json(q.natijalar ?? F.natijalar);
     if (url.includes('/actor-runs/')) return json(q.holat ?? F.ishlayapti);
@@ -135,7 +137,8 @@ describe('xitoy — boshlash', () => {
     const n = await kod(b, s.fetch).xitoy(holatYasa()) as XitoyNatijasi;
     expect(n.olchov_yoq).toBe(false);
     expect(n.kurs).toEqual({ somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' });
-    expect(n.kutilmoqda).toMatchObject({ runId: RUN, rasmlar: [{ productId: 100, rasmUrl: RASM_A }, { productId: 200, rasmUrl: RASM_B }] });
+    expect(n.kutilmoqda).toMatchObject({ runId: RUN, rasmlar: [{ productId: 100, rasmUrl: RASM_A, usul: 'base64' }, { productId: 200, rasmUrl: RASM_B, usul: 'base64' }] });
+    expect(n.kutilmoqda!.rasmlar[0]!.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(typeof n.kutilmoqda!.boshlandi).toBe('string');
     expect(qator(n, 300)).toMatchObject({ holat: 'qidirilmadi', sabab: expect.stringMatching(/rasm/) });
     expect(n.qatorlar.length).toBe(1);
@@ -199,7 +202,7 @@ describe('xitoy — boshlash', () => {
 describe('xitoy — tekshirish (kutilmoqda)', () => {
   const KUTILMOQDA: XitoyNatijasi = {
     olchov_yoq: false, kurs: { somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' },
-    qatorlar: [{ productId: 300, title: 'Quloqchin C', rasmUrl: null, chegaraSom: 60_000, yetishmaydi: [], holat: 'qidirilmadi', sabab: 'rasm yoʻq', jami: null, takliflar: [], keshdan: false, tashlandi: 0 }],
+    qatorlar: [{ productId: 300, title: 'Quloqchin C', rasmUrl: null, chegaraSom: 60_000, yetishmaydi: [], holat: 'qidirilmadi', sabab: 'rasm yoʻq', jami: null, takliflar: [], keshdan: false, tashlandi: 0, tashxis: null }],
     kutilmoqda: { runId: RUN, boshlandi: '2026-09-25T20:00:00.000Z', rasmlar: [{ productId: 100, rasmUrl: RASM_A }, { productId: 200, rasmUrl: RASM_B }] },
   };
 
@@ -220,6 +223,7 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
     expect(a.holat).toBe('topildi');
     expect(a.jami).toBe(2);
     expect(a.yetishmaydi).toEqual(['kargo']);
+    expect(a.tashxis).toBe('rasm: jpeg, 151 KB, yuklandi: direct, URL');
     // 1.9 ¥ → 3 349 soʻm (chegarada, 5 000), 5 ¥ → 8 812 (yuqori). Chegarada boʻlgani birinchi.
     expect(a.takliflar.map((t) => [t.sourceId, t.narxSom, t.chegaradaMi])).toEqual([['692120494348', 3_349, true], ['802207808750', 8_812, false]]);
     const bq = qator(n, 200);

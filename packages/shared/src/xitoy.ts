@@ -39,6 +39,17 @@
  * boʻsh roʻyxat bilan EMAS. Nol natija — bu JAVOB ("1688 oʻxshashini
  * topmadi") va u `xato: null` bilan ajralib turadi. Kartalar kelib,
  * birortasi oʻqilmasa — bu ham XATO (javob shakli oʻzgargan), javob emas.
+ *
+ * RASM BASE64 BILAN (2026-09-26). Jonli oʻlchov: 1688 ning oʻz JPEG
+ * rasmi URL bilan → 20 ta natija; Uzum rasmi URL bilan → 0 ta (ikki
+ * tovar). Uzum CDN faqat WebP beradi (`.jpg` nomiga qaramay, `Accept`
+ * ga qaramay; JPEG varianti yoʻq — serverdan oʻlchandi). Shuning uchun
+ * rasm avval BIZ tomonda yuklanadi (`rasmYuklovchi`) va aktorga
+ * `imagesBase64` bilan beriladi — 1688 rasmni Uzum CDN dan oʻzi
+ * olishiga bogʻliq qolmaymiz. Natija rasmga `queryImage.sha256Prefix16`
+ * (biz hisoblagan SHA-256 bilan solishtiriladi) yoki `img-N` tartib
+ * raqami bilan bogʻlanadi. Aktor tashxisi (`imageType`, `imageBytes`,
+ * `fetchChannel`) javobga chiqadi — 0 natijaning sababi koʻrinsin.
  */
 
 /** 1688 dan topilgan tovar. Hamma raqam provayder javobidan, hech narsa hisoblanmaydi. */
@@ -170,7 +181,72 @@ export function rasmManzili(x: unknown): string | null {
   }
 }
 
+// ==================================================================== rasm yuklash
+
+/** Biz yuklab, base64 qilgan rasm. */
+export interface YuklanganRasm {
+  base64: string;
+  fileName: string;
+  /** Toʻliq SHA-256 (hex). Aktor `sha256Prefix16` — birinchi 16 belgi. */
+  sha256: string;
+  bayt: number;
+  /** Sehrli baytlardan: jpeg / png / webp / null. */
+  tur: 'jpeg' | 'png' | 'webp' | null;
+}
+
+export type RasmYuklovchi = (url: string) => Promise<YuklanganRasm | null>;
+
+/** Rasm turi sehrli baytlardan — CDN nomiga ishonilmaydi (Uzum `.jpg` deb WebP beradi). */
+export function rasmTuri(b: Uint8Array): YuklanganRasm['tur'] {
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg';
+  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png';
+  if (b.length >= 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46
+    && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'webp';
+  return null;
+}
+
+function base64ga(b: Uint8Array): string {
+  let s = '';
+  const BOLAK = 0x8000;
+  for (let i = 0; i < b.length; i += BOLAK) s += String.fromCharCode(...b.subarray(i, i + BOLAK));
+  return btoa(s);
+}
+
+async function sha256hex(b: Uint8Array): Promise<string> {
+  const kopiya = new Uint8Array(b).buffer as ArrayBuffer;
+  const h = await crypto.subtle.digest('SHA-256', kopiya);
+  return [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Rasm yuklovchi — `fetch` argument bilan. Chegara: aktor "~1 MB" deydi.
+ * Yuklanmasa `null` — chaqiruvchi URL bilan davom etadi (rostini
+ * `usul` bilan aytib).
+ */
+export function rasmYuklovchi(f: typeof fetch, q: { maxBayt?: number; vaqtMs?: number } = {}): RasmYuklovchi {
+  const maxBayt = q.maxBayt ?? 1_000_000;
+  return async (url) => {
+    try {
+      const r = await f(url, { signal: AbortSignal.timeout(q.vaqtMs ?? 15_000), headers: { Accept: 'image/*' } });
+      if (!r.ok) return null;
+      const b = new Uint8Array(await r.arrayBuffer());
+      if (b.length === 0 || b.length > maxBayt) return null;
+      const tur = rasmTuri(b);
+      const sha256 = await sha256hex(b);
+      return { base64: base64ga(b), fileName: `${sha256.slice(0, 16)}.${tur ?? 'bin'}`, sha256, bayt: b.length, tur };
+    } catch {
+      return null;
+    }
+  };
+}
+
 // ==================================================================== soʻrov yasash
+
+/** Yurishga beriladigan rasm: URL, yoki biz yuklagan base64. */
+export interface RasmKirishi {
+  url: string;
+  yuklangan?: YuklanganRasm | null;
+}
 
 export interface ProvayderSorovi {
   url: string;
@@ -181,21 +257,29 @@ function sarlavhalar(kalit: string, json = false): Record<string, string> {
   return { Authorization: `Bearer ${kalit}`, ...(json ? { 'Content-Type': 'application/json' } : {}) };
 }
 
-/** Yurishni boshlash: bir nechta rasm bitta yurishda (bitta yurish haqi). */
+/**
+ * Yurishni boshlash: bir nechta rasm bitta yurishda (bitta yurish haqi).
+ * Yuklangan rasm `imagesBase64` bilan, qolgani `imageUrls` bilan ketadi.
+ */
 export function qidiruvniBoshlashSorovi(
   kalit: string,
-  rasmlar: string[],
+  rasmlar: RasmKirishi[],
   q: { sahifaHajmi?: number } = {},
 ): ProvayderSorovi {
   const hajm = Math.min(XITOY_SAHIFA_MAX, Math.max(1, Math.trunc(q.sahifaHajmi ?? XITOY_SAHIFA_MAX)));
   const tanlangan = rasmlar.slice(0, XITOY_RASM_MAX);
+  const imageUrls = tanlangan.filter((r) => !r.yuklangan).map((r) => r.url);
+  const imagesBase64 = tanlangan
+    .filter((r): r is RasmKirishi & { yuklangan: YuklanganRasm } => !!r.yuklangan)
+    .map((r) => ({ base64: r.yuklangan.base64, fileName: r.yuklangan.fileName }));
   return {
     url: `${APIFY_MANZIL}/acts/${APIFY_AKTOR}/runs`,
     init: {
       method: 'POST',
       headers: sarlavhalar(kalit, true),
       body: JSON.stringify({
-        imageUrls: tanlangan,
+        ...(imageUrls.length ? { imageUrls } : {}),
+        ...(imagesBase64.length ? { imagesBase64 } : {}),
         maxImages: tanlangan.length,
         maxResultsPerImage: hajm,
         enrichDetails: false,
@@ -275,10 +359,32 @@ export function apifyKartaniOqi(xom: unknown): XitoyTovar | null {
   };
 }
 
+/** Aktorning rasm haqidagi tashxisi (`queryImage`) — 0 natijaning sababi shu yerda koʻrinadi. */
+export interface RasmTashxisi {
+  manba: 'url' | 'base64' | null;
+  /** Aktor aniqlagan tur (jpeg/png/webp). */
+  tur: string | null;
+  bayt: number | null;
+  /** direct / proxy / none — rasm baytlari qanday olindi. */
+  yuklash: string | null;
+}
+
+/** Odam oʻqiydigan tashxis: "rasm: webp, 234 KB, yuklandi: direct". */
+export function tashxisMatni(t: RasmTashxisi | null): string | null {
+  if (t === null) return null;
+  const q: string[] = [];
+  if (t.tur) q.push(t.tur);
+  if (t.bayt !== null) q.push(`${Math.round(t.bayt / 1024)} KB`);
+  if (t.yuklash) q.push(t.yuklash === 'none' ? 'yuklanmadi' : `yuklandi: ${t.yuklash}`);
+  if (t.manba) q.push(t.manba === 'base64' ? 'biz yubordik' : 'URL');
+  return q.length ? `rasm: ${q.join(', ')}` : null;
+}
+
 /** Bitta rasm uchun qidiruv natijasi. */
 export interface RasmNatijasi {
-  /** Yuborilgan rasm (`queryImage.url`) — kesh kaliti shu. */
+  /** Yuborilgan rasm — kesh kaliti shu (URL, base64 boʻlsa ham asl URL). */
   rasmUrl: string;
+  tashxis: RasmTashxisi | null;
   natijalar: XitoyTovar[];
   /** Provayder aytgan son (`matchCount`). */
   jami: number | null;
@@ -292,14 +398,49 @@ export type ApifyNatijaOqish =
   | { ok: true; rasmlar: RasmNatijasi[] }
   | { ok: false; sabab: string };
 
+/** Yuborilgan rasmlar — natijani bogʻlash uchun: URL, va base64 boʻlsa SHA-256. */
+export interface KirishRasmi {
+  url: string;
+  sha256?: string | null;
+}
+
+/**
+ * Qator qaysi rasmga tegishli: `queryImage.url` (URL kirishi), yoki
+ * `sha256Prefix16` (base64 — biz hisoblagan SHA bilan), yoki `img-N`
+ * tartib raqami. Topilmasa `null`.
+ */
+function qatorRasmi(q: Xom, kirish: KirishRasmi[]): string | null {
+  const url = matn(q.url);
+  if (url !== null) return url;
+  const sha = matn(q.sha256Prefix16);
+  if (sha !== null) {
+    const k = kirish.find((x) => typeof x.sha256 === 'string' && x.sha256.toLowerCase().startsWith(sha.toLowerCase()));
+    if (k) return k.url;
+  }
+  const id = matn(q.id);
+  const m = id === null ? null : /^img-(\d+)$/.exec(id);
+  if (m) {
+    const k = kirish[Number(m[1])];
+    if (k) return k.url;
+  }
+  return null;
+}
+
+function qatorTashxisi(q: Xom): RasmTashxisi | null {
+  if (Object.keys(q).length === 0) return null;
+  const manba = q.source === 'url' || q.source === 'base64' ? q.source : null;
+  return { manba, tur: matn(q.imageType), bayt: son(q.imageBytes), yuklash: matn(q.fetchChannel) };
+}
+
 /**
  * Dataset qatorlari → har rasm uchun bitta natija.
  *
  * Aktor tanlangan rejimda (enrichDetails=false) har rasm uchun bitta
  * `imageResult` yozadi; boyitilgan rejimda bir nechta "surat" yozadi va
  * OXIRGISI toʻliq — shuning uchun rasm boʻyicha oxirgi qator olinadi.
+ * `kirish` — biz yuborgan rasmlar (base64 uchun bogʻlash shu orqali).
  */
-export function apifyNatijalarniOqi(json: unknown): ApifyNatijaOqish {
+export function apifyNatijalarniOqi(json: unknown, kirish: KirishRasmi[] = []): ApifyNatijaOqish {
   if (!Array.isArray(json)) {
     const xato = obyekt(obyekt(json).error);
     if (Object.keys(xato).length) {
@@ -312,17 +453,18 @@ export function apifyNatijalarniOqi(json: unknown): ApifyNatijaOqish {
   for (const q of json) {
     const r = obyekt(q);
     if (r.type !== 'imageResult') continue;
-    const url = matn(obyekt(r.queryImage).url);
-    if (url === null) continue;
-    oxirgi.set(url, r);
+    const rasm = qatorRasmi(obyekt(r.queryImage), kirish) ?? matn(obyekt(r.queryImage).id);
+    if (rasm === null) continue;
+    oxirgi.set(rasm, r);
   }
   const rasmlar: RasmNatijasi[] = [];
   for (const [rasmUrl, r] of oxirgi) {
     const holat = matn(r.status) ?? 'nomaʼlum';
     const jami = son(r.matchCount);
+    const tashxis = qatorTashxisi(obyekt(r.queryImage));
     if (holat !== 'OK') {
       const izoh = matn(r.error);
-      rasmlar.push({ rasmUrl, natijalar: [], jami, tashlandi: 0, xato: `1688 qidiruvni bajarmadi (${holat}${izoh ? `: ${izoh}` : ''})` });
+      rasmlar.push({ rasmUrl, tashxis, natijalar: [], jami, tashlandi: 0, xato: `1688 qidiruvni bajarmadi (${holat}${izoh ? `: ${izoh}` : ''})` });
       continue;
     }
     const kartalar = Array.isArray(r.results) ? r.results : [];
@@ -338,7 +480,7 @@ export function apifyNatijalarniOqi(json: unknown): ApifyNatijaOqish {
     const xato = natijalar.length === 0 && tashlandi > 0
       ? `provayder ${tashlandi} ta karta berdi, birortasi oʻqilmadi (id, nom, narx yoki manzil yoʻq/notoʻgʻri) — javob shakli oʻzgargan boʻlishi mumkin`
       : null;
-    rasmlar.push({ rasmUrl, natijalar, jami, tashlandi, xato });
+    rasmlar.push({ rasmUrl, tashxis, natijalar, jami, tashlandi, xato });
   }
   return { ok: true, rasmlar };
 }
@@ -371,25 +513,53 @@ async function provayderJson(
   }
 }
 
+/** Boshlangan yurishdagi rasm: qanday yuborildi va (base64 boʻlsa) SHA-256. */
+export interface YuborilganRasm {
+  url: string;
+  usul: 'base64' | 'url';
+  sha256: string | null;
+  tur: YuklanganRasm['tur'];
+  bayt: number | null;
+}
+
 /**
  * Yurishni boshlaydi. Hech qachon otmaydi. `runId` — keyin tekshirish
- * uchun; chaqiruvchi uni saqlaydi (holat/kesh).
+ * uchun; chaqiruvchi uni `rasmlar` bilan birga saqlaydi (holat/kesh):
+ * natija shular orqali bogʻlanadi.
+ *
+ * `yukla` berilsa har rasm avval yuklanadi va base64 bilan ketadi;
+ * yuklanmasa oʻsha rasm URL bilan ketadi (`usul` rostini aytadi).
  */
 export async function xitoyQidiruvniBoshla(
   p: XitoyProvayder,
-  k: { rasmlar: string[]; sahifaHajmi?: number },
-): Promise<{ runId: string; xato: null } | { runId: null; xato: string }> {
+  k: { rasmlar: string[]; yukla?: RasmYuklovchi; sahifaHajmi?: number },
+): Promise<{ runId: string; rasmlar: YuborilganRasm[]; xato: null } | { runId: null; xato: string }> {
   if (!p.kalit) return { runId: null, xato: 'provayder kaliti yoʻq' };
-  const rasmlar = k.rasmlar.filter((r) => rasmManzili(r) !== null);
-  if (rasmlar.length === 0) return { runId: null, xato: 'rasm manzili yoʻq' };
+  const urllar = k.rasmlar.filter((r) => rasmManzili(r) !== null).slice(0, XITOY_RASM_MAX);
+  if (urllar.length === 0) return { runId: null, xato: 'rasm manzili yoʻq' };
+  const kirish: RasmKirishi[] = [];
+  for (const url of urllar) {
+    const yuklangan = k.yukla ? await k.yukla(url) : null;
+    kirish.push({ url, yuklangan });
+  }
   const sorov: { sahifaHajmi?: number } = {};
   if (k.sahifaHajmi !== undefined) sorov.sahifaHajmi = k.sahifaHajmi;
-  const r = await provayderJson(p, qidiruvniBoshlashSorovi(p.kalit, rasmlar, sorov));
+  const r = await provayderJson(p, qidiruvniBoshlashSorovi(p.kalit, kirish, sorov));
   if (!r.ok) return { runId: null, xato: r.sabab };
   const n = apifyRunniOqi(r.json);
   if (!n.ok) return { runId: null, xato: n.sabab };
   if (YAKUNIY_XATO.has(n.holat)) return { runId: null, xato: `yurish darhol toʻxtadi (${n.holat})` };
-  return { runId: n.runId, xato: null };
+  return {
+    runId: n.runId,
+    xato: null,
+    rasmlar: kirish.map((x) => ({
+      url: x.url,
+      usul: x.yuklangan ? 'base64' : 'url',
+      sha256: x.yuklangan?.sha256 ?? null,
+      tur: x.yuklangan?.tur ?? null,
+      bayt: x.yuklangan?.bayt ?? null,
+    })),
+  };
 }
 
 export type XitoyTekshiruv =
@@ -402,7 +572,7 @@ export type XitoyTekshiruv =
  * Hech qachon otmaydi. Tarmoq xatosi — `xato` (chaqiruvchi keyinroq
  * qayta tekshirishi mumkin, yurish Apify'da davom etadi).
  */
-export async function xitoyQidiruvniTekshir(p: XitoyProvayder, runId: string): Promise<XitoyTekshiruv> {
+export async function xitoyQidiruvniTekshir(p: XitoyProvayder, runId: string, kirish: KirishRasmi[] = []): Promise<XitoyTekshiruv> {
   if (!p.kalit) return { holat: 'xato', xato: 'provayder kaliti yoʻq', runHolati: null };
   const h = await provayderJson(p, runHolatiSorovi(p.kalit, runId));
   if (!h.ok) return { holat: 'xato', xato: h.sabab, runHolati: null };
@@ -413,7 +583,7 @@ export async function xitoyQidiruvniTekshir(p: XitoyProvayder, runId: string): P
 
   const n = await provayderJson(p, runNatijasiSorovi(p.kalit, runId));
   if (!n.ok) return { holat: 'xato', xato: n.sabab, runHolati: r.holat };
-  const o = apifyNatijalarniOqi(n.json);
+  const o = apifyNatijalarniOqi(n.json, kirish);
   if (!o.ok) return { holat: 'xato', xato: o.sabab, runHolati: r.holat };
   return { holat: 'tugadi', rasmlar: o.rasmlar };
 }

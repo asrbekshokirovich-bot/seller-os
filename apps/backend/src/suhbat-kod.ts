@@ -32,7 +32,9 @@ import {
   KESH_ESKI_SOAT,
   kursniOl,
   qadamOchiq,
+  rasmYuklovchi,
   reja,
+  tashxisMatni,
   type Flag,
   sohalar,
   tovarlar,
@@ -77,9 +79,9 @@ const TEKSHIRUV_URINISH_MAX = 3;
 function xitoyQatori(
   productId: number, title: string, rasmUrl: string | null, chegaraSom: number | null, yetishmaydi: string[],
   holat: XitoyQatori['holat'], sabab: string | null, jami: number | null, takliflar: XitoyTaklif[],
-  keshdan: boolean, tashlandi: number,
+  keshdan: boolean, tashlandi: number, tashxis: string | null = null,
 ): XitoyQatori {
-  return { productId, title, rasmUrl, chegaraSom, yetishmaydi, holat, sabab, jami, takliflar, keshdan, tashlandi };
+  return { productId, title, rasmUrl, chegaraSom, yetishmaydi, holat, sabab, jami, takliflar, keshdan, tashlandi, tashxis };
 }
 
 /** `so_tovar_royxati()` javobi. */
@@ -226,7 +228,7 @@ export function suhbatKodHarakatlari(
       // ---- TEKSHIRISH: yurish boshlangan edi.
       if (eski?.kutilmoqda) {
         const k = eski.kutilmoqda;
-        const t = await xitoyQidiruvniTekshir(p, k.runId);
+        const t = await xitoyQidiruvniTekshir(p, k.runId, k.rasmlar.map((r) => ({ url: r.rasmUrl, sha256: r.sha256 ?? null })));
         if (t.holat === 'kutilmoqda') return eski;
         const qatorlar = [...eski.qatorlar];
         if (t.holat === 'xato' && t.runHolati === null) {
@@ -255,7 +257,7 @@ export function suhbatKodHarakatlari(
           await rpc('so_xitoy_kesh_yoz', { p_rasm_hash: r.rasmUrl, p_natijalar: natija.natijalar, p_manba: '1688' });
           const takliflar = takliflarniYasa(natija.natijalar, chegara(r.productId), eski.kurs);
           qatorlar.push(xitoyQatori(r.productId, nom(r.productId), r.rasmUrl, chegara(r.productId), yetishmaydi(r.productId),
-            takliflar.length ? 'topildi' : 'topilmadi', null, natija.jami, takliflar, false, natija.tashlandi));
+            takliflar.length ? 'topildi' : 'topilmadi', null, natija.jami, takliflar, false, natija.tashlandi, tashxisMatni(natija.tashxis)));
         }
         return yakun(eski.kurs, qatorlar, null);
       }
@@ -307,7 +309,9 @@ export function suhbatKodHarakatlari(
       }
       if (boshlanadigan.length === 0) return yakun(kurs, qatorlar, null);
 
-      const b = await xitoyQidiruvniBoshla(p, { rasmlar: boshlanadigan.map((x) => x.rasmUrl) });
+      // Rasm avval BIZ tomonda yuklanadi (Uzum CDN WebP beradi; 1688 URL dan
+      // oʻzi olganda 0 natija — jonli oʻlchov 2026-09-25) va base64 bilan ketadi.
+      const b = await xitoyQidiruvniBoshla(p, { rasmlar: boshlanadigan.map((x) => x.rasmUrl), yukla: rasmYuklovchi(xitoy.fetch) });
       if (b.runId === null) {
         for (const x of boshlanadigan) {
           await qaytar();
@@ -318,7 +322,10 @@ export function suhbatKodHarakatlari(
       return yakun(kurs, qatorlar, {
         runId: b.runId,
         boshlandi: (xitoy.hozir ?? (() => new Date()))().toISOString(),
-        rasmlar: boshlanadigan,
+        rasmlar: boshlanadigan.map((x) => {
+          const y = b.rasmlar.find((r) => r.url === x.rasmUrl);
+          return { ...x, sha256: y?.sha256 ?? null, usul: y?.usul ?? 'url' };
+        }),
       });
     },
   };

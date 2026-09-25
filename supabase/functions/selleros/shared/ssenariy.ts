@@ -197,6 +197,8 @@ export interface XitoyQatori {
   keshdan: boolean;
   /** Oʻqib boʻlmagan kartalar — koʻrsatilmadi, lekin yashirilmadi. */
   tashlandi: number;
+  /** Aktor tashxisi ("rasm: webp, 234 KB, yuklandi: direct") — 0 natijada sabab koʻrinsin. */
+  tashxis: string | null;
 }
 
 export interface XitoyNatijasi {
@@ -212,7 +214,8 @@ export interface XitoyNatijasi {
   kutilmoqda: {
     runId: string;
     boshlandi: string;
-    rasmlar: Array<{ productId: number; rasmUrl: string }>;
+    /** `sha256` — rasm base64 bilan yuborilgan boʻlsa (natijani bogʻlash uchun). */
+    rasmlar: Array<{ productId: number; rasmUrl: string; sha256?: string | null; usul?: 'base64' | 'url' }>;
     urinish?: number;
   } | null;
   izoh?: string;

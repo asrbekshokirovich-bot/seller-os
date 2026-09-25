@@ -1,15 +1,58 @@
 {
   "_manba": "Apify aktori crawleast/1688-image-search-scraper: ochiq taʼrif (api.apify.com/v2/acts/…, build ONMAZKhWDbBJ6nnHA) dagi dataset SXEMASI namunalari va README, hamda Apify API hujjati (docs.apify.com/api/v2/act-runs-post), 2026-09-25. Bu HUJJAT NAMUNASI, jonli javob emas: jonli javob kalit bilan birinchi qidiruvda `so_xitoy_kesh` ga tushadi va shu fikstura oʻsha bilan almashtirilishi kerak (QOIDALAR §8-1).",
-  "boshlandi": { "data": { "id": "HG7ML7M8z78YcAPEB", "status": "READY", "statusMessage": "Actor is running", "defaultDatasetId": "wmKPijuyDnPZAPRMk" } },
-  "ishlayapti": { "data": { "id": "HG7ML7M8z78YcAPEB", "status": "RUNNING", "defaultDatasetId": "wmKPijuyDnPZAPRMk" } },
-  "tugadi": { "data": { "id": "HG7ML7M8z78YcAPEB", "status": "SUCCEEDED", "defaultDatasetId": "wmKPijuyDnPZAPRMk" } },
-  "yiqildi": { "data": { "id": "HG7ML7M8z78YcAPEB", "status": "FAILED", "statusMessage": "Actor failed with exit code 1" } },
-  "kalit_notogri": { "error": { "type": "invalid-token", "message": "Authentication token is not valid." } },
-  "balans": { "error": { "type": "x402-payment-required", "message": "Please provide X402-PAYMENT-SIGNATURE header with payment" } },
+  "boshlandi": {
+    "data": {
+      "id": "HG7ML7M8z78YcAPEB",
+      "status": "READY",
+      "statusMessage": "Actor is running",
+      "defaultDatasetId": "wmKPijuyDnPZAPRMk"
+    }
+  },
+  "ishlayapti": {
+    "data": {
+      "id": "HG7ML7M8z78YcAPEB",
+      "status": "RUNNING",
+      "defaultDatasetId": "wmKPijuyDnPZAPRMk"
+    }
+  },
+  "tugadi": {
+    "data": {
+      "id": "HG7ML7M8z78YcAPEB",
+      "status": "SUCCEEDED",
+      "defaultDatasetId": "wmKPijuyDnPZAPRMk"
+    }
+  },
+  "yiqildi": {
+    "data": {
+      "id": "HG7ML7M8z78YcAPEB",
+      "status": "FAILED",
+      "statusMessage": "Actor failed with exit code 1"
+    }
+  },
+  "kalit_notogri": {
+    "error": {
+      "type": "invalid-token",
+      "message": "Authentication token is not valid."
+    }
+  },
+  "balans": {
+    "error": {
+      "type": "x402-payment-required",
+      "message": "Please provide X402-PAYMENT-SIGNATURE header with payment"
+    }
+  },
   "natijalar": [
     {
       "type": "imageResult",
-      "queryImage": { "url": "https://images.uzum.uz/aaa/t_product_540_high.jpg" },
+      "queryImage": {
+        "id": "img-0",
+        "source": "url",
+        "url": "https://images.uzum.uz/aaa/t_product_540_high.jpg",
+        "sha256Prefix16": "a1b2c3d4e5f60718",
+        "fetchChannel": "direct",
+        "imageType": "jpeg",
+        "imageBytes": 154321
+      },
       "status": "OK",
       "matchCount": 2,
       "results": [
@@ -21,7 +64,15 @@
           "consignPriceYuan": 3.5,
           "moq": 1,
           "bookedCount": 88655,
-          "supplier": { "name": "浦江爱贝特宠物用品有限公司", "city": "浦江县", "province": "浙江", "yearsOnPlatform": 12, "compositeScore": 4.15, "isFactory": true, "isSuperFactory": false },
+          "supplier": {
+            "name": "浦江爱贝特宠物用品有限公司",
+            "city": "浦江县",
+            "province": "浙江",
+            "yearsOnPlatform": 12,
+            "compositeScore": 4.15,
+            "isFactory": true,
+            "isSuperFactory": false
+          },
           "imageUrl": "https://cbu01.alicdn.com/img/ibank/O1CN01vGCPtN22CzDpG7RBW_!!2210992147085-0-cib.jpg",
           "detailUrl": "https://detail.1688.com/offer/802207808750.html"
         },
@@ -33,7 +84,15 @@
           "consignPriceYuan": null,
           "moq": 1000,
           "bookedCount": null,
-          "supplier": { "name": "深圳市光明区兴凯鸿纺织商行", "city": "深圳市", "province": "广东", "yearsOnPlatform": null, "compositeScore": null, "isFactory": false, "isSuperFactory": true },
+          "supplier": {
+            "name": "深圳市光明区兴凯鸿纺织商行",
+            "city": "深圳市",
+            "province": "广东",
+            "yearsOnPlatform": null,
+            "compositeScore": null,
+            "isFactory": false,
+            "isSuperFactory": true
+          },
           "imageUrl": "//cbu01.alicdn.com/img/ibank/O1CN01mlPQyb1rrmigLQq2W_!!2219127385685-0-cib.jpg",
           "detailUrl": "https://detail.1688.com/offer/692120494348.html"
         }
@@ -41,7 +100,15 @@
     },
     {
       "type": "imageResult",
-      "queryImage": { "url": "https://images.uzum.uz/bbb/original.jpg" },
+      "queryImage": {
+        "id": "img-1",
+        "source": "url",
+        "url": "https://images.uzum.uz/bbb/original.jpg",
+        "sha256Prefix16": null,
+        "fetchChannel": "direct",
+        "imageType": "webp",
+        "imageBytes": 233896
+      },
       "status": "RISK_CONTROL",
       "matchCount": 0,
       "results": [],
@@ -49,11 +116,79 @@
     },
     {
       "type": "imageResult",
-      "queryImage": { "url": "https://images.uzum.uz/ccc/original.jpg" },
+      "queryImage": {
+        "id": "img-2",
+        "source": "url",
+        "url": "https://images.uzum.uz/ccc/original.jpg",
+        "sha256Prefix16": "ffffffffffffffff",
+        "fetchChannel": "direct",
+        "imageType": "webp",
+        "imageBytes": 200000
+      },
       "status": "OK",
       "matchCount": 0,
       "results": []
     },
-    { "type": "SUMMARY", "imageFlushCount": 3, "chargedEvents": { "image-search": 1, "run-base-fee": 1 } }
+    {
+      "type": "SUMMARY",
+      "imageFlushCount": 3,
+      "chargedEvents": {
+        "image-search": 1,
+        "run-base-fee": 1
+      }
+    }
+  ],
+  "natijalar_base64": [
+    {
+      "type": "imageResult",
+      "queryImage": {
+        "id": "img-0",
+        "source": "base64",
+        "url": null,
+        "sha256Prefix16": "0123456789abcdef",
+        "fetchChannel": "none",
+        "imageType": "webp",
+        "imageBytes": 233896
+      },
+      "status": "OK",
+      "matchCount": 1,
+      "results": [
+        {
+          "offerId": "802207808750",
+          "similarityRank": 2,
+          "title": "狗狗牵引绳防爆冲一体式P绳P链加粗狗绳遛狗绳狗链小中大型犬通用",
+          "priceYuan": 5,
+          "consignPriceYuan": 3.5,
+          "moq": 1,
+          "bookedCount": 88655,
+          "supplier": {
+            "name": "浦江爱贝特宠物用品有限公司",
+            "city": "浦江县",
+            "province": "浙江",
+            "yearsOnPlatform": 12,
+            "compositeScore": 4.15,
+            "isFactory": true,
+            "isSuperFactory": false
+          },
+          "imageUrl": "https://cbu01.alicdn.com/img/ibank/O1CN01vGCPtN22CzDpG7RBW_!!2210992147085-0-cib.jpg",
+          "detailUrl": "https://detail.1688.com/offer/802207808750.html"
+        }
+      ]
+    },
+    {
+      "type": "imageResult",
+      "queryImage": {
+        "id": "img-1",
+        "source": "base64",
+        "url": null,
+        "sha256Prefix16": null,
+        "fetchChannel": "none",
+        "imageType": "jpeg",
+        "imageBytes": 1000
+      },
+      "status": "OK",
+      "matchCount": 0,
+      "results": []
+    }
   ]
 }
