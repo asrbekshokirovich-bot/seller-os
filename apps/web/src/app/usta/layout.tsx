@@ -7,7 +7,7 @@
  */
 
 import type { Metadata, Viewport } from 'next';
-import { mono, sans } from '../shriftlar';
+import { kirill, mono, sans } from '../shriftlar';
 
 export const metadata: Metadata = {
   title: 'ZumSavdo — Usta',
@@ -24,5 +24,5 @@ export const viewport: Viewport = {
 };
 
 export default function UstaLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`${sans.variable} ${mono.variable}`}>{children}</div>;
+  return <div className={`${sans.variable} ${kirill.variable} ${mono.variable}`}>{children}</div>;
 }

@@ -30,7 +30,7 @@
   background-image:
     radial-gradient(900px 520px at 88% -12%, var(--glow1), transparent 60%),
     radial-gradient(700px 500px at 0% 100%, var(--glow2), transparent 60%);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-kirill), var(--font-sans), system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;

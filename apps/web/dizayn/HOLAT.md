@@ -30,6 +30,10 @@ uchun bitta.
 5. *(2026-09-25)* «Profilim» da **savol yoʻq** — faqat hisob, obuna
    va sozlamalar. 1-bandning "qolgan 9 tasi «Profilim» da" qismi
    bekor qilindi.
+6. *(2026-09-25)* Mavzu (yorugʻ/tungi) **faqat «Profilim» da** — yon
+   paneldagi va bosh sahifadagi tugmalar olib tashlandi. Til ham shu
+   yerda: **Oʻzbekcha / Русский**. Kirill uchun shrift — Onest
+   (Instrument Sans da kirill yoʻq), `shriftlar.ts` dagi izohga qarang.
 
 ## Dizayndan ataylab chetga chiqilgan joylar
 

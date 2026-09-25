@@ -18,6 +18,8 @@
  * `bazamizOl.ts` da; bu fayl brauzerda ham ishlaydi.
  */
 
+import { tarjima, type Til } from './til';
+
 export interface Bazamiz {
   tovar?: number;
   dokon?: number;
@@ -48,14 +50,17 @@ export function son(n: number): string {
  * Aniqlik ATAYLAB pastroq: "2 soat oldin" yetarli, "2 soat 14
  * daqiqa" esa aniqlik taassurotini beradi va u bu yerda ortiqcha.
  */
-export function yosh(ms: number): string {
+export function yosh(ms: number, til: Til = 'uz'): string {
+  const tr = tarjima(til);
   const daqiqa = Math.floor(ms / 60_000);
-  if (daqiqa < 1) return 'hozirgina';
-  if (daqiqa < 60) return `${daqiqa} daqiqa oldin`;
+  if (daqiqa < 1) return tr('hozirgina', 'только что');
+  // Ruschada qisqartma ("мин.", "ч.", "дн.") — son bilan kelishik
+  // shakllari (минута/минуты/минут) kerak boʻlmaydi.
+  if (daqiqa < 60) return tr(`${daqiqa} daqiqa oldin`, `${daqiqa} мин. назад`);
   const soat = Math.floor(daqiqa / 60);
-  if (soat < 24) return `${soat} soat oldin`;
+  if (soat < 24) return tr(`${soat} soat oldin`, `${soat} ч. назад`);
   const kun = Math.floor(soat / 24);
-  return `${kun} kun oldin`;
+  return tr(`${kun} kun oldin`, `${kun} дн. назад`);
 }
 
 /**
@@ -64,17 +69,28 @@ export function yosh(ms: number): string {
  * Har uch holatda BOSHQACHA yoziladi. Eskirgan oʻlchov "bugungi"
  * deb koʻrsatilmaydi va uning yoshi yashirilmaydi.
  */
-export function holatMatni(o: Olchov | null, hozir: number): string {
+export function holatMatni(o: Olchov | null, hozir: number, til: Til = 'uz'): string {
+  const tr = tarjima(til);
   if (o === null) {
-    return 'Raqamlar hozir olinmadi — bazaga ulanib boʻlmadi. '
-      + 'Eski raqam koʻrsatilmaydi.';
+    return tr(
+      'Raqamlar hozir olinmadi — bazaga ulanib boʻlmadi. Eski raqam koʻrsatilmaydi.',
+      'Цифры сейчас не получены — база недоступна. Старые цифры не показываем.',
+    );
   }
   const qari = hozir - o.vaqt;
   if (qari < YANGI_MS) {
-    return `${o.qiymat.olchandi ?? ''} holatiga. `.trimStart()
-      + 'Raqamlar bazadan olinadi va har kuni oʻzgaradi.';
+    return tr(
+      `${o.qiymat.olchandi ?? ''} holatiga. `.trimStart()
+        + 'Raqamlar bazadan olinadi va har kuni oʻzgaradi.',
+      `${o.qiymat.olchandi ? `По состоянию на ${o.qiymat.olchandi}. ` : ''}`
+        + 'Цифры берутся из базы и меняются каждый день.',
+    );
   }
-  return `Bu raqamlar ${yosh(qari)} oʻlchangan`
-    + `${o.qiymat.olchandi ? ` (${o.qiymat.olchandi})` : ''}. `
-    + 'Bazaga hozir ulanib boʻlmadi, shuning uchun yangilanmadi.';
+  const sana = o.qiymat.olchandi ? ` (${o.qiymat.olchandi})` : '';
+  return tr(
+    `Bu raqamlar ${yosh(qari)} oʻlchangan${sana}. `
+      + 'Bazaga hozir ulanib boʻlmadi, shuning uchun yangilanmadi.',
+    `Эти цифры измерены ${yosh(qari, 'ru')}${sana}. `
+      + 'База сейчас недоступна, поэтому они не обновлены.',
+  );
 }

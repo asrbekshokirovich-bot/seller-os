@@ -18,7 +18,7 @@
     radial-gradient(900px 520px at 85% -10%, var(--glow1), transparent 60%),
     radial-gradient(700px 500px at 0% 100%, var(--glow2), transparent 60%),
     linear-gradient(115deg, transparent 40%, var(--a04) 50%, transparent 60%);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-kirill), var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
