@@ -89,6 +89,15 @@ describe('tmapiTovarniOqi', () => {
     expect(t?.buyurtmalar).toBe(0);
     expect(t?.reklama).toBe(false);
   });
+  it('`javascript:` manzil havola boʻlmaydi; `javascript:` rasm — element tashlanadi', () => {
+    const asl = F.muvaffaqiyat.data.items[0] as Record<string, unknown>;
+    const t = tmapiTovarniOqi({ ...asl, product_url: 'javascript:alert(1)' });
+    expect(t).not.toBeNull();
+    expect(t!.manzil).toBeNull();
+    expect(tmapiTovarniOqi({ ...asl, product_url: 'data:text/html,x' })!.manzil).toBeNull();
+    expect(tmapiTovarniOqi({ ...asl, product_url: 'http://detail.1688.com/x.html' })!.manzil).toBe('http://detail.1688.com/x.html');
+    expect(tmapiTovarniOqi({ ...asl, img: 'javascript:alert(1)' })).toBeNull();
+  });
   it('narxi yoʻq element oʻqilmaydi (null), boʻsh narx nolga aylanmaydi', () => {
     const asl = F.muvaffaqiyat.data.items[0] as Record<string, unknown>;
     expect(tmapiTovarniOqi({ ...asl, price: '', price_info: {} })).toBeNull();

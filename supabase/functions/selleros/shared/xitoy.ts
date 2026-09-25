@@ -153,6 +153,23 @@ function mantiq(x: unknown): boolean | null {
   return typeof x === 'boolean' ? x : null;
 }
 
+/**
+ * Faqat http(s) manzil. Provayder javobi ISHONCHSIZ kirish: `javascript:`
+ * yoki `data:` sxemali "manzil" kengaytmada havola boʻlib chizilsa, u
+ * uzum.uz sahifasida kod boʻlib ishlardi (XSS). Sxema shu yerda, bitta
+ * joyda kesiladi — chizuvchilar (kengaytma, web) unga tayanadi.
+ */
+function httpManzil(x: unknown): string | null {
+  const m = matn(x);
+  if (m === null) return null;
+  try {
+    const u = new URL(m);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 /** "54%" → 54. Foizsiz matn ham son boʻlsa qabul qilinadi. */
 function foiz(x: unknown): number | null {
   if (typeof x !== 'string') return son(x);
@@ -173,7 +190,8 @@ export function tmapiTovarniOqi(xom: unknown): XitoyTovar | null {
   const sourceId = typeof id === 'number' || typeof id === 'string' ? String(id) : null;
   const title = matn(t.title);
   const narxYuan = son(t.price) ?? son(obyekt(t.price_info).sale_price);
-  const rasmUrl = matn(t.img);
+  // Rasm ham, sahifa manzili ham faqat http(s) — `httpManzil` izohi.
+  const rasmUrl = httpManzil(t.img);
   if (sourceId === null || title === null || narxYuan === null || rasmUrl === null) return null;
 
   const sotuv = obyekt(t.sale_info);
@@ -189,7 +207,7 @@ export function tmapiTovarniOqi(xom: unknown): XitoyTovar | null {
     moq: son(t.moq) ?? 0,
     reyting: son(obyekt(dokon.score_info).composite_score) ?? son(t.rating_star),
     manba: '1688',
-    manzil: matn(t.product_url),
+    manzil: httpManzil(t.product_url),
     sotilgan: son(sotuv.sale_quantity_int) ?? son(sotuv.sale_quantity),
     buyurtmalar: son(sotuv.orders_count),
     zavod: mantiq(dokon.is_factory),

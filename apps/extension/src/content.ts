@@ -123,14 +123,33 @@ function natijalarniKorsat(natijalar: Natija[]): void {
     matn.className = 'selleros-natija-matn';
     // Raqamlar provayderdan, hech narsa hisoblanmaydi. Sotuv davri
     // provayderda yozilmagan — shuning uchun "sotilgan", "oyiga" emas.
+    //
+    // `innerHTML` EMAS — DOM bilan. Provayder javobi ishonchsiz kirish:
+    // `manzil` `javascript:` boʻlsa, havola sifatida chizilganda u
+    // uzum.uz sahifasida kod boʻlib ishlardi. Sxema uchta joyda
+    // kesiladi: parser (`httpManzil`), shu yerdagi tekshiruv, va
+    // `a.href` ga DOM orqali berish.
+    const nom = document.createElement('strong');
+    if (typeof n.manzil === 'string' && /^https?:\/\//i.test(n.manzil)) {
+      const a = document.createElement('a');
+      a.href = n.manzil;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = n.title;
+      nom.appendChild(a);
+    } else {
+      nom.textContent = n.title;
+    }
+    matn.appendChild(nom);
     const qismlar = [`¥${n.narxYuan}`, `MOQ: ${n.moq}`];
     if (typeof n.sotilgan === 'number') qismlar.push(`sotilgan: ${n.sotilgan}`);
     if (n.zavod === true) qismlar.push('zavod');
     if (typeof n.reyting === 'number') qismlar.push(`★ ${n.reyting}`);
-    const nom = n.manzil
-      ? `<a href="${escapeHtml(n.manzil)}" target="_blank" rel="noopener noreferrer">${escapeHtml(n.title)}</a>`
-      : escapeHtml(n.title);
-    matn.innerHTML = `<strong>${nom}</strong>` + qismlar.map((q) => `<span>${escapeHtml(q)}</span>`).join('');
+    for (const q of qismlar) {
+      const span = document.createElement('span');
+      span.textContent = q;
+      matn.appendChild(span);
+    }
     qator.appendChild(matn);
 
     panel.appendChild(qator);
@@ -138,12 +157,6 @@ function natijalarniKorsat(natijalar: Natija[]): void {
 
   const tugma = document.getElementById(TUGMA_ID);
   tugma?.parentElement?.insertBefore(panel, tugma.nextSibling);
-}
-
-function escapeHtml(s: string): string {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
 }
 
 function joylashtir(): void {
