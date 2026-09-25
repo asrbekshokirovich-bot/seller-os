@@ -49,6 +49,7 @@ interface Savol {
 type Keyingi =
   | { tur: 'savol'; savol: Savol }
   | { tur: 'kod'; harakat: string; qadam: number }
+  | { tur: 'kutish'; qadam: number; matn: string; boshlandi: string | null }
   | { tur: 'tezOrada'; qadam: number; nom: string; matn: string };
 
 interface Xabar {
@@ -155,9 +156,12 @@ export default function Suhbat() {
     oxiri.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [xabarlar, keyingi, band]);
 
-  async function yubor(tana: Record<string, unknown>) {
-    setBand(true);
-    setXato(null);
+  /**
+   * `jim` — fon soʻrovi (5-qadam kutishini tekshirish): "Yozmoqda…"
+   * koʻrsatilmaydi, kiritish bloklanmaydi.
+   */
+  async function yubor(tana: Record<string, unknown>, jim = false) {
+    if (!jim) { setBand(true); setXato(null); }
     try {
       const r = await fetch('/api/suhbat', {
         method: 'POST',
@@ -174,11 +178,21 @@ export default function Suhbat() {
     } catch (q) {
       setXato(`${tr('Soʻrov yuborilmadi', 'Запрос не отправлен')}: ${String(q)}`);
     } finally {
-      setBand(false);
+      if (!jim) setBand(false);
     }
   }
 
   const javobBer = (savolId: string, javob: unknown) => void yubor({ savolId, javob });
+
+  // 5-qadam: 1688 qidiruvi 30–90 s. `kutish` holatida har 8 s da
+  // `{tekshir: true}` yuboriladi; tugagach javobda xabarlar keladi.
+  const kutishBormi = keyingi?.tur === 'kutish';
+  useEffect(() => {
+    if (!kutishBormi) return;
+    const id = setInterval(() => { void yubor({ tekshir: true }, true); }, 8000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kutishBormi]);
   const boshdan = () => void yubor({ boshdan: true });
 
   function mavzuniTanla(m: Mavzu) {
@@ -202,6 +216,7 @@ export default function Suhbat() {
   // tarix qisqa boʻlsa savol pufagi keyingidan chiziladi.
   const savolKorsat = savol !== null && !(oxirgi?.rol === 'menejer' && oxirgi.savolId === savol.id);
   const tezOrada = keyingi?.tur === 'tezOrada' ? keyingi : null;
+  const kutish = keyingi?.tur === 'kutish' ? keyingi : null;
   const tezOradaKorsat = tezOrada !== null && !(oxirgi?.rol === 'menejer' && oxirgi.matn === tezOrada.matn);
 
   const qadamNomi = SUHBAT_QADAMLARI.find((q) => q.n === qadam)?.nom ?? '';
@@ -291,6 +306,12 @@ export default function Suhbat() {
 
             {savolKorsat && savol && <div className={`${u.pufak} ${u.ai}`}>{savol.matn}</div>}
             {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}>{tezOrada.matn}</div>}
+            {kutish && (
+              <div className={u.yozmoqda} role="status">
+                <span className={u.nuqtalar} aria-hidden="true"><i /><i /><i /></span>
+                <span>{kutish.matn}</span>
+              </div>
+            )}
 
             {band && (
               <div className={u.yozmoqda} role="status">
@@ -315,6 +336,7 @@ export default function Suhbat() {
               <Javoblash
                 savol={savol}
                 tezOrada={tezOrada !== null}
+                kutish={kutish !== null}
                 band={band}
                 tanlangan={tanlangan}
                 setTanlangan={setTanlangan}
@@ -576,14 +598,15 @@ function Chegaralar({ qatorlar, izoh, tr }: { qatorlar: TannarxQatori[]; izoh: s
 /* ------------------------------------------------------ 5-qadam: 1688 takliflari */
 
 interface XitoyTaklifQ {
-  sourceId: string; title: string; narxYuan: number; rasmUrl: string; moq: number;
-  reyting: number | null; manzil: string | null; sotilgan: number | null; zavod: boolean | null;
-  reklama?: boolean | null; narxSom: number | null; chegaradaMi: boolean | null;
+  sourceId: string; title: string; narxYuan: number; rasmUrl: string | null; moq: number | null;
+  reyting: number | null; manzil: string | null; buyurtmalar: number | null; zavod: boolean | null;
+  superZavod?: boolean | null; oxshashlikOrni?: number | null; dropshipNarxYuan?: number | null;
+  narxSom: number | null; chegaradaMi: boolean | null;
 }
 interface XitoyQatorQ {
-  productId: number; title: string; rasmUrl: string | null; chegaraSom: number | null;
+  productId: number; title: string; rasmUrl: string | null; chegaraSom: number | null; yetishmaydi?: string[];
   holat: 'topildi' | 'topilmadi' | 'qidirilmadi'; sabab: string | null; jami: number | null;
-  takliflar: XitoyTaklifQ[];
+  takliflar: XitoyTaklifQ[]; keshdan?: boolean; tashlandi?: number;
 }
 interface XitoyKursQ { somPerYuan: number; sana: string; manba: string }
 
@@ -610,9 +633,13 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
           </div>
           <div className={u.statlar}>
             <Stat nom={tr('Xitoyda chegara', 'Потолок в Китае')} q={q.chegaraSom === null ? '—' : `${raqam(q.chegaraSom)} ${tr('soʻm', 'сум')}`} />
-            <Stat nom={tr('1688 topdi', '1688 нашёл')} q={q.jami === null ? '—' : raqam(q.jami)} />
+            <Stat nom={tr('1688 topdi', '1688 нашёл')} q={q.jami === null ? '—' : raqam(q.jami)} izoh={q.keshdan ? tr('72 soatlik keshdan', 'из кэша (72 ч)') : undefined} />
           </div>
+          {(q.yetishmaydi?.length ?? 0) > 0 && (
+            <p className={u.ogohlik}>{tr('Chegaraga kirmadi:', 'В потолок не вошло:')} {q.yetishmaydi!.join(', ')} — {tr('haqiqiy chegara pastroq', 'реальный потолок ниже')}</p>
+          )}
           {q.sabab && <p className={u.ogohlik}>{q.sabab}</p>}
+          {(q.tashlandi ?? 0) > 0 && <p className={u.kichikIzoh}>{q.tashlandi} {tr('ta karta oʻqilmadi va koʻrsatilmadi', 'карточек не прочитано и не показано')}</p>}
           {q.takliflar.length > 0 && (
             <div className={u.katalog}>
               {q.takliflar.map((t) => {
@@ -620,7 +647,9 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
                 return (
                   <div key={t.sourceId} className={u.katalogKarta}>
                     <div className={u.katalogRasm} aria-hidden="true">
-                      <img src={t.rasmUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      {t.rasmUrl
+                        ? <img src={t.rasmUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        : <span>{t.title.trim().charAt(0) || '·'}</span>}
                     </div>
                     <div className={u.katalogNomi}>
                       {havola
@@ -631,12 +660,12 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
                       ¥{t.narxYuan}{t.narxSom !== null && ` ≈ ${son(t.narxSom)} ${tr('soʻm', 'сум')}`}
                     </div>
                     <div className={u.katalogQator}>
-                      <span>MOQ {t.moq}</span>
-                      <span>{t.sotilgan === null ? '—' : `${son(t.sotilgan)} ${tr('sotilgan', 'продано')}`}</span>
+                      <span>MOQ {t.moq === null ? '—' : t.moq}</span>
+                      <span>{t.buyurtmalar === null ? '—' : `${son(t.buyurtmalar)} ${tr('buyurtma', 'заказов')}`}</span>
                     </div>
                     <div className={u.katalogQator}>
-                      <span>{t.zavod === true ? tr('zavod', 'завод') : t.zavod === false ? tr('sotuvchi', 'продавец') : '—'}</span>
-                      <span>{t.reyting === null ? '—' : `★ ${t.reyting}`}{t.reklama === true ? ` · ${tr('reklama', 'реклама')}` : ''}</span>
+                      <span>{t.superZavod === true ? tr('super zavod', 'супер-завод') : t.zavod === true ? tr('zavod', 'завод') : t.zavod === false ? tr('sotuvchi', 'продавец') : '—'}</span>
+                      <span>{t.reyting === null ? '—' : `★ ${t.reyting}`}{typeof t.oxshashlikOrni === 'number' ? ` · #${t.oxshashlikOrni}` : ''}</span>
                     </div>
                     {t.chegaradaMi !== null && (
                       <span className={u.katalogBelgi}>
@@ -672,9 +701,10 @@ function Stat({ nom, q, izoh }: { nom: string; q: string; izoh?: string | undefi
 
 /* ------------------------------------------------------ javob berish */
 
-function Javoblash({ savol, tezOrada, band, tanlangan, setTanlangan, matn, setMatn, javobBer, boshdan, tr }: {
+function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, matn, setMatn, javobBer, boshdan, tr }: {
   savol: Savol | null;
   tezOrada: boolean;
+  kutish: boolean;
   band: boolean;
   tanlangan: Array<string | number>;
   setTanlangan: (t: Array<string | number>) => void;
@@ -684,6 +714,13 @@ function Javoblash({ savol, tezOrada, band, tanlangan, setTanlangan, matn, setMa
   boshdan: () => void;
   tr: Tr;
 }) {
+  if (kutish) {
+    return (
+      <div className={u.chiplar}>
+        <span className={u.holat}>{tr('1688 qidiruvi tugashini kutamiz — sahifani yopmang.', 'Ждём завершения поиска на 1688 — не закрывайте страницу.')}</span>
+      </div>
+    );
+  }
   if (tezOrada || savol === null) {
     return (
       <div className={u.chiplar}>

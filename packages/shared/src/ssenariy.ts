@@ -66,6 +66,8 @@ export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy';
 export type Keyingi =
   | { tur: 'savol'; savol: SuhbatSavoli }
   | { tur: 'kod'; harakat: KodHarakati; qadam: number }
+  /** Tashqi ish (1688 qidiruvi) tugashini kutamiz — mijoz `tekshir` bilan soʻrab turadi. */
+  | { tur: 'kutish'; qadam: number; matn: string; boshlandi: string | null }
   | { tur: 'tezOrada'; qadam: number; nom: string; matn: string };
 
 /**
@@ -176,6 +178,12 @@ export interface XitoyQatori {
   rasmUrl: string | null;
   chegaraSom: number | null;
   /**
+   * 4-qadam chegarasiga KIRMAGAN qismlar (kargo, logistika…). Boʻsh
+   * emas — chegara toʻliq emas, haqiqiysi pastroq; "chegarada" belgisi
+   * shu izoh bilan oʻqilishi kerak (tekshiruv, 2026-09-25).
+   */
+  yetishmaydi: string[];
+  /**
    * `topildi` — qidiruv boʻldi, taklif bor. `topilmadi` — qidiruv BOʻLDI,
    * 1688 hech narsa bermadi (bu javob). `qidirilmadi` — qidiruv
    * boʻlmadi, sababi `sabab` da. Uchalasi ATAYLAB farqlanadi (QOIDALAR §8).
@@ -185,6 +193,10 @@ export interface XitoyQatori {
   /** Provayder aytgan umumiy son. */
   jami: number | null;
   takliflar: XitoyTaklif[];
+  /** 72 soatlik keshdan olindi — narxlar shuncha eski boʻlishi mumkin. */
+  keshdan: boolean;
+  /** Oʻqib boʻlmagan kartalar — koʻrsatilmadi, lekin yashirilmadi. */
+  tashlandi: number;
 }
 
 export interface XitoyNatijasi {
@@ -192,6 +204,17 @@ export interface XitoyNatijasi {
   sabab?: string;
   kurs: { somPerYuan: number; sana: string; manba: string } | null;
   qatorlar: XitoyQatori[];
+  /**
+   * Yurish boshlangan, natija hali yoʻq. `keyingi()` shunda `kutish`
+   * qaytaradi; chat `tekshir` bilan soʻrab turadi, `suhbat-kod` holatni
+   * yangilaydi. `urinish` — tarmoq xatosi bilan tugagan tekshiruvlar.
+   */
+  kutilmoqda: {
+    runId: string;
+    boshlandi: string;
+    rasmlar: Array<{ productId: number; rasmUrl: string }>;
+    urinish?: number;
+  } | null;
   izoh?: string;
 }
 
@@ -220,9 +243,14 @@ function tovarNomi(h: YolHolati, id: number): string {
 function taklifNomi(t: XitoyTaklif): string {
   return `¥${t.narxYuan}`
     + (t.narxSom !== null ? ` ≈ ${t.narxSom} soʻm` : '')
-    + ` · MOQ ${t.moq}`
-    + (t.zavod === true ? ' · zavod' : '')
+    + ` · MOQ ${t.moq ?? '—'}`
+    + (t.superZavod === true ? ' · super zavod' : t.zavod === true ? ' · zavod' : '')
     + (t.chegaradaMi === true ? ' · chegarada' : t.chegaradaMi === false ? ' · chegaradan yuqori' : '');
+}
+
+/** Chegara kamchiligi izohi — raqam yonida yuradi (QOIDALAR §4). */
+function chegaraIzohi(q: XitoyQatori): string {
+  return q.yetishmaydi.length ? ` (chegara ${q.yetishmaydi.join(', ')}siz hisoblangan — haqiqiysi pastroq)` : '';
 }
 
 // ==================================================================== savollar
@@ -360,24 +388,44 @@ export function keyingi(h: YolHolati): Keyingi {
     const sid = `rasm:${id}`;
     if (berilgan(h, sid)) continue;
     return { tur: 'savol', savol: savol(sid, 5,
-      `«${tovarNomi(h, id)}» uchun rasm bazada hali yoʻq, 1688 esa rasm boʻyicha qidiradi. Uzum sahifasida tovar rasmiga oʻng tugma → «Rasm manzilini nusxalash» va shu yerga qoʻying. Oʻtkazib yuborsangiz bu tovar Xitoyda qidirilmaydi.`,
+      `«${tovarNomi(h, id)}» uchun rasm bazada hali yoʻq, 1688 esa rasm boʻyicha qidiradi. Uzum sahifasida tovar rasmiga oʻng tugma → «Rasm manzilini nusxalash» va shu yerga qoʻying (http(s):// bilan). Oʻtkazib yuborsangiz bu tovar Xitoyda qidirilmaydi.`,
       'matn', { erkin: true, otkazishMumkin: true }) };
   }
   const xn = xitoyNatija(h);
   if (xn === null) return { tur: 'kod', harakat: 'xitoy', qadam: 5 };
+  // Yurish boshlangan — natijani kutamiz. Bu kod harakati EMAS: kod
+  // qayta-qayta chaqirilsa aylanib qolardi; chat `tekshir` bilan keladi.
+  if (xn.kutilmoqda) {
+    return { tur: 'kutish', qadam: 5, boshlandi: xn.kutilmoqda.boshlandi,
+      matn: `1688 da qidirilmoqda (${xn.kutilmoqda.rasmlar.length} ta rasm) — odatda 1–2 daqiqa. Natija tayyor boʻlgach shu yerda koʻrinadi.` };
+  }
   for (const q of xn.qatorlar ?? []) {
     if (q.holat !== 'topildi' || q.takliflar.length === 0) continue;
     const sid = `xitoy_tanlov:${q.productId}`;
     if (berilgan(h, sid)) continue;
     const sigadi = q.takliflar.filter((t) => t.chegaradaMi === true).length;
     return { tur: 'savol', savol: savol(sid, 5,
-      `«${q.title}»: 1688 da ${q.takliflar.length} ta taklif`
-        + (q.chegaraSom !== null && xn.kurs !== null ? `, ${sigadi} tasi chegara narxga sigʻadi` : '')
+      `«${q.title}»: 1688 dan ${q.jami ?? q.takliflar.length} ta topildi, eng oʻxshash ${q.takliflar.length} tasi koʻrsatildi`
+        + (q.chegaraSom !== null && xn.kurs !== null ? `, ${sigadi} tasi chegara narxga sigʻadi${chegaraIzohi(q)}` : '')
+        + (q.keshdan ? ' (72 soatlik keshdan)' : '')
         + '. Qaysi birini olamiz? Raqamlar provayderdan, tanlov sizniki.',
       'tanlov', {
         variantlar: q.takliflar.map((t) => ({ qiymat: t.sourceId, nom: taklifNomi(t) })),
         otkazishMumkin: true,
       }) };
+  }
+  // Qidirilmagan tovar bor — qayta urinish taklif qilinadi. Usiz bu
+  // qatorlar abadiy "qidirilmadi" boʻlib qolardi: faqat "boshdan"
+  // (1–4-qadamni ham oʻchirib) yordam berardi (tekshiruv, 2026-09-25).
+  const qidirilmagan = (xn.qatorlar ?? []).filter((q) => q.holat === 'qidirilmadi');
+  if (qidirilmagan.length > 0 && !berilgan(h, 'xitoy_qayta')) {
+    const sabablar = [...new Set(qidirilmagan.map((q) => q.sabab ?? 'sabab yozilmagan'))].join('; ');
+    return { tur: 'savol', savol: savol('xitoy_qayta', 5,
+      `${qidirilmagan.length} ta tovar qidirilmadi (${sabablar}). Qayta urinib koʻramizmi?`,
+      'tanlov', { variantlar: [
+        { qiymat: 'qayta', nom: 'Qayta qidirish' },
+        { qiymat: 'davom', nom: 'Shusiz davom etamiz' },
+      ] }) };
   }
 
   // ---------------------------------------------------------- 6+. Hali qurilmagan
@@ -451,6 +499,17 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
     case 'matn': {
       const t = String(xom).trim();
       if (!t) return yoz(h, s, null);
+      // Rasm manzili — qabul PAYTIDA tekshiriladi: notoʻgʻri matn jimgina
+      // "rasm yoʻq" ga aylanmasin, savol qayta soʻralsin (tekshiruv,
+      // 2026-09-25). Manzil kesilmaydi (200 belgi kesigi uni buzardi).
+      if (s.id.startsWith('rasm:')) {
+        if (t.length > 2048) return { holat: h, xato: 'manzil juda uzun (2048 belgidan koʻp)', profil: null };
+        if (!httpsManzilmi(t)) {
+          return { holat: h, xato: 'rasm manzili http(s):// bilan boshlanishi kerak — Uzum sahifasida rasmga oʻng tugma → «Rasm manzilini nusxalash». Yoki oʻtkazib yuboring.', profil: null };
+        }
+        qiymat = t;
+        break;
+      }
       qiymat = t.slice(0, 200);
       break;
     }
@@ -472,6 +531,18 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
     delete yangi['xitoy_tasdiq'];
     const natijalar = { ...holat.natijalar };
     delete natijalar.tannarx;
+    delete natijalar.xitoy;
+    return { holat: { javoblar: yangi, natijalar }, xato: null, profil: null };
+  }
+
+  // "Qayta qidirish" — 5-qadam natijasi va tanlovlari tozalanadi,
+  // `keyingi()` yana `xitoy` kodini chaqiradi (kesh topilganlarni
+  // qayta sotib olmaydi).
+  if (s.id === 'xitoy_qayta' && qiymat === 'qayta') {
+    const yangi = { ...holat.javoblar };
+    for (const id of Object.keys(yangi)) if (id.startsWith('xitoy_tanlov:')) delete yangi[id];
+    delete yangi['xitoy_qayta'];
+    const natijalar = { ...holat.natijalar };
     delete natijalar.xitoy;
     return { holat: { javoblar: yangi, natijalar }, xato: null, profil: null };
   }
@@ -533,27 +604,36 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
   if (harakat === 'xitoy') {
     // Uch holat ATAYLAB alohida sanaladi: topildi / topilmadi (javob) /
     // qidirilmadi (sabab). "Xitoyda yoʻq" bilan "qidirilmadi" bir xil
-    // koʻrinmasin.
+    // koʻrinmasin. "Qidirildi" faqat haqiqatan qidirilganlar soni.
     const n = natija as XitoyNatijasi;
     const q = n.qatorlar ?? [];
-    if (q.length === 0) {
-      return `Xitoydan qidira olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Bu "Xitoyda yoʻq" degani EMAS — qidiruv boʻlmadi.`;
+    if (n.kutilmoqda) {
+      return `1688 da qidirilmoqda (${n.kutilmoqda.rasmlar.length} ta rasm) — odatda 1–2 daqiqa.`;
     }
-    const topildi = q.filter((x) => x.holat === 'topildi');
-    const topilmadi = q.filter((x) => x.holat === 'topilmadi').length;
     const qidirilmadi = q.filter((x) => x.holat === 'qidirilmadi');
+    const qidirilgan = q.filter((x) => x.holat !== 'qidirilmadi');
+    const sabablar = [...new Set(qidirilmadi.map((x) => x.sabab ?? 'sabab yozilmagan'))].join('; ');
+    if (qidirilgan.length === 0) {
+      return `Xitoydan qidira olmadim${q.length ? ` (${q.length} ta tovar)` : ''}: ${sabablar || n.sabab || 'oʻlchov yoʻq'}. Bu "Xitoyda yoʻq" degani EMAS — qidiruv boʻlmadi.`;
+    }
+    const topildi = qidirilgan.filter((x) => x.holat === 'topildi');
+    const topilmadi = qidirilgan.length - topildi.length;
     const takliflar = topildi.reduce((s, x) => s + x.takliflar.length, 0);
     const sigadi = topildi.reduce((s, x) => s + x.takliflar.filter((t) => t.chegaradaMi === true).length, 0);
+    const keshdan = qidirilgan.filter((x) => x.keshdan).length;
+    const tashlandi = qidirilgan.reduce((s, x) => s + x.tashlandi, 0);
     const kurs = n.kurs
       ? ` Kurs: ${n.kurs.manba}, 1 yuan = ${n.kurs.somPerYuan} soʻm (${n.kurs.sana}).`
       : ' Kurs olinmadi — narxlar faqat yuanda, chegaraga solishtirilmadi.';
-    return `${q.length} ta tovar uchun 1688 qidirildi: ${topildi.length} tasida taklif bor`
-      + (topildi.length ? ` (jami ${takliflar} ta${n.kurs ? `, ${sigadi} tasi chegara narxga sigʻadi` : ''})` : '')
+    return `${qidirilgan.length} ta tovar uchun 1688 qidirildi`
+      + (qidirilmadi.length ? ` (${qidirilmadi.length} tasi qidirilmadi: ${sabablar})` : '')
+      + `: ${topildi.length} tasida taklif bor`
+      + (topildi.length ? ` (${takliflar} ta koʻrsatildi${n.kurs ? `, ${sigadi} tasi chegara narxga sigʻadi` : ''})` : '')
       + (topilmadi ? `, ${topilmadi} tasida oʻxshash topilmadi` : '')
-      + (qidirilmadi.length
-        ? `, ${qidirilmadi.length} tasi qidirilmadi (${[...new Set(qidirilmadi.map((x) => x.sabab ?? 'sabab yozilmagan'))].join('; ')})`
-        : '')
-      + '.' + kurs + ' Raqamlar provayderdan; sotuv davri unda yozilmagan.';
+      + '.'
+      + (keshdan ? ` ${keshdan} tasi 72 soatlik keshdan.` : '')
+      + (tashlandi ? ` ${tashlandi} ta karta oʻqilmadi va koʻrsatilmadi.` : '')
+      + kurs + ' Raqamlar provayderdan; buyurtmalar soni jami, davri yozilmagan.';
   }
   // tannarx — HISOBLANGANMI, rostini aytamiz. Jonli o'lchov (2026-09-25):
   // komissiya kelmagan tovarda chegara `null` edi, xabar esa "hisoblandi"

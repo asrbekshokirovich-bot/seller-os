@@ -388,7 +388,7 @@ export function build(): FastifyInstance {
   const suhbatBogliq = (token: string) => ({
     rpc,
     kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
-      { kalit: process.env.XITOY_API_KEY ?? null, fetch, token }),
+      { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi() }),
     ...(process.env.GEMINI_API_KEY
       ? { llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m) }
       : {}),
@@ -417,6 +417,7 @@ export function build(): FastifyInstance {
     const r = await suhbatTurn(d, token, {
       ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
       ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
+      ...(tana.tekshir === true ? { tekshir: true } : {}),
     });
     // Sessiya/baza xatosi — HTTP kodi bilan. Navbat xatosi esa 200:
     // u obunachiga ko'rsatiladigan oddiy javob, nosozlik emas.

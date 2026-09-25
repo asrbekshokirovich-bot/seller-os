@@ -17,6 +17,13 @@
  *   5. hammasini bitta RPC bilan yoz
  *
  * LLM YIQILSA HECH NARSA YIQILMAYDI: kodning jumlasi ketadi.
+ *
+ * KUTISH (5-qadam). 1688 qidiruvi 30–90 s — bitta HTTP soʻrovga
+ * sigʻmaydi. Kod harakati yurishni boshlab `kutilmoqda` qaytaradi,
+ * `keyingi()` esa `kutish` beradi (kod EMAS — aks holda aylanib qolardi).
+ * Mijoz `{tekshir: true}` bilan soʻrab turadi: shunda kod harakati
+ * yurish holatini tekshiradi; oʻzgarish boʻlmasa HECH NARSA yozilmaydi,
+ * tugagach kod xabari + keyingi savol odatdagidek yoziladi.
  */
 
 import { type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat,
@@ -83,7 +90,7 @@ export async function suhbatOqi(d: SuhbatBogliqliklari, token: string): Promise<
 export async function suhbatTurn(
   d: SuhbatBogliqliklari,
   token: string,
-  kirish: { savolId?: string; javob?: unknown; matn?: string },
+  kirish: { savolId?: string; javob?: unknown; matn?: string; tekshir?: boolean },
 ): Promise<SuhbatJavobi> {
   const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
   if (o === null) return { xato: 'baza javob bermadi', xabarlar: [], keyingi: keyingi(boshlangichHolat()), qadam: 1, yozildi: false };
@@ -92,6 +99,24 @@ export async function suhbatTurn(
   let holat = o.holat ?? boshlangichHolat();
   const yangi: SuhbatXabari[] = [];
   let profil: Partial<ProfilJavoblari> | null = null;
+
+  // ---- 1b. kutilayotgan ishni tekshirish (`tekshir`)
+  if (kirish.tekshir === true) {
+    const kutilmoqda = (holat.natijalar.xitoy as { kutilmoqda?: unknown } | undefined)?.kutilmoqda;
+    if (!kutilmoqda) {
+      return { xabarlar: [], keyingi: keyingi(holat), qadam: joriyQadam(holat), yozildi: true };
+    }
+    const natija = await bajar(d, 'xitoy', holat);
+    const yangiHolat = natijaniYoz(holat, 'xitoy', natija);
+    if ((natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
+      // Hali tugamagan: holat oʻzgargan boʻlsa ham (urinish sanogʻi)
+      // jurnalga xabar yozilmaydi; holat yoziladi.
+      await d.rpc('so_suhbat_yoz', { p_token: token, p_xabarlar: [], p_holat: yangiHolat, p_qadam: joriyQadam(yangiHolat), p_profil: null });
+      return { xabarlar: [], keyingi: keyingi(yangiHolat), qadam: joriyQadam(yangiHolat), yozildi: true };
+    }
+    holat = yangiHolat;
+    yangi.push({ rol: 'kod', matn: tushuntir('xitoy', natija), savolId: 'xitoy', javob: natija });
+  }
 
   // ---- 2. javobni qabul qilish
   const k0 = keyingi(holat);
@@ -122,7 +147,11 @@ export async function suhbatTurn(
   while (k.tur === 'kod' && himoya++ < 5) {
     const natija = await bajar(d, k.harakat, holat);
     holat = natijaniYoz(holat, k.harakat, natija);
-    yangi.push({ rol: 'kod', matn: tushuntir(k.harakat, natija), savolId: k.harakat, javob: natija });
+    // Yurish endigina boshlangan bo'lsa kod xabari YOZILMAYDI — natija
+    // kelganda (`tekshir`) yoziladi; hozircha menejerning "kutish" gapi yetadi.
+    if (!(natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
+      yangi.push({ rol: 'kod', matn: tushuntir(k.harakat, natija), savolId: k.harakat, javob: natija });
+    }
     k = keyingi(holat);
   }
 
