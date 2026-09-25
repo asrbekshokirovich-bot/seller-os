@@ -110,10 +110,14 @@ function muhit(q: { bazaBor?: boolean; soni?: number; jami?: number; kesh?: Reco
       if (url.includes('/dataset/items')) return json(b.apify.natijalar);
       if (url.includes('/actor-runs/')) return json(b.apify.holat);
     }
-    // Uzum CDN: rasm baytlari (WebP) — uch uni yuklab base64 qiladi.
+    // Uzum CDN: rasm baytlari (WebP) — uch uni yuklab, proksi orqali JPEG qiladi.
     if (url.startsWith('https://images.uzum.uz/')) {
       b.cdn.push(url);
       return new Response(new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20]), { status: 200, headers: { 'Content-Type': 'image/webp' } });
+    }
+    if (url.startsWith('https://images.weserv.nl/')) {
+      b.cdn.push('weserv');
+      return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46]), { status: 200, headers: { 'Content-Type': 'image/jpeg' } });
     }
     throw new Error(`kutilmagan URL: ${url}`);
   }) as unknown as typeof fetch;
@@ -210,8 +214,8 @@ describe('/xitoy-qidiruv — boshlash', () => {
     const b = muhit();
     const res = await sora({ productId: 1, rasmUrl: UZUM_A });
     expect(res.statusCode).toBe(202);
-    expect(res.json()).toMatchObject({ kutilmoqda: true, runId: RUN, rasmUrl: UZUM_A, usul: 'base64', rasmTuri: 'webp', rasmBayt: 16, izoh: expect.stringMatching(/qidirilmoqda/) });
-    expect(b.cdn).toEqual([UZUM_A]);
+    expect(res.json()).toMatchObject({ kutilmoqda: true, runId: RUN, rasmUrl: UZUM_A, usul: 'base64', rasmTuri: 'jpeg', rasmBayt: 10, ogirildi: true, izoh: expect.stringMatching(/qidirilmoqda/) });
+    expect(b.cdn).toEqual([UZUM_A, 'weserv']);
     expect((b.yurishTanasi?.imagesBase64 as unknown[]).length).toBe(1);
     expect(b.yurishTanasi?.imageUrls).toBeUndefined();
     expect(b.provayder.length).toBe(1);

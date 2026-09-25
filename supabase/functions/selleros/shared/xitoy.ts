@@ -50,6 +50,13 @@
  * (biz hisoblagan SHA-256 bilan solishtiriladi) yoki `img-N` tartib
  * raqami bilan bogʻlanadi. Aktor tashxisi (`imageType`, `imageBytes`,
  * `fetchChannel`) javobga chiqadi — 0 natijaning sababi koʻrinsin.
+ *
+ * WEBP → JPEG (2026-09-26, jonli oʻlchov): oʻsha Uzum rasmi base64 WebP
+ * bilan → 0 ta; JPEG qilib (weserv.nl proksi) → 20 ta, aynan oʻsha tovar.
+ * Yaʼni 1688 WebP ni qabul qilmaydi. Endi yuklangan rasm WebP boʻlsa
+ * ochiq rasm-proksi (`images.weserv.nl`, `output=jpg`) orqali JPEG
+ * olinadi; proksi yiqilsa WebP bilan davom etiladi va `ogirildi:false`
+ * + tashxis rostini aytadi. Kesh kaliti — asl Uzum URL.
  */
 
 /** 1688 dan topilgan tovar. Hamma raqam provayder javobidan, hech narsa hisoblanmaydi. */
@@ -187,11 +194,30 @@ export function rasmManzili(x: unknown): string | null {
 export interface YuklanganRasm {
   base64: string;
   fileName: string;
-  /** Toʻliq SHA-256 (hex). Aktor `sha256Prefix16` — birinchi 16 belgi. */
+  /** Toʻliq SHA-256 (hex) — YUBORILGAN baytlarniki. Aktor `sha256Prefix16` — birinchi 16 belgi. */
   sha256: string;
   bayt: number;
   /** Sehrli baytlardan: jpeg / png / webp / null. */
   tur: 'jpeg' | 'png' | 'webp' | null;
+  /** WebP dan JPEG ga proksi orqali oʻgirildi. */
+  ogirildi: boolean;
+}
+
+/**
+ * WebP → JPEG proksi manzili (images.weserv.nl, ochiq, kalitsiz).
+ * `url=` sxemasiz beriladi (jonli oʻlchandi: `images.uzum.uz/...` →
+ * image/jpeg, FFD8FF). Kenglik 800 — 1688 qidiruvi uchun yetarli,
+ * hajm ~130 KB.
+ */
+export function weservJpegManzili(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    const sxemasiz = `${u.host}${u.pathname}${u.search}`;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(sxemasiz)}&output=jpg&w=800&q=85`;
+  } catch {
+    return null;
+  }
 }
 
 export type RasmYuklovchi = (url: string) => Promise<YuklanganRasm | null>;
@@ -221,22 +247,37 @@ async function sha256hex(b: Uint8Array): Promise<string> {
 /**
  * Rasm yuklovchi — `fetch` argument bilan. Chegara: aktor "~1 MB" deydi.
  * Yuklanmasa `null` — chaqiruvchi URL bilan davom etadi (rostini
- * `usul` bilan aytib).
+ * `usul` bilan aytib). WebP kelsa `jpegManzili` orqali JPEG olinadi
+ * (standart — weserv); olinmasa WebP ketadi, `ogirildi: false`.
  */
-export function rasmYuklovchi(f: typeof fetch, q: { maxBayt?: number; vaqtMs?: number } = {}): RasmYuklovchi {
+export function rasmYuklovchi(
+  f: typeof fetch,
+  q: { maxBayt?: number; vaqtMs?: number; jpegManzili?: ((url: string) => string | null) | null } = {},
+): RasmYuklovchi {
   const maxBayt = q.maxBayt ?? 1_000_000;
-  return async (url) => {
+  const jpegManzili = q.jpegManzili === undefined ? weservJpegManzili : q.jpegManzili;
+  const yukla = async (u: string): Promise<Uint8Array | null> => {
     try {
-      const r = await f(url, { signal: AbortSignal.timeout(q.vaqtMs ?? 15_000), headers: { Accept: 'image/*' } });
+      const r = await f(u, { signal: AbortSignal.timeout(q.vaqtMs ?? 15_000), headers: { Accept: 'image/*' } });
       if (!r.ok) return null;
       const b = new Uint8Array(await r.arrayBuffer());
-      if (b.length === 0 || b.length > maxBayt) return null;
-      const tur = rasmTuri(b);
-      const sha256 = await sha256hex(b);
-      return { base64: base64ga(b), fileName: `${sha256.slice(0, 16)}.${tur ?? 'bin'}`, sha256, bayt: b.length, tur };
+      return b.length === 0 || b.length > maxBayt ? null : b;
     } catch {
       return null;
     }
+  };
+  return async (url) => {
+    let b = await yukla(url);
+    if (b === null) return null;
+    let tur = rasmTuri(b);
+    let ogirildi = false;
+    if (tur === 'webp' && jpegManzili) {
+      const jm = jpegManzili(url);
+      const j = jm === null ? null : await yukla(jm);
+      if (j !== null && rasmTuri(j) === 'jpeg') { b = j; tur = 'jpeg'; ogirildi = true; }
+    }
+    const sha256 = await sha256hex(b);
+    return { base64: base64ga(b), fileName: `${sha256.slice(0, 16)}.${tur ?? 'bin'}`, sha256, bayt: b.length, tur, ogirildi };
   };
 }
 
@@ -520,6 +561,8 @@ export interface YuborilganRasm {
   sha256: string | null;
   tur: YuklanganRasm['tur'];
   bayt: number | null;
+  /** WebP dan JPEG ga oʻgirildi (proksi). */
+  ogirildi: boolean;
 }
 
 /**
@@ -558,6 +601,7 @@ export async function xitoyQidiruvniBoshla(
       sha256: x.yuklangan?.sha256 ?? null,
       tur: x.yuklangan?.tur ?? null,
       bayt: x.yuklangan?.bayt ?? null,
+      ogirildi: x.yuklangan?.ogirildi ?? false,
     })),
   };
 }

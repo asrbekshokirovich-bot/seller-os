@@ -99,11 +99,14 @@ sekinlashtirish — nazoratchi qarori. `/kartochka` uchidagi
 1688 JPEG rasmi (URL) → 20 ta; Uzum rasmi (URL) → 0 ta, ikki tovar
 (run QckfBksI7bFkLu6nt, ITTnGOYlDooLdSu0H). Uzum CDN faqat WebP beradi
 (`Accept` ga qaramay, JPEG/PNG yoʻli yoʻq; 800+ oʻlchamlar 400/404).
-Yechim 1 (shu PR): rasmni oʻzimiz yuklab base64 bilan yuborish +
-aktor tashxisi. Agar base64 WebP ham 0 bersa — yechim 2: Edge da
-WebP → JPEG oʻgirish (wasm, `@jsquash/webp` + `@jsquash/jpeg`), yoki
-Uzum `original.jpg` oʻrniga boshqa manba. Birinchi jonli base64
-qidiruvidan keyin hal qilinadi.
+Yechim 1: base64 — jonli sinaldi, WebP base64 ham 0 ta (run
+EtwMaudbxpMTaGVK8). Yechim 2 (QOʻLLANDI): WebP → JPEG ochiq proksi
+`images.weserv.nl` orqali — jonli 20 ta (run FFn17tXqPqgHZsyFz).
+QOLGAN XAVF: proksi uchinchi tomon (kalitsiz, bepul); u yopilsa
+qidiruv yana 0 ga tushadi (tashxisda `webp` koʻrinadi). Oʻz
+konvertorimiz (Edge da wasm `@jsquash/webp`+`jpeg`, yoki Vercel
+`/_next/image` — `images.remotePatterns` ga `images.uzum.uz`) —
+proksi ishonchsiz chiqsa.
 
 — [agent, 2026-09-25] **Apify jonli javobi oʻlchanmagan.** Provayder
 TMAPI dan Apify (`crawleast/1688-image-search-scraper`) ga oʻtdi

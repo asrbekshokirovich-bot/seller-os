@@ -678,6 +678,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     return javob({
       kutilmoqda: true, runId: b.runId, rasmUrl, limit: band.natija,
       usul: yuborilgan?.usul ?? 'url', rasmTuri: yuborilgan?.tur ?? null, rasmBayt: yuborilgan?.bayt ?? null,
+      ogirildi: yuborilgan?.ogirildi ?? false,
       izoh: '1688 da qidirilmoqda — odatda 1–2 daqiqa. Natija tayyor boʻlgach shu yerda koʻrinadi.',
     }, 202);
   }

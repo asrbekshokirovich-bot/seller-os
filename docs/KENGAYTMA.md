@@ -79,7 +79,16 @@ varianti yoʻq — serverdan oʻlchandi). Endi uch rasmni oʻzi yuklab
 (`rasmYuklovchi`, ≤1 MB) aktorga `imagesBase64` bilan beradi; natija
 `sha256Prefix16` / `img-N` bilan bogʻlanadi; aktor tashxisi (`tashxis`:
 tur, bayt, yuklandimi) javobda — 0 natija sababi koʻrinadi. 202 javobida
-`usul` (`base64`/`url`), `rasmTuri`, `rasmBayt` bor.
+`usul` (`base64`/`url`), `rasmTuri`, `rasmBayt`, `ogirildi` bor.
+
+**WebP → JPEG (2026-09-26).** Jonli: oʻsha Uzum rasmi base64 WebP bilan →
+0 ta; JPEG qilib → **20 ta**, aynan oʻsha tovar (run FFn17tXqPqgHZsyFz).
+1688 WebP ni qabul qilmaydi. Endi yuklangan rasm WebP boʻlsa ochiq
+rasm-proksi `images.weserv.nl` (`output=jpg&w=800`) orqali JPEG olinadi;
+proksi yiqilsa WebP ketadi va `ogirildi: false` rostini aytadi. Kesh
+kaliti — asl Uzum URL. Proksi uchinchi tomon: u yopilsa qidiruv 0 ga
+qaytadi va tashxisda `webp` koʻrinadi — shunda oʻz konvertorimiz
+(BACKLOG) kerak boʻladi.
 
 Uch javoblari ATAYLAB farqlanadi:
 

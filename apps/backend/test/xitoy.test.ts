@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   apifyKartaniOqi, apifyNatijalarniOqi, apifyRunniOqi, limitTekshir, qidiruvniBoshlashSorovi, rasmManzili, rasmTuri,
-  rasmYuklovchi, runHolatiSorovi, runNatijasiSorovi, tashxisMatni, xitoyLimitHolati, xitoyQidiruvniBoshla,
+  rasmYuklovchi, runHolatiSorovi, runNatijasiSorovi, tashxisMatni, weservJpegManzili, xitoyLimitHolati, xitoyQidiruvniBoshla,
   xitoyQidiruvniTekshir, yurishByudjetiUsd, APIFY_AKTOR, APIFY_MANZIL, XITOY_LIMIT, XITOY_RASM_MAX, XITOY_SAHIFA_MAX,
   type XitoyTovar,
 } from '@selleros/shared';
@@ -34,6 +34,8 @@ const JONLI = JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/jonli-
 };
 /** WebP sehrli baytlari: RIFF....WEBP */
 const WEBP = new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20]);
+/** JPEG sehrli baytlari: FFD8FF */
+const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46]);
 const UZUM_A = 'https://images.uzum.uz/aaa/t_product_540_high.jpg';
 const UZUM_B = 'https://images.uzum.uz/bbb/original.jpg';
 const UZUM_C = 'https://images.uzum.uz/ccc/original.jpg';
@@ -58,7 +60,7 @@ describe('soʻrov yasash', () => {
     expect(b.maxImages).toBe(XITOY_RASM_MAX);
   });
   it('yuklangan rasm base64 bilan (`imagesBase64`), yuklanmagani URL bilan — aralash', () => {
-    const y = { base64: 'QUJD', fileName: '0123456789abcdef.webp', sha256: '0123456789abcdef'.repeat(4), bayt: 3, tur: 'webp' as const };
+    const y = { base64: 'QUJD', fileName: '0123456789abcdef.webp', sha256: '0123456789abcdef'.repeat(4), bayt: 3, tur: 'webp' as const, ogirildi: false };
     const b = JSON.parse(qidiruvniBoshlashSorovi('K', [{ url: UZUM_A, yuklangan: y }, { url: UZUM_B, yuklangan: null }]).init.body ?? '{}') as Record<string, unknown>;
     expect(b.imagesBase64).toEqual([{ base64: 'QUJD', fileName: '0123456789abcdef.webp' }]);
     expect(b.imageUrls).toEqual([UZUM_B]);
@@ -200,11 +202,42 @@ function soxtaFetch(javoblar: Array<[string, unknown | (() => never)]>) {
 }
 
 describe('rasmYuklovchi', () => {
-  it('yuklaydi: base64, SHA-256, tur sehrli baytlardan (Uzum .jpg — aslida webp)', async () => {
-    const f = (async () => new Response(WEBP, { status: 200, headers: { 'Content-Type': 'image/webp' } })) as unknown as typeof fetch;
+  it('WebP kelsa proksi orqali JPEG olinadi (jonli: WebP → 0 ta, JPEG → 20 ta)', async () => {
+    const urllar: string[] = [];
+    const f = (async (u: string | URL | Request) => {
+      urllar.push(String(u));
+      return String(u).includes('weserv')
+        ? new Response(JPEG, { status: 200, headers: { 'Content-Type': 'image/jpeg' } })
+        : new Response(WEBP, { status: 200, headers: { 'Content-Type': 'image/webp' } });
+    }) as unknown as typeof fetch;
     const y = await rasmYuklovchi(f)(UZUM_A);
+    expect(y).toMatchObject({ tur: 'jpeg', ogirildi: true, bayt: JPEG.length });
+    expect(y!.fileName.endsWith('.jpeg')).toBe(true);
+    expect(urllar.length).toBe(2);
+    expect(urllar[1]).toBe(weservJpegManzili(UZUM_A));
+    expect(weservJpegManzili(UZUM_A)).toBe('https://images.weserv.nl/?url=images.uzum.uz%2Faaa%2Ft_product_540_high.jpg&output=jpg&w=800&q=85');
+    expect(weservJpegManzili('ftp://x/y')).toBeNull();
+  });
+  it('proksi yiqilsa yoki JPEG bermasa — WebP bilan davom, ogirildi: false', async () => {
+    const f = (async (u: string | URL | Request) => (String(u).includes('weserv')
+      ? new Response('xato', { status: 502 })
+      : new Response(WEBP, { status: 200 }))) as unknown as typeof fetch;
+    const y = await rasmYuklovchi(f)(UZUM_A);
+    expect(y).toMatchObject({ tur: 'webp', ogirildi: false });
+    const f2 = (async (u: string | URL | Request) => new Response(String(u).includes('weserv') ? WEBP : WEBP, { status: 200 })) as unknown as typeof fetch;
+    expect((await rasmYuklovchi(f2)(UZUM_A))!.ogirildi).toBe(false);
+    // JPEG kelsa proksi umuman chaqirilmaydi
+    const urllar: string[] = [];
+    const f3 = (async (u: string | URL | Request) => { urllar.push(String(u)); return new Response(JPEG, { status: 200 }); }) as unknown as typeof fetch;
+    expect((await rasmYuklovchi(f3)(UZUM_A))!.tur).toBe('jpeg');
+    expect(urllar.length).toBe(1);
+  });
+  it('yuklaydi: base64, SHA-256, tur sehrli baytlardan (Uzum .jpg — aslida webp); proksi oʻchiq', async () => {
+    const f = (async () => new Response(WEBP, { status: 200, headers: { 'Content-Type': 'image/webp' } })) as unknown as typeof fetch;
+    const y = await rasmYuklovchi(f, { jpegManzili: null })(UZUM_A);
     expect(y).not.toBeNull();
     expect(y!.tur).toBe('webp');
+    expect(y!.ogirildi).toBe(false);
     expect(y!.bayt).toBe(WEBP.length);
     expect(y!.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(y!.fileName).toBe(`${y!.sha256.slice(0, 16)}.webp`);
@@ -227,14 +260,14 @@ describe('xitoyQidiruvniBoshla', () => {
   it('yukla berilsa: rasm avval yuklanadi, base64 bilan ketadi, SHA qaytadi; yuklanmasa URL bilan', async () => {
     const s = soxtaFetch([['/runs', F.boshlandi]]);
     const yukla = async (url: string) => (url === UZUM_A
-      ? { base64: 'QUJD', fileName: 'x.webp', sha256: 'ab'.repeat(32), bayt: 3, tur: 'webp' as const }
+      ? { base64: 'QUJD', fileName: 'x.webp', sha256: 'ab'.repeat(32), bayt: 3, tur: 'webp' as const, ogirildi: false }
       : null);
     const b = await xitoyQidiruvniBoshla({ kalit: 'K', fetch: s.fetch }, { rasmlar: [UZUM_A, UZUM_B], yukla });
     expect(b.runId).toBe('HG7ML7M8z78YcAPEB');
     if (b.runId === null) return;
     expect(b.rasmlar).toEqual([
-      { url: UZUM_A, usul: 'base64', sha256: 'ab'.repeat(32), tur: 'webp', bayt: 3 },
-      { url: UZUM_B, usul: 'url', sha256: null, tur: null, bayt: null },
+      { url: UZUM_A, usul: 'base64', sha256: 'ab'.repeat(32), tur: 'webp', bayt: 3, ogirildi: false },
+      { url: UZUM_B, usul: 'url', sha256: null, tur: null, bayt: null, ogirildi: false },
     ]);
     const tana = JSON.parse(String(s.chaqiruvlar[0]!.init?.body)) as Record<string, unknown>;
     expect(tana.imagesBase64).toEqual([{ base64: 'QUJD', fileName: 'x.webp' }]);
@@ -244,8 +277,8 @@ describe('xitoyQidiruvniBoshla', () => {
     const s = soxtaFetch([['/runs', F.boshlandi]]);
     const b = await xitoyQidiruvniBoshla({ kalit: 'KALIT', fetch: s.fetch }, { rasmlar: [UZUM_A, UZUM_B] });
     expect(b).toEqual({ runId: 'HG7ML7M8z78YcAPEB', xato: null, rasmlar: [
-      { url: UZUM_A, usul: 'url', sha256: null, tur: null, bayt: null },
-      { url: UZUM_B, usul: 'url', sha256: null, tur: null, bayt: null },
+      { url: UZUM_A, usul: 'url', sha256: null, tur: null, bayt: null, ogirildi: false },
+      { url: UZUM_B, usul: 'url', sha256: null, tur: null, bayt: null, ogirildi: false },
     ] });
     expect(s.chaqiruvlar.length).toBe(1);
     expect((s.chaqiruvlar[0]!.init?.headers as Record<string, string>).Authorization).toBe('Bearer KALIT');
