@@ -12,6 +12,7 @@ mavsumiylik) qo'lda to'ldiriladi."
 | Fayl | Nima | Kim to'ldiradi |
 |---|---|---|
 | `category_requirements.csv` | Kategoriya talablari va mavsumiylik | Nazoratchi (qo'lda) |
+| `selleros.fakt` jadvali (CSV emas, 0056) | Kargo stavkalari, muddatlar — `kargo.*` kalitlari | Nazoratchi, Supabase Table editor da |
 | `fikstura_yasash.py` | Darvoza ro'yxatlarini **bazadan** yasaydi | Skript |
 
 **`traps.json` bu papkada YO'Q va bo'lmasligi kerak.** U bir vaqtlar

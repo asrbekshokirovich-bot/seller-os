@@ -430,7 +430,11 @@ function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRej
             ? <Chegaralar qatorlar={(n.qatorlar as TannarxQatori[] | undefined) ?? []} izoh={typeof n.izoh === 'string' ? n.izoh : null} tr={tr} />
             : x.savolId === 'xitoy'
               ? <XitoyTakliflari qatorlar={(n.qatorlar as XitoyQatorQ[] | undefined) ?? []} kurs={(n.kurs as XitoyKursQ | null | undefined) ?? null} izoh={typeof n.izoh === 'string' ? n.izoh : null} tr={tr} />
-              : null}
+              : x.savolId === 'buyurtma'
+                ? <BuyurtmaVaraqasi n={n as unknown as BuyurtmaQ} tr={tr} />
+                : x.savolId === 'ochiq_ish'
+                  ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
+                  : null}
     </div>
   );
 }
@@ -685,6 +689,77 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
           : tr('Kurs olinmadi — soʻm koʻrsatilmadi.', 'Курс не получен — сумы не показаны.')}
         {izoh ? ` ${izoh}` : ''}
       </p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 6-qadam: buyurtma varaqasi */
+
+interface BuyurtmaQatorQ {
+  productId: number; title: string; sourceId: string | null; xitoyTitle: string | null; manzil: string | null;
+  miqdor: number | null; narxYuan: number | null; narxSom: number | null; jamiYuan: number | null; jamiSom: number | null;
+  weightG: number | null; kargoSom: number | null; kargoIzoh: string | null; holat: 'tayyor' | 'tanlanmagan';
+}
+interface BuyurtmaQ {
+  qatorlar?: BuyurtmaQatorQ[];
+  jami?: { yuan: number | null; som: number | null; kargoSom: number | null; dona: number | null; tayyor: number; tanlanmagan: number };
+  kargo?: { hamkor: string | null; izoh: string | null };
+  kurs?: { cny: { sana: string; somPerYuan: number } | null; usd: { sana: string; somPerYuan: number } | null };
+  izoh?: string;
+}
+
+/** Varaqa matni — agentga yuborish uchun (nusxalash). Hamma raqam natijadan. */
+function varaqaMatni(n: BuyurtmaQ): string {
+  const q = (n.qatorlar ?? []).filter((x) => x.holat === 'tayyor');
+  const satrlar = q.map((x, i) =>
+    `${i + 1}. ${x.xitoyTitle ?? x.title} — ${x.miqdor ?? '?'} dona × ¥${x.narxYuan ?? '?'}${x.jamiYuan !== null ? ` = ¥${x.jamiYuan}` : ''}${x.manzil ? `\n   ${x.manzil}` : ''}`);
+  const j = n.jami;
+  return ['Buyurtma varaqasi (SellerOS)', ...satrlar, j ? `Jami: ${j.dona ?? '?'} dona, ¥${j.yuan ?? '?'}` : ''].filter(Boolean).join('\n');
+}
+
+function BuyurtmaVaraqasi({ n, tr }: { n: BuyurtmaQ; tr: Tr }) {
+  const [nusxalandi, setNusxalandi] = useState(false);
+  const q = n.qatorlar ?? [];
+  const j = n.jami;
+  const nusxala = () => {
+    try { void navigator.clipboard.writeText(varaqaMatni(n)); setNusxalandi(true); setTimeout(() => setNusxalandi(false), 2000); } catch { /* clipboard yoʻq */ }
+  };
+  return (
+    <div className={u.kartalar}>
+      {q.map((x) => (
+        <div key={x.productId} className={u.karta}>
+          <div className={u.kartaBoshi}>
+            <div className={u.kartaNomBlok}>
+              <div className={u.kartaNomi}>{x.title}</div>
+              {x.xitoyTitle && <div className={u.kichikIzoh}>{x.manzil ? <a href={x.manzil} target="_blank" rel="noopener noreferrer">{x.xitoyTitle}</a> : x.xitoyTitle}</div>}
+            </div>
+            <span className={`${u.teg} ${x.holat === 'tayyor' ? u.tegYaxshi : u.tegOgoh}`}>{x.holat === 'tayyor' ? tr('varaqada', 'в листе') : tr('taklif tanlanmagan', 'вариант не выбран')}</span>
+          </div>
+          <div className={u.statlar}>
+            <Stat nom={tr('Miqdor', 'Кол-во')} q={x.miqdor === null ? '—' : `${x.miqdor} ${tr('dona', 'шт')}`} />
+            <Stat nom={tr('Narx', 'Цена')} q={x.narxYuan === null ? '—' : `¥${x.narxYuan}${x.narxSom !== null ? ` ≈ ${raqam(x.narxSom)}` : ''}`} />
+            <Stat nom={tr('Jami', 'Итого')} q={x.jamiYuan === null ? '—' : `¥${x.jamiYuan}${x.jamiSom !== null ? ` ≈ ${raqam(x.jamiSom)} ${tr('soʻm', 'сум')}` : ''}`} />
+            <Stat nom={tr('Kargo / dona', 'Карго / шт')} q={x.kargoSom === null ? '—' : `${raqam(x.kargoSom)} ${tr('soʻm', 'сум')}`} izoh={x.kargoIzoh ?? undefined} />
+          </div>
+        </div>
+      ))}
+      {j && (
+        <div className={u.karta}>
+          <div className={u.statlar}>
+            <Stat nom={tr('Tovar', 'Товаров')} q={`${j.tayyor}${j.tanlanmagan ? ` (+${j.tanlanmagan} ${tr('tanlanmagan', 'не выбрано')})` : ''}`} />
+            <Stat nom={tr('Dona', 'Штук')} q={j.dona === null ? '—' : raqam(j.dona)} />
+            <Stat nom={tr('Jami', 'Итого')} q={j.yuan === null ? '—' : `¥${j.yuan}${j.som !== null ? ` ≈ ${raqam(j.som)} ${tr('soʻm', 'сум')}` : ''}`} />
+            <Stat nom={tr('Kargo jami', 'Карго итого')} q={j.kargoSom === null ? '—' : `${raqam(j.kargoSom)} ${tr('soʻm', 'сум')}`} izoh={n.kargo?.izoh ?? undefined} />
+          </div>
+          {n.kargo?.izoh && <p className={u.ogohlik}>{tr('Kargo hisobga kirmadi:', 'Карго не учтено:')} {n.kargo.izoh}</p>}
+          <div className={u.chiplar}>
+            <button type="button" className={`${u.chip} ${u.chipYengil}`} onClick={nusxala} disabled={j.tayyor === 0}>
+              {nusxalandi ? tr('Nusxalandi ✓', 'Скопировано ✓') : tr('Varaqani nusxalash (agentga yuborish uchun)', 'Скопировать лист (для агента)')}
+            </button>
+          </div>
+        </div>
+      )}
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}{n.kurs?.cny ? ` ${tr('Kurs', 'Курс')}: 1 ¥ = ${son(n.kurs.cny.somPerYuan)} (${n.kurs.cny.sana}).` : ''}</p>}
     </div>
   );
 }

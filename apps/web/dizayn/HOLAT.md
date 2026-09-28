@@ -58,8 +58,20 @@ uchun bitta.
    chegarasiga solishtiriladi ("chegarada" belgisi); kurs olinmasa soʻm
    koʻrsatilmaydi. Har tovar uchun bitta tanlov savoli (provayder id),
    oʻtkazish mumkin. Uch holat ekranda farqlanadi: topildi / 1688 da
-   oʻxshash yoʻq / qidirilmadi (sabab). 6-qadam "tez orada": kargo
-   stavkasi — nazoratchi qarori.
+   oʻxshash yoʻq / qidirilmadi (sabab).
+
+9. *(2026-09-28, nazoratchi: "hozircha kargo hamkor yoʻq")* **6-qadam —
+   Buyurtma va kargo — qurildi, hamkorsiz.** Tizim buyurtma BERMAYDI
+   (1688 toʻlovi Xitoy toʻlov tizimini talab qiladi): 5-qadam
+   tanlovlaridan **buyurtma varaqasi** (tovar, 1688 havolasi, miqdor,
+   ¥ va soʻm, jami) yasaladi, obunachi nusxalab agentga yuboradi, keyin
+   buyurtma/kuzatuv raqamini kiritadi (oʻtkazish mumkin). Shahar
+   soʻraladi (profil `city`). Kargo stavkalari `selleros.fakt` dan
+   (`kargo.*` kalitlari) — nazoratchi hamkor topgach toʻldiradi; ungacha
+   avia/quruqlik savoli SOʻRALMAYDI va varaqa "kargo hisobga kirmadi"
+   deb turadi. 4-qadam chegarasi ham fakt boʻlsa kargoni oladi.
+   "Boshlaymiz" → `ochiq_ish` (kutyapman, muddat = fakt kun boʻlsa).
+   Eslatma mexanizmi — BACKLOG. 7-qadam "tez orada".
 
 ## Dizayndan ataylab chetga chiqilgan joylar
 

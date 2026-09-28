@@ -26,5 +26,6 @@ export * from './tannarx.ts';
 export * from './xatolik.ts';
 export * from './xitoy.ts';
 export * from './kurs.ts';
+export * from './fakt.ts';
 export * from './xizmat.ts';
 export * from './kartochka.ts';

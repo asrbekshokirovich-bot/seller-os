@@ -32,10 +32,24 @@ yangi migratsiya qoʻlda (MCP yoki dashboard) qoʻllanadi — `0046` ham,
 503 "baza javob bermadi" beradi (jonli oʻlchandi). Kerak: deploy ga
 `supabase db push` qadami, `SUPABASE_DB_PASSWORD` siri bilan.
 
-— [agent, 2026-09-25] **Kargo stavkasi bazada yoʻq.** 4-qadam chegara
-narxi kargosiz chiqadi va buni `yetishmaydi` bilan aytadi. Stavka
-(soʻm/kg, soʻm/m³, yoʻl boʻyicha) qaysi jadvalda turishi va kim
-toʻldirishi — nazoratchi qarori. Ssenariyning 6-qadami ham shuni kutadi.
+— [agent, 2026-09-28] **Kargo stavkasi — `selleros.fakt` (0056), HALI BOʻSH.**
+Nazoratchi: hamkor yoʻq. Hamkor topilgach Supabase → Table editor →
+`selleros.fakt` da toʻldiriladi: `kargo.hamkor` (matn), `kargo.avia.usd_kg`,
+`kargo.avia.kun`, `kargo.quruqlik.usd_kg`, `kargo.quruqlik.kun`,
+ixtiyoriy `kargo.usd_m3`, `kargo.min_usd` — har biriga `manba` va
+`olchandi`. Shundan keyin 4-qadam chegarasi kargoni oladi va 6-qadam
+avia/quruqlik savolini beradi — kod oʻzgarmaydi. CSV yuklovchi
+(`supabase/seed/yukla.mjs` kabi) — kerak boʻlsa.
+
+— [agent, 2026-09-28] **Ochiq ish eslatmasi yoʻq.** `selleros.ochiq_ish`
+yoziladi (kutyapman, muddat), lekin muddat kelganda hech kim eslatmaydi
+(ssenariy: "oʻzim {sana} kuni soʻrayman"). Kerak: cron/Edge schedule
+(`pg_cron` yoki GitHub Actions) + suhbatga "menejer eslatmasi" xabari
+turi. Alohida bosqich.
+
+— [agent, 2026-09-28] **Buyurtma jarayoni — agent orqali.** 1688 da
+avtomatik toʻlov qilinmaydi (Xitoy toʻlov tizimi). Varaqa nusxalanadi.
+Hamkor/agent API si paydo boʻlsa — varaqani toʻgʻridan-toʻgʻri yuborish.
 
 — [agent, 2026-09-25] **Ssenariy 6–12-qadamlari qurilmagan.** Mashina
 ularga yetganda rostini aytadi ("tez orada"). 5-qadam (Xitoydan topish)
