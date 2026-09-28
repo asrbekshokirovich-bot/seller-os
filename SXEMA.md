@@ -90,6 +90,17 @@ Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,
 > ishlatiladigan yagona signal. `null` = o'lchanmagan; `false`
 > "og'ir emas" degani EMAS (TUZOQLAR.md, 7-tuzoq).
 
+### `fakt` (0056)
+Odam kiritadigan bilim: `kalit` (masalan `kargo.avia.usd_kg`), `qiymat`
+(jsonb, **NULL = bilmaymiz**), `birlik`, `manba`, `olchandi`, `izoh`.
+Kod faqat o'qiydi (`so_fakt_oqi`). Kargo kalitlari 0056 da bo'sh
+yaratilgan — nazoratchi to'ldiradi (BACKLOG).
+
+### `ochiq_ish` (0056)
+Ssenariydagi "ochiq ish": `tur` (kutyapman/tolov/tekshirish), `sabab`,
+`muddat` (NULL = noma'lum), `holat` (ochiq/yopiq), `props`. Bir xil ochiq
+ish ikki marta yozilmaydi (`so_ochiq_ish_yoz`). Eslatma — alohida bosqich.
+
 ## 2. Kunlik tarix
 
 ### `product_observation` — xom o'lchov

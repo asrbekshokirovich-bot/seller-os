@@ -60,6 +60,7 @@ function soxtaBaza(q: { soni?: number; jami?: number; kesh?: Record<string, unkn
     const a = arg as Record<string, unknown>;
     chaqiruvlar.push(nom + (a.p_oshir === true ? ':oshir' : a.p_qaytar === true ? ':qaytar' : ''));
     if (nom === 'so_obuna') return { obuna: null } as T;
+    if (nom === 'so_fakt_oqi') return {} as T;
     if (nom === 'so_xitoy_limit') {
       if (q.limitXato) return { xato: 'sessiya topilmadi' } as T;
       if (a.p_qaytar === true) { soni = Math.max(0, soni - 1); jami = Math.max(0, jami - 1); return { soni, jami, ruxsat: true } as T; }
@@ -136,7 +137,7 @@ describe('xitoy — boshlash', () => {
     const b = soxtaBaza(); const s = soxtaFetch();
     const n = await kod(b, s.fetch).xitoy(holatYasa()) as XitoyNatijasi;
     expect(n.olchov_yoq).toBe(false);
-    expect(n.kurs).toEqual({ somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' });
+    expect(n.kurs).toEqual({ somPerYuan: 1762.49, valyuta: 'CNY', sana: '25.09.2026', manba: 'CBU' });
     expect(n.kutilmoqda).toMatchObject({ runId: RUN, rasmlar: [{ productId: 100, rasmUrl: RASM_A, usul: 'base64' }, { productId: 200, rasmUrl: RASM_B, usul: 'base64' }] });
     expect(n.kutilmoqda!.rasmlar[0]!.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(typeof n.kutilmoqda!.boshlandi).toBe('string');

@@ -26,14 +26,19 @@
  * ALOHIDA tekshiriladi. Byudjetda nol "pulim yo'q" degan javob,
  * `null` esa "aytmadi".
  *
- * 12 QADAM. Bugun 1–5 qurilgan (5 — Xitoydan topish, 2026-09-25).
- * 6–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
+ * 12 QADAM. Bugun 1–6 qurilgan (5 — Xitoydan topish, 2026-09-25;
+ * 6 — Buyurtma va kargo, 2026-09-28: kargo hamkori YOʻQ, stavkalar
+ * `fakt` dan, boʻlmasa rostini aytadi).
+ * 7–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
  * ROSTINI aytadi — bu ham zanjirning bir bo'g'ini: obunachi yo'l
  * qayerda tugaganini va nima kelishini biladi.
  */
 
 import type { ProfilJavoblari } from './profil.ts';
 import type { XitoyTovar } from './xitoy.ts';
+import type { KargoStavkasi } from './fakt.ts';
+import type { Kurs } from './kurs.ts';
+import { SHAHARLAR } from './savollar.ts';
 
 // ==================================================================== turlar
 
@@ -61,7 +66,7 @@ export interface SuhbatSavoli {
 }
 
 /** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi. */
-export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy';
+export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish';
 
 export type Keyingi =
   | { tur: 'savol'; savol: SuhbatSavoli }
@@ -90,7 +95,7 @@ export const SUHBAT_QADAMLARI = [
   { n: 3, nom: 'Tovar va miqdor', qurilgan: true },
   { n: 4, nom: 'Tannarx', qurilgan: true },
   { n: 5, nom: 'Xitoydan topish', qurilgan: true },
-  { n: 6, nom: 'Buyurtma va kargo', qurilgan: false },
+  { n: 6, nom: 'Buyurtma va kargo', qurilgan: true },
   { n: 7, nom: 'Rasmiylashtirish', qurilgan: false },
   { n: 8, nom: 'Qabul', qurilgan: false },
   { n: 9, nom: 'Studiya', qurilgan: false },
@@ -224,6 +229,70 @@ export interface XitoyNatijasi {
 function xitoyNatija(h: YolHolati): XitoyNatijasi | null {
   const n = h.natijalar.xitoy as XitoyNatijasi | undefined;
   return n ?? null;
+}
+
+// ---- 6-qadam natijasi: buyurtma varaqasi. `suhbat-kod.ts` yasaydi, UI chizadi.
+
+export interface BuyurtmaQatori {
+  productId: number;
+  title: string;
+  /** 5-qadamda tanlangan 1688 taklifi. `null` — tanlanmagan/oʻtkazilgan. */
+  sourceId: string | null;
+  xitoyTitle: string | null;
+  manzil: string | null;
+  miqdor: number | null;
+  narxYuan: number | null;
+  narxSom: number | null;
+  jamiYuan: number | null;
+  jamiSom: number | null;
+  weightG: number | null;
+  /** Bir dona uchun kargo, soʻm — fakt stavkasi bilan; boʻlmasa `null`. */
+  kargoSom: number | null;
+  kargoIzoh: string | null;
+  holat: 'tayyor' | 'tanlanmagan';
+}
+
+export interface BuyurtmaNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  qatorlar: BuyurtmaQatori[];
+  jami: {
+    yuan: number | null;
+    som: number | null;
+    kargoSom: number | null;
+    dona: number | null;
+    tayyor: number;
+    tanlanmagan: number;
+  };
+  kargo: KargoStavkasi;
+  kurs: { cny: Kurs | null; usd: Kurs | null };
+  izoh: string;
+}
+
+export interface OchiqIshNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  id: number | null;
+  yangi: boolean;
+  tur: 'kutyapman';
+  /** ISO sana; `null` — muddat nomaʼlum (kargo muddati yoʻq). */
+  muddat: string | null;
+  izoh: string;
+}
+
+function buyurtmaNatija(h: YolHolati): BuyurtmaNatijasi | null {
+  const n = h.natijalar.buyurtma as BuyurtmaNatijasi | undefined;
+  return n ?? null;
+}
+
+/** Yuk keladigan shahar tugmalari — profil roʻyxati bilan bir xil (`savollar.ts`); "Boshqa" oʻrniga erkin matn. */
+export const SHAHAR_TUGMALARI: readonly SuhbatVarianti[] = SHAHARLAR
+  .filter((s) => s !== 'Boshqa')
+  .map((s) => ({ qiymat: s, nom: s }));
+
+/** Kargo yoʻli tugmasi matni — hamma raqam faktdan. */
+function kargoYoliNomi(nom: string, y: NonNullable<KargoStavkasi['avia']>): string {
+  return `${nom} — ${y.kun !== null ? `${y.kun} kun, ` : ''}$${y.usdKg}/kg${y.somPerKg !== null ? ` (≈ ${y.somPerKg} soʻm/kg)` : ''}`;
 }
 
 /** Faqat http(s) manzil — obunachi yozgan matn ham, baza ham shu elakdan oʻtadi. */
@@ -431,11 +500,46 @@ export function keyingi(h: YolHolati): Keyingi {
       ] }) };
   }
 
-  // ---------------------------------------------------------- 6+. Hali qurilmagan
-  const q6 = SUHBAT_QADAMLARI[5];
+  // ---------------------------------------------------------- 6. Buyurtma va kargo
+  //
+  // Ssenariy: "Sotib olganingiz: jadval… Yuk holati… Kargo hamkori aytgan
+  // muddat…" → shahar → (tanlov boʻlsa) avia/quruqlik → "Yuk kelganda
+  // oʻzim aytaman… Boshlaymizmi?" → ochiq ish. Nazoratchi (2026-09-28):
+  // kargo hamkori YOʻQ — stavkalar `fakt` dan; boʻlmasa rostini aytamiz.
+  // Buyurtmani tizim BERMAYDI: varaqa yasaladi, obunachi uni agentga
+  // yuboradi, raqamini qaytarib kiritadi.
+  const bn = buyurtmaNatija(h);
+  if (bn === null) return { tur: 'kod', harakat: 'buyurtma', qadam: 6 };
+  if (!berilgan(h, 'shahar')) {
+    return { tur: 'savol', savol: savol('shahar', 6,
+      'Yuk qaysi shaharga keladi?',
+      'tanlov', { variantlar: SHAHAR_TUGMALARI, erkin: true, profilMaydoni: 'city' }) };
+  }
+  if (bn.kargo.tanlovBor && bn.kargo.avia && bn.kargo.quruqlik && !berilgan(h, 'kargo_yol')) {
+    return { tur: 'savol', savol: savol('kargo_yol', 6,
+      `${kargoYoliNomi('Avia', bn.kargo.avia)}. ${kargoYoliNomi('Quruqlik', bn.kargo.quruqlik)}. Qaysi biri? Muddat — hamkorning oʻrtacha koʻrsatkichi, vaʼda emas.`,
+      'tanlov', { variantlar: [
+        { qiymat: 'avia', nom: kargoYoliNomi('Avia', bn.kargo.avia) },
+        { qiymat: 'quruqlik', nom: kargoYoliNomi('Quruqlik', bn.kargo.quruqlik) },
+      ] }) };
+  }
+  if (!berilgan(h, 'buyurtma_raqami')) {
+    return { tur: 'savol', savol: savol('buyurtma_raqami', 6,
+      'Buyurtma varaqasini agentga yoki kargo hamkoriga yuborib, buyurtma yoki kuzatuv raqamini olgan boʻlsangiz — shu yerga yozing. Hali boʻlmasa oʻtkazib yuboring, keyin soʻrayman.',
+      'matn', { erkin: true, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'dokon_tayyorlash')) {
+    return { tur: 'savol', savol: savol('dokon_tayyorlash', 6,
+      'Yuk kelganda oʻzim aytaman. Kelguncha doʻkonni tayyorlaymiz, shunda yuk kelgan kuni sotishni boshlaysiz. Boshlaymizmi?',
+      'tanlov', { variantlar: [{ qiymat: 'boshlaymiz', nom: 'Boshlaymiz' }] }) };
+  }
+  if (h.natijalar.ochiq_ish === undefined) return { tur: 'kod', harakat: 'ochiq_ish', qadam: 6 };
+
+  // ---------------------------------------------------------- 7+. Hali qurilmagan
+  const q7 = SUHBAT_QADAMLARI[6];
   return {
-    tur: 'tezOrada', qadam: q6.n, nom: q6.nom,
-    matn: `Keyingi qadam — ${q6.nom}. Bu qism hali qurilmagan: kargo stavkasi bazada yoʻq, nazoratchi qarori kutilmoqda. Tayyor boʻlganda shu chatda oʻzim aytaman. Tanlovlaringiz va chegara narxlar saqlanib turadi.`,
+    tur: 'tezOrada', qadam: q7.n, nom: q7.nom,
+    matn: `Keyingi qadam — ${q7.nom}: YATT, bank hisobi, Uzum kabineti. Bu qism hali qurilmagan (davlat saytlari qadamlari nazoratchi faktlarini kutmoqda). Tayyor boʻlganda shu chatda oʻzim aytaman. Buyurtma varaqangiz va tanlovlaringiz saqlanib turadi.`,
   };
 }
 
@@ -551,6 +655,7 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
   }
 
   let profil: Partial<ProfilJavoblari> | null = null;
+  if (s.profilMaydoni === 'city') profil = { city: qiymat === null ? null : String(qiymat).trim().slice(0, 100) };
   if (s.profilMaydoni === 'budgetUzs') profil = { budgetUzs: qiymat === null ? null : Number(qiymat) };
   if (s.profilMaydoni === 'hasUzumShop') {
     profil = { hasUzumShop: qiymat === null ? null : qiymat !== 'yoq' };
@@ -603,6 +708,30 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     return `${n.royxat.length} ta tovar oʻlchangan va 8 ta tuzoq-filtrdan oʻtdi.`
       + (chiq ? ` ${chiq} tasi tuzoq sababli roʻyxatdan chiqarildi — sababi har birida yozilgan.` : '')
       + ' Sotuv raqamlari zaxira kamayishidan chiqarilgan taxmin, Uzum bermaydi.';
+  }
+  if (harakat === 'buyurtma') {
+    const n = natija as BuyurtmaNatijasi;
+    const q = n.qatorlar ?? [];
+    if (n.olchov_yoq && q.length === 0) {
+      return `Buyurtma varaqasini yasay olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}.`;
+    }
+    const j = n.jami;
+    const kargo = n.kargo.izoh
+      ? ` Kargo: ${n.kargo.izoh} — kargo narxi hisobga kirmadi, jami shunga koʻra PASTROQ koʻrinadi.`
+      : (j.kargoSom !== null ? ` Kargo (ogʻirlik boʻyicha, ${n.kargo.hamkor ?? 'hamkor'}): ${j.kargoSom} soʻm.` : ' Kargo: ogʻirlik oʻlchanmagan tovarlar bor — hisobga kirmadi.');
+    return `Buyurtma varaqasi tayyor: ${j.tayyor} ta tovar`
+      + (j.dona !== null ? `, ${j.dona} dona` : '')
+      + (j.yuan !== null ? `, jami ¥${j.yuan}` : '')
+      + (j.som !== null ? ` (≈ ${j.som} soʻm, CBU ${n.kurs.cny?.sana ?? ''})` : '')
+      + (j.tanlanmagan ? `; ${j.tanlanmagan} ta tovarda 1688 taklifi tanlanmagan — varaqaga kirmadi` : '')
+      + '.' + kargo + ' Buyurtmani tizim bermaydi: varaqani agent yoki kargo hamkoriga yuborasiz.';
+  }
+  if (harakat === 'ochiq_ish') {
+    const n = natija as OchiqIshNatijasi;
+    if (n.olchov_yoq) return `Kutish ishini yozib qoʻya olmadim: ${n.sabab ?? 'baza javob bermadi'}. Yuk kelganda oʻzingiz aytasiz.`;
+    return n.muddat
+      ? `Yuk kelishini kutamiz: taxminan ${n.muddat} (hamkor oʻrtacha muddati, vaʼda emas). Kelguncha doʻkonni tayyorlaymiz.`
+      : 'Yuk kelishini kutamiz. Muddatni ayta olmayman — kargo hamkori va stavkasi hali kiritilmagan. Kelganda oʻzingiz xabar bering; kelguncha doʻkonni tayyorlaymiz.';
   }
   if (harakat === 'xitoy') {
     // Uch holat ATAYLAB alohida sanaladi: topildi / topilmadi (javob) /

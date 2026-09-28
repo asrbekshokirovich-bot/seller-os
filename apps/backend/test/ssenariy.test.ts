@@ -13,7 +13,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   boshlangichHolat, javobniQabulQil, joriyQadam, keyingi, natijaniYoz,
-  SUHBAT_QADAMLARI, tushuntir, type YolHolati,
+  SHAHARLAR, SUHBAT_QADAMLARI, tushuntir, type YolHolati,
 } from '@selleros/shared';
 
 const YONALISHLAR = {
@@ -51,6 +51,21 @@ const XITOY = {
   }],
   kutilmoqda: null,
 };
+/** 6-qadam natijasi — kargo hamkori YOʻQ holati (2026-09-28). */
+const KARGO_YOQ = { hamkor: null, avia: null, quruqlik: null, usdM3: null, minUsd: null, tanlovBor: false, izoh: 'kargo hamkori, kargo stavkasi kiritilmagan' };
+const BUYURTMA = {
+  olchov_yoq: false,
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', sourceId: '983093623752', xitoyTitle: '狗狗牵引绳', manzil: 'https://detail.1688.com/offer/1.html',
+    miqdor: 30, narxYuan: 27, narxSom: 47_587, jamiYuan: 810, jamiSom: 1_427_610, weightG: 120, kargoSom: null, kargoIzoh: 'kargo hamkori, kargo stavkasi kiritilmagan', holat: 'tayyor' as const }],
+  jami: { yuan: 810, som: 1_427_610, kargoSom: null, dona: 30, tayyor: 1, tanlanmagan: 0 },
+  kargo: KARGO_YOQ,
+  kurs: { cny: { somPerYuan: 1762.49, valyuta: 'CNY', sana: '25.09.2026', manba: 'CBU' }, usd: null },
+  izoh: 'varaqa',
+};
+const AVIA = { yol: 'avia' as const, usdKg: 8, kun: 12, somPerKg: 101_200, manba: 'Hamkor X', olchandi: '2026-09-28' };
+const QURUQLIK = { yol: 'quruqlik' as const, usdKg: 3, kun: 30, somPerKg: 37_950, manba: 'Hamkor X', olchandi: '2026-09-28' };
+const BUYURTMA_KARGO = { ...BUYURTMA, kargo: { hamkor: 'Hamkor X', avia: AVIA, quruqlik: QURUQLIK, usdM3: null, minUsd: null, tanlovBor: true, izoh: null } };
+const OCHIQ = { olchov_yoq: false, id: 1, yangi: true, tur: 'kutyapman' as const, muddat: null, izoh: 'ochiq ish' };
 
 /** Javob beradi va qabul qilinganini tekshiradi. */
 function javob(h: YolHolati, id: string, q: unknown): YolHolati {
@@ -66,9 +81,9 @@ function savolId(h: YolHolati): string {
 }
 
 describe('ssenariy — 12 qadam', () => {
-  it('12 qadam, dastlabki 5 tasi qurilgan', () => {
+  it('12 qadam, dastlabki 6 tasi qurilgan', () => {
     expect(SUHBAT_QADAMLARI.length).toBe(12);
-    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5]);
+    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 });
 
@@ -265,7 +280,9 @@ describe('zanjir hech qayerda uzilmaydi', () => {
         h = natijaniYoz(h, k.harakat,
           k.harakat === 'yonalishlar' ? YONALISHLAR
             : k.harakat === 'tovarlar' ? TOVARLAR
-              : k.harakat === 'xitoy' ? XITOY : { ok: true });
+              : k.harakat === 'xitoy' ? XITOY
+                : k.harakat === 'buyurtma' ? BUYURTMA
+                  : k.harakat === 'ochiq_ish' ? OCHIQ : { ok: true });
         continue;
       }
       if (k.tur === 'kutish') throw new Error('kutish: bu yoʻlda kutilmagan');
@@ -344,13 +361,8 @@ describe('5-qadam — Xitoydan topish', () => {
     expect(k.savol.variantlar[1]!.nom).toMatch(/chegaradan yuqori/);
     expect(javobniQabulQil(h, 'xitoy_tanlov:100', 'yoq-id').xato).not.toBeNull();
     h = javob(h, 'xitoy_tanlov:100', '983093623752');
-    const k2 = keyingi(h);
-    expect(k2.tur).toBe('tezOrada');
-    if (k2.tur === 'tezOrada') {
-      expect(k2.qadam).toBe(6);
-      expect(k2.nom).toBe('Buyurtma va kargo');
-      expect(k2.matn).toMatch(/kargo/);
-    }
+    // Tanlov tugadi — 6-qadam: buyurtma varaqasi kodi.
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
     expect(joriyQadam(h)).toBe(6);
   });
 
@@ -362,13 +374,13 @@ describe('5-qadam — Xitoydan topish', () => {
     expect(k.savol.matn).not.toMatch(/sigʻadi/);
     expect(k.savol.variantlar[0]!.nom).toBe('¥27 · MOQ 1 · zavod');
     h = javob(h, 'xitoy_tanlov:100', null);
-    expect(keyingi(h).tur).toBe('tezOrada');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
   });
 
   it('topilmadi (javob) — tanlov soʻralmaydi, toʻgʻri 6-qadam', () => {
     const bosh = { ...XITOY, qatorlar: [{ ...XITOY.qatorlar[0]!, holat: 'topilmadi' as const, jami: 0, takliflar: [] }] };
     const h = natijaniYoz(tasdiqlandi(), 'xitoy', bosh);
-    expect(keyingi(h).tur).toBe('tezOrada');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
   });
 
   it('qidirilmadi — "qayta qidiramizmi?" savoli; "qayta" natijani tozalab kodni qayta chaqiradi; "davom" — 6-qadam', () => {
@@ -383,7 +395,7 @@ describe('5-qadam — Xitoydan topish', () => {
     expect(qayta.natijalar.xitoy).toBeUndefined();
     expect(keyingi(qayta)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
     h = javob(h, 'xitoy_qayta', 'davom');
-    expect(keyingi(h).tur).toBe('tezOrada');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
   });
 
   it('kutilmoqda — `kutish` qaytadi (kod EMAS), savol yoʻq', () => {
@@ -451,5 +463,79 @@ describe('5-qadam — Xitoydan topish', () => {
     expect(m).not.toMatch(/qidirildi/);
     expect(m).not.toMatch(/Kurs olinmadi/);
     expect(tushuntir('xitoy', { ...XITOY, kurs: null })).toMatch(/Kurs olinmadi/);
+  });
+});
+
+function xitoyTanlandi(): YolHolati {
+  const h = natijaniYoz(tasdiqlandi(), 'xitoy', XITOY);
+  return javob(h, 'xitoy_tanlov:100', '983093623752');
+}
+
+describe('6-qadam — Buyurtma va kargo (hamkor yoʻq)', () => {
+  it('varaqa kodi → shahar (tanlov + oʻzim yozaman, profil city) → kargo yoʻli SOʻRALMAYDI → raqam → boshlaymiz → ochiq ish → 7 "tez orada"', () => {
+    let h = xitoyTanlandi();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
+    h = natijaniYoz(h, 'buyurtma', BUYURTMA);
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('shahar');
+    expect(k.savol.qadam).toBe(6);
+    // Profil roʻyxati bilan bir xil shaharlar; "Boshqa" yoʻq — erkin matn bor.
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(SHAHARLAR.filter((s) => s !== 'Boshqa'));
+    expect(k.savol.variantlar[0]!.qiymat).toBe('Toshkent');
+    expect(k.savol.erkin).toBe(true);
+    const q = javobniQabulQil(h, 'shahar', 'Buxoro');
+    expect(q.xato).toBeNull();
+    expect(q.profil).toEqual({ city: 'Buxoro' });
+    h = q.holat;
+    // Kargo hamkori yoʻq — avia/quruqlik savoli yoʻq, toʻgʻri raqam savoli.
+    expect(savolId(h)).toBe('buyurtma_raqami');
+    const kr = keyingi(h);
+    if (kr.tur === 'savol') { expect(kr.savol.turi).toBe('matn'); expect(kr.savol.otkazishMumkin).toBe(true); }
+    h = javob(h, 'buyurtma_raqami', null);
+    expect(savolId(h)).toBe('dokon_tayyorlash');
+    h = javob(h, 'dokon_tayyorlash', 'boshlaymiz');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'ochiq_ish', qadam: 6 });
+    h = natijaniYoz(h, 'ochiq_ish', OCHIQ);
+    const k7 = keyingi(h);
+    expect(k7.tur).toBe('tezOrada');
+    if (k7.tur === 'tezOrada') { expect(k7.qadam).toBe(7); expect(k7.nom).toBe('Rasmiylashtirish'); }
+    expect(joriyQadam(h)).toBe(7);
+  });
+
+  it('kargo stavkalari boʻlsa — avia/quruqlik savoli, raqamlar faktdan', () => {
+    let h = natijaniYoz(xitoyTanlandi(), 'buyurtma', BUYURTMA_KARGO);
+    h = javob(h, 'shahar', 'Toshkent');
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('kargo_yol');
+    expect(k.savol.matn).toMatch(/Avia — 12 kun, \$8\/kg \(≈ 101200 soʻm\/kg\)\. Quruqlik — 30 kun, \$3\/kg/);
+    expect(k.savol.matn).toMatch(/vaʼda emas/);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['avia', 'quruqlik']);
+    h = javob(h, 'kargo_yol', 'quruqlik');
+    expect(savolId(h)).toBe('buyurtma_raqami');
+  });
+
+  it('buyurtma raqami saqlanadi (matn), 200 belgigacha', () => {
+    let h = natijaniYoz(xitoyTanlandi(), 'buyurtma', BUYURTMA);
+    h = javob(h, 'shahar', 'Toshkent');
+    h = javob(h, 'buyurtma_raqami', ' 1688-ORD-2026-0001 ');
+    expect(h.javoblar['buyurtma_raqami']).toBe('1688-ORD-2026-0001');
+  });
+
+  it('tushuntir(buyurtma): sonlar natijadan, kargo yoʻqligi yashirilmaydi, "tizim buyurtma bermaydi"', () => {
+    const m = tushuntir('buyurtma', BUYURTMA);
+    expect(m).toMatch(/1 ta tovar, 30 dona, jami ¥810 \(≈ 1427610 soʻm, CBU 25.09.2026\)/);
+    expect(m).toMatch(/Kargo: kargo hamkori, kargo stavkasi kiritilmagan — kargo narxi hisobga kirmadi/);
+    expect(m).toMatch(/tizim bermaydi/);
+    expect(tushuntir('buyurtma', { ...BUYURTMA, olchov_yoq: true, sabab: '1688 taklifi tanlanmagan', qatorlar: [], jami: { ...BUYURTMA.jami, tayyor: 0 } })).toMatch(/yasay olmadim: 1688 taklifi tanlanmagan/);
+    const tanlanmagan = { ...BUYURTMA, jami: { ...BUYURTMA.jami, tanlanmagan: 1 } };
+    expect(tushuntir('buyurtma', tanlanmagan)).toMatch(/1 ta tovarda 1688 taklifi tanlanmagan/);
+  });
+
+  it('tushuntir(ochiq_ish): muddat yoʻq — rostini aytadi; bor — vaʼda emas deydi', () => {
+    expect(tushuntir('ochiq_ish', OCHIQ)).toMatch(/Muddatni ayta olmayman/);
+    expect(tushuntir('ochiq_ish', { ...OCHIQ, muddat: '2026-10-28' })).toMatch(/taxminan 2026-10-28 \(hamkor oʻrtacha muddati, vaʼda emas\)/);
+    expect(tushuntir('ochiq_ish', { ...OCHIQ, olchov_yoq: true, sabab: 'baza javob bermadi' })).toMatch(/yozib qoʻya olmadim/);
   });
 });

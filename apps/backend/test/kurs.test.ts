@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { cbuKursiniOqi, kursniOl, CBU_KURS_MANZILI } from '@selleros/shared';
+import { cbuKursiniOqi, cbuManzili, kursniOl } from '@selleros/shared';
 
 const CBU = [{
   id: 1, Code: '156', Ccy: 'CNY', CcyNm_RU: 'Юань', CcyNm_UZ: 'Xitoy yuani',
@@ -15,7 +15,7 @@ const CBU = [{
 
 describe('cbuKursiniOqi', () => {
   it('jonli namuna: 1 yuan = 1762.49 soʻm, sana bilan', () => {
-    expect(cbuKursiniOqi(CBU)).toEqual({ somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' });
+    expect(cbuKursiniOqi(CBU)).toEqual({ somPerYuan: 1762.49, valyuta: 'CNY', sana: '25.09.2026', manba: 'CBU' });
   });
   it('Nominal 10 boʻlsa boʻlinadi', () => {
     expect(cbuKursiniOqi([{ ...CBU[0], Nominal: '10', Rate: '17624.9' }])?.somPerYuan).toBeCloseTo(1762.49, 6);
@@ -34,8 +34,14 @@ describe('kursniOl', () => {
   it('CBU manzilini soʻraydi va oʻqiydi', async () => {
     const urllar: string[] = [];
     const f = (async (u: string | URL | Request) => { urllar.push(String(u)); return new Response(JSON.stringify(CBU), { status: 200 }); }) as unknown as typeof fetch;
-    expect(await kursniOl(f)).toEqual({ somPerYuan: 1762.49, sana: '25.09.2026', manba: 'CBU' });
-    expect(urllar).toEqual([CBU_KURS_MANZILI]);
+    expect(await kursniOl(f)).toEqual({ somPerYuan: 1762.49, valyuta: 'CNY', sana: '25.09.2026', manba: 'CBU' });
+    expect(urllar).toEqual([cbuManzili('CNY')]);
+  });
+  it('USD ham: alohida manzil, Ccy boʻyicha ajratiladi', async () => {
+    const USD = [{ Ccy: 'USD', Nominal: '1', Rate: '12650.11', Date: '26.09.2026' }];
+    const f = (async (u: string | URL | Request) => new Response(JSON.stringify(String(u).includes('/USD/') ? USD : CBU), { status: 200 })) as unknown as typeof fetch;
+    expect(await kursniOl(f, 'USD')).toEqual({ somPerYuan: 12650.11, valyuta: 'USD', sana: '26.09.2026', manba: 'CBU' });
+    expect(cbuKursiniOqi(CBU, 'USD')).toBeNull();
   });
   it('tarmoq yiqilsa yoki HTTP xato — null, otmaydi', async () => {
     const yiqil = (async () => { throw new Error('ENOTFOUND'); }) as unknown as typeof fetch;

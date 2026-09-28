@@ -27,8 +27,13 @@
  */
 
 import {
+  arzonYol,
   chegaraNarxi,
+  faktlarniOqi,
   httpsManzilmi,
+  kargoSomBirDona,
+  kargoStavkasi,
+  KARGO_KALITLARI,
   KESH_ESKI_SOAT,
   kursniOl,
   qadamOchiq,
@@ -50,6 +55,11 @@ import {
   type SuhbatBogliqliklari,
   type TovarNomzodi,
   type TovarToliq,
+  type BuyurtmaNatijasi,
+  type BuyurtmaQatori,
+  type KargoYol,
+  type Kurs,
+  type OchiqIshNatijasi,
   type XitoyLimitJavobi,
   type XitoyNatijasi,
   type XitoyQatori,
@@ -68,6 +78,21 @@ export interface XitoyBogliqligi {
   /** `TARIF_CHEKLOVI=1` — `/xitoy-qidiruv` bilan bir xil darvoza. */
   tarifCheklovi: boolean;
   hozir?: () => Date;
+}
+
+/**
+ * Kargo faktlari + USD kursi — 4-qadam (chegara) va 6-qadam (varaqa) uchun
+ * bir xil manba. Fakt boʻlmasa (2026-09-28: hamkor yoʻq) `izoh` bilan
+ * qaytadi; hech qayerda nol yoki taxmin paydo boʻlmaydi.
+ */
+async function kargoFaktlari(rpc: Rpc, f: typeof fetch | null) {
+  const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...KARGO_KALITLARI] });
+  const usd = f ? await kursniOl(f, 'USD') : null;
+  const stavka = kargoStavkasi(faktlarniOqi(xom), usd?.somPerYuan ?? null);
+  // Baza javob bermadi (masalan 0056 hali qoʻllanmagan) — bu "fakt boʻsh"
+  // emas, "oʻqilmadi": izoh shuni aytadi (QOIDALAR §4, jim oʻlim yoʻq).
+  if (xom === null) return { stavka: { ...stavka, izoh: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' }, usd };
+  return { stavka, usd };
 }
 
 /** Bir turnda (bitta yurishda) ko'pi bilan shuncha rasm — Edge/Vercel vaqti va xarajat uchun. */
@@ -146,22 +171,32 @@ export function suhbatKodHarakatlari(
     async tannarx(holat: YolHolati) {
       const marja = Number(holat.javoblar['marja']);
       const tn = holat.natijalar.tovarlar as
-        | { royxat?: Array<{ nomzod: TovarNomzodi & { komissiyaFoizi?: number | null; volumeMl?: number | null } }> }
+        | { royxat?: Array<{ nomzod: TovarNomzodi & { komissiyaFoizi?: number | null; volumeMl?: number | null; weightG?: number | null } }> }
         | undefined;
       const tanlangan = Array.isArray(holat.javoblar['tovarlar'])
         ? (holat.javoblar['tovarlar'] as unknown[]).map(Number) : [];
 
+      // Kargo — fakt stavkasi (arzon yo'l, og'irlik bo'yicha) bo'lsa chegaraga
+      // kiradi; bo'lmasa `null` va `yetishmaydi` da "kargo" turadi (avvalgidek).
+      const kf = await kargoFaktlari(rpc, xitoy?.fetch ?? null);
+      const yol = arzonYol(kf.stavka);
+
       const qatorlar = tanlangan.map((id) => {
         const t = tn?.royxat?.find((x) => x.nomzod.productId === id);
         const miqdor = holat.javoblar[`miqdor:${id}`];
+        const kargo = kargoSomBirDona(yol, t?.nomzod.weightG ?? null, {
+          volumeMl: t?.nomzod.volumeMl ?? null, usdM3: kf.stavka.usdM3, kursUsd: kf.usd?.somPerYuan ?? null,
+        });
         const n = chegaraNarxi({
           sotuvNarxiSom: t?.nomzod.narxSom ?? null,
           marjaFoizi: Number.isFinite(marja) ? marja : null,
           komissiyaFoizi: t?.nomzod.komissiyaFoizi ?? null,
           uzumLogistikaSom: uzumLogistikaSom(t?.nomzod.volumeMl ?? null),
-          // Kargo stavkasi bazada hali yo'q — ochiq `yetishmaydi`.
-          kargoSom: null,
+          kargoSom: kargo?.som ?? null,
         });
+        const yetishmaydi = [...n.yetishmaydi];
+        // Hajm stavkasi bor, lekin tovar hajmi oʻlchanmagan — kargo faqat ogʻirlikdan, bu kamchilik.
+        if (kargo !== null && !kargo.hajmHisobgaKirdi && kf.stavka.usdM3 !== null) yetishmaydi.push('kargo hajmi');
         return {
           productId: id,
           title: t?.nomzod.title ?? `#${id}`,
@@ -169,6 +204,8 @@ export function suhbatKodHarakatlari(
           miqdor: typeof miqdor === 'number' ? miqdor : null,
           marjaFoizi: Number.isFinite(marja) ? marja : null,
           ...n,
+          yetishmaydi,
+          kargoYoli: kargo === null ? null : yol?.yol ?? null,
         };
       });
       return {
@@ -327,6 +364,103 @@ export function suhbatKodHarakatlari(
           return { ...x, sha256: y?.sha256 ?? null, usul: y?.usul ?? 'url' };
         }),
       });
+    },
+
+    /**
+     * 6-qadam — BUYURTMA VARAQASI. Tizim buyurtma BERMAYDI (1688 to'lovi
+     * Xitoy to'lov tizimini talab qiladi): varaqa yasaladi, obunachi uni
+     * agent/kargo hamkoriga yuboradi. Raqamlar 5-qadam tanlovidan (yuan),
+     * CBU kursi (so'm), fakt stavkasi (kargo). Nazoratchi 2026-09-28:
+     * hamkor yo'q — kargo `null`, izoh bilan.
+     */
+    async buyurtma(holat: YolHolati): Promise<BuyurtmaNatijasi> {
+      const tanlangan = Array.isArray(holat.javoblar['tovarlar'])
+        ? (holat.javoblar['tovarlar'] as unknown[]).map(Number).filter(Number.isInteger) : [];
+      const tn = holat.natijalar.tovarlar as
+        | { royxat?: Array<{ nomzod: TovarNomzodi & { weightG?: number | null; volumeMl?: number | null } }> } | undefined;
+      const xn = holat.natijalar.xitoy as XitoyNatijasi | undefined;
+      const tovar = (id: number) => tn?.royxat?.find((x) => x.nomzod.productId === id)?.nomzod;
+      const IZOH = 'Varaqa: 5-qadamda tanlangan 1688 takliflari. Yuan narxlar provayderdan, soʻm — CBU kursi bilan. Kargo — fakt stavkasi (hamkor kiritganda); boʻlmasa hisobga kirmaydi va shunday yoziladi. Tizim buyurtma bermaydi va toʻlov qilmaydi.';
+
+      const kf = await kargoFaktlari(rpc, xitoy?.fetch ?? null);
+      const cny: Kurs | null = xn?.kurs
+        ? { somPerYuan: xn.kurs.somPerYuan, valyuta: 'CNY', sana: xn.kurs.sana, manba: 'CBU' }
+        : (xitoy ? await kursniOl(xitoy.fetch, 'CNY') : null);
+      const yolTanlovi = holat.javoblar['kargo_yol'];
+      const yol = yolTanlovi === 'avia' ? kf.stavka.avia : yolTanlovi === 'quruqlik' ? kf.stavka.quruqlik : arzonYol(kf.stavka);
+
+      const qatorlar: BuyurtmaQatori[] = tanlangan.map((id) => {
+        const t = tovar(id);
+        const title = t?.title ?? `#${id}`;
+        const weightG = t?.weightG ?? null;
+        const miqdorXom = holat.javoblar[`miqdor:${id}`];
+        const miqdor = typeof miqdorXom === 'number' && miqdorXom > 0 ? miqdorXom : null;
+        const tanlov = holat.javoblar[`xitoy_tanlov:${id}`];
+        const taklif = tanlov === null || tanlov === undefined ? null
+          : xn?.qatorlar?.find((q) => q.productId === id)?.takliflar.find((x) => String(x.sourceId) === String(tanlov)) ?? null;
+        if (taklif === null) {
+          return { productId: id, title, sourceId: null, xitoyTitle: null, manzil: null, miqdor, narxYuan: null, narxSom: null,
+            jamiYuan: null, jamiSom: null, weightG, kargoSom: null, kargoIzoh: null, holat: 'tanlanmagan' };
+        }
+        const narxSom = cny === null ? null : Math.round(taklif.narxYuan * cny.somPerYuan);
+        const kargo = kargoSomBirDona(yol, weightG, { volumeMl: t?.volumeMl ?? null, usdM3: kf.stavka.usdM3, kursUsd: kf.usd?.somPerYuan ?? null });
+        return {
+          productId: id, title, sourceId: taklif.sourceId, xitoyTitle: taklif.title, manzil: taklif.manzil, miqdor,
+          narxYuan: taklif.narxYuan, narxSom,
+          jamiYuan: miqdor === null ? null : Math.round(taklif.narxYuan * miqdor * 100) / 100,
+          jamiSom: miqdor === null || narxSom === null ? null : narxSom * miqdor,
+          weightG,
+          kargoSom: kargo?.som ?? null,
+          kargoIzoh: kargo === null
+            ? (kf.stavka.izoh ?? (weightG === null ? 'ogʻirlik oʻlchanmagan' : 'kargo hisoblanmadi'))
+            : `${kargo.asos === 'hajm' ? 'hajm' : 'ogʻirlik'} boʻyicha, ${yol?.yol ?? ''}${!kargo.hajmHisobgaKirdi && kf.stavka.usdM3 !== null ? ' (hajm hisobga kirmadi)' : ''}`,
+          holat: 'tayyor',
+        };
+      });
+      const tayyor = qatorlar.filter((q) => q.holat === 'tayyor');
+      const yig = (f: (q: BuyurtmaQatori) => number | null): number | null => {
+        if (tayyor.length === 0) return null;
+        let s = 0;
+        for (const q of tayyor) { const v = f(q); if (v === null) return null; s += v; }
+        return Math.round(s * 100) / 100;
+      };
+      return {
+        olchov_yoq: tayyor.length === 0,
+        ...(tayyor.length === 0 ? { sabab: tanlangan.length ? '1688 taklifi tanlanmagan' : 'tovar tanlanmagan' } : {}),
+        qatorlar,
+        jami: {
+          yuan: yig((q) => q.jamiYuan), som: yig((q) => q.jamiSom),
+          kargoSom: yig((q) => (q.kargoSom === null || q.miqdor === null ? null : q.kargoSom * q.miqdor)),
+          dona: yig((q) => q.miqdor),
+          tayyor: tayyor.length, tanlanmagan: qatorlar.length - tayyor.length,
+        },
+        kargo: kf.stavka,
+        kurs: { cny, usd: kf.usd },
+        izoh: IZOH,
+      };
+    },
+
+    /** 6-qadam — "yuk kelishini kutyapman" ochiq ishi (0056). Muddat — fakt kun bo'lsa. */
+    async ochiqIsh(holat: YolHolati): Promise<OchiqIshNatijasi> {
+      const IZOH = 'Ochiq ish: yuk kelishini kutish. Eslatma mexanizmi hali yoʻq (BACKLOG) — kelganda oʻzingiz aytasiz.';
+      if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', id: null, yangi: false, tur: 'kutyapman', muddat: null, izoh: IZOH };
+      const bn = holat.natijalar.buyurtma as BuyurtmaNatijasi | undefined;
+      const yolTanlovi = holat.javoblar['kargo_yol'] as KargoYol | undefined;
+      const kun = yolTanlovi === 'avia' ? bn?.kargo.avia?.kun ?? null : yolTanlovi === 'quruqlik' ? bn?.kargo.quruqlik?.kun ?? null : null;
+      let muddat: string | null = null;
+      if (kun !== null) {
+        const d = new Date((xitoy.hozir ?? (() => new Date()))().getTime());
+        d.setUTCDate(d.getUTCDate() + Math.round(kun));
+        muddat = d.toISOString().slice(0, 10);
+      }
+      const r = await rpc<{ xato?: string; id?: number; yangi?: boolean }>('so_ochiq_ish_yoz', {
+        p_token: xitoy.token, p_tur: 'kutyapman', p_sabab: 'yuk kelishi', p_muddat: muddat,
+        p_props: { shahar: holat.javoblar['shahar'] ?? null, kargo_yol: yolTanlovi ?? null, buyurtma_raqami: holat.javoblar['buyurtma_raqami'] ?? null },
+      });
+      if (r === null || r.xato || typeof r.id !== 'number') {
+        return { olchov_yoq: true, sabab: r?.xato ?? 'baza javob bermadi', id: null, yangi: false, tur: 'kutyapman', muddat, izoh: IZOH };
+      }
+      return { olchov_yoq: false, id: r.id, yangi: r.yangi === true, tur: 'kutyapman', muddat, izoh: IZOH };
     },
   };
 }
