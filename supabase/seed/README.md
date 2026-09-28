@@ -13,6 +13,7 @@ mavsumiylik) qo'lda to'ldiriladi."
 |---|---|---|
 | `category_requirements.csv` | Kategoriya talablari va mavsumiylik | Nazoratchi (qo'lda) |
 | `selleros.fakt` jadvali (CSV emas, 0056) | Kargo stavkalari, muddatlar — `kargo.*` kalitlari | Nazoratchi, Supabase Table editor da |
+| `selleros.fakt` jadvali (0057) | BHM, YATT boji, 2026 soliq, bank tariflari, Uzum rekvizitlari — `bhm.*`, `yatt.*`, `soliq.*`, `bank.*`, `uzum.*` | Agent oʻlchadi (docs/RASMIYLASHTIRISH-FAKTLAR.md), nazoratchi `[TASDIQ]` larni tekshiradi |
 | `fikstura_yasash.py` | Darvoza ro'yxatlarini **bazadan** yasaydi | Skript |
 
 **`traps.json` bu papkada YO'Q va bo'lmasligi kerak.** U bir vaqtlar

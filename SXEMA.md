@@ -94,7 +94,13 @@ Tovar pasporti. `(platform, external_id)`, `title`, `shop_id`,
 Odam kiritadigan bilim: `kalit` (masalan `kargo.avia.usd_kg`), `qiymat`
 (jsonb, **NULL = bilmaymiz**), `birlik`, `manba`, `olchandi`, `izoh`.
 Kod faqat o'qiydi (`so_fakt_oqi`). Kargo kalitlari 0056 da bo'sh
-yaratilgan — nazoratchi to'ldiradi (BACKLOG).
+yaratilgan — nazoratchi to'ldiradi (BACKLOG). 7-qadam kalitlari (0057):
+`bhm.som`, `yatt.*` (boj koeffitsientlari BHM da, roʻyxat URL, muddat),
+`soliq.*` (aylanma %, chegara, ijtimoiy BHM/oy, toʻlov kuni, rejim
+tugashi), `bank.royxat` (jsonb massiv: nom, onlayn, ochish_som,
+oylik_som, izoh, manba, olchandi), `uzum.*` (kabinet/qoʻllanma URL,
+komissioner STIR/MFO/hisob/muddat, faollashtirish kuni, toʻlov jadvali).
+Manba: docs/RASMIYLASHTIRISH-FAKTLAR.md.
 
 ### `ochiq_ish` (0056)
 Ssenariydagi "ochiq ish": `tur` (kutyapman/tolov/tekshirish), `sabab`,

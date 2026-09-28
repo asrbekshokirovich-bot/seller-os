@@ -51,6 +51,26 @@ turi. Alohida bosqich.
 avtomatik toʻlov qilinmaydi (Xitoy toʻlov tizimi). Varaqa nusxalanadi.
 Hamkor/agent API si paydo boʻlsa — varaqani toʻgʻridan-toʻgʻri yuborish.
 
+— [agent, 2026-09-28] **7-qadam faktlarini nazoratchi tasdiqlashi kerak
+(`[TASDIQ]`, docs/RASMIYLASHTIRISH-FAKTLAR.md 7-boʻlim):** davlat boji
+hozir aynan 1 / 0,9 BHM mi (soliq qoʻmitasi sahifasi 2025-04 da
+yangilangan); birdarcha onlayn arizada ERI soʻraladimi (PQ-247 dan keyin);
+Kapitalbank "Start Business" paket narxi (PDF); Uzum 1 % ni toʻlov
+tashkiloti sifatida ushlaydimi (OʻRQ-1108); oʻzini oʻzi band qilgan shaxs
+uchun internet-savdo ruxsat etilganmi. Tuzatish — `selleros.fakt` da,
+kod oʻzgarmaydi. Yangi bank qoʻshish — `bank.royxat` massiviga qator.
+
+— [agent, 2026-09-28] **Uzum oʻlcham/qiymat chegarasi 3-qadam filtriga
+kirmagan:** 1 m³ chakana qiymati ≥ 5 000 000 soʻm, balandlik ≤ 50 sm,
+120×80 sm, ≤ 50 kg (seller.uzum.uz/manual/uz/2.seller-requirements, 2.2).
+Arzon hajmli tovar (yostiq, plastik idish) qabul qilinmaydi — TUZOQLAR
+roʻyxatiga tuzoq sifatida qoʻshish kerak (hajm/narx maʼlumoti bor).
+
+— [agent, 2026-09-28] **Ochiq ish "tekshirish" turi nazoratchi paneliga
+chiqmaydi.** "Sayt boshqacha" belgilari `selleros.ochiq_ish` da
+(tur = tekshirish, props.savolId) yigʻiladi, lekin ularni koʻradigan
+ekran yoʻq — hozircha SQL bilan. Eslatma mexanizmi bilan birga qurilsin.
+
 — [agent, 2026-09-25] **Ssenariy 6–12-qadamlari qurilmagan.** Mashina
 ularga yetganda rostini aytadi ("tez orada"). 5-qadam (Xitoydan topish)
 QURILDI: rasm → kesh → limit → TMAPI → CBU kursi → chegaraga solishtirish

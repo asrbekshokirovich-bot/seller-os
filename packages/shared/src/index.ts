@@ -27,5 +27,6 @@ export * from './xatolik.js';
 export * from './xitoy.js';
 export * from './kurs.js';
 export * from './fakt.js';
+export * from './rasmiy.js';
 export * from './xizmat.js';
 export * from './kartochka.js';
