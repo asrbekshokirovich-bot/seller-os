@@ -61,6 +61,7 @@ import {
   type TovarNomzodi,
   type TovarToliq,
   type TurkumHolati,
+  kursniOl,
 } from './shared/index.ts';
 
 /** `so_tovar_royxati()` javobi. */
@@ -603,6 +604,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         tashlandi: rasm.tashlandi,
         tashxis,
         limit: limitH.natija,
+        // Kengaytma yuanni soʻmga oʻgirishi uchun (0.1.3). Olinmasa null — yuan qoladi.
+        kurs: rasm.natijalar.length ? await kursniOl(fetch) : null,
         ...(rasm.natijalar.length === 0 ? { izoh: `1688 bu rasmga oʻxshash tovar bermadi${tashxis ? ` (${tashxis})` : ''}.` } : {}),
         ...(rasm.tashlandi > 0 ? { izoh_tashlandi: `${rasm.tashlandi} ta karta oʻqilmadi va koʻrsatilmadi.` } : {}),
       });
@@ -629,6 +632,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         manba: kesh.manba,
         keshdan: true,
         limit: limitNatija,
+        kurs: kesh.natijalar.length ? await kursniOl(fetch) : null,
         // Keshdagi boʻsh roʻyxat ham JAVOB — sababi bilan.
         ...(kesh.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi (72 soatlik keshdan).' } : {}),
       });

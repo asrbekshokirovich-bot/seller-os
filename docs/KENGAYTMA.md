@@ -3,8 +3,28 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
-Doʻkonda: **Published — public**, 2026-09-02 dan beri. Provayder
-ulangan versiya — **0.1.2** (2026-09-25), doʻkonga qayta yuklanishi kerak.
+Doʻkonda: **Published — public** (0.1.1), 2026-09-02 dan beri. Provayder
+ulangan versiya — **0.1.3** (2026-09-29), doʻkonga yuklanishi kerak
+(nazoratchi yuklaydi — Developer Dashboard kengaytmalar bilan boshqarilmaydi).
+
+## 2026-09-29 — 0.1.3: koʻrinish tuzatildi
+
+Nazoratchi nashrdan oldin ekranda koʻrdi (soxta Uzum sahifasi + haqiqiy
+content.js, jonli 1688 javobi). Topilgan va tuzatilganlar:
+
+1. Natijalar paneli tugmalar qatorining ICHIDA chizilardi — flex qatorida
+   170 px gacha siqilib, rasmlar koʻrinmasdi. Endi blokdan KEYIN, toʻliq
+   kenglikda (`width: 100%`, rasm `flex-shrink: 0`).
+2. Xitoycha nom oʻrniga "1688 taklif №N · ochish" havolasi; xitoycha nom
+   kichik shrift bilan pastda (agent uchun).
+3. Narx yuan + soʻm: server `/xitoy-qidiruv` 200 javobiga `kurs` (CBU)
+   qoʻshdi; kurs olinmasa faqat yuan, "kurs olinmadi" deb yoziladi.
+4. "Yopish" tugmasi; holat qatori: keshdan/limit (`bugun N/M`)/kurs sanasi.
+5. Panel oxirida "Toʻliq hisob — Seller OS chatida" (havola `SELLEROS_SAYT`
+   toʻldirilganda; boʻsh boʻlsa matn).
+
+Maxfiylik siyosati oʻzgarmadi: kurs va limit serverdan keladi, qurilmadan
+yangi hech narsa chiqmaydi.
 
 ## 2026-09-05 — nashr qilingan, lekin hech qachon ishlamagan
 
