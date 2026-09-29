@@ -15,7 +15,7 @@
  * Seller OS sayt manzili (Vercel). Nazoratchi beradi; boʻsh boʻlsa panel
  * rostini aytadi va hech qayerga ulanmaydi — kodda taxminiy manzil yoʻq.
  */
-const SAYT = '';
+const SAYT = 'https://zumsavdo.vercel.app';
 
 function xabarYoz(matn: string): void {
   const el = document.getElementById('xabar');
