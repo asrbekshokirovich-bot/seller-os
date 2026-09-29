@@ -29,5 +29,6 @@ export * from './kurs.ts';
 export * from './fakt.ts';
 export * from './rasmiy.ts';
 export * from './qabul.ts';
+export * from './studiya.ts';
 export * from './xizmat.ts';
 export * from './kartochka.ts';

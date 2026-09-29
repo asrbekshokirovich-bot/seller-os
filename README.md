@@ -23,6 +23,7 @@ yolg'on gapiradi, shuning uchun har tavsiya 8 ta hiyla-filtrdan o'tadi.
 apps/backend     Fastify — yagona kirish nuqtasi
 apps/web         Next.js — Usta suhbati (uz/ru); tartibni server beradi
 apps/extension   Chrome MV3 — Uzum sahifasida "Xitoydan top"
+apps/studiya-worker  Cloudflare Worker — 9-qadam: surat oq fonda, 3:4 (docs/STUDIYA.md)
 apps/scraper     Python — yig'uvchi, "hurmat rejimi"
 packages/shared  Ball, tuzoq turlari, chegaralar — BITTA joyda
 supabase/        Migratsiyalar va seed

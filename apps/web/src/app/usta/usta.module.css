@@ -1272,5 +1272,62 @@
 }
 .katalogKarta { position: relative; }
 
+/* ------------------------------------------------------ studiya (9-qadam, 2026-09-29)
+ * Surat toʻri: 3:4 oynacha, ichi OQ — natija oq fonda boʻlgani uchun
+ * koʻrinish mavzuga bogʻliq emas. Tanlangan surat — urgʻu chegara va ✓. */
+.studiyaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.studiyaRasm {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1.5px solid var(--a13);
+  background: var(--a06);
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.2s, background 0.2s;
+}
+.studiyaRasm:hover { border-color: var(--a17); }
+.studiyaRasm:disabled { cursor: default; opacity: 0.7; }
+.studiyaTanlangan,
+.studiyaTanlangan:hover { border-color: var(--acc); background: var(--a13); }
+.studiyaRasmIchi {
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #6b6b6b;
+  text-align: center;
+}
+.studiyaRasmIchi img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.studiyaRasm .katalogTanlov { top: 12px; right: 12px; }
+.studiyaManba {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.studiyaManba > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+details.kichikIzoh > summary { cursor: pointer; }
+details.kichikIzoh ol { margin: 6px 0 6px 18px; padding: 0; }
+
 /* Pastki panel hech qachon ekranni yeb qo'ymasin — himoya chegarasi. */
 .past_ .chiplar { max-height: 34vh; overflow-y: auto; }

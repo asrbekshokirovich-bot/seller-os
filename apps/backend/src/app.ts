@@ -391,7 +391,8 @@ export function build(): FastifyInstance {
   const suhbatBogliq = (token: string) => ({
     rpc,
     kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
-      { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi() }),
+      { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
+        studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null } }),
     ...(process.env.GEMINI_API_KEY
       ? { llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m) }
       : {}),

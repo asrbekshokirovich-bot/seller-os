@@ -22,15 +22,16 @@
  * emas, sabab yoziladi. Tuzoq bayrogʻi yashirilmaydi. Yetishmagan
  * qism (`yetishmaydi`) koʻrsatiladi.
  *
- * YON PANELDA 12 QADAM. 5–12 "tez orada" — obunachi yoʻl qayerda
- * tugaganini va nima kelishini biladi.
+ * YON PANELDA 12 QADAM. Qurilmaganlari (bugun 11–12) "tez orada" —
+ * obunachi yoʻl qayerda tugaganini va nima kelishini biladi.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { REJA_QADAMI, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son, yosh } from '@/lib/bazamiz';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
 import { saqlanganTil, tarjima, tilniQoy, tilniSaqla, type Til, type Tr } from '@/lib/til';
+import { faylBolagi, zipYasa } from '@/lib/zip';
 import u from './usta.module.css';
 
 /**
@@ -198,8 +199,9 @@ export default function Suhbat() {
 
   const javobBer = (savolId: string, javob: unknown) => void yubor({ savolId, javob });
 
-  // 5-qadam: 1688 qidiruvi 30–90 s. `kutish` holatida har 8 s da
-  // `{tekshir: true}` yuboriladi; tugagach javobda xabarlar keladi.
+  // 5-qadam (1688, 30–90 s) va 9-qadam (internet suratlari, 20–60 s):
+  // `kutish` holatida har 8 s da `{tekshir: true}` yuboriladi; tugagach
+  // javobda xabarlar keladi. Qaysi ish kutilayotganini server biladi.
   const kutishBormi = keyingi?.tur === 'kutish';
   useEffect(() => {
     if (!kutishBormi) return;
@@ -454,9 +456,13 @@ function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRej
                       ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
                       : x.savolId === 'qabul'
                         ? <QabulKartasi n={n as unknown as QabulQ} tr={tr} />
-                        : x.savolId === 'qabul_yakun'
-                          ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
-                          : null}
+                        : x.savolId === 'studiya'
+                          ? <StudiyaKartasi n={n as unknown as StudiyaQ} tr={tr} />
+                          : x.savolId === 'yuklash'
+                            ? <YuklashKartasi n={n as unknown as YuklashQ} tr={tr} />
+                            : x.savolId === 'qabul_yakun' || x.savolId === 'studiya_yakun' || x.savolId === 'yuklash_yakun'
+                              ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
+                              : null}
     </div>
   );
 }
@@ -882,59 +888,293 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
 
 /* ------------------------------------------------------ 8-qadam: qabul */
 
+interface QabulFaktlarQ {
+  ombor: { manzil: string | null; soat: string | null };
+  qaytarish: { manzil: string | null; soat: string | null };
+  muddatKunMax: number | null; tafovutSom: number | null; taqiqJarimaSom: number | null;
+  taymslot: { ozgartirishMax: number | null; bekorSoat: number | null };
+  yetkazma: { skuMax: number | null; aktNusxa: number | null; qutiToliqlik: string | null };
+  yorliq: Record<string, string>; qadoqUmumiy: string | null;
+  logistika: { url: string | null; qutiKgMax: number | null; oldinKun: number | null };
+  qollanmaUrl: string | null; manba: string | null; olchandi: string | null; yetishmaydi: string[];
+}
+type QabulQatorlariQ = Array<{ productId: number; title: string; miqdor: number | null; qadoq: { tur: string; usul: string; belgilar: string | null } | null }>;
 interface QabulQ {
   olchov_yoq?: boolean; sabab?: string; jamiDona?: number | null; izoh?: string;
-  faktlar?: {
-    ombor: { manzil: string | null; soat: string | null };
-    qaytarish: { manzil: string | null; soat: string | null };
-    muddatKunMax: number | null; tafovutSom: number | null; taqiqJarimaSom: number | null;
-    taymslot: { ozgartirishMax: number | null; bekorSoat: number | null };
-    yetkazma: { skuMax: number | null; aktNusxa: number | null; qutiToliqlik: string | null };
-    yorliq: Record<string, string>; qadoqUmumiy: string | null;
-    logistika: { url: string | null; qutiKgMax: number | null; oldinKun: number | null };
-    qollanmaUrl: string | null; manba: string | null; olchandi: string | null; yetishmaydi: string[];
-  };
-  qatorlar?: Array<{ productId: number; title: string; miqdor: number | null; qadoq: { tur: string; usul: string; belgilar: string | null } | null }>;
+  faktlar?: QabulFaktlarQ;
+  qatorlar?: QabulQatorlariQ;
 }
 
-/** Qabul kartasi: ombor, tekshiruv roʻyxati (qadoq tavsiyasi), yorliq, yetkazma, viloyatdan, jarimalar. Fakt yoʻq — "faktda yoʻq". */
+const dona = (x: number | null | undefined, tr: Tr) => (x === null || x === undefined ? '' : ` · ${raqam(x)} ${tr('dona', 'шт')}`);
+
+/**
+ * 8-qadam kartasi: Xitoydan kelgan yukni sanash roʻyxati va omborda
+ * aniqlangan muammo narxi. Uzum ombori, qadoq va yetkazma — 10-qadamda
+ * (kartochkadan keyin; tartib 2026-09-29 da tuzatildi).
+ */
 function QabulKartasi({ n, tr }: { n: QabulQ; tr: Tr }) {
   const f = n.faktlar;
   if (!f) return <p className={u.kichikIzoh}>{n.sabab ?? tr('faktlar yoʻq', 'нет данных')}</p>;
-  const yoq = tr('faktda yoʻq', 'нет в фактах');
-  const son = (x: number | null, birlik: string) => (x === null ? yoq : `${raqam(x)} ${birlik}`);
   const q = n.qatorlar ?? [];
   return (
     <div className={u.kartalar}>
-      {f.yetishmaydi.length > 0 && <p className={u.ogohlik}>{tr('Faktda yoʻq:', 'Нет в фактах:')} {f.yetishmaydi.join(', ')}</p>}
       <div className={u.karta}>
-        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Uzum ombori', 'Склад Uzum')}</div></div></div>
-        <p className={u.kichikIzoh}>{f.ombor.manzil ?? yoq} · {f.ombor.soat ?? yoq}</p>
-        {f.qaytarish.manzil && <p className={u.kichikIzoh}>{tr('Qaytarilgan tovarlar:', 'Возвраты:')} {f.qaytarish.manzil} · {f.qaytarish.soat ?? ''}</p>}
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Yukni sanash', 'Пересчёт груза')}{dona(n.jamiDona, tr)}</div></div></div>
+        {q.length === 0 ? <p className={u.kichikIzoh}>{tr('Varaqada tovar yoʻq.', 'В листе нет товаров.')}</p> : q.map((x) => (
+          <div key={x.productId} className={u.statlar}>
+            <Stat nom={x.title} q={x.miqdor === null ? '—' : `${x.miqdor} ${tr('dona', 'шт')}`} />
+          </div>
+        ))}
+        <p className={u.kichikIzoh}>{tr('Qutilarni oching, sanang, har donani koʻzdan kechiring. Kam, nuqsonli yoki qadogʻi buzilgan boʻlsa — suratga oling va agentga yozing.', 'Откройте коробки, пересчитайте, осмотрите каждую единицу. Недостача, брак или повреждённая упаковка — сфотографируйте и напишите агенту.')}</p>
         <div className={u.statlar}>
-          <Stat nom={tr('Qabul muddati', 'Срок приёмки')} q={f.muddatKunMax === null ? yoq : `${tr('gacha', 'до')} ${f.muddatKunMax} ${tr('kun', 'дн')}`} />
-          <Stat nom={tr('Tafovut', 'Расхождение')} q={son(f.tafovutSom, tr('soʻm / birlik', 'сум / ед'))} />
-          <Stat nom={tr('Taqiqlangan tovar', 'Запрещённый товар')} q={son(f.taqiqJarimaSom, tr('soʻm', 'сум'))} />
+          <Stat nom={tr('Uzum omborida har muammo', 'Каждая проблема на складе Uzum')} q={f.tafovutSom === null ? tr('faktda yoʻq', 'нет в фактах') : `${raqam(f.tafovutSom)} ${tr('soʻm / birlik', 'сум / ед')}`} izoh={tr('brak, kam, ortiqcha, yorliqsiz, aralash', 'брак, недостача, излишек, без этикетки, пересорт')} />
         </div>
+        <Manba manba={f.manba} olchandi={f.olchandi} tr={tr} />
+      </div>
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 9-qadam: studiya */
+
+interface SuratTalablariQ {
+  format: string | null; minEni: number | null; minBoyi: number | null; nisbat: string | null; maxMb: number | null;
+  tovarUlushMin: number | null; qoidalar: string[]; fotostudiya: string | null; qollanmaUrl: string | null;
+  kartochkaQoidalari: string[]; kartochkaQollanmaUrl: string | null; manba: string | null; olchandi: string | null; yetishmaydi: string[];
+}
+interface StudiyaSuratiQ {
+  manba: '1688-tanlov' | '1688-oxshash' | 'internet'; asl: string; sayt: string | null;
+  eni: number | null; boyi: number | null; nom: string | null; url: string | null;
+}
+interface StudiyaQatoriQ {
+  productId: number; title: string; suratlar: StudiyaSuratiQ[];
+  internet: 'qidirildi' | 'keshdan' | 'qidirilmadi' | 'xato'; internetSabab: string | null; tashlandi: number;
+}
+interface StudiyaQ {
+  olchov_yoq?: boolean; sabab?: string; qatorlar?: StudiyaQatoriQ[]; talablar?: SuratTalablariQ | null;
+  sozlangan?: boolean; chiqishMos?: boolean | null; izoh?: string;
+}
+
+/** Brauzerda faylni saqlatadi (kengaytma yon panelida ham ishlaydi — ramkada `sandbox` yoʻq). */
+function saqla(blob: Blob, nom: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+function talabQatori(t: SuratTalablariQ | null | undefined, tr: Tr): string {
+  if (!t || t.minEni === null || t.minBoyi === null) return tr('Uzum surat talablari faktda yoʻq.', 'Требования Uzum к фото не заполнены.');
+  return tr(
+    `Uzum talabi: kamida ${t.minEni}×${t.minBoyi}, ${t.nisbat ?? 'nisbat faktda yoʻq'}${t.maxMb !== null ? `, ${t.maxMb} MB gacha` : ''}${t.format ? `; ${t.format}` : ''}.`,
+    `Требование Uzum: минимум ${t.minEni}×${t.minBoyi}, ${t.nisbat ?? 'пропорция не заполнена'}${t.maxMb !== null ? `, до ${t.maxMb} МБ` : ''}${t.format ? `; ${t.format}` : ''}.`,
+  );
+}
+
+/**
+ * 9-qadam kartasi: har tovar uchun suratlar (1688 tanlovi, internet,
+ * oʻxshash 1688) — studiya ulangan boʻlsa oq fonli 1200×1600 koʻrinishda.
+ * Belgilangan suratlar bitta faylga (bitta — JPEG, bir nechta — ZIP)
+ * yuklanadi. Tizim suratni Uzumga YUKLAMAYDI — kartochkaga siz qoʻyasiz.
+ * Studiya tayyorlay olmagan surat (manba yopiq va h.k.) belgilanmaydi.
+ */
+function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
+  const [tanlangan, setTanlangan] = useState<string[]>([]);
+  const [buzuq, setBuzuq] = useState<string[]>([]);
+  const [band, setBand] = useState(false);
+  const [holat, setHolat] = useState<string | null>(null);
+  const q = n.qatorlar ?? [];
+  const sozlangan = n.sozlangan === true;
+  const kalit = (productId: number, i: number) => `${productId}:${i}`;
+  const mumkin = q.flatMap((x) => x.suratlar.flatMap((s, i) => (s.url !== null && !buzuq.includes(kalit(x.productId, i)) ? [kalit(x.productId, i)] : [])));
+  const belgilangan = tanlangan.filter((k) => mumkin.includes(k));
+  const almashtir = (k: string) => setTanlangan((e) => (e.includes(k) ? e.filter((x) => x !== k) : [...e, k]));
+  const manbaNomi = (s: StudiyaSuratiQ) =>
+    s.manba === '1688-tanlov' ? tr('1688 · tanlangan', '1688 · выбранный') : s.manba === '1688-oxshash' ? tr('1688 · oʻxshash', '1688 · похожий') : (s.sayt ?? tr('internet', 'интернет'));
+  const internetTegi = (x: StudiyaQatoriQ) =>
+    x.internet === 'qidirildi' ? [u.tegYaxshi, tr('internetdan qidirildi', 'искали в интернете')]
+      : x.internet === 'keshdan' ? [u.tegNeytral, tr('internet (keshdan)', 'интернет (из кэша)')]
+        : [u.tegOgoh, x.internet === 'xato' ? tr('internet: xato', 'интернет: ошибка') : tr('internet: qidirilmadi', 'интернет: не искали')];
+
+  async function yuklab() {
+    const royxat = q.flatMap((x) => x.suratlar.flatMap((s, i) => (
+      belgilangan.includes(kalit(x.productId, i)) && s.url !== null ? [{ nom: `${faylBolagi(x.title)}-${i + 1}.jpg`, url: s.url }] : [])));
+    if (royxat.length === 0) return;
+    setBand(true);
+    const olingan: Array<{ nom: string; buf: ArrayBuffer }> = [];
+    let xato = 0;
+    for (const [j, f] of royxat.entries()) {
+      setHolat(tr(`Tayyorlanmoqda: ${j + 1} / ${royxat.length}…`, `Готовим: ${j + 1} / ${royxat.length}…`));
+      try {
+        const r = await fetch(f.url);
+        if (!r.ok) throw new Error(String(r.status));
+        olingan.push({ nom: f.nom, buf: await r.arrayBuffer() });
+      } catch {
+        xato += 1;
+      }
+    }
+    if (olingan.length === 1) saqla(new Blob([olingan[0]!.buf], { type: 'image/jpeg' }), olingan[0]!.nom);
+    else if (olingan.length > 1) {
+      const zip = zipYasa(olingan.map((f) => ({ nom: f.nom, baytlar: new Uint8Array(f.buf) })));
+      saqla(new Blob([zip], { type: 'application/zip' }), `zumsavdo-suratlar-${new Date().toISOString().slice(0, 10)}.zip`);
+    }
+    setHolat(xato
+      ? tr(`${olingan.length} ta surat yuklandi, ${xato} tasi olinmadi — qayta urinib koʻring.`, `Скачано ${olingan.length}, не получено ${xato} — попробуйте ещё раз.`)
+      : tr(`Yuklab olindi: ${olingan.length} ta surat.`, `Скачано фото: ${olingan.length}.`));
+    setBand(false);
+  }
+
+  return (
+    <div className={u.kartalar}>
+      {!sozlangan && (
+        <p className={u.ogohlik}>{tr('Studiya xizmati hali ulanmagan — suratlar asl holida (fon oqlanmagan). Suratni bosib asl nusxasini oching.', 'Сервис студии ещё не подключён — фото в исходном виде (фон не белый). Нажмите на фото, чтобы открыть оригинал.')}</p>
+      )}
+      {n.chiqishMos === false && (
+        <p className={u.ogohlik}>{tr(`Diqqat: studiya chiqishi (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) Uzumning hozirgi talabiga mos emas — nazoratchiga yozildi.`, `Внимание: размер студии (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) не соответствует текущему требованию Uzum — передано контролёру.`)} {talabQatori(n.talablar, tr)}</p>
+      )}
+      {q.map((x) => {
+        const [sinf, teg] = internetTegi(x);
+        return (
+          <div key={x.productId} className={u.karta}>
+            <div className={u.kartaBoshi}>
+              <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{x.title}</div></div>
+              <span className={`${u.teg} ${sinf}`}>{teg}</span>
+            </div>
+            {x.internetSabab && <p className={u.ogohlik}>{x.internetSabab}</p>}
+            {x.suratlar.length === 0 ? (
+              <p className={u.kichikIzoh}>{tr('Surat topilmadi — oʻzingiz suratga oling (oq yoki och bir xil fon, tovar kadrning yarmidan koʻpi).', 'Фото не найдено — снимите сами (белый или светлый однотонный фон, товар больше половины кадра).')}</p>
+            ) : (
+              <div className={u.studiyaGrid}>
+                {x.suratlar.map((s, i) => {
+                  const k = kalit(x.productId, i);
+                  const yoq = buzuq.includes(k);
+                  const ichi = (
+                    <>
+                      <span className={u.studiyaRasmIchi}>
+                        {yoq
+                          ? <span>{tr('Studiya bu suratni ololmadi', 'Студия не смогла получить фото')}</span>
+                          : <img src={s.url ?? s.asl} alt={s.nom ?? x.title} loading="lazy" referrerPolicy="no-referrer"
+                              onError={() => setBuzuq((e) => (e.includes(k) ? e : [...e, k]))} />}
+                      </span>
+                      <span className={u.studiyaManba}>
+                        <span>{i + 1}. {manbaNomi(s)}</span>
+                        {s.eni !== null && s.boyi !== null && <span>{s.eni}×{s.boyi}</span>}
+                      </span>
+                      {tanlangan.includes(k) && !yoq && <span className={u.katalogTanlov} aria-hidden="true">✓</span>}
+                    </>
+                  );
+                  return s.url === null ? (
+                    <a key={k} className={u.studiyaRasm} href={s.asl} target="_blank" rel="noopener noreferrer">{ichi}</a>
+                  ) : (
+                    <button key={k} type="button" className={`${u.studiyaRasm} ${tanlangan.includes(k) && !yoq ? u.studiyaTanlangan : ''}`}
+                      aria-pressed={tanlangan.includes(k)} disabled={yoq || band} onClick={() => almashtir(k)}>{ichi}</button>
+                  );
+                })}
+              </div>
+            )}
+            {x.tashlandi > 0 && <p className={u.kichikIzoh}>{tr(`Internetdan ${x.tashlandi} ta surat olinmadi: kichik, Uzum saytidan yoki takror.`, `Из интернета не взято фото: ${x.tashlandi} (маленькие, с сайта Uzum или повторы).`)}</p>}
+          </div>
+        );
+      })}
+      {sozlangan && mumkin.length > 0 && (
+        <div className={u.karta}>
+          <div className={u.chiplar}>
+            <button type="button" className={`${u.chip} ${u.chipYengil}`} disabled={band}
+              onClick={() => setTanlangan(belgilangan.length === mumkin.length ? [] : mumkin)}>
+              {belgilangan.length === mumkin.length ? tr('Belgilarni olib tashlash', 'Снять выделение') : tr('Hammasini belgilash', 'Выбрать все')}
+            </button>
+            <button type="button" className={`${u.chip} ${u.chipAsosiy}`} disabled={band || belgilangan.length === 0} onClick={() => void yuklab()}>
+              {belgilangan.length > 1
+                ? tr(`Yuklab olish — ${belgilangan.length} ta (ZIP)`, `Скачать — ${belgilangan.length} (ZIP)`)
+                : tr('Yuklab olish', 'Скачать')}
+            </button>
+          </div>
+          {holat && <p className={u.kichikIzoh} role="status">{holat}</p>}
+          <p className={u.kichikIzoh}>{tr(`Har surat ${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi} JPEG, oq fon.`, `Каждое фото ${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi} JPEG, белый фон.`)} {talabQatori(n.talablar, tr)}</p>
+        </div>
+      )}
+      {n.talablar && n.talablar.qoidalar.length > 0 && (
+        <details className={u.kichikIzoh}>
+          <summary>{tr(`Uzum surat qoidalari (${n.talablar.qoidalar.length})`, `Правила фото Uzum (${n.talablar.qoidalar.length})`)}</summary>
+          <ol>{n.talablar.qoidalar.map((r) => <li key={r}>{r}</li>)}</ol>
+          {n.talablar.qollanmaUrl && <a href={n.talablar.qollanmaUrl} target="_blank" rel="noopener noreferrer">{tr('Rasmiy qoʻllanma (5.7)', 'Инструкция (5.7)')}</a>}
+        </details>
+      )}
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 10-qadam: yuklash */
+
+interface YuklashQ {
+  olchov_yoq?: boolean; sabab?: string; jamiDona?: number | null; izoh?: string;
+  faktlar?: QabulFaktlarQ; talablar?: SuratTalablariQ; qatorlar?: QabulQatorlariQ;
+}
+
+/**
+ * 10-qadam kartasi, Uzum jarayoni tartibida: 1) kartochka (surat talablari
+ * va qoidalar, 0059), 2) qadoq va yorliq, 3) yetkazma va ombor (0058).
+ * Fakt yoʻq — "faktda yoʻq", nol emas.
+ */
+function YuklashKartasi({ n, tr }: { n: YuklashQ; tr: Tr }) {
+  const f = n.faktlar;
+  const t = n.talablar;
+  if (!f || !t) return <p className={u.kichikIzoh}>{n.sabab ?? tr('faktlar yoʻq', 'нет данных')}</p>;
+  const yoq = tr('faktda yoʻq', 'нет в фактах');
+  const son = (x: number | null, birlik: string) => (x === null ? yoq : `${raqam(x)} ${birlik}`);
+  const q = n.qatorlar ?? [];
+  const yetishmaydi = [...f.yetishmaydi, ...t.yetishmaydi];
+  return (
+    <div className={u.kartalar}>
+      {yetishmaydi.length > 0 && <p className={u.ogohlik}>{tr('Faktda yoʻq:', 'Нет в фактах:')} {yetishmaydi.join(', ')}</p>}
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('1. Kartochka', '1. Карточка')}</div></div></div>
+        <div className={u.statlar}>
+          <Stat nom={tr('Surat (kamida)', 'Фото (минимум)')} q={t.minEni !== null && t.minBoyi !== null ? `${t.minEni}×${t.minBoyi}` : yoq} izoh={t.nisbat ?? undefined} />
+          <Stat nom={tr('Hajm', 'Размер')} q={t.maxMb !== null ? `≤ ${t.maxMb} MB` : yoq} izoh={t.format ?? undefined} />
+          <Stat nom={tr('Tovar kadrda', 'Товар в кадре')} q={t.tovarUlushMin !== null ? `> ${t.tovarUlushMin} %` : yoq} />
+          <Stat nom={tr('Studiya suratlari', 'Фото из студии')} q={`${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}`} izoh={tr('3:4, oq fon (9-qadam)', '3:4, белый фон (шаг 9)')} />
+        </div>
+        {t.kartochkaQoidalari.length > 0 && <ol className={u.kichikIzoh}>{t.kartochkaQoidalari.map((r) => <li key={r}>{r}</li>)}</ol>}
+        {t.fotostudiya && <p className={u.kichikIzoh}>{tr('Uzum Fotostudiyasi:', 'Фотостудия Uzum:')} {t.fotostudiya}</p>}
+        {t.kartochkaQollanmaUrl && (
+          <div className={u.chiplar}>
+            <a className={`${u.chip} ${u.chipYengil}`} href={t.kartochkaQollanmaUrl} target="_blank" rel="noopener noreferrer">{tr('Rasmiy qoʻllanma (5-bob)', 'Инструкция (гл. 5)')}</a>
+          </div>
+        )}
+        <Manba manba={t.manba} olchandi={t.olchandi} tr={tr} />
       </div>
       <div className={u.karta}>
-        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Tekshiruv roʻyxati', 'Чек-лист')}{n.jamiDona !== null && n.jamiDona !== undefined ? ` · ${raqam(n.jamiDona)} ${tr('dona', 'шт')}` : ''}</div></div></div>
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('2. Qadoq va yorliq', '2. Упаковка и этикетка')}{dona(n.jamiDona, tr)}</div></div></div>
         {q.length === 0 ? <p className={u.kichikIzoh}>{tr('Varaqada tovar yoʻq.', 'В листе нет товаров.')}</p> : q.map((x) => (
           <div key={x.productId} className={u.statlar}>
             <Stat nom={x.title} q={x.miqdor === null ? '—' : `${x.miqdor} ${tr('dona', 'шт')}`} />
             <Stat nom={x.qadoq ? x.qadoq.tur : tr('Umumiy qoida', 'Общее правило')} q={x.qadoq ? x.qadoq.usul : (f.qadoqUmumiy ?? yoq)} izoh={x.qadoq?.belgilar ?? undefined} />
           </div>
         ))}
-      </div>
-      <div className={u.karta}>
-        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Yorliq va yetkazma', 'Этикетка и поставка')}</div></div></div>
         <div className={u.statlar}>
           <Stat nom={tr('Kod', 'Код')} q={f.yorliq.kod ?? yoq} />
           <Stat nom={tr('Yorliq oʻlchami', 'Размер этикетки')} q={f.yorliq.tavsiya ?? yoq} izoh={f.yorliq.min ? `${tr('min', 'мин')} ${f.yorliq.min}${f.yorliq.dpi ? `, ${f.yorliq.dpi} dpi` : ''}` : undefined} />
           <Stat nom={tr('Quti', 'Коробка')} q={f.yetkazma.qutiToliqlik ?? yoq} />
+        </div>
+      </div>
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('3. Yetkazma va Uzum ombori', '3. Поставка и склад Uzum')}</div></div></div>
+        <p className={u.kichikIzoh}>{f.ombor.manzil ?? yoq} · {f.ombor.soat ?? yoq}</p>
+        {f.qaytarish.manzil && <p className={u.kichikIzoh}>{tr('Qaytarilgan tovarlar:', 'Возвраты:')} {f.qaytarish.manzil} · {f.qaytarish.soat ?? ''}</p>}
+        <div className={u.statlar}>
           <Stat nom={tr('Yetkazma', 'Поставка')} q={f.yetkazma.skuMax === null ? yoq : `${f.yetkazma.skuMax} SKU ${tr('gacha', 'макс')}`} izoh={f.yetkazma.aktNusxa !== null ? tr(`akt ${f.yetkazma.aktNusxa} nusxa`, `акт ${f.yetkazma.aktNusxa} экз`) : undefined} />
           <Stat nom={tr('Taymslot', 'Таймслот')} q={f.taymslot.ozgartirishMax === null ? yoq : `${f.taymslot.ozgartirishMax} ${tr('marta oʻzgartirish', 'изменения')}`} izoh={f.taymslot.bekorSoat !== null ? tr(`bekor — ${f.taymslot.bekorSoat} soat oldin`, `отмена — за ${f.taymslot.bekorSoat} ч`) : undefined} />
           <Stat nom={tr('Viloyatdan', 'Из регионов')} q={f.logistika.qutiKgMax === null ? yoq : `${tr('quti', 'коробка')} ≤ ${f.logistika.qutiKgMax} kg`} izoh={f.logistika.oldinKun !== null ? tr(`taymslotdan ${f.logistika.oldinKun} kun oldin, pullik`, `за ${f.logistika.oldinKun} дн до таймслота, платно`) : undefined} />
+          <Stat nom={tr('Qabul muddati', 'Срок приёмки')} q={f.muddatKunMax === null ? yoq : `${tr('gacha', 'до')} ${f.muddatKunMax} ${tr('kun', 'дн')}`} />
+          <Stat nom={tr('Tafovut', 'Расхождение')} q={son(f.tafovutSom, tr('soʻm / birlik', 'сум / ед'))} />
+          <Stat nom={tr('Taqiqlangan tovar', 'Запрещённый товар')} q={son(f.taqiqJarimaSom, tr('soʻm', 'сум'))} />
         </div>
         <div className={u.chiplar}>
           {f.logistika.url && <a className={`${u.chip} ${u.chipYengil}`} href={f.logistika.url} target="_blank" rel="noopener noreferrer">{tr('Uzum logistikasi', 'Логистика Uzum')}</a>}

@@ -107,6 +107,22 @@ uchun bitta.
     muddat faktdan). "Qoʻllanma boshqacha" — tekshirish. 9-qadam "tez
     orada".
 
+12. *(2026-09-29, nazoratchi: "studiyaning vazifasi — tovar suratlari orqa
+    foni oq rangda, Uzumga moslab"; "Cloudflare hozircha, hamma rasm
+    kesilishi shart emas"; "1688 + internetdan, iloji boricha studiyaga
+    ishi tushmasin"; tartib — "Tuzat")* **9-qadam — Studiya va 10-qadam —
+    Yuklash — qurildi; 8-qadam tartibi tuzatildi.** Uzumda yetkazma faqat
+    kartochkadan keyin, kartochkaga surat kerak (qoʻllanma 5/6-bob) — shuning
+    uchun 8 = yukni qabul qilish (keldi, sanash, kam/nuqson), 9 = suratlar,
+    10 = kartochka → qadoq va yorliq → yetkazish → taymslot → topshirish.
+    Studiya: tanlangan 1688 rasmi bilan Google Lens (Apify, asinxron,
+    `kutish` + `tekshir`), 72 soat kesh, Uzum saytidan surat olinmaydi;
+    har surat Cloudflare Worker da 1200×1600 JPEG, oq fon — foni oq surat
+    kesilmaydi (`auto`). Kartada 3:4 surat toʻri, belgilash va bitta
+    faylga yuklab olish (koʻp boʻlsa ZIP). Faktlar 0059 (`uzum.surat.*`,
+    `uzum.kartochka.*`, qoʻllanma 5.7). Worker ulanmagan boʻlsa suratlar
+    asl holida va shu aytiladi. Joylash — docs/STUDIYA.md.
+
 ## Dizayndan ataylab chetga chiqilgan joylar
 
 Dizayn fayllari ishlayotgan mahsulotni koʻrsatadi. Bugungi tizim

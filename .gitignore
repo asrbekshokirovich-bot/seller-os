@@ -25,3 +25,7 @@ apps/scraper/*.egg-info/
 
 # Mahalliy agent sozlamalari
 .claude/
+
+# CLI vaqtinchalik papkalari (wrangler — studiya Worker, supabase CLI)
+.wrangler/
+supabase/.temp/

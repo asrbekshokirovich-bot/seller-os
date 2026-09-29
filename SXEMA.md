@@ -105,7 +105,15 @@ Manba: docs/RASMIYLASHTIRISH-FAKTLAR.md. 8-qadam kalitlari (0058):
 taqiq jarimasi, taymslot qoidalari, yetkazma (SKU max, akt nusxa, quti
 toʻliqligi), `yorliq` (jsonb), `qadoq` (jsonb massiv: kalit_sozlar, tur,
 usul, belgilar), `qadoq_umumiy`, logistika (url, quti kg, oldin kun),
-qoʻllanma URL. Manba: Uzum qoʻllanmasi 6/14-bob, oferta.
+qoʻllanma URL. Manba: Uzum qoʻllanmasi 6/14-bob, oferta. 9/10-qadam
+kalitlari (0059): `uzum.surat.*` — format, min eni/boʻyi (px), nisbat,
+max MB, tovar ulushi (%), `qoidalar` (jsonb matn roʻyxati), fotostudiya,
+qoʻllanma URL; `uzum.kartochka.*` — `qoidalar` (jsonb), qoʻllanma URL.
+Manba: Uzum qoʻllanmasi 5-bob (5.1, 5.7, 5.9, VGT), 2.12, 7-bob.
+
+`xitoy_kesh` (0046) 9-qadamda Google Lens natijalarini ham saqlaydi:
+kalit `lens:<asl rasm manzili>`, `manba = 'lens'`, 72 soat — 1688
+natijalari bilan aralashmaydi.
 
 ### `ochiq_ish` (0056)
 Ssenariydagi "ochiq ish": `tur` (kutyapman/tolov/tekshirish), `sabab`,

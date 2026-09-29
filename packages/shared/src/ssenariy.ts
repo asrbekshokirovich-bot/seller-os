@@ -26,14 +26,16 @@
  * ALOHIDA tekshiriladi. Byudjetda nol "pulim yo'q" degan javob,
  * `null` esa "aytmadi".
  *
- * 12 QADAM. Bugun 1–8 qurilgan (8 — Qabul, 2026-09-29: ombor, qadoq,
- * yorliq, taymslot faktlari `fakt` dan (0058), Uzum qoʻllanmasi 6/14-bob;
+ * 12 QADAM. Bugun 1–10 qurilgan (2026-09-29: 8 — Qabul (Xitoydan kelgan
+ * yuk), 9 — Studiya (oq fonli suratlar: 1688 + internet, Cloudflare),
+ * 10 — Yuklash (kartochka + omborga topshirish); tartib Uzum jarayoniga
+ * moslab tuzatildi — yetkazma faqat kartochkadan keyin; faktlar 0058/0059;
  * 5 — Xitoydan topish, 2026-09-25;
  * 6 — Buyurtma va kargo, 2026-09-28: kargo hamkori YOʻQ, stavkalar
  * `fakt` dan; 7 — Rasmiylashtirish, 2026-09-28: YATT/soliq/bank/Uzum
  * raqamlari `fakt` dan (0057), manba va sana bilan, davlat sayti
  * oʻzgarsa "sayt boshqacha" tugmasi tekshirish ishi yozadi).
- * 9–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
+ * 11–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
  * ROSTINI aytadi — bu ham zanjirning bir bo'g'ini: obunachi yo'l
  * qayerda tugaganini va nima kelishini biladi.
  */
@@ -45,6 +47,7 @@ import type { Kurs } from './kurs.js';
 import { SHAHARLAR } from './savollar.js';
 import type { OylikSoliq, RasmiyFaktlar } from './rasmiy.js';
 import type { QabulFaktlar, QadoqQoidasi } from './qabul.js';
+import { STUDIYA_CHIQISH, type SuratNomzodi, type SuratTalablari } from './studiya.js';
 
 // ==================================================================== turlar
 
@@ -72,7 +75,8 @@ export interface SuhbatSavoli {
 }
 
 /** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi. */
-export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun' | 'qabul' | 'qabul_yakun';
+export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun' | 'qabul' | 'qabul_yakun'
+  | 'studiya' | 'studiya_yakun' | 'yuklash' | 'yuklash_yakun';
 
 export type Keyingi =
   | { tur: 'savol'; savol: SuhbatSavoli }
@@ -104,8 +108,8 @@ export const SUHBAT_QADAMLARI = [
   { n: 6, nom: 'Buyurtma va kargo', qurilgan: true },
   { n: 7, nom: 'Rasmiylashtirish', qurilgan: true },
   { n: 8, nom: 'Qabul', qurilgan: true },
-  { n: 9, nom: 'Studiya', qurilgan: false },
-  { n: 10, nom: 'Yuklash', qurilgan: false },
+  { n: 9, nom: 'Studiya', qurilgan: true },
+  { n: 10, nom: 'Yuklash', qurilgan: true },
   { n: 11, nom: 'Sotuv boshlandi', qurilgan: false },
   { n: 12, nom: 'Hisobot', qurilgan: false },
 ] as const;
@@ -403,6 +407,82 @@ function qabulNatija(h: YolHolati): QabulQadamNatijasi | null {
   return n ?? null;
 }
 
+// ---- 9-qadam natijalari: studiya (oq fonli suratlar). `suhbat-kod.ts` yasaydi.
+
+export interface StudiyaSurati extends SuratNomzodi {
+  /** Worker manzili (imzolangan; oq fon, 3:4). Studiya ulanmagan boʻlsa `null` — asl surat koʻrsatiladi. */
+  url: string | null;
+}
+
+export type InternetHolati = 'qidirildi' | 'keshdan' | 'qidirilmadi' | 'xato';
+
+export interface StudiyaQatori {
+  productId: number;
+  title: string;
+  suratlar: StudiyaSurati[];
+  /** Internet (Google Lens) qidiruvi holati — "topilmadi" bilan "qidirilmadi" farqlanadi (QOIDALAR §8). */
+  internet: InternetHolati;
+  internetSabab: string | null;
+  /** Lens natijasidan olinmaganlar: kichik, Uzum saytidan, takror. */
+  tashlandi: number;
+}
+
+export interface StudiyaKutish {
+  boshlandi: string;
+  runlar: Array<{ productId: number; runId: string; rasmUrl: string; urinish?: number }>;
+  tayyor: Array<{ productId: number; internet: InternetHolati; sabab: string | null; nomzodlar: SuratNomzodi[]; tashlandi: number }>;
+}
+
+export interface StudiyaNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  qatorlar: StudiyaQatori[];
+  /** Uzum surat talablari (0059). Baza javob bermasa `null`. */
+  talablar: SuratTalablari | null;
+  /** Cloudflare Worker ulanganmi (STUDIYA_URL + STUDIYA_KALIT). */
+  sozlangan: boolean;
+  /**
+   * Studiya chiqishi (1200×1600, 3:4) fakt talabiga mosmi. `false` — Uzum
+   * talabi oshgan: aytiladi va nazoratchiga tekshirish ishi yoziladi.
+   * `null` — talab faktda yoʻq.
+   */
+  chiqishMos: boolean | null;
+  kutilmoqda: StudiyaKutish | null;
+  izoh: string;
+}
+
+// ---- 10-qadam natijasi: yuklash (kartochka + omborga topshirish).
+
+export interface YuklashNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  faktlar: QabulFaktlar;
+  talablar: SuratTalablari;
+  qatorlar: QabulQatori[];
+  jamiDona: number | null;
+  izoh: string;
+}
+
+function studiyaNatija(h: YolHolati): StudiyaNatijasi | null {
+  const n = h.natijalar.studiya as StudiyaNatijasi | undefined;
+  return n ?? null;
+}
+
+function yuklashNatija(h: YolHolati): YuklashNatijasi | null {
+  const n = h.natijalar.yuklash as YuklashNatijasi | undefined;
+  return n ?? null;
+}
+
+/**
+ * `tekshir` kelganda qaysi kod harakati tugashini kutyapmiz: 5-qadam (1688
+ * qidiruvi) yoki 9-qadam (internet suratlari). Hech biri — `null`.
+ */
+export function kutilayotganHarakat(h: YolHolati): KodHarakati | null {
+  if ((h.natijalar.xitoy as { kutilmoqda?: unknown } | undefined)?.kutilmoqda) return 'xitoy';
+  if ((h.natijalar.studiya as { kutilmoqda?: unknown } | undefined)?.kutilmoqda) return 'studiya';
+  return null;
+}
+
 export const YUK_KELDI: readonly SuhbatVarianti[] = [
   { qiymat: 'keldi', nom: 'Keldi' },
   { qiymat: 'hali_yoq', nom: 'Hali kelmadi' },
@@ -412,6 +492,17 @@ export const YUK_MOS: readonly SuhbatVarianti[] = [
   { qiymat: 'mos', nom: 'Hammasi mos' },
   { qiymat: 'kam', nom: 'Kam keldi' },
   { qiymat: 'brak', nom: 'Nuqsonli bor' },
+];
+export const STUDIYA_TAYYOR: readonly SuhbatVarianti[] = [
+  { qiymat: 'tayyor', nom: 'Yetarli, yuklab oldim' },
+  { qiymat: 'kam', nom: 'Yetmadi — oʻzim suratga olaman' },
+  { qiymat: 'qayta', nom: 'Qayta qidir' },
+  { qiymat: 'keyin', nom: 'Keyinroq' },
+];
+export const KARTOCHKA_YARATILDI: readonly SuhbatVarianti[] = [
+  { qiymat: 'yaratdim', nom: 'Yaratdim' },
+  { qiymat: 'keyin', nom: 'Keyinroq' },
+  { qiymat: 'boshqacha', nom: 'Kabinet boshqacha' },
 ];
 export const QADOQ_TAYYOR: readonly SuhbatVarianti[] = [
   { qiymat: 'tayyor', nom: 'Tayyor' },
@@ -450,21 +541,44 @@ function yukKutishMatni(n: QabulQadamNatijasi): string {
 function yukMosMatni(n: QabulQadamNatijasi): string {
   return `Sanang va koʻzdan kechiring: varaqada ${n.jamiDona !== null ? `${n.jamiDona} dona` : 'dona soni yoʻq'}. Nuqsonli yoki qadogʻi buzilgan tovarni Uzum qabul qilmaydi (tafovut ${faktYoki(n.faktlar.tafovutSom, ' soʻm')} har birlik). Hammasi mosmi?`;
 }
-function qadoqMatni(n: QabulQadamNatijasi): string {
+function qadoqMatni(n: { faktlar: QabulFaktlar }): string {
   const y = n.faktlar.yorliq;
   return `Har tovarga yorliq: ${y.kod ?? 'faktda yoʻq'}; oʻlcham ${y.tavsiya ?? 'faktda yoʻq'}. Quti ${n.faktlar.yetkazma.qutiToliqlik ?? 'toʻliqligi faktda yoʻq'} toʻlsin. Tovarlaringiz boʻyicha qadoq tavsiyasi yuqoridagi kartada. Qadoq va yorliqlar tayyormi?`;
 }
-function yetkazishMatni(n: QabulQadamNatijasi): string {
+function yetkazishMatni(n: { faktlar: QabulFaktlar }): string {
   const f = n.faktlar;
   return `Ombor: ${f.ombor.manzil ?? 'manzil faktda yoʻq'}, ${f.ombor.soat ?? 'soat faktda yoʻq'}. Viloyatdan — Uzum logistikasi: ${f.logistika.url ?? 'manzil faktda yoʻq'} (quti ${faktYoki(f.logistika.qutiKgMax, ' kg')} gacha, taymslotdan ${faktYoki(f.logistika.oldinKun, ' kun')} oldin, pullik). Qanday yetkazasiz?`;
 }
-function taymslotMatni(n: QabulQadamNatijasi): string {
+function taymslotMatni(n: { faktlar: QabulFaktlar }): string {
   const f = n.faktlar;
   return `Kabinetda «Yetkazmalar → Yaratish»: tovarlar (${faktYoki(f.yetkazma.skuMax, ' SKU')} gacha), tannarx, dona, taymslot; yuborish aktini ${faktYoki(f.yetkazma.aktNusxa, ' nusxa')} chop eting. Taymslotni ${faktYoki(f.taymslot.ozgartirishMax, ' marta')} gacha oʻzgartirish mumkin, bekor qilish — ${faktYoki(f.taymslot.bekorSoat, ' soat')} oldin. Yaratdingizmi?`;
 }
-function topshirishMatni(n: QabulQadamNatijasi): string {
+function topshirishMatni(n: { faktlar: QabulFaktlar }): string {
   const f = n.faktlar;
   return `Omborga topshirdingizmi? Qabul ${faktYoki(f.muddatKunMax, ' kun')} gacha choʻzilishi mumkin; tafovut (kam, ortiqcha, aralash, yorliqsiz) — ${faktYoki(f.tafovutSom, ' soʻm')} har birlik.`;
+}
+
+function studiyaTayyorMatni(n: StudiyaNatijasi): string {
+  const jami = n.qatorlar.reduce((sum, q) => sum + q.suratlar.length, 0);
+  const holat = n.sozlangan ? `oq fonda, 3:4 (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi})` : 'asl holida — studiya xizmati hali ulanmagan';
+  return `${jami ? `Jami ${jami} ta surat tayyorlandi — ${holat}` : 'Surat topilmadi'}. Keraklilarini belgilab yuklab oling: birinchisi — tovarning old tomoni; xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang. Yetarlimi?`;
+}
+
+function kartochkaMatni(n: YuklashNatijasi): string {
+  const t = n.talablar;
+  const talab = t.minEni !== null && t.minBoyi !== null ? `kamida ${t.minEni}×${t.minBoyi}` : 'ruxsat faktda yoʻq';
+  const qoidalar = t.kartochkaQoidalari.length ? `${t.kartochkaQoidalari.length} ta qoida` : 'qoidalar faktda yoʻq';
+  return `Uzum kabinetida har tovar uchun kartochka yarating: nom, tavsif, xususiyatlar, VGT (oʻlcham va vazn) va 9-qadam suratlari — birinchisi tovarning old tomoni. Surat talabi: ${talab}, ${t.nisbat ?? 'nisbat faktda yoʻq'}, ${t.maxMb !== null ? `${t.maxMb} MB gacha` : 'hajm faktda yoʻq'}. Kartochka qoidalari (${qoidalar}) yuqoridagi kartada. Yaratdingizmi?`;
+}
+
+/** Ochiq ishlar yakuni — 8/9/10-qadamlar uchun bir xil jumla. */
+function ochiqIshlarMatni(n: QabulYakunNatijasi, bosqich: string): string {
+  const y = n.yozildi ?? [];
+  const royxat = y.map((x) => `${x.sabab}${x.muddat ? ` (${x.muddat} gacha)` : ''}`).join('; ');
+  if (n.olchov_yoq) return `Ochiq ishlarni yozishda xato: ${n.sabab ?? 'baza javob bermadi'}${y.length ? `; roʻyxat: ${royxat}` : ''}.`;
+  if (y.length === 0) return `${bosqich} boʻyicha ochiq ish yoʻq — hammasi tayyor.`;
+  const tekshirish = y.some((x) => x.tur === 'tekshirish');
+  return `Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' Tekshirish belgilari nazoratchiga ketdi.' : ''}`;
 }
 
 /** Yuk keladigan shahar tugmalari — profil roʻyxati bilan bir xil (`savollar.ts`); "Boshqa" oʻrniga erkin matn. */
@@ -744,48 +858,79 @@ export function keyingi(h: YolHolati): Keyingi {
   }
   if (h.natijalar.rasmiy_yakun === undefined) return { tur: 'kod', harakat: 'rasmiy_yakun', qadam: 7 };
 
-  // ---------------------------------------------------------- 8. Qabul
+  // ---------------------------------------------------------- 8. Qabul (Xitoydan kelgan yuk)
   //
-  // Ssenariy: yuk keldi → sanash/tekshirish → qadoq va yorliq → omborga
-  // yetkazish usuli → yetkazma akti va taymslot → topshirish → qabulni
-  // kutish. Hamma raqam va manzil `fakt` dan (0058, Uzum qoʻllanmasi 6- va
-  // 14-bob). Yuk kelmagan boʻlsa suhbat «Keldi» tugmasida turadi — obunachi
-  // keyin qaytib bosadi. "Qoʻllanma boshqacha" — tekshirish ishi.
-  const qn = qabulNatija(h);
-  if (qn === null) return { tur: 'kod', harakat: 'qabul', qadam: 8 };
+  // TARTIB TUZATILDI (nazoratchi 2026-09-29): Uzumda yetkazma (yorliq, akt,
+  // taymslot) faqat KARTOCHKA yaratilgandan keyin mumkin, kartochkaga esa
+  // surat kerak (qoʻllanma 6.3). Shuning uchun: 8 = yukni qabul qilish
+  // (keldi, sanash, kam/nuqson), 9 = Studiya (surat), 10 = Yuklash
+  // (kartochka + qadoq, yorliq, akt, taymslot, topshirish). Faktlar 0058.
+  const qbn = qabulNatija(h);
+  if (qbn === null) return { tur: 'kod', harakat: 'qabul', qadam: 8 };
   if (!berilgan(h, 'yuk_keldi')) {
-    return { tur: 'savol', savol: savol('yuk_keldi', 8, yukKeldiMatni(qn), 'tanlov', { variantlar: YUK_KELDI }) };
+    return { tur: 'savol', savol: savol('yuk_keldi', 8, yukKeldiMatni(qbn), 'tanlov', { variantlar: YUK_KELDI }) };
   }
   if (h.javoblar['yuk_keldi'] === 'hali_yoq' && !berilgan(h, 'yuk_kutish')) {
-    return { tur: 'savol', savol: savol('yuk_kutish', 8, yukKutishMatni(qn), 'tanlov', { variantlar: YUK_KUTISH }) };
+    return { tur: 'savol', savol: savol('yuk_kutish', 8, yukKutishMatni(qbn), 'tanlov', { variantlar: YUK_KUTISH }) };
   }
   if (!berilgan(h, 'yuk_mos')) {
-    return { tur: 'savol', savol: savol('yuk_mos', 8, yukMosMatni(qn), 'tanlov', { variantlar: YUK_MOS }) };
+    return { tur: 'savol', savol: savol('yuk_mos', 8, yukMosMatni(qbn), 'tanlov', { variantlar: YUK_MOS }) };
   }
   if ((h.javoblar['yuk_mos'] === 'kam' || h.javoblar['yuk_mos'] === 'brak') && !berilgan(h, 'yuk_izoh')) {
     return { tur: 'savol', savol: savol('yuk_izoh', 8,
       'Nima kam yoki nuqsonli? Qisqa yozing — agentga daʼvo uchun yozib qoʻyamiz.',
       'matn', { erkin: true, otkazishMumkin: true }) };
   }
-  if (!berilgan(h, 'qadoq_tayyor')) {
-    return { tur: 'savol', savol: savol('qadoq_tayyor', 8, qadoqMatni(qn), 'tanlov', { variantlar: QADOQ_TAYYOR, otkazishMumkin: true }) };
-  }
-  if (!berilgan(h, 'yetkazish')) {
-    return { tur: 'savol', savol: savol('yetkazish', 8, yetkazishMatni(qn), 'tanlov', { variantlar: YETKAZISH, otkazishMumkin: true }) };
-  }
-  if (!berilgan(h, 'taymslot')) {
-    return { tur: 'savol', savol: savol('taymslot', 8, taymslotMatni(qn), 'tanlov', { variantlar: TAYMSLOT, otkazishMumkin: true }) };
-  }
-  if (!berilgan(h, 'topshirildi')) {
-    return { tur: 'savol', savol: savol('topshirildi', 8, topshirishMatni(qn), 'tanlov', { variantlar: TOPSHIRILDI, otkazishMumkin: true }) };
-  }
   if (h.natijalar.qabul_yakun === undefined) return { tur: 'kod', harakat: 'qabul_yakun', qadam: 8 };
 
-  // ---------------------------------------------------------- 9+. Hali qurilmagan
-  const q9 = SUHBAT_QADAMLARI[8];
+  // ---------------------------------------------------------- 9. Studiya
+  //
+  // Nazoratchi (2026-09-29): suratlar oq fonda, Uzumga moslab; manba — 1688
+  // (tanlangan + oʻxshash takliflar) va internet (Google Lens), "iloji
+  // boricha studiyaga ishi tushmasin"; foni allaqachon oq surat kesilmaydi
+  // (Worker aniqlaydi). Tizim suratni Uzumga YUKLAMAYDI — sotuvchi yuklab
+  // olib 10-qadamda kartochkaga qoʻyadi.
+  const stn = studiyaNatija(h);
+  if (stn === null) return { tur: 'kod', harakat: 'studiya', qadam: 9 };
+  if (stn.kutilmoqda) {
+    return { tur: 'kutish', qadam: 9, boshlandi: stn.kutilmoqda.boshlandi,
+      matn: `Internetdan oʻxshash suratlar qidirilmoqda (${stn.kutilmoqda.runlar.length} ta tovar) — odatda 20–60 soniya. Tayyor boʻlgach shu yerda koʻrinadi.` };
+  }
+  if (!berilgan(h, 'studiya_tayyor')) {
+    return { tur: 'savol', savol: savol('studiya_tayyor', 9, studiyaTayyorMatni(stn), 'tanlov', { variantlar: STUDIYA_TAYYOR, otkazishMumkin: true }) };
+  }
+  if (h.natijalar.studiya_yakun === undefined) return { tur: 'kod', harakat: 'studiya_yakun', qadam: 9 };
+
+  // ---------------------------------------------------------- 10. Yuklash
+  //
+  // Kartochka (qoʻllanma 5-bob, 0059) → qadoq va yorliq → yetkazish usuli →
+  // yetkazma akti va taymslot → omborga topshirish (6/14-bob, 0058). Tizim
+  // kartochka yaratmaydi — kabinetda sotuvchi yaratadi; biz qoidani va
+  // raqamni beramiz. "Boshqacha" — tekshirish ishi (sayt oʻzgargan).
+  const ykn = yuklashNatija(h);
+  if (ykn === null) return { tur: 'kod', harakat: 'yuklash', qadam: 10 };
+  if (!berilgan(h, 'kartochka_yaratildi')) {
+    return { tur: 'savol', savol: savol('kartochka_yaratildi', 10, kartochkaMatni(ykn), 'tanlov', { variantlar: KARTOCHKA_YARATILDI, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'qadoq_tayyor')) {
+    return { tur: 'savol', savol: savol('qadoq_tayyor', 10, qadoqMatni(ykn), 'tanlov', { variantlar: QADOQ_TAYYOR, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'yetkazish')) {
+    return { tur: 'savol', savol: savol('yetkazish', 10, yetkazishMatni(ykn), 'tanlov', { variantlar: YETKAZISH, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'taymslot')) {
+    return { tur: 'savol', savol: savol('taymslot', 10, taymslotMatni(ykn), 'tanlov', { variantlar: TAYMSLOT, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'topshirildi')) {
+    return { tur: 'savol', savol: savol('topshirildi', 10, topshirishMatni(ykn), 'tanlov', { variantlar: TOPSHIRILDI, otkazishMumkin: true }) };
+  }
+  if (h.natijalar.yuklash_yakun === undefined) return { tur: 'kod', harakat: 'yuklash_yakun', qadam: 10 };
+
+  // ---------------------------------------------------------- 11+. Hali qurilmagan
+  const q11 = SUHBAT_QADAMLARI[10];
   return {
-    tur: 'tezOrada', qadam: q9.n, nom: q9.nom,
-    matn: `Keyingi qadam — ${q9.nom}: tovar suratlari va kartochka uchun kontent. Bu qism hali qurilmagan. Tayyor boʻlganda shu chatda oʻzim aytaman. Qabul javoblaringiz va ochiq ishlar saqlanib turadi.`,
+    tur: 'tezOrada', qadam: q11.n, nom: q11.nom,
+    matn: `Keyingi qadam — ${q11.nom}: birinchi sotuvlar, narx va zaxira signallari. Bu qism hali qurilmagan. Tayyor boʻlganda shu chatda oʻzim aytaman. Kartochka va yetkazma javoblaringiz, ochiq ishlar saqlanib turadi.`,
   };
 }
 
@@ -891,6 +1036,17 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
   // "Qayta qidirish" — 5-qadam natijasi va tanlovlari tozalanadi,
   // `keyingi()` yana `xitoy` kodini chaqiradi (kesh topilganlarni
   // qayta sotib olmaydi).
+  // "Qayta qidir" (9-qadam) — studiya natijasi va javobi tozalanadi,
+  // `keyingi()` yana `studiya` kodini chaqiradi (internet keshi 72 soat —
+  // qayta pul olinmaydi).
+  if (s.id === 'studiya_tayyor' && qiymat === 'qayta') {
+    const yangi = { ...holat.javoblar };
+    delete yangi['studiya_tayyor'];
+    const natijalar = { ...holat.natijalar };
+    delete natijalar.studiya;
+    return { holat: { javoblar: yangi, natijalar }, xato: null, profil: null };
+  }
+
   if (s.id === 'xitoy_qayta' && qiymat === 'qayta') {
     const yangi = { ...holat.javoblar };
     for (const id of Object.keys(yangi)) if (id.startsWith('xitoy_tanlov:')) delete yangi[id];
@@ -959,21 +1115,45 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     const n = natija as QabulQadamNatijasi;
     if (n.olchov_yoq) return `Qabul faktlarini bera olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Bu "qoida yoʻq" degani EMAS — raqamlar yoʻq.`;
     const f = n.faktlar;
-    const qadoqli = n.qatorlar.filter((q) => q.qadoq !== null).length;
-    const umumiy = n.qatorlar.length - qadoqli;
     const yetishmaydi = f.yetishmaydi.length ? ` Faktda yoʻq: ${f.yetishmaydi.join(', ')}.` : '';
     const manba = f.manba ? ` Manba: ${f.manba}${f.olchandi ? ` (${f.olchandi})` : ''}.` : '';
-    return `Qabul roʻyxati tayyor: ${n.qatorlar.length} ta tovar${n.jamiDona !== null ? `, ${n.jamiDona} dona` : ''}; ${qadoqli} tasiga Uzum qadoq jadvalidan qoida topildi${umumiy ? `, ${umumiy} tasiga umumiy qoida` : ''}. Ombor: ${f.ombor.manzil ?? 'manzil faktda yoʻq'} (${f.ombor.soat ?? 'soat faktda yoʻq'}). Qabul ${faktYoki(f.muddatKunMax, ' kun')} gacha; tafovut ${faktYoki(f.tafovutSom, ' soʻm')} har birlik.${yetishmaydi}${manba}`;
+    return `Qabul roʻyxati tayyor: ${n.qatorlar.length} ta tovar${n.jamiDona !== null ? `, ${n.jamiDona} dona` : ''}. Yuk kelganda sanang va koʻzdan kechiring: kam yoki nuqsonli boʻlsa agentga daʼvo uchun yozib qoʻyamiz. Nuqsonli tovarni Uzumga yubormang — omborda aniqlangan har muammo (brak, kam, ortiqcha, yorliqsiz) ${faktYoki(f.tafovutSom, ' soʻm')} har birlik.${yetishmaydi}${manba}`;
   }
-  if (harakat === 'qabul_yakun') {
-    const n = natija as QabulYakunNatijasi;
-    const y = n.yozildi ?? [];
-    const royxat = y.map((x) => `${x.sabab}${x.muddat ? ` (${x.muddat} gacha)` : ''}`).join('; ');
-    if (n.olchov_yoq) return `Ochiq ishlarni yozishda xato: ${n.sabab ?? 'baza javob bermadi'}${y.length ? `; roʻyxat: ${royxat}` : ''}.`;
-    if (y.length === 0) return 'Qabul boʻyicha ochiq ish yoʻq — hammasi tayyor.';
-    const tekshirish = y.some((x) => x.tur === 'tekshirish');
-    return `Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' Tekshirish belgilari nazoratchiga ketdi.' : ''}`;
+  if (harakat === 'qabul_yakun') return ochiqIshlarMatni(natija as QabulYakunNatijasi, 'Qabul');
+  if (harakat === 'studiya') {
+    const n = natija as StudiyaNatijasi;
+    if (n.kutilmoqda) return `Internetdan oʻxshash suratlar qidirilmoqda (${n.kutilmoqda.runlar.length} ta tovar) — odatda 20–60 soniya.`;
+    if (n.olchov_yoq) return `Studiya suratlarini tayyorlay olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}.`;
+    const q = n.qatorlar;
+    const jami = q.reduce((sum, x) => sum + x.suratlar.length, 0);
+    const internet = q.reduce((sum, x) => sum + x.suratlar.filter((y) => y.manba === 'internet').length, 0);
+    const qidirilmadi = q.filter((x) => x.internet === 'qidirilmadi' || x.internet === 'xato');
+    const sabablar = [...new Set(qidirilmadi.map((x) => x.internetSabab ?? 'sabab yozilmagan'))].join('; ');
+    const t = n.talablar;
+    const talab = t && t.minEni !== null && t.minBoyi !== null
+      ? ` Uzum talabi: kamida ${t.minEni}×${t.minBoyi}, ${t.nisbat ?? 'nisbat faktda yoʻq'}${t.maxMb !== null ? `, ${t.maxMb} MB gacha` : ''}.`
+      : ' Uzum surat talablari faktda yoʻq.';
+    return `Studiya: ${q.length} ta tovar uchun ${jami} ta surat (${jami - internet} tasi 1688 dan, ${internet} tasi internetdan).`
+      + (n.sozlangan
+        ? ` Har biri ${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi} (3:4), oq fonda: foni oq boʻlsa faqat moslanadi, boʻlmasa fon olib tashlanadi — tovarning oʻzi oʻzgarmaydi.`
+        : ' Studiya xizmati hali ulanmagan — suratlar asl holida, fon oqlanmagan.')
+      + (qidirilmadi.length ? ` ${qidirilmadi.length} ta tovarda internet qidiruvi boʻlmadi: ${sabablar}.` : '')
+      + talab
+      + (n.chiqishMos === false ? ` DIQQAT: studiya chiqishi (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) bu talabga mos emas — nazoratchiga yozildi.` : '')
+      + ' Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.';
   }
+  if (harakat === 'studiya_yakun') return ochiqIshlarMatni(natija as QabulYakunNatijasi, 'Studiya');
+  if (harakat === 'yuklash') {
+    const n = natija as YuklashNatijasi;
+    if (n.olchov_yoq) return `Yuklash faktlarini bera olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Bu "qoida yoʻq" degani EMAS — raqamlar yoʻq.`;
+    const f = n.faktlar;
+    const qadoqli = n.qatorlar.filter((q) => q.qadoq !== null).length;
+    const yetishmaydi = [...f.yetishmaydi, ...n.talablar.yetishmaydi];
+    return `Yuklash: ${n.qatorlar.length} ta tovar${n.jamiDona !== null ? `, ${n.jamiDona} dona` : ''}. Avval kartochka (${n.talablar.kartochkaQoidalari.length} ta qoida), keyin qadoq (${qadoqli} tasiga Uzum jadvalidan qoida), yorliq, yetkazma akti va taymslot. Ombor: ${f.ombor.manzil ?? 'manzil faktda yoʻq'} (${f.ombor.soat ?? 'soat faktda yoʻq'}); qabul ${faktYoki(f.muddatKunMax, ' kun')} gacha, tafovut ${faktYoki(f.tafovutSom, ' soʻm')} har birlik.`
+      + (yetishmaydi.length ? ` Faktda yoʻq: ${yetishmaydi.join(', ')}.` : '')
+      + (f.manba ? ` Manba: ${f.manba}${f.olchandi ? ` (${f.olchandi})` : ''}.` : '');
+  }
+  if (harakat === 'yuklash_yakun') return ochiqIshlarMatni(natija as QabulYakunNatijasi, 'Yuklash');
   if (harakat === 'rasmiy') {
     const n = natija as RasmiyNatijasi;
     if (n.olchov_yoq) {
