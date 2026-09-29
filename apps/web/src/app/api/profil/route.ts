@@ -7,11 +7,13 @@
  */
 
 import { apiga, sozlanganmi, token, tokenYokiYangi } from '@/lib/sessiya';
+import { sorovTokeni } from '@/lib/sessiya-sarlavha';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   if (!sozlanganmi()) return javob({ xato: 'API manzili sozlanmagan' }, 503);
 
-  const t = await token();
+  // Kengaytma rejimi: token sarlavhada (cookie ramkada ishlamaydi); boʻlmasa cookie.
+  const t = sorovTokeni(request) ?? (await token());
   // Token YOʻQ — bu xato emas, birinchi tashrif. Boʻsh profil.
   if (!t) return javob({ javoblar: null, yangi: true }, 200);
 
@@ -29,7 +31,7 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   if (!sozlanganmi()) return javob({ xato: 'API manzili sozlanmagan' }, 503);
 
-  const t = await tokenYokiYangi();
+  const t = await tokenYokiYangi(request);
   if (!t) return javob({ xato: 'sessiya ochilmadi' }, 503);
 
   let tana = '{}';

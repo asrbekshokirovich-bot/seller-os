@@ -12,9 +12,9 @@
 
 import { apiga, sozlanganmi, tokenYokiYangi } from '@/lib/sessiya';
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   if (!sozlanganmi()) return javob({ xato: 'API manzili sozlanmagan' }, 503);
-  const t = await tokenYokiYangi();
+  const t = await tokenYokiYangi(request);
   if (!t) return javob({ xato: 'sessiya ochilmadi' }, 503);
   try {
     const r = await apiga('/suhbat', t, { method: 'GET' });
@@ -29,7 +29,7 @@ export async function GET(): Promise<Response> {
 
 export async function POST(request: Request): Promise<Response> {
   if (!sozlanganmi()) return javob({ xato: 'API manzili sozlanmagan' }, 503);
-  const t = await tokenYokiYangi();
+  const t = await tokenYokiYangi(request);
   if (!t) return javob({ xato: 'sessiya ochilmadi' }, 503);
 
   let tana = '{}';

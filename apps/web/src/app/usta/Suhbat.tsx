@@ -29,8 +29,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { REJA_QADAMI, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son, yosh } from '@/lib/bazamiz';
+import { hashTokeni } from '@/lib/sessiya-sarlavha';
 import { saqlanganTil, tarjima, tilniQoy, tilniSaqla, type Til, type Tr } from '@/lib/til';
 import u from './usta.module.css';
+
+/**
+ * Kengaytma rejimi (0.2.0): sahifa Chrome yon panelidagi ramkada ochiladi,
+ * cookie u yerda ishlamaydi — token manzil hash'ida keladi
+ * (`#sessiya=…&kengaytma=1`, serverga ketmaydi) va har soʻrovga
+ * `x-sessiya` sarlavhasi bilan qoʻshiladi. Oddiy saytda hash yoʻq —
+ * sarlavha ham yoʻq, hammasi avvalgidek cookie bilan.
+ */
+function sessiyaSarlavhasi(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const t = hashTokeni(window.location.hash);
+  return t ? { 'x-sessiya': t } : {};
+}
 
 /* ------------------------------------------------------ turlar (API shakli) */
 
@@ -117,7 +131,7 @@ export default function Suhbat() {
   const yukla = useCallback(async () => {
     const t = tarjima(saqlanganTil() ?? 'uz');
     try {
-      const r = await fetch('/api/suhbat', { cache: 'no-store' });
+      const r = await fetch('/api/suhbat', { cache: 'no-store', headers: sessiyaSarlavhasi() });
       const d = (await r.json()) as SuhbatJavobi & { xato?: string };
       if (!r.ok || (d.xato && !d.keyingi)) {
         setXato(d.xato ?? t('Ulanib boʻlmadi', 'Не удалось подключиться'));
@@ -165,7 +179,7 @@ export default function Suhbat() {
     try {
       const r = await fetch('/api/suhbat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
         body: JSON.stringify(tana),
       });
       const d = (await r.json()) as SuhbatJavobi;

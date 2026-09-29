@@ -3,9 +3,29 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
-Doʻkonda: **Published — public** (0.1.1), 2026-09-02 dan beri. Provayder
-ulangan versiya — **0.1.3** (2026-09-29), doʻkonga yuklanishi kerak
-(nazoratchi yuklaydi — Developer Dashboard kengaytmalar bilan boshqarilmaydi).
+Doʻkonda: **Published — public** (0.1.1), 2026-09-02 dan beri. Yangi
+versiya — **0.2.0** (2026-09-29): yon panelda FAQAT CHAT + Uzum sahifasidagi
+tugma (0.1.3 tuzatishlari bilan). Doʻkonga nazoratchi yuklaydi (Developer
+Dashboard kengaytmalar bilan boshqarilmaydi).
+
+## 2026-09-29 — 0.2.0: yon panel, faqat chat
+
+Nazoratchi qarori: kengaytma belgisi bosilganda Chrome yon paneli ochilsin
+va unda **faqat Seller OS chati** boʻlsin, boshqa hech narsa.
+
+- `manifest.json`: `sidePanel` ruxsati, `action` (belgi), `side_panel.default_path =
+  panel.html`. `background.ts` `setPanelBehavior({ openPanelOnActionClick: true })`.
+- `panel.html` + `src/panel.ts`: saytning `/usta` sahifasi ramkada. Sessiya
+  tokenini orqa xizmat beradi (`chrome.storage.local`, Uzum sahifasidagi tugma
+  bilan bitta sessiya — limit va kesh bitta); token manzil hash'ida
+  (`#sessiya=…&kengaytma=1`) uzatiladi, serverga ketmaydi.
+- Sayt (`apps/web`): ramkada cookie ishlamaydi (uchinchi tomon), shuning uchun
+  `/api/*` marshrutlari `x-sessiya` sarlavhasini cookie'dan ustun oladi
+  (`lib/sessiya-sarlavha.ts` elagi: faqat `[A-Za-z0-9_.-]{16,512}`);
+  `Suhbat.tsx` hash'dagi tokenni har soʻrovga sarlavha qilib qoʻshadi.
+  Oddiy saytda hech narsa oʻzgarmaydi.
+- `panel.ts` dagi `SAYT` — Vercel manzili, nazoratchi beradi; boʻsh boʻlsa
+  panel "sozlanmagan" deydi va hech qayerga ulanmaydi.
 
 ## 2026-09-29 — 0.1.3: koʻrinish tuzatildi
 

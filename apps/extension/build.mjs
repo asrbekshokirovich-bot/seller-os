@@ -26,9 +26,21 @@ await build({
   minify: false,
 });
 
+// Yon panel (0.2.0) — faqat chat ramkasi
+await build({
+  entryPoints: ['src/panel.ts'],
+  bundle: true,
+  outfile: join(dist, 'panel.js'),
+  format: 'iife',
+  target: 'chrome120',
+  minify: false,
+});
+
 // Statik fayllar
 copyFileSync('manifest.json', join(dist, 'manifest.json'));
 copyFileSync('src/content.css', join(dist, 'content.css'));
+copyFileSync('panel.html', join(dist, 'panel.html'));
+copyFileSync('src/panel.css', join(dist, 'panel.css'));
 cpSync('icons', join(dist, 'icons'), { recursive: true });
 
 console.log('Kengaytma qurildi → dist/');

@@ -142,7 +142,27 @@ async function xitoyQidir(productId: number, rasmUrl: string | null): Promise<Qi
   return data;
 }
 
+// Yon panel (0.2.0): asboblar panelidagi belgi bosilganda ochiladi.
+// Panelda faqat chat (panel.ts). Sozlama profilga yoziladi — oʻrnatishda
+// va har ishga tushishda qayta qoʻyiladi.
+function yonPanelniSozla(): void {
+  try {
+    void chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true });
+  } catch {
+    // Eski Chrome — sidePanel API yoʻq; Uzum sahifasidagi tugma baribir ishlaydi.
+  }
+}
+chrome.runtime.onInstalled.addListener(yonPanelniSozla);
+chrome.runtime.onStartup.addListener(yonPanelniSozla);
+
 chrome.runtime.onMessage.addListener((xabar, _yuboruvchi, javobBer) => {
+  // Panel uchun sessiya tokeni — Uzum sahifasidagi tugma bilan bitta sessiya.
+  if (xabar?.tur === 'sessiya') {
+    sessiyaOl()
+      .then((token) => javobBer({ token }))
+      .catch((e) => javobBer({ token: null, xato: String(e?.message ?? e) }));
+    return true;
+  }
   if (xabar?.tur !== 'xitoy-qidiruv') return false;
 
   xitoyQidir(Number(xabar.productId), typeof xabar.rasmUrl === 'string' ? xabar.rasmUrl : null)

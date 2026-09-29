@@ -1,6 +1,6 @@
 # Privacy Policy — Seller OS: Xitoydan top
 
-**Last updated: 29 September 2026** (version 0.1.2 of the extension)
+**Last updated: 29 September 2026** (version 0.2.0 of the extension)
 
 This policy describes what the Chrome extension **"Seller OS — Xitoydan top"**
 does with data. It is written to match the extension's source code exactly;
@@ -11,12 +11,18 @@ the code is public at
 
 ## What the extension does
 
-The extension adds one button — **"Xitoydan top"** — to product pages on
-`uzum.uz`. When you click it, the extension looks up visually similar
-products on the Chinese wholesale marketplace 1688 and shows the results
-on the same page.
+Two things:
 
-That is its only function.
+1. It adds one button — **"Xitoydan top"** — to product pages on
+   `uzum.uz`. When you click it, the extension looks up visually similar
+   products on the Chinese wholesale marketplace 1688 and shows the results
+   on the same page.
+2. Clicking the extension icon opens a Chrome side panel that shows the
+   **Seller OS chat** — our own website (`/usta` page) loaded in a frame.
+   Everything you type there goes to our server exactly as it would if you
+   opened the website in a tab; the website's own privacy terms apply. The
+   panel uses the same anonymous session token as the button (see below),
+   so your daily search limit is counted once.
 
 ## What is sent off your device
 
@@ -118,11 +124,17 @@ nima qilishini tushuntiradi. Matn kodning oʻziga qarab yozilgan; kod ochiq:
 
 ## Kengaytma nima qiladi
 
-`uzum.uz` mahsulot sahifasiga bitta tugma qoʻshadi — **"Xitoydan top"**.
-Uni bosganingizda 1688 ulgurji bozoridan oʻxshash tovarlar qidiriladi va
-natija oʻsha sahifada koʻrsatiladi.
+Ikki narsa:
 
-Boshqa vazifasi yoʻq.
+1. `uzum.uz` mahsulot sahifasiga bitta tugma qoʻshadi — **"Xitoydan top"**.
+   Uni bosganingizda 1688 ulgurji bozoridan oʻxshash tovarlar qidiriladi va
+   natija oʻsha sahifada koʻrsatiladi.
+2. Kengaytma belgisini bossangiz Chrome yon paneli ochiladi va unda
+   **Seller OS chati** — oʻz saytimizning `/usta` sahifasi — ramkada
+   koʻrsatiladi. U yerga yozganingiz saytni oddiy ochgandagidek
+   serverimizga boradi; saytning oʻz maxfiylik shartlari amal qiladi. Panel
+   tugma bilan bir xil anonim seans tokenidan foydalanadi (quyida), kunlik
+   limit bir marta hisoblanadi.
 
 ## Qurilmangizdan nima chiqadi
 

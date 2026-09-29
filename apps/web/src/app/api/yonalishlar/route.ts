@@ -40,7 +40,7 @@ export async function POST(request: Request): Promise<Response> {
     // Sessiya tokeni — tavsiya jurnali uchun. Boʻlmasa yangisi
     // ochiladi: odam javob bergan boʻlsa, uni kim berganini
     // bilishimiz kerak (reja: `recommendations`).
-    const sessiya = await tokenYokiYangi();
+    const sessiya = await tokenYokiYangi(request);
 
     const r = await fetch(`${API}/yonalishlar`, {
       method: 'POST',
