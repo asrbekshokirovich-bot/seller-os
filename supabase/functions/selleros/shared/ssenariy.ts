@@ -844,7 +844,8 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     const royxat = y.map((x) => `${x.sabab}${x.muddat ? ` (${x.muddat} gacha)` : ''}`).join('; ');
     if (n.olchov_yoq) return `Ochiq ishlarni yozishda xato: ${n.sabab ?? 'baza javob bermadi'}${y.length ? `; roʻyxat: ${royxat}` : ''}.`;
     if (y.length === 0) return 'Rasmiylashtirish boʻyicha ochiq ish yoʻq — hammasi tayyor.';
-    return `Ochiq ishlar yozildi (${y.length}): ${royxat}. "Sayt boshqacha" belgilaganingiz nazoratchiga tekshirish uchun ketdi.`;
+    const tekshirish = y.some((x) => x.tur === 'tekshirish');
+    return `Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' "Sayt boshqacha" belgilaganingiz nazoratchiga tekshirish uchun ketdi.' : ''}`;
   }
   if (harakat === 'buyurtma') {
     const n = natija as BuyurtmaNatijasi;
