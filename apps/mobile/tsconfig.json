@@ -1,0 +1,25 @@
+{
+  // `expo/tsconfig.base` ning aynan oʻzi, lekin `extends` siz.
+  // Sabab: ildiz vitest mobil testlarni `apps/mobile/node_modules`
+  // oʻrnatilmagan holda ishlatadi va `extends: "expo/..."` ni yecha
+  // olmay yiqiladi (CI, 2026-09-29). Expo SDK yangilansa — shu roʻyxat
+  // `node_modules/expo/tsconfig.base.json` bilan solishtirilsin.
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ESNext"],
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "customConditions": ["react-native"],
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "android", "ios"]
+}

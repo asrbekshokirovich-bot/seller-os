@@ -36,6 +36,12 @@ qadam "qurish (web)"
 # qadam boʻlmasa, buzilgan sahifa CI dan yashil oʻtardi.
 npm run build --workspace @selleros/web
 
+qadam "mobil ilova (typecheck + Android bundle)"
+# Ilova ildiz workspace'ida EMAS — alohida lockfile, alohida `npm ci`.
+# Bundle qadami typecheck ushlamaydigan Metro import xatolarini ushlaydi.
+(cd apps/mobile && npm ci --silent && npx tsc --noEmit \
+  && npx expo export --platform android --output-dir "${TMPDIR:-/tmp}/mobil-eksport" >/dev/null)
+
 qadam "testlar (Node)"
 npx vitest run
 

@@ -37,6 +37,28 @@ jobs:
       - name: Edge Function nusxasi manbaga mos
         run: node supabase/functions/tayyorlash.mjs --tekshir
 
+  mobil:
+    name: Mobil ilova — typecheck va Android bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: apps/mobile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      # Ilova ildiz workspace'iga kirmaydi: Expo React versiyasini
+      # oʻzi belgilaydi va u web (Next) bilan toʻqnashmasin.
+      # Shuning uchun alohida `npm ci` va alohida lockfile.
+      - run: npm ci
+      - run: npx tsc --noEmit
+      # Typecheck yetarli EMAS: Metro importlarni boshqacha yechadi
+      # (masalan, shared paketdagi `.js` kengaytmali importlar). Bundle
+      # yigʻilmasa ilova telefonda ochilmaydi, typecheck esa yashil.
+      - run: npx expo export --platform android --output-dir /tmp/mobil-eksport
+
   python:
     name: Python — skreyper testlari
     runs-on: ubuntu-latest

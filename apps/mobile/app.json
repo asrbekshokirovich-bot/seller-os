@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "ZumSavdo",
+    "slug": "zumsavdo",
+    "version": "0.1.0",
+    "scheme": "zumsavdo",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "uz.zumsavdo.ilova"
+    },
+    "android": {
+      "package": "uz.zumsavdo.ilova",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#D2552D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#D2552D",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "dark": {
+            "backgroundColor": "#13100C",
+            "image": "./assets/splash-icon.png"
+          }
+        }
+      ],
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "extra": {
+      "apiUrl": "https://duequijnnzcngzzvjqst.supabase.co/functions/v1/selleros",
+      "apiKey": "sb_publishable_KzLAuxJYrA66iD4lMp7V-g_1GYLuNzL",
+      "sayt": "https://zumsavdo.vercel.app"
+    }
+  }
+}
