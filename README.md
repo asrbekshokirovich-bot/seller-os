@@ -23,12 +23,13 @@ yolg'on gapiradi, shuning uchun har tavsiya 8 ta hiyla-filtrdan o'tadi.
 apps/backend     Fastify — yagona kirish nuqtasi
 apps/web         Next.js — Usta suhbati (uz/ru); tartibni server beradi
 apps/extension   Chrome MV3 — Uzum sahifasida "Xitoydan top"
+apps/mobile      Expo (React Native) — Android ilova; suhbat + bosh sahifa (docs/MOBIL.md)
 apps/scraper     Python — yig'uvchi, "hurmat rejimi"
 packages/shared  Ball, tuzoq turlari, chegaralar — BITTA joyda
 supabase/        Migratsiyalar va seed
 ```
 
-Web, bot va kengaytma bazaga to'g'ridan-to'g'ri tegmaydi — hammasi
+Web, ilova, bot va kengaytma bazaga to'g'ridan-to'g'ri tegmaydi — hammasi
 backend API orqali. Sabab: tavsiya mantiqi bitta joyda tursin.
 
 ## ZumSavdo va SellerOS — BITTA mahsulot

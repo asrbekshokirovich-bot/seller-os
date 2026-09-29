@@ -7,6 +7,15 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [nazoratchi, 2026-09-29] **Mobil ilova — "tez orada" qismlari.** Ilova
+(`apps/mobile`) dizayndagi hamma ekran bilan chiqdi; quyidagilar shakli
+bor, maʼlumoti yoʻq: kirish (SMS provayderi yoki Telegram login — backendda
+login yoʻq), pul holati va ogohlantirishlar (Uzum kabineti tokeni kerak),
+yuk kuzatuvi (kargo hamkori), bir nechta parallel savdo va arxiv (hozir
+bitta sessiya = bitta suhbat), push bildirishnoma. Nega keyinroq: har
+biri backend ishi; ilova ekrani tayyor, faqat maʼlumot ulanadi.
+Tafsilot: `apps/mobile/dizayn/HOLAT.md`.
+
 — [agent, 2026-09-25] **Backend matnlarining ruschasi.** Web ikki tilli
 boʻldi, lekin API tayyor oʻzbekcha jumla qaytaradigan joylar bor:
 tuzoq sababi (`Flag.reason`), `miqdorSababi`, `miqdor.hisob`,
