@@ -657,5 +657,8 @@ describe('7-qadam — Rasmiylashtirish (hamma raqam faktdan)', () => {
     ] };
     expect(tushuntir('rasmiy_yakun', y)).toMatch(/Ochiq ishlar yozildi \(2\): rasmiy: YATT roʻyxat sayti boshqacha; Uzum kabinet faollashuvi \(2026-09-30 gacha\)\. "Sayt boshqacha"/);
     expect(tushuntir('rasmiy_yakun', { ...y, olchov_yoq: true, sabab: 'sessiya topilmadi' })).toMatch(/xato: sessiya topilmadi; roʻyxat:/);
+    // "Sayt boshqacha" jumlasi faqat tekshirish ishi bor boʻlsa — belgilamagan odamga "belgiladingiz" deyilmaydi.
+    const faqatKutish = { ...YAKUN, yozildi: [{ tur: 'kutyapman', sabab: 'YATT ochilishi', muddat: null, id: 6, yangi: true }] };
+    expect(tushuntir('rasmiy_yakun', faqatKutish)).toBe('Ochiq ishlar yozildi (1): YATT ochilishi.');
   });
 });
