@@ -452,7 +452,11 @@ function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRej
                     ? <RasmiyKartasi n={n as unknown as RasmiyQ} tr={tr} />
                     : x.savolId === 'rasmiy_yakun'
                       ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
-                      : null}
+                      : x.savolId === 'qabul'
+                        ? <QabulKartasi n={n as unknown as QabulQ} tr={tr} />
+                        : x.savolId === 'qabul_yakun'
+                          ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
+                          : null}
     </div>
   );
 }
@@ -871,6 +875,73 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
           </div>
         </>
       )}
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 8-qadam: qabul */
+
+interface QabulQ {
+  olchov_yoq?: boolean; sabab?: string; jamiDona?: number | null; izoh?: string;
+  faktlar?: {
+    ombor: { manzil: string | null; soat: string | null };
+    qaytarish: { manzil: string | null; soat: string | null };
+    muddatKunMax: number | null; tafovutSom: number | null; taqiqJarimaSom: number | null;
+    taymslot: { ozgartirishMax: number | null; bekorSoat: number | null };
+    yetkazma: { skuMax: number | null; aktNusxa: number | null; qutiToliqlik: string | null };
+    yorliq: Record<string, string>; qadoqUmumiy: string | null;
+    logistika: { url: string | null; qutiKgMax: number | null; oldinKun: number | null };
+    qollanmaUrl: string | null; manba: string | null; olchandi: string | null; yetishmaydi: string[];
+  };
+  qatorlar?: Array<{ productId: number; title: string; miqdor: number | null; qadoq: { tur: string; usul: string; belgilar: string | null } | null }>;
+}
+
+/** Qabul kartasi: ombor, tekshiruv roʻyxati (qadoq tavsiyasi), yorliq, yetkazma, viloyatdan, jarimalar. Fakt yoʻq — "faktda yoʻq". */
+function QabulKartasi({ n, tr }: { n: QabulQ; tr: Tr }) {
+  const f = n.faktlar;
+  if (!f) return <p className={u.kichikIzoh}>{n.sabab ?? tr('faktlar yoʻq', 'нет данных')}</p>;
+  const yoq = tr('faktda yoʻq', 'нет в фактах');
+  const son = (x: number | null, birlik: string) => (x === null ? yoq : `${raqam(x)} ${birlik}`);
+  const q = n.qatorlar ?? [];
+  return (
+    <div className={u.kartalar}>
+      {f.yetishmaydi.length > 0 && <p className={u.ogohlik}>{tr('Faktda yoʻq:', 'Нет в фактах:')} {f.yetishmaydi.join(', ')}</p>}
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Uzum ombori', 'Склад Uzum')}</div></div></div>
+        <p className={u.kichikIzoh}>{f.ombor.manzil ?? yoq} · {f.ombor.soat ?? yoq}</p>
+        {f.qaytarish.manzil && <p className={u.kichikIzoh}>{tr('Qaytarilgan tovarlar:', 'Возвраты:')} {f.qaytarish.manzil} · {f.qaytarish.soat ?? ''}</p>}
+        <div className={u.statlar}>
+          <Stat nom={tr('Qabul muddati', 'Срок приёмки')} q={f.muddatKunMax === null ? yoq : `${tr('gacha', 'до')} ${f.muddatKunMax} ${tr('kun', 'дн')}`} />
+          <Stat nom={tr('Tafovut', 'Расхождение')} q={son(f.tafovutSom, tr('soʻm / birlik', 'сум / ед'))} />
+          <Stat nom={tr('Taqiqlangan tovar', 'Запрещённый товар')} q={son(f.taqiqJarimaSom, tr('soʻm', 'сум'))} />
+        </div>
+      </div>
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Tekshiruv roʻyxati', 'Чек-лист')}{n.jamiDona !== null && n.jamiDona !== undefined ? ` · ${raqam(n.jamiDona)} ${tr('dona', 'шт')}` : ''}</div></div></div>
+        {q.length === 0 ? <p className={u.kichikIzoh}>{tr('Varaqada tovar yoʻq.', 'В листе нет товаров.')}</p> : q.map((x) => (
+          <div key={x.productId} className={u.statlar}>
+            <Stat nom={x.title} q={x.miqdor === null ? '—' : `${x.miqdor} ${tr('dona', 'шт')}`} />
+            <Stat nom={x.qadoq ? x.qadoq.tur : tr('Umumiy qoida', 'Общее правило')} q={x.qadoq ? x.qadoq.usul : (f.qadoqUmumiy ?? yoq)} izoh={x.qadoq?.belgilar ?? undefined} />
+          </div>
+        ))}
+      </div>
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Yorliq va yetkazma', 'Этикетка и поставка')}</div></div></div>
+        <div className={u.statlar}>
+          <Stat nom={tr('Kod', 'Код')} q={f.yorliq.kod ?? yoq} />
+          <Stat nom={tr('Yorliq oʻlchami', 'Размер этикетки')} q={f.yorliq.tavsiya ?? yoq} izoh={f.yorliq.min ? `${tr('min', 'мин')} ${f.yorliq.min}${f.yorliq.dpi ? `, ${f.yorliq.dpi} dpi` : ''}` : undefined} />
+          <Stat nom={tr('Quti', 'Коробка')} q={f.yetkazma.qutiToliqlik ?? yoq} />
+          <Stat nom={tr('Yetkazma', 'Поставка')} q={f.yetkazma.skuMax === null ? yoq : `${f.yetkazma.skuMax} SKU ${tr('gacha', 'макс')}`} izoh={f.yetkazma.aktNusxa !== null ? tr(`akt ${f.yetkazma.aktNusxa} nusxa`, `акт ${f.yetkazma.aktNusxa} экз`) : undefined} />
+          <Stat nom={tr('Taymslot', 'Таймслот')} q={f.taymslot.ozgartirishMax === null ? yoq : `${f.taymslot.ozgartirishMax} ${tr('marta oʻzgartirish', 'изменения')}`} izoh={f.taymslot.bekorSoat !== null ? tr(`bekor — ${f.taymslot.bekorSoat} soat oldin`, `отмена — за ${f.taymslot.bekorSoat} ч`) : undefined} />
+          <Stat nom={tr('Viloyatdan', 'Из регионов')} q={f.logistika.qutiKgMax === null ? yoq : `${tr('quti', 'коробка')} ≤ ${f.logistika.qutiKgMax} kg`} izoh={f.logistika.oldinKun !== null ? tr(`taymslotdan ${f.logistika.oldinKun} kun oldin, pullik`, `за ${f.logistika.oldinKun} дн до таймслота, платно`) : undefined} />
+        </div>
+        <div className={u.chiplar}>
+          {f.logistika.url && <a className={`${u.chip} ${u.chipYengil}`} href={f.logistika.url} target="_blank" rel="noopener noreferrer">{tr('Uzum logistikasi', 'Логистика Uzum')}</a>}
+          {f.qollanmaUrl && <a className={`${u.chip} ${u.chipYengil}`} href={f.qollanmaUrl} target="_blank" rel="noopener noreferrer">{tr('Rasmiy qoʻllanma (6-bob)', 'Инструкция (гл. 6)')}</a>}
+        </div>
+        <Manba manba={f.manba} olchandi={f.olchandi} tr={tr} />
+      </div>
       {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
     </div>
   );

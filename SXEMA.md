@@ -100,7 +100,12 @@ yaratilgan — nazoratchi to'ldiradi (BACKLOG). 7-qadam kalitlari (0057):
 tugashi), `bank.royxat` (jsonb massiv: nom, onlayn, ochish_som,
 oylik_som, izoh, manba, olchandi), `uzum.*` (kabinet/qoʻllanma URL,
 komissioner STIR/MFO/hisob/muddat, faollashtirish kuni, toʻlov jadvali).
-Manba: docs/RASMIYLASHTIRISH-FAKTLAR.md.
+Manba: docs/RASMIYLASHTIRISH-FAKTLAR.md. 8-qadam kalitlari (0058):
+`uzum.qabul.*` — ombor/qaytarish manzili va soati, qabul muddati, tafovut va
+taqiq jarimasi, taymslot qoidalari, yetkazma (SKU max, akt nusxa, quti
+toʻliqligi), `yorliq` (jsonb), `qadoq` (jsonb massiv: kalit_sozlar, tur,
+usul, belgilar), `qadoq_umumiy`, logistika (url, quti kg, oldin kun),
+qoʻllanma URL. Manba: Uzum qoʻllanmasi 6/14-bob, oferta.
 
 ### `ochiq_ish` (0056)
 Ssenariydagi "ochiq ish": `tur` (kutyapman/tolov/tekshirish), `sabab`,

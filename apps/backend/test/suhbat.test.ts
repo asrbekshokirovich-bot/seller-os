@@ -54,6 +54,20 @@ const RASMIY_N = {
   izoh: 'rasmiy',
 };
 const YAKUN_N = { olchov_yoq: false, yozildi: [], izoh: 'yakun' };
+/** 8-qadam: faktlar boʻsh (savol matnlari "faktda yoʻq" deydi). */
+const QABUL_N = {
+  olchov_yoq: false, jamiDona: 30, izoh: 'qabul',
+  faktlar: {
+    ombor: { manzil: null, soat: null }, qaytarish: { manzil: null, soat: null },
+    muddatKunMax: null, tafovutSom: null, taqiqJarimaSom: null,
+    taymslot: { ozgartirishMax: null, bekorSoat: null }, yetkazma: { skuMax: null, aktNusxa: null, qutiToliqlik: null },
+    yorliq: {}, qadoq: [], qadoqTashlandi: 0, qadoqUmumiy: null,
+    logistika: { url: null, qutiKgMax: null, oldinKun: null }, qollanmaUrl: null, manba: null, olchandi: null,
+    yetishmaydi: ['ombor manzili'],
+  },
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', miqdor: 30, qadoq: null }],
+};
+const QABUL_YAKUN_N = { olchov_yoq: false, yozildi: [], izoh: 'qabul yakun' };
 /** Yurish boshlandi — natija hali yoʻq. */
 const XITOY_KUTISH = { ...XITOY, qatorlar: [], kutilmoqda: { runId: 'HG7ML7M8z78YcAPEB', boshlandi: '2026-09-25T20:00:00.000Z', rasmlar: [{ productId: 100, rasmUrl: RASM }] } };
 
@@ -91,6 +105,8 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       ochiqIsh: async () => OCHIQ,
       rasmiy: async () => RASMIY_N,
       rasmiyYakun: async () => YAKUN_N,
+      qabul: async () => QABUL_N,
+      qabulYakun: async () => QABUL_YAKUN_N,
     },
     ...(llm ? { llm } : {}),
   };
@@ -258,15 +274,31 @@ describe('suhbatTurn', () => {
     const t10 = await suhbatTurn(d, 'tok', { savolId: 'bank_hisobi', javob: 'bor' });
     if (t10.keyingi.tur !== 'savol') throw new Error(t10.keyingi.tur);
     expect(t10.keyingi.savol.id).toBe('uzum_kabinet');
-    const oxir = await suhbatTurn(d, 'tok', { savolId: 'uzum_kabinet', javob: 'faol' });
+    // 7-qadam yakuni → 8-qadam: rasmiy yakuni + qabul faktlari kodi + "yuk keldimi" bitta turnda.
+    const t11 = await suhbatTurn(d, 'tok', { savolId: 'uzum_kabinet', javob: 'faol' });
+    expect(t11.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'kod', 'menejer']);
+    expect(t11.xabarlar[1]!.savolId).toBe('rasmiy_yakun');
+    expect(t11.xabarlar[2]!.savolId).toBe('qabul');
+    expect(t11.xabarlar[2]!.matn).toMatch(/Qabul roʻyxati tayyor: 1 ta tovar, 30 dona/);
+    if (t11.keyingi.tur !== 'savol') throw new Error(t11.keyingi.tur);
+    expect(t11.keyingi.savol.id).toBe('yuk_keldi');
+    for (const [savolId, javobQ, keyingiId] of [
+      ['yuk_keldi', 'keldi', 'yuk_mos'], ['yuk_mos', 'mos', 'qadoq_tayyor'], ['qadoq_tayyor', 'tayyor', 'yetkazish'],
+      ['yetkazish', 'ozim', 'taymslot'], ['taymslot', 'oldim', 'topshirildi'],
+    ] as const) {
+      const t = await suhbatTurn(d, 'tok', { savolId, javob: javobQ });
+      if (t.keyingi.tur !== 'savol') throw new Error(`${savolId}: ${t.keyingi.tur}`);
+      expect(t.keyingi.savol.id).toBe(keyingiId);
+    }
+    const oxir = await suhbatTurn(d, 'tok', { savolId: 'topshirildi', javob: 'topshirdim' });
     expect(oxir.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
-    expect(oxir.xabarlar[1]!.savolId).toBe('rasmiy_yakun');
+    expect(oxir.xabarlar[1]!.savolId).toBe('qabul_yakun');
     expect(oxir.keyingi.tur).toBe('tezOrada');
-    expect(oxir.qadam).toBe(8);
+    expect(oxir.qadam).toBe(9);
     // Har menejer xabari savolId bilan (tez orada dan tashqari).
     const menejer = b.jurnal.filter((x) => (x as { rol: string }).rol === 'menejer');
-    // 7 javob + qidiruv natijasi (tekshir) + tanlov + shahar + raqam + boshlaymiz + shakl + bank + kabinet = har turnda bitta menejer gapi.
-    expect(menejer.length).toBe(qadamlar.length + 8);
+    // 7 javob + tekshir + tanlov + shahar + raqam + boshlaymiz + shakl + bank + kabinet + 6 ta qabul savoli = har turnda bitta menejer gapi.
+    expect(menejer.length).toBe(qadamlar.length + 14);
   });
 
   it('tekshir: yurish hali tugamagan — xabar yoʻq, jurnal oʻzgarmaydi, holat kutishda qoladi', async () => {

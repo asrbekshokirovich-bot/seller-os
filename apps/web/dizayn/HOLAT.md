@@ -90,7 +90,22 @@ uchun bitta.
     davlat saytlari oʻzgaradi, BACKLOG 2026-09-25 qarori). 1-qadamda
     kabinet bor deganga savol berilmaydi. Tizim roʻyxatdan oʻtkazmaydi,
     hisob ochmaydi — faqat yoʻl koʻrsatadi va raqam beradi; "soliq/yuridik
-    maslahat emas" deb aytadi. 8-qadam "tez orada".
+    maslahat emas" deb aytadi.
+
+11. *(2026-09-29, nazoratchi: "8-qadamni boshla")* **8-qadam — Qabul —
+    qurildi, hamma raqam faktdan.** Manba — Uzum rasmiy qoʻllanmasi 6-bob
+    (qadoq, yorliq, yetkazma akti, taymslot, ombor manzili, tafovut
+    2 500 soʻm/birlik) va 14-bob (viloyatdan Uzum logistikasi: BTP,
+    quti ≤ 20 kg, taymslotdan 2 kun oldin), oferta 4.6/4.17 (qabul 7
+    kungacha, taqiqlangan tovar 5 mln). Faktlar `selleros.fakt`
+    `uzum.qabul.*` (0058). Oqim: kod `qabul` (ombor, tekshiruv roʻyxati
+    varaqadan, qadoq tavsiyasi tovar nomi boʻyicha — taxminiy, mos kelmasa
+    umumiy qoida) → "yuk keldimi" (kelmagan boʻlsa «Keldi» tugmasida
+    kutadi) → sanash (kam/nuqsonli → izoh, tekshirish ishi) → qadoq va
+    yorliq → yetkazish usuli (oʻzim / Uzum logistikasi) → yetkazma akti
+    va taymslot → topshirish → kod `qabul_yakun` (Uzum qabulini kutish,
+    muddat faktdan). "Qoʻllanma boshqacha" — tekshirish. 9-qadam "tez
+    orada".
 
 ## Dizayndan ataylab chetga chiqilgan joylar
 
