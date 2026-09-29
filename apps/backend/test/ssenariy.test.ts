@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boshlangichHolat, javobniQabulQil, joriyQadam, keyingi, natijaniYoz,
+  boshlangichHolat, faktlarniOqi, javobniQabulQil, joriyQadam, keyingi, natijaniYoz, rasmiyFaktlari,
   SHAHARLAR, SUHBAT_QADAMLARI, tushuntir, type YolHolati,
 } from '@selleros/shared';
 
@@ -66,6 +66,24 @@ const AVIA = { yol: 'avia' as const, usdKg: 8, kun: 12, somPerKg: 101_200, manba
 const QURUQLIK = { yol: 'quruqlik' as const, usdKg: 3, kun: 30, somPerKg: 37_950, manba: 'Hamkor X', olchandi: '2026-09-28' };
 const BUYURTMA_KARGO = { ...BUYURTMA, kargo: { hamkor: 'Hamkor X', avia: AVIA, quruqlik: QURUQLIK, usdM3: null, minUsd: null, tanlovBor: true, izoh: null } };
 const OCHIQ = { olchov_yoq: false, id: 1, yangi: true, tur: 'kutyapman' as const, muddat: null, izoh: 'ochiq ish' };
+/** 7-qadam: 0057 seed qisqasi (docs/RASMIYLASHTIRISH-FAKTLAR.md). */
+const FQ = (qiymat: unknown, manba = 'manba') => ({ qiymat, birlik: null, manba, olchandi: '2026-09-28', izoh: null });
+const RASMIY_SEED = {
+  'bhm.som': FQ(440_000, 'PF-115'), 'yatt.boj.shaxsan_bhm': FQ(1, 'soliq 50017'), 'yatt.boj.onlayn_bhm': FQ(0.9, 'soliq 50017'),
+  'yatt.royxat.url': FQ('https://new.birdarcha.uz/'), 'yatt.royxat.muddat_daqiqa': FQ(30), 'yatt.xodim_max': FQ(5),
+  'soliq.aylanma_foiz': FQ(1, 'PQ-247'), 'soliq.aylanma_chegara_som': FQ(1_000_000_000), 'soliq.ijtimoiy_oy_bhm': FQ(1),
+  'soliq.tolov_kuni': FQ(15), 'soliq.rejim_tugaydi': FQ('2030-12-31'),
+  'bank.royxat': FQ([{ nom: 'TBC Bank (TBC Biznes)', onlayn: true, ochish_som: 0, oylik_som: 0 }, { nom: 'Hamkorbank', ochish_som: 0, oylik_som: 220_000 }]),
+  'uzum.kabinet.url': FQ('https://seller.uzum.uz/seller/signup'), 'uzum.qollanma.url': FQ('https://seller.uzum.uz/manual/uz/4.start-working/'),
+  'uzum.komissioner.stir': FQ('309376127'), 'uzum.komissioner.nom': FQ('«Uzum market» MCHJ XK'), 'uzum.komissioner.mfo': FQ('00974'),
+  'uzum.komissioner.hisob': FQ('20208000005504983001'), 'uzum.komissioner.muddat_yil': FQ(5), 'uzum.faollashtirish_kun': FQ(2),
+  'uzum.qollab_quvvatlash.url': FQ('https://t.me/umarket_business_bot'), 'uzum.tolov.standart': FQ('2 haftada 1 marta, 0 %'),
+};
+const RASMIY = {
+  olchov_yoq: false, kabinetBor: false, faktlar: rasmiyFaktlari(faktlarniOqi(RASMIY_SEED)), partiyaSotuvSom: 2_850_000,
+  soliq: { ijtimoiySom: 440_000, aylanmaSom: 28_500, jamiSom: 468_500, sotuvSom: 2_850_000, yetishmaydi: [] }, izoh: 'rasmiy',
+};
+const YAKUN = { olchov_yoq: false, yozildi: [], izoh: 'yakun' };
 
 /** Javob beradi va qabul qilinganini tekshiradi. */
 function javob(h: YolHolati, id: string, q: unknown): YolHolati {
@@ -81,9 +99,9 @@ function savolId(h: YolHolati): string {
 }
 
 describe('ssenariy — 12 qadam', () => {
-  it('12 qadam, dastlabki 6 tasi qurilgan', () => {
+  it('12 qadam, dastlabki 7 tasi qurilgan', () => {
     expect(SUHBAT_QADAMLARI.length).toBe(12);
-    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 });
 
@@ -282,7 +300,9 @@ describe('zanjir hech qayerda uzilmaydi', () => {
             : k.harakat === 'tovarlar' ? TOVARLAR
               : k.harakat === 'xitoy' ? XITOY
                 : k.harakat === 'buyurtma' ? BUYURTMA
-                  : k.harakat === 'ochiq_ish' ? OCHIQ : { ok: true });
+                  : k.harakat === 'ochiq_ish' ? OCHIQ
+                    : k.harakat === 'rasmiy' ? RASMIY
+                      : k.harakat === 'rasmiy_yakun' ? YAKUN : { ok: true });
         continue;
       }
       if (k.tur === 'kutish') throw new Error('kutish: bu yoʻlda kutilmagan');
@@ -497,9 +517,8 @@ describe('6-qadam — Buyurtma va kargo (hamkor yoʻq)', () => {
     h = javob(h, 'dokon_tayyorlash', 'boshlaymiz');
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'ochiq_ish', qadam: 6 });
     h = natijaniYoz(h, 'ochiq_ish', OCHIQ);
-    const k7 = keyingi(h);
-    expect(k7.tur).toBe('tezOrada');
-    if (k7.tur === 'tezOrada') { expect(k7.qadam).toBe(7); expect(k7.nom).toBe('Rasmiylashtirish'); }
+    // 6-qadam tugadi — 7-qadam: rasmiylashtirish faktlari kodi.
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'rasmiy', qadam: 7 });
     expect(joriyQadam(h)).toBe(7);
   });
 
@@ -537,5 +556,106 @@ describe('6-qadam — Buyurtma va kargo (hamkor yoʻq)', () => {
     expect(tushuntir('ochiq_ish', OCHIQ)).toMatch(/Muddatni ayta olmayman/);
     expect(tushuntir('ochiq_ish', { ...OCHIQ, muddat: '2026-10-28' })).toMatch(/taxminan 2026-10-28 \(hamkor oʻrtacha muddati, vaʼda emas\)/);
     expect(tushuntir('ochiq_ish', { ...OCHIQ, olchov_yoq: true, sabab: 'baza javob bermadi' })).toMatch(/yozib qoʻya olmadim/);
+  });
+});
+
+/** 6-qadam tugagan holat (ochiq ish yozilgan). */
+function rasmiyBoshi(): YolHolati {
+  let h = natijaniYoz(xitoyTanlandi(), 'buyurtma', BUYURTMA);
+  h = javob(h, 'shahar', 'Toshkent');
+  h = javob(h, 'buyurtma_raqami', null);
+  h = javob(h, 'dokon_tayyorlash', 'boshlaymiz');
+  return natijaniYoz(h, 'ochiq_ish', OCHIQ);
+}
+
+describe('7-qadam — Rasmiylashtirish (hamma raqam faktdan)', () => {
+  it('kod rasmiy → huquqiy_shakl → (yoʻq) yatt_ochish → bank_hisobi → uzum_kabinet → kod rasmiy_yakun → 8 "tez orada"', () => {
+    let h = rasmiyBoshi();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'rasmiy', qadam: 7 });
+    h = natijaniYoz(h, 'rasmiy', RASMIY);
+    expect(savolId(h)).toBe('huquqiy_shakl');
+    const k0 = keyingi(h);
+    if (k0.tur === 'savol') expect(k0.savol.variantlar.map((v) => v.qiymat)).toEqual(['yatt', 'mchj', 'oz_band', 'yoq']);
+    h = javob(h, 'huquqiy_shakl', 'yoq');
+    const k1 = keyingi(h);
+    if (k1.tur !== 'savol') throw new Error(k1.tur);
+    expect(k1.savol.id).toBe('yatt_ochish');
+    expect(k1.savol.qadam).toBe(7);
+    expect(k1.savol.otkazishMumkin).toBe(true);
+    // Raqamlar faktdan: 0,9 × 440 000 = 396 000; 1 × 440 000; 30 daqiqa.
+    expect(k1.savol.matn).toMatch(/onlayn https:\/\/new\.birdarcha\.uz\/ \(davlat boji 396000 soʻm\)/);
+    expect(k1.savol.matn).toMatch(/shaxsan \(440000 soʻm\), taxminan 30 daqiqa/);
+    expect(k1.savol.variantlar.map((v) => v.qiymat)).toEqual(['ochdim', 'keyin', 'boshqacha']);
+    h = javob(h, 'yatt_ochish', 'ochdim');
+    const k2 = keyingi(h);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.id).toBe('bank_hisobi');
+    expect(k2.savol.matn).toMatch(/2 ta bank taqqoslandi, 1 tasida ochish ham, oylik xizmat ham bepul/);
+    expect(k2.savol.matn).toMatch(/shaxsiy karta boʻlmaydi/);
+    h = javob(h, 'bank_hisobi', 'bor');
+    const k3 = keyingi(h);
+    if (k3.tur !== 'savol') throw new Error(k3.tur);
+    expect(k3.savol.id).toBe('uzum_kabinet');
+    expect(k3.savol.matn).toMatch(/https:\/\/seller\.uzum\.uz\/seller\/signup/);
+    expect(k3.savol.matn).toMatch(/taxminan 2 kun/);
+    h = javob(h, 'uzum_kabinet', 'faol');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'rasmiy_yakun', qadam: 7 });
+    h = natijaniYoz(h, 'rasmiy_yakun', YAKUN);
+    const k8 = keyingi(h);
+    expect(k8.tur).toBe('tezOrada');
+    if (k8.tur === 'tezOrada') { expect(k8.qadam).toBe(8); expect(k8.nom).toBe('Qabul'); }
+    expect(joriyQadam(h)).toBe(8);
+  });
+
+  it('YATT bor — yatt_ochish soʻralmaydi, toʻgʻri bank savoli', () => {
+    let h = natijaniYoz(rasmiyBoshi(), 'rasmiy', RASMIY);
+    h = javob(h, 'huquqiy_shakl', 'yatt');
+    expect(savolId(h)).toBe('bank_hisobi');
+  });
+
+  it('1-qadamda Uzum kabineti bor — birorta rasmiy savol yoʻq, toʻgʻri yakun kodi', () => {
+    const asos = rasmiyBoshi();
+    // 'kabinet_bor' — 1-qadamda qoʻshimcha savol (dokon_nomi) uygʻotmaydi.
+    const h0: YolHolati = { ...asos, javoblar: { ...asos.javoblar, uzum_dokoni: 'kabinet_bor' } };
+    const h = natijaniYoz(h0, 'rasmiy', { ...RASMIY, kabinetBor: true });
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'rasmiy_yakun', qadam: 7 });
+    expect(keyingi(natijaniYoz(h, 'rasmiy_yakun', YAKUN)).tur).toBe('tezOrada');
+  });
+
+  it('fakt yoʻq — savol matni "faktda yoʻq" deydi, taxmin yoki nol yoʻq', () => {
+    let h = natijaniYoz(rasmiyBoshi(), 'rasmiy', { ...RASMIY, faktlar: rasmiyFaktlari({}) });
+    h = javob(h, 'huquqiy_shakl', 'yoq');
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/onlayn \(manzil faktda yoʻq\) \(davlat boji faktda yoʻq\)/);
+    expect(k.savol.matn).toMatch(/muddati faktda yoʻq/);
+    expect(k.savol.matn).not.toMatch(/\b0 soʻm/);
+    h = javob(h, 'yatt_ochish', 'boshqacha');
+    const kb = keyingi(h);
+    if (kb.tur !== 'savol') throw new Error(kb.tur);
+    expect(kb.savol.matn).toMatch(/Bank roʻyxati faktda yoʻq/);
+  });
+
+  it('tushuntir(rasmiy): raqamlar va manbalar natijadan; kabinet bor — qisqa; olchov_yoq — sabab', () => {
+    const m = tushuntir('rasmiy', RASMIY);
+    expect(m).toMatch(/YATT \(onlayn 396000 soʻm, shaxsan 440000 soʻm\), biznes hisob raqami \(2 ta bank taqqoslandi\) va Uzum kabineti \(faollashtirish 2 kun\)/);
+    expect(m).toMatch(/ijtimoiy 440000 soʻm har oy \(sotuv boʻlmasa ham\), aylanmadan 1 % — partiyangiz \(2850000 soʻm\) sotilsa ≈ 28500 soʻm/);
+    expect(m).toMatch(/Manba: PQ-247; soliq 50017 \(oʻlchandi 2026-09-28\)/);
+    expect(m).toMatch(/maslahat emas/);
+    expect(tushuntir('rasmiy', { ...RASMIY, kabinetBor: true })).toMatch(/^Rasmiylashtirish sizda bor — 1-qadamda Uzum kabineti bor dedingiz/);
+    expect(tushuntir('rasmiy', { ...RASMIY, olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' })).toMatch(/bera olmadim: fakt roʻyxati oʻqilmadi/);
+    const kam = tushuntir('rasmiy', { ...RASMIY, faktlar: rasmiyFaktlari({}), soliq: { ijtimoiySom: null, aylanmaSom: null, jamiSom: null, sotuvSom: null, yetishmaydi: ['ijtimoiy soliq'] } });
+    expect(kam).toMatch(/Faktda yoʻq: BHM, YATT davlat boji/);
+    expect(kam).not.toMatch(/\b0 soʻm/);
+  });
+
+  it('tushuntir(rasmiy_yakun): yozilganlar roʻyxati; boʻsh — "hammasi tayyor"; xato — sabab', () => {
+    expect(tushuntir('rasmiy_yakun', YAKUN)).toBe('Rasmiylashtirish boʻyicha ochiq ish yoʻq — hammasi tayyor.');
+    const y = { ...YAKUN, yozildi: [
+      { tur: 'tekshirish', sabab: 'rasmiy: YATT roʻyxat sayti boshqacha', muddat: null, id: 3, yangi: true },
+      { tur: 'kutyapman', sabab: 'Uzum kabinet faollashuvi', muddat: '2026-09-30', id: 4, yangi: true },
+    ] };
+    expect(tushuntir('rasmiy_yakun', y)).toMatch(/Ochiq ishlar yozildi \(2\): rasmiy: YATT roʻyxat sayti boshqacha; Uzum kabinet faollashuvi \(2026-09-30 gacha\)\. "Sayt boshqacha"/);
+    expect(tushuntir('rasmiy_yakun', { ...y, olchov_yoq: true, sabab: 'sessiya topilmadi' })).toMatch(/xato: sessiya topilmadi; roʻyxat:/);
   });
 });

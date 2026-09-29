@@ -434,7 +434,11 @@ function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRej
                 ? <BuyurtmaVaraqasi n={n as unknown as BuyurtmaQ} tr={tr} />
                 : x.savolId === 'ochiq_ish'
                   ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
-                  : null}
+                  : x.savolId === 'rasmiy'
+                    ? <RasmiyKartasi n={n as unknown as RasmiyQ} tr={tr} />
+                    : x.savolId === 'rasmiy_yakun'
+                      ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
+                      : null}
     </div>
   );
 }
@@ -760,6 +764,100 @@ function BuyurtmaVaraqasi({ n, tr }: { n: BuyurtmaQ; tr: Tr }) {
         </div>
       )}
       {n.izoh && <p className={u.kichikIzoh}>{n.izoh}{n.kurs?.cny ? ` ${tr('Kurs', 'Курс')}: 1 ¥ = ${son(n.kurs.cny.somPerYuan)} (${n.kurs.cny.sana}).` : ''}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 7-qadam: rasmiylashtirish */
+
+interface RasmiyManbaQ { manba: string | null; olchandi: string | null }
+interface RasmiyQ {
+  olchov_yoq?: boolean; sabab?: string; kabinetBor?: boolean; partiyaSotuvSom?: number | null;
+  faktlar?: {
+    bhmSom: number | null;
+    yatt: RasmiyManbaQ & { bojShaxsanSom: number | null; bojOnlaynSom: number | null; royxatUrl: string | null; muddatDaqiqa: number | null; xodimMax: number | null };
+    soliq: RasmiyManbaQ & { aylanmaFoiz: number | null; aylanmaChegaraSom: number | null; ijtimoiyOySom: number | null; tolovKuni: number | null; rejimTugaydi: string | null };
+    banklar: Array<RasmiyManbaQ & { nom: string; onlayn: boolean | null; ochishSom: number | null; oylikSom: number | null; izoh: string | null }>;
+    uzum: RasmiyManbaQ & { kabinetUrl: string | null; qollanmaUrl: string | null; komissioner: { stir: string | null; nom: string | null; mfo: string | null; hisob: string | null; muddatYil: number | null }; faollashtirishKun: number | null; qollabQuvvatlashUrl: string | null; tolovStandart: string | null };
+    yetishmaydi: string[];
+  };
+  soliq?: { ijtimoiySom: number | null; aylanmaSom: number | null; jamiSom: number | null; sotuvSom: number | null };
+  izoh?: string;
+}
+
+function Manba({ manba, olchandi, tr }: { manba: string | null; olchandi: string | null; tr: Tr }) {
+  if (!manba && !olchandi) return null;
+  return <p className={u.kichikIzoh}>{tr('Manba', 'Источник')}: {manba ?? '—'}{olchandi ? ` · ${olchandi}` : ''}</p>;
+}
+
+/** Faktlar kartasi: har raqam yonida manba va sana; fakt yoʻq — "faktda yoʻq", nol emas. */
+function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
+  const [nusxalandi, setNusxalandi] = useState(false);
+  const f = n.faktlar;
+  if (!f) return <p className={u.kichikIzoh}>{n.sabab ?? tr('faktlar yoʻq', 'нет данных')}</p>;
+  const s = n.soliq;
+  const som = (x: number | null | undefined) => (x === null || x === undefined ? tr('faktda yoʻq', 'нет в фактах') : `${raqam(x)} ${tr('soʻm', 'сум')}`);
+  const bepulYoki = (x: number | null) => (x === null ? '—' : x === 0 ? tr('bepul', 'бесплатно') : som(x));
+  const k = f.uzum.komissioner;
+  const rekvizit = [`STIR: ${k.stir ?? '—'}`, `Nom: ${k.nom ?? '—'}`, `MFO: ${k.mfo ?? '—'}`, `Hisob: ${k.hisob ?? '—'}`, `Muddat: ${k.muddatYil !== null ? `${k.muddatYil} yil` : '—'}`, 'ONKM + Marketplace'].join('\n');
+  const nusxala = () => {
+    try { void navigator.clipboard.writeText(rekvizit); setNusxalandi(true); setTimeout(() => setNusxalandi(false), 2000); } catch { /* clipboard yoʻq */ }
+  };
+  return (
+    <div className={u.kartalar}>
+      {f.yetishmaydi.length > 0 && <p className={u.ogohlik}>{tr('Faktda yoʻq:', 'Нет в фактах:')} {f.yetishmaydi.join(', ')}</p>}
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Soliq 2026', 'Налоги 2026')}</div></div></div>
+        <div className={u.statlar}>
+          <Stat nom={tr('Ijtimoiy soliq / oy', 'Соцналог / мес')} q={som(s?.ijtimoiySom)} izoh={f.soliq.tolovKuni !== null ? tr(`${f.soliq.tolovKuni}-sanagacha, sotuv boʻlmasa ham`, `до ${f.soliq.tolovKuni} числа, даже без продаж`) : undefined} />
+          <Stat nom={tr('Aylanma soligʻi', 'Налог с оборота')} q={f.soliq.aylanmaFoiz !== null ? `${f.soliq.aylanmaFoiz} %` : tr('faktda yoʻq', 'нет в фактах')} izoh={f.soliq.aylanmaChegaraSom !== null ? tr(`yiliga ${raqam(f.soliq.aylanmaChegaraSom)} soʻmgacha`, `до ${raqam(f.soliq.aylanmaChegaraSom)} сум в год`) : undefined} />
+          <Stat nom={tr('Partiya sotilsa', 'При продаже партии')} q={s?.aylanmaSom !== null && s?.aylanmaSom !== undefined ? som(s.aylanmaSom) : '—'} izoh={n.partiyaSotuvSom !== null && n.partiyaSotuvSom !== undefined ? `${raqam(n.partiyaSotuvSom)} ${tr('soʻm sotuvdan', 'сум продаж')}` : undefined} />
+          <Stat nom={tr('BHM', 'БРВ')} q={som(f.bhmSom)} izoh={f.soliq.rejimTugaydi ? tr(`rejim ${f.soliq.rejimTugaydi} gacha`, `режим до ${f.soliq.rejimTugaydi}`) : undefined} />
+        </div>
+        <Manba manba={f.soliq.manba} olchandi={f.soliq.olchandi} tr={tr} />
+      </div>
+      {!n.kabinetBor && (
+        <>
+          <div className={u.karta}>
+            <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('1. YATT ochish', '1. Открыть ИП')}</div></div></div>
+            <div className={u.statlar}>
+              <Stat nom={tr('Onlayn boj', 'Пошлина онлайн')} q={som(f.yatt.bojOnlaynSom)} />
+              <Stat nom={tr('Shaxsan (DXM)', 'Лично (ЦГУ)')} q={som(f.yatt.bojShaxsanSom)} />
+              <Stat nom={tr('Vaqt', 'Время')} q={f.yatt.muddatDaqiqa !== null ? `~${f.yatt.muddatDaqiqa} ${tr('daqiqa', 'мин')}` : '—'} />
+              <Stat nom={tr('Xodim', 'Сотрудники')} q={f.yatt.xodimMax !== null ? `${f.yatt.xodimMax} ${tr('nafargacha', 'макс')}` : '—'} />
+            </div>
+            {f.yatt.royxatUrl && <p className={u.kichikIzoh}><a href={f.yatt.royxatUrl} target="_blank" rel="noopener noreferrer">{f.yatt.royxatUrl}</a> · {tr('pasport/ID + JShShIR', 'паспорт/ID + ПИНФЛ')}</p>}
+            <Manba manba={f.yatt.manba} olchandi={f.yatt.olchandi} tr={tr} />
+          </div>
+          <div className={u.karta}>
+            <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('2. Biznes hisob raqami', '2. Расчётный счёт')}</div></div></div>
+            {f.banklar.length === 0 ? <p className={u.kichikIzoh}>{tr('Bank roʻyxati faktda yoʻq.', 'Список банков не заполнен.')}</p> : f.banklar.map((b) => (
+              <div key={b.nom} className={u.statlar}>
+                <Stat nom={b.nom} q={b.onlayn === true ? tr('onlayn', 'онлайн') : b.onlayn === false ? tr('ofisda', 'в офисе') : '—'} izoh={b.izoh ?? undefined} />
+                <Stat nom={tr('Ochish', 'Открытие')} q={bepulYoki(b.ochishSom)} />
+                <Stat nom={tr('Oylik', 'В месяц')} q={bepulYoki(b.oylikSom)} izoh={b.olchandi ?? undefined} />
+              </div>
+            ))}
+            <p className={u.kichikIzoh}>{tr('Faqat oʻz nomingizdagi hisob — Uzum boshqa odamning kartasiga toʻlamaydi.', 'Только счёт на ваше имя — Uzum не платит на чужую карту.')}</p>
+          </div>
+          <div className={u.karta}>
+            <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('3. Uzum kabineti', '3. Кабинет Uzum')}</div></div></div>
+            <ol className={u.kichikIzoh}>
+              <li>{f.uzum.kabinetUrl ? <a href={f.uzum.kabinetUrl} target="_blank" rel="noopener noreferrer">{f.uzum.kabinetUrl}</a> : tr('manzil faktda yoʻq', 'нет адреса')} — {tr('telefon + email, oferta', 'телефон + email, оферта')}</li>
+              <li>{tr('Hujjatlar: YATT guvohnomasi + pasport', 'Документы: свидетельство ИП + паспорт')}</li>
+              <li>{tr('my3.soliq.uz → komissionerlar roʻyxati → Uzum:', 'my3.soliq.uz → список комиссионеров → Uzum:')}<pre className={u.mono}>{rekvizit}</pre></li>
+              <li>{f.uzum.qollabQuvvatlashUrl ? <a href={f.uzum.qollabQuvvatlashUrl} target="_blank" rel="noopener noreferrer">{tr('biznes-qoʻllab-quvvatlash', 'бизнес-поддержка')}</a> : tr('qoʻllab-quvvatlash', 'поддержка')} — {tr('3 ta skrinshot', '3 скриншота')}{f.uzum.faollashtirishKun !== null ? tr(`; tekshiruv ~${f.uzum.faollashtirishKun} kun`, `; проверка ~${f.uzum.faollashtirishKun} дн`) : ''}</li>
+            </ol>
+            <div className={u.chiplar}>
+              <button type="button" className={`${u.chip} ${u.chipYengil}`} onClick={nusxala}>{nusxalandi ? tr('Nusxalandi ✓', 'Скопировано ✓') : tr('Rekvizitlarni nusxalash', 'Скопировать реквизиты')}</button>
+              {f.uzum.qollanmaUrl && <a className={`${u.chip} ${u.chipYengil}`} href={f.uzum.qollanmaUrl} target="_blank" rel="noopener noreferrer">{tr('Rasmiy qoʻllanma', 'Официальная инструкция')}</a>}
+            </div>
+            {f.uzum.tolovStandart && <p className={u.kichikIzoh}>{tr('Toʻlov jadvali (standart):', 'График выплат (стандарт):')} {f.uzum.tolovStandart}</p>}
+            <Manba manba={f.uzum.manba} olchandi={f.uzum.olchandi} tr={tr} />
+          </div>
+        </>
+      )}
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
     </div>
   );
 }

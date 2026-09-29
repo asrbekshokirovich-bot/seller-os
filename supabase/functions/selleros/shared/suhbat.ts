@@ -50,6 +50,10 @@ export interface SuhbatBogliqliklari {
     buyurtma: (holat: YolHolati) => Promise<unknown>;
     /** 6-qadam: "yuk kelishini kutyapman" ochiq ishi. */
     ochiqIsh: (holat: YolHolati) => Promise<unknown>;
+    /** 7-qadam: rasmiylashtirish faktlari (BHM, boj, soliq, banklar, Uzum). */
+    rasmiy: (holat: YolHolati) => Promise<unknown>;
+    /** 7-qadam: "keyin / kutyapman / sayt boshqacha" javoblari → ochiq ishlar. */
+    rasmiyYakun: (holat: YolHolati) => Promise<unknown>;
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
@@ -212,6 +216,8 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
     if (harakat === 'xitoy') return await d.kod.xitoy(h);
     if (harakat === 'buyurtma') return await d.kod.buyurtma(h);
     if (harakat === 'ochiq_ish') return await d.kod.ochiqIsh(h);
+    if (harakat === 'rasmiy') return await d.kod.rasmiy(h);
+    if (harakat === 'rasmiy_yakun') return await d.kod.rasmiyYakun(h);
     return await d.kod.tannarx(h);
   } catch (e) {
     // Yiqilish jim o'tmaydi: natija sifatida sabab qaytadi va ssenariy

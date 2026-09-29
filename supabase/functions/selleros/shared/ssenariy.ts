@@ -26,10 +26,12 @@
  * ALOHIDA tekshiriladi. Byudjetda nol "pulim yo'q" degan javob,
  * `null` esa "aytmadi".
  *
- * 12 QADAM. Bugun 1–6 qurilgan (5 — Xitoydan topish, 2026-09-25;
+ * 12 QADAM. Bugun 1–7 qurilgan (5 — Xitoydan topish, 2026-09-25;
  * 6 — Buyurtma va kargo, 2026-09-28: kargo hamkori YOʻQ, stavkalar
- * `fakt` dan, boʻlmasa rostini aytadi).
- * 7–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
+ * `fakt` dan; 7 — Rasmiylashtirish, 2026-09-28: YATT/soliq/bank/Uzum
+ * raqamlari `fakt` dan (0057), manba va sana bilan, davlat sayti
+ * oʻzgarsa "sayt boshqacha" tugmasi tekshirish ishi yozadi).
+ * 8–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
  * ROSTINI aytadi — bu ham zanjirning bir bo'g'ini: obunachi yo'l
  * qayerda tugaganini va nima kelishini biladi.
  */
@@ -39,6 +41,7 @@ import type { XitoyTovar } from './xitoy.ts';
 import type { KargoStavkasi } from './fakt.ts';
 import type { Kurs } from './kurs.ts';
 import { SHAHARLAR } from './savollar.ts';
+import type { OylikSoliq, RasmiyFaktlar } from './rasmiy.ts';
 
 // ==================================================================== turlar
 
@@ -66,7 +69,7 @@ export interface SuhbatSavoli {
 }
 
 /** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi. */
-export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish';
+export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun';
 
 export type Keyingi =
   | { tur: 'savol'; savol: SuhbatSavoli }
@@ -96,7 +99,7 @@ export const SUHBAT_QADAMLARI = [
   { n: 4, nom: 'Tannarx', qurilgan: true },
   { n: 5, nom: 'Xitoydan topish', qurilgan: true },
   { n: 6, nom: 'Buyurtma va kargo', qurilgan: true },
-  { n: 7, nom: 'Rasmiylashtirish', qurilgan: false },
+  { n: 7, nom: 'Rasmiylashtirish', qurilgan: true },
   { n: 8, nom: 'Qabul', qurilgan: false },
   { n: 9, nom: 'Studiya', qurilgan: false },
   { n: 10, nom: 'Yuklash', qurilgan: false },
@@ -283,6 +286,86 @@ export interface OchiqIshNatijasi {
 function buyurtmaNatija(h: YolHolati): BuyurtmaNatijasi | null {
   const n = h.natijalar.buyurtma as BuyurtmaNatijasi | undefined;
   return n ?? null;
+}
+
+// ---- 7-qadam natijalari: rasmiylashtirish faktlari va ochiq ishlar. `suhbat-kod.ts` yasaydi.
+
+export interface RasmiyNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  faktlar: RasmiyFaktlar;
+  /** 1-qadamda "sotyapman" / "kabinet_bor" — YATT, bank, kabinet allaqachon bor. */
+  kabinetBor: boolean;
+  /** 4-qadam partiyasi: sotuv narxi × miqdor yigʻindisi; biror qatorda yoʻq boʻlsa null. */
+  partiyaSotuvSom: number | null;
+  soliq: OylikSoliq;
+  izoh: string;
+}
+
+export interface RasmiyYakunNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  yozildi: Array<{ tur: 'kutyapman' | 'tekshirish'; sabab: string; muddat: string | null; id: number | null; yangi: boolean }>;
+  izoh: string;
+}
+
+function rasmiyNatija(h: YolHolati): RasmiyNatijasi | null {
+  const n = h.natijalar.rasmiy as RasmiyNatijasi | undefined;
+  return n ?? null;
+}
+
+/** 1-qadam javobi: Uzum kabineti allaqachon bor — u bu yoʻlni oʻtgan, savol berilmaydi. */
+export function kabinetBormi(h: YolHolati): boolean {
+  const q = h.javoblar['uzum_dokoni'];
+  return q === 'sotyapman' || q === 'kabinet_bor';
+}
+
+export const HUQUQIY_SHAKL: readonly SuhbatVarianti[] = [
+  { qiymat: 'yatt', nom: 'YATT bor' },
+  { qiymat: 'mchj', nom: 'MChJ (firma) bor' },
+  { qiymat: 'oz_band', nom: 'Oʻzini oʻzi band qilganman' },
+  { qiymat: 'yoq', nom: 'Hech biri yoʻq' },
+];
+export const YATT_OCHISH: readonly SuhbatVarianti[] = [
+  { qiymat: 'ochdim', nom: 'Ochdim, guvohnoma qoʻlimda' },
+  { qiymat: 'keyin', nom: 'Keyinroq ochaman' },
+  { qiymat: 'boshqacha', nom: 'Sayt boshqacha / bu tugma yoʻq' },
+];
+export const BANK_HISOBI: readonly SuhbatVarianti[] = [
+  { qiymat: 'bor', nom: 'Biznes hisob raqamim bor' },
+  { qiymat: 'ochdim', nom: 'Hozir ochdim' },
+  { qiymat: 'keyin', nom: 'Keyinroq ochaman' },
+  { qiymat: 'boshqacha', nom: 'Bank shartlari boshqacha' },
+];
+export const UZUM_KABINET: readonly SuhbatVarianti[] = [
+  { qiymat: 'faol', nom: 'Kabinet faollashtirilgan' },
+  { qiymat: 'kutyapman', nom: 'Ariza yubordim, kutyapman' },
+  { qiymat: 'keyin', nom: 'Keyinroq' },
+  { qiymat: 'boshqacha', nom: 'Sayt boshqacha / bu tugma yoʻq' },
+];
+
+/** Soʻm matni — fakt boʻlmasa shunday deyiladi, nol yozilmaydi. */
+function somMatni(x: number | null): string {
+  return x === null ? 'faktda yoʻq' : `${x} soʻm`;
+}
+
+function yattMatni(n: RasmiyNatijasi): string {
+  const y = n.faktlar.yatt;
+  return `Rasmiy maqom kerak. Eng oddiysi — YATT: onlayn ${y.royxatUrl ?? '(manzil faktda yoʻq)'} (davlat boji ${somMatni(y.bojOnlaynSom)}) yoki Davlat xizmatlari markazida shaxsan (${somMatni(y.bojShaxsanSom)}), ${y.muddatDaqiqa !== null ? `taxminan ${y.muddatDaqiqa} daqiqa` : 'muddati faktda yoʻq'}. Kerak: pasport yoki ID-karta va JShShIR. Ochdingizmi?`;
+}
+
+function bankMatni(n: RasmiyNatijasi): string {
+  const b = n.faktlar.banklar;
+  const bepul = b.filter((x) => x.ochishSom === 0 && x.oylikSom === 0).length;
+  const jadval = b.length
+    ? `${b.length} ta bank taqqoslandi${bepul ? `, ${bepul} tasida ochish ham, oylik xizmat ham bepul` : ''} — jadval yuqorida.`
+    : 'Bank roʻyxati faktda yoʻq.';
+  return `Uzum pulni faqat oʻz nomingizdagi biznes hisob raqamiga oʻtkazadi — shaxsiy karta boʻlmaydi. ${jadval} Hisob raqamingiz bormi?`;
+}
+
+function kabinetMatni(n: RasmiyNatijasi): string {
+  const u = n.faktlar.uzum;
+  return `Uzum kabineti: ${u.kabinetUrl ?? '(manzil faktda yoʻq)'} da roʻyxat, hujjatlar (guvohnoma + pasport), my3.soliq.uz da Uzumni komissioner qilib qoʻshish (rekvizitlar yuqoridagi kartada), keyin biznes-qoʻllab-quvvatlashga skrinshot — tekshiruv ${u.faollashtirishKun !== null ? `taxminan ${u.faollashtirishKun} kun` : 'muddati faktda yoʻq'}. Kabinet holati qanday?`;
 }
 
 /** Yuk keladigan shahar tugmalari — profil roʻyxati bilan bir xil (`savollar.ts`); "Boshqa" oʻrniga erkin matn. */
@@ -535,11 +618,38 @@ export function keyingi(h: YolHolati): Keyingi {
   }
   if (h.natijalar.ochiq_ish === undefined) return { tur: 'kod', harakat: 'ochiq_ish', qadam: 6 };
 
-  // ---------------------------------------------------------- 7+. Hali qurilmagan
-  const q7 = SUHBAT_QADAMLARI[6];
+  // ---------------------------------------------------------- 7. Rasmiylashtirish
+  //
+  // Ssenariy: YATT → bank hisobi → Uzum kabineti. Hamma raqam `fakt` dan
+  // (0057, docs/RASMIYLASHTIRISH-FAKTLAR.md). Davlat saytlari oʻzgaradi —
+  // har savolda "sayt boshqacha / bu tugma yoʻq" varianti bor, u
+  // `rasmiy_yakun` da tekshirish ishi boʻlib yoziladi (BACKLOG qarori,
+  // 2026-09-25). 1-qadamda kabinet bor deganga savol berilmaydi.
+  const rn = rasmiyNatija(h);
+  if (rn === null) return { tur: 'kod', harakat: 'rasmiy', qadam: 7 };
+  if (!kabinetBormi(h)) {
+    if (!berilgan(h, 'huquqiy_shakl')) {
+      return { tur: 'savol', savol: savol('huquqiy_shakl', 7,
+        'Rasmiy maqomingiz bormi? Uzum Market YATT, MChJ yoki oʻzini oʻzi band qilgan shaxsni qabul qiladi.',
+        'tanlov', { variantlar: HUQUQIY_SHAKL }) };
+    }
+    if (h.javoblar['huquqiy_shakl'] === 'yoq' && !berilgan(h, 'yatt_ochish')) {
+      return { tur: 'savol', savol: savol('yatt_ochish', 7, yattMatni(rn), 'tanlov', { variantlar: YATT_OCHISH, otkazishMumkin: true }) };
+    }
+    if (!berilgan(h, 'bank_hisobi')) {
+      return { tur: 'savol', savol: savol('bank_hisobi', 7, bankMatni(rn), 'tanlov', { variantlar: BANK_HISOBI, otkazishMumkin: true }) };
+    }
+    if (!berilgan(h, 'uzum_kabinet')) {
+      return { tur: 'savol', savol: savol('uzum_kabinet', 7, kabinetMatni(rn), 'tanlov', { variantlar: UZUM_KABINET, otkazishMumkin: true }) };
+    }
+  }
+  if (h.natijalar.rasmiy_yakun === undefined) return { tur: 'kod', harakat: 'rasmiy_yakun', qadam: 7 };
+
+  // ---------------------------------------------------------- 8+. Hali qurilmagan
+  const q8 = SUHBAT_QADAMLARI[7];
   return {
-    tur: 'tezOrada', qadam: q7.n, nom: q7.nom,
-    matn: `Keyingi qadam — ${q7.nom}: YATT, bank hisobi, Uzum kabineti. Bu qism hali qurilmagan (davlat saytlari qadamlari nazoratchi faktlarini kutmoqda). Tayyor boʻlganda shu chatda oʻzim aytaman. Buyurtma varaqangiz va tanlovlaringiz saqlanib turadi.`,
+    tur: 'tezOrada', qadam: q8.n, nom: q8.nom,
+    matn: `Keyingi qadam — ${q8.nom}: yuk kelganda tekshirish va Uzum omboriga topshirish (qadoq, yorliq, taymslot). Bu qism hali qurilmagan. Tayyor boʻlganda shu chatda oʻzim aytaman. Rasmiylashtirish javoblaringiz va ochiq ishlar saqlanib turadi.`,
   };
 }
 
@@ -708,6 +818,33 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     return `${n.royxat.length} ta tovar oʻlchangan va 8 ta tuzoq-filtrdan oʻtdi.`
       + (chiq ? ` ${chiq} tasi tuzoq sababli roʻyxatdan chiqarildi — sababi har birida yozilgan.` : '')
       + ' Sotuv raqamlari zaxira kamayishidan chiqarilgan taxmin, Uzum bermaydi.';
+  }
+  if (harakat === 'rasmiy') {
+    const n = natija as RasmiyNatijasi;
+    if (n.olchov_yoq) {
+      return `Rasmiylashtirish faktlarini bera olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Bu "kerak emas" degani EMAS — raqamlar yoʻq.`;
+    }
+    const f = n.faktlar;
+    const s = n.soliq;
+    const soliq = `Majburiy soliq (2026): ijtimoiy ${somMatni(s.ijtimoiySom)} har oy (sotuv boʻlmasa ham)`
+      + (f.soliq.aylanmaFoiz !== null ? `, aylanmadan ${f.soliq.aylanmaFoiz} %` : ', aylanma foizi faktda yoʻq')
+      + (s.aylanmaSom !== null && n.partiyaSotuvSom !== null ? ` — partiyangiz (${n.partiyaSotuvSom} soʻm) sotilsa ≈ ${s.aylanmaSom} soʻm` : '')
+      + '.';
+    const manbalar = [...new Set([f.soliq.manba, f.yatt.manba].filter((x): x is string => x !== null))];
+    const manba = manbalar.length ? ` Manba: ${manbalar.join('; ')}${f.soliq.olchandi ? ` (oʻlchandi ${f.soliq.olchandi})` : ''}.` : '';
+    const yetishmaydi = f.yetishmaydi.length ? ` Faktda yoʻq: ${f.yetishmaydi.join(', ')} — nazoratchi kiritadi.` : '';
+    if (n.kabinetBor) {
+      return `Rasmiylashtirish sizda bor — 1-qadamda Uzum kabineti bor dedingiz. ${soliq}${manba}${yetishmaydi}`;
+    }
+    return `Rasmiylashtirish uchun uchta narsa: YATT (onlayn ${somMatni(f.yatt.bojOnlaynSom)}, shaxsan ${somMatni(f.yatt.bojShaxsanSom)}), biznes hisob raqami (${f.banklar.length} ta bank taqqoslandi) va Uzum kabineti (faollashtirish ${f.uzum.faollashtirishKun !== null ? `${f.uzum.faollashtirishKun} kun` : 'muddati faktda yoʻq'}). ${soliq}${manba}${yetishmaydi} Bu soliq yoki yuridik maslahat emas — raqamlar manbadan.`;
+  }
+  if (harakat === 'rasmiy_yakun') {
+    const n = natija as RasmiyYakunNatijasi;
+    const y = n.yozildi ?? [];
+    const royxat = y.map((x) => `${x.sabab}${x.muddat ? ` (${x.muddat} gacha)` : ''}`).join('; ');
+    if (n.olchov_yoq) return `Ochiq ishlarni yozishda xato: ${n.sabab ?? 'baza javob bermadi'}${y.length ? `; roʻyxat: ${royxat}` : ''}.`;
+    if (y.length === 0) return 'Rasmiylashtirish boʻyicha ochiq ish yoʻq — hammasi tayyor.';
+    return `Ochiq ishlar yozildi (${y.length}): ${royxat}. "Sayt boshqacha" belgilaganingiz nazoratchiga tekshirish uchun ketdi.`;
   }
   if (harakat === 'buyurtma') {
     const n = natija as BuyurtmaNatijasi;

@@ -35,7 +35,11 @@ import {
   kargoStavkasi,
   KARGO_KALITLARI,
   KESH_ESKI_SOAT,
+  kabinetBormi,
   kursniOl,
+  oylikSoliq,
+  RASMIY_KALITLARI,
+  rasmiyFaktlari,
   qadamOchiq,
   rasmYuklovchi,
   reja,
@@ -60,6 +64,8 @@ import {
   type KargoYol,
   type Kurs,
   type OchiqIshNatijasi,
+  type RasmiyNatijasi,
+  type RasmiyYakunNatijasi,
   type XitoyLimitJavobi,
   type XitoyNatijasi,
   type XitoyQatori,
@@ -461,6 +467,81 @@ export function suhbatKodHarakatlari(
         return { olchov_yoq: true, sabab: r?.xato ?? 'baza javob bermadi', id: null, yangi: false, tur: 'kutyapman', muddat, izoh: IZOH };
       }
       return { olchov_yoq: false, id: r.id, yangi: r.yangi === true, tur: 'kutyapman', muddat, izoh: IZOH };
+    },
+
+    /**
+     * 7-qadam — RASMIYLASHTIRISH faktlari (0057). Hech raqam kodda emas:
+     * BHM, boj, soliq foizi, bank tariflari, Uzum rekvizitlari — `fakt` dan,
+     * manba va sanasi bilan. Partiya sotuvi — 4-qadam qatorlaridan.
+     */
+    async rasmiy(holat: YolHolati): Promise<RasmiyNatijasi> {
+      const IZOH = 'Rasmiylashtirish: raqamlar fakt jadvalidan, har biri manba va sana bilan (docs/RASMIYLASHTIRISH-FAKTLAR.md). Soliq bazasi — xaridor toʻlagan toʻliq narx, Uzum komissiyasi chegirilmaydi. Bu soliq yoki yuridik maslahat emas.';
+      const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...RASMIY_KALITLARI] });
+      const faktlar = rasmiyFaktlari(faktlarniOqi(xom));
+      const kabinetBor = kabinetBormi(holat);
+      const tn = holat.natijalar.tannarx as { qatorlar?: Array<{ sotuvNarxiSom?: number | null; miqdor?: number | null }> } | undefined;
+      let partiya: number | null = tn?.qatorlar?.length ? 0 : null;
+      for (const q of tn?.qatorlar ?? []) {
+        if (partiya === null) break;
+        if (typeof q.sotuvNarxiSom !== 'number' || typeof q.miqdor !== 'number') { partiya = null; break; }
+        partiya += q.sotuvNarxiSom * q.miqdor;
+      }
+      const soliq = oylikSoliq(faktlar.soliq, partiya);
+      const asos = { faktlar, kabinetBor, partiyaSotuvSom: partiya, soliq, izoh: IZOH };
+      if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...asos };
+      if (faktlar.bhmSom === null && faktlar.yatt.royxatUrl === null && faktlar.uzum.kabinetUrl === null) {
+        return { olchov_yoq: true, sabab: 'rasmiylashtirish faktlari kiritilmagan (0057 qoʻllanmagan)', ...asos };
+      }
+      return { olchov_yoq: false, ...asos };
+    },
+
+    /**
+     * 7-qadam — javoblar ochiq ish boʻladi: "keyin"/oʻtkazilgan — kutyapman
+     * (muddatsiz), Uzum "kutyapman" — fakt muddati bilan, "sayt boshqacha" —
+     * tekshirish (fakt eskirgan boʻlishi mumkin, nazoratchi koʻradi).
+     */
+    async rasmiyYakun(holat: YolHolati): Promise<RasmiyYakunNatijasi> {
+      const IZOH = 'Ochiq ishlar: "keyin" — kutyapman (muddatsiz); Uzum "kutyapman" — fakt muddati bilan; "sayt boshqacha" — nazoratchi tekshiradi. Eslatma mexanizmi hali yoʻq (BACKLOG).';
+      if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], izoh: IZOH };
+      const rn = holat.natijalar.rasmiy as { faktlar?: { uzum?: { faollashtirishKun?: number | null } } } | undefined;
+      const kun = rn?.faktlar?.uzum?.faollashtirishKun ?? null;
+      type Ish = { savolId: string; tur: 'kutyapman' | 'tekshirish'; sabab: string; muddat: string | null };
+      const ishlar: Ish[] = [];
+      const j = holat.javoblar;
+      const bor = (id: string) => Object.prototype.hasOwnProperty.call(j, id);
+      const qosh = (savolId: string, boshqacha: string, keyin: string) => {
+        if (!bor(savolId)) return;
+        const q = j[savolId];
+        if (q === 'boshqacha') ishlar.push({ savolId, tur: 'tekshirish', sabab: boshqacha, muddat: null });
+        else if (q === 'keyin' || q === null) ishlar.push({ savolId, tur: 'kutyapman', sabab: keyin, muddat: null });
+      };
+      qosh('yatt_ochish', 'rasmiy: YATT roʻyxat sayti boshqacha', 'YATT ochilishi');
+      qosh('bank_hisobi', 'rasmiy: bank shartlari boshqacha', 'bank hisobi ochilishi');
+      qosh('uzum_kabinet', 'rasmiy: Uzum kabinet sayti boshqacha', 'Uzum kabineti ochilishi');
+      if (bor('uzum_kabinet') && j['uzum_kabinet'] === 'kutyapman') {
+        let muddat: string | null = null;
+        if (kun !== null && Number.isFinite(kun)) {
+          const d = new Date((xitoy.hozir ?? (() => new Date()))().getTime());
+          d.setUTCDate(d.getUTCDate() + Math.round(kun));
+          muddat = d.toISOString().slice(0, 10);
+        }
+        ishlar.push({ savolId: 'uzum_kabinet', tur: 'kutyapman', sabab: 'Uzum kabinet faollashuvi', muddat });
+      }
+      const yozildi: RasmiyYakunNatijasi['yozildi'] = [];
+      let xato: string | null = null;
+      for (const ish of ishlar) {
+        const r = await rpc<{ xato?: string; id?: number; yangi?: boolean }>('so_ochiq_ish_yoz', {
+          p_token: xitoy.token, p_tur: ish.tur, p_sabab: ish.sabab, p_muddat: ish.muddat,
+          p_props: { savolId: ish.savolId, javob: j[ish.savolId] ?? null },
+        });
+        if (r === null || r.xato || typeof r.id !== 'number') {
+          xato = xato ?? (r?.xato ?? 'baza javob bermadi');
+          yozildi.push({ tur: ish.tur, sabab: ish.sabab, muddat: ish.muddat, id: null, yangi: false });
+        } else {
+          yozildi.push({ tur: ish.tur, sabab: ish.sabab, muddat: ish.muddat, id: r.id, yangi: r.yangi === true });
+        }
+      }
+      return xato === null ? { olchov_yoq: false, yozildi, izoh: IZOH } : { olchov_yoq: true, sabab: xato, yozildi, izoh: IZOH };
     },
   };
 }

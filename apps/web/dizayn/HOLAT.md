@@ -71,7 +71,26 @@ uchun bitta.
    avia/quruqlik savoli SOʻRALMAYDI va varaqa "kargo hisobga kirmadi"
    deb turadi. 4-qadam chegarasi ham fakt boʻlsa kargoni oladi.
    "Boshlaymiz" → `ochiq_ish` (kutyapman, muddat = fakt kun boʻlsa).
-   Eslatma mexanizmi — BACKLOG. 7-qadam "tez orada".
+   Eslatma mexanizmi — BACKLOG.
+
+10. *(2026-09-28, nazoratchi: "oʻzing plan qilib, hammasini chuqur tekshirib
+    boshlayver")* **7-qadam — Rasmiylashtirish — qurildi, hamma raqam
+    faktdan.** Agent 2026-09-28 da rasmiy manbalarni oʻlchadi
+    (docs/RASMIYLASHTIRISH-FAKTLAR.md): BHM 440 000 (PF-115), YATT boji
+    1 / 0,9 BHM (soliq qoʻmitasi, `[TASDIQ]`), 2026–2030 aylanma soligʻi
+    1 % (PQ-247, OʻRQ-1108), ijtimoiy soliq 1 BHM/oy, 4 bank tarifi
+    (Kapitalbank/Uzum Business, TBC, Anorbank, Hamkorbank), Uzum
+    kabineti qadamlari va komissioner rekvizitlari (seller.uzum.uz
+    qoʻllanmasi, oferta 14.08.2026). Bular `selleros.fakt` ga 0057 bilan
+    kiradi; kod oʻqiydi, koʻrsatadi, hisoblaydi (partiya × 1 %), oʻylab
+    topmaydi. Oqim: kod `rasmiy` (faktlar kartasi) → huquqiy shakl →
+    (yoʻq boʻlsa) YATT ochish → bank hisobi → Uzum kabineti → kod
+    `rasmiy_yakun` (ochiq ishlar: "keyin" — kutyapman, Uzum "kutyapman" —
+    2 kun muddat, "sayt boshqacha / bu tugma yoʻq" — nazoratchi tekshiradi:
+    davlat saytlari oʻzgaradi, BACKLOG 2026-09-25 qarori). 1-qadamda
+    kabinet bor deganga savol berilmaydi. Tizim roʻyxatdan oʻtkazmaydi,
+    hisob ochmaydi — faqat yoʻl koʻrsatadi va raqam beradi; "soliq/yuridik
+    maslahat emas" deb aytadi. 8-qadam "tez orada".
 
 ## Dizayndan ataylab chetga chiqilgan joylar
 

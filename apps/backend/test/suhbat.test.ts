@@ -38,6 +38,22 @@ const BUYURTMA = { olchov_yoq: false, qatorlar: [{ productId: 100, title: 'Quloq
   kargo: { hamkor: null, avia: null, quruqlik: null, usdM3: null, minUsd: null, tanlovBor: false, izoh: 'kargo hamkori, kargo stavkasi kiritilmagan' },
   kurs: { cny: { somPerYuan: 1762.49, valyuta: 'CNY', sana: '25.09.2026', manba: 'CBU' }, usd: null }, izoh: 'varaqa' };
 const OCHIQ = { olchov_yoq: false, id: 1, yangi: true, tur: 'kutyapman', muddat: null, izoh: 'ochiq ish' };
+/** 7-qadam: faktlar boʻsh (savol matnlari "faktda yoʻq" deydi), kabinet yoʻq. */
+const MANBASIZ = { manba: null, olchandi: null };
+const RASMIY_N = {
+  olchov_yoq: false, kabinetBor: false, partiyaSotuvSom: null,
+  faktlar: {
+    bhmSom: null,
+    yatt: { bojShaxsanSom: null, bojOnlaynSom: null, royxatUrl: null, muddatDaqiqa: null, xodimMax: null, ...MANBASIZ },
+    soliq: { aylanmaFoiz: null, aylanmaChegaraSom: null, ijtimoiyOySom: null, tolovKuni: null, rejimTugaydi: null, ...MANBASIZ },
+    banklar: [], bankTashlandi: 0,
+    uzum: { kabinetUrl: null, qollanmaUrl: null, komissioner: { stir: null, nom: null, mfo: null, hisob: null, muddatYil: null }, faollashtirishKun: null, qollabQuvvatlashUrl: null, tolovStandart: null, ...MANBASIZ },
+    yetishmaydi: ['BHM'],
+  },
+  soliq: { ijtimoiySom: null, aylanmaSom: null, jamiSom: null, sotuvSom: null, yetishmaydi: ['ijtimoiy soliq'] },
+  izoh: 'rasmiy',
+};
+const YAKUN_N = { olchov_yoq: false, yozildi: [], izoh: 'yakun' };
 /** Yurish boshlandi — natija hali yoʻq. */
 const XITOY_KUTISH = { ...XITOY, qatorlar: [], kutilmoqda: { runId: 'HG7ML7M8z78YcAPEB', boshlandi: '2026-09-25T20:00:00.000Z', rasmlar: [{ productId: 100, rasmUrl: RASM }] } };
 
@@ -73,6 +89,8 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       xitoy: async (h: YolHolati) => ((h.natijalar.xitoy as { kutilmoqda?: unknown } | undefined)?.kutilmoqda ? XITOY : XITOY_KUTISH),
       buyurtma: async () => BUYURTMA,
       ochiqIsh: async () => OCHIQ,
+      rasmiy: async () => RASMIY_N,
+      rasmiyYakun: async () => YAKUN_N,
     },
     ...(llm ? { llm } : {}),
   };
@@ -226,15 +244,29 @@ describe('suhbatTurn', () => {
     if (t7.keyingi.tur !== 'savol') throw new Error(t7.keyingi.tur);
     expect(t7.keyingi.savol.id).toBe('buyurtma_raqami');
     await suhbatTurn(d, 'tok', { savolId: 'buyurtma_raqami', javob: null });
-    const oxir = await suhbatTurn(d, 'tok', { savolId: 'dokon_tayyorlash', javob: 'boshlaymiz' });
+    // 6-qadam yakuni → 7-qadam: ochiq ish kodi + rasmiy faktlar kodi + huquqiy shakl savoli bitta turnda.
+    const t8 = await suhbatTurn(d, 'tok', { savolId: 'dokon_tayyorlash', javob: 'boshlaymiz' });
+    expect(t8.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'kod', 'menejer']);
+    expect(t8.xabarlar[1]!.savolId).toBe('ochiq_ish');
+    expect(t8.xabarlar[2]!.savolId).toBe('rasmiy');
+    expect(t8.xabarlar[2]!.matn).toMatch(/Faktda yoʻq: BHM/);
+    if (t8.keyingi.tur !== 'savol') throw new Error(t8.keyingi.tur);
+    expect(t8.keyingi.savol.id).toBe('huquqiy_shakl');
+    const t9 = await suhbatTurn(d, 'tok', { savolId: 'huquqiy_shakl', javob: 'yatt' });
+    if (t9.keyingi.tur !== 'savol') throw new Error(t9.keyingi.tur);
+    expect(t9.keyingi.savol.id).toBe('bank_hisobi');
+    const t10 = await suhbatTurn(d, 'tok', { savolId: 'bank_hisobi', javob: 'bor' });
+    if (t10.keyingi.tur !== 'savol') throw new Error(t10.keyingi.tur);
+    expect(t10.keyingi.savol.id).toBe('uzum_kabinet');
+    const oxir = await suhbatTurn(d, 'tok', { savolId: 'uzum_kabinet', javob: 'faol' });
     expect(oxir.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
-    expect(oxir.xabarlar[1]!.savolId).toBe('ochiq_ish');
+    expect(oxir.xabarlar[1]!.savolId).toBe('rasmiy_yakun');
     expect(oxir.keyingi.tur).toBe('tezOrada');
-    expect(oxir.qadam).toBe(7);
+    expect(oxir.qadam).toBe(8);
     // Har menejer xabari savolId bilan (tez orada dan tashqari).
     const menejer = b.jurnal.filter((x) => (x as { rol: string }).rol === 'menejer');
-    // 7 javob + qidiruv natijasi (tekshir) + tanlov + shahar + raqam + boshlaymiz = har turnda bitta menejer gapi.
-    expect(menejer.length).toBe(qadamlar.length + 5);
+    // 7 javob + qidiruv natijasi (tekshir) + tanlov + shahar + raqam + boshlaymiz + shakl + bank + kabinet = har turnda bitta menejer gapi.
+    expect(menejer.length).toBe(qadamlar.length + 8);
   });
 
   it('tekshir: yurish hali tugamagan — xabar yoʻq, jurnal oʻzgarmaydi, holat kutishda qoladi', async () => {
