@@ -26,12 +26,14 @@
  * ALOHIDA tekshiriladi. Byudjetda nol "pulim yo'q" degan javob,
  * `null` esa "aytmadi".
  *
- * 12 QADAM. Bugun 1–7 qurilgan (5 — Xitoydan topish, 2026-09-25;
+ * 12 QADAM. Bugun 1–8 qurilgan (8 — Qabul, 2026-09-29: ombor, qadoq,
+ * yorliq, taymslot faktlari `fakt` dan (0058), Uzum qoʻllanmasi 6/14-bob;
+ * 5 — Xitoydan topish, 2026-09-25;
  * 6 — Buyurtma va kargo, 2026-09-28: kargo hamkori YOʻQ, stavkalar
  * `fakt` dan; 7 — Rasmiylashtirish, 2026-09-28: YATT/soliq/bank/Uzum
  * raqamlari `fakt` dan (0057), manba va sana bilan, davlat sayti
  * oʻzgarsa "sayt boshqacha" tugmasi tekshirish ishi yozadi).
- * 8–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
+ * 9–12 ro'yxatda TURADI va mashina ularga yetganda "tez orada" deb
  * ROSTINI aytadi — bu ham zanjirning bir bo'g'ini: obunachi yo'l
  * qayerda tugaganini va nima kelishini biladi.
  */
@@ -42,6 +44,7 @@ import type { KargoStavkasi } from './fakt.js';
 import type { Kurs } from './kurs.js';
 import { SHAHARLAR } from './savollar.js';
 import type { OylikSoliq, RasmiyFaktlar } from './rasmiy.js';
+import type { QabulFaktlar, QadoqQoidasi } from './qabul.js';
 
 // ==================================================================== turlar
 
@@ -69,7 +72,7 @@ export interface SuhbatSavoli {
 }
 
 /** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi. */
-export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun';
+export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun' | 'qabul' | 'qabul_yakun';
 
 export type Keyingi =
   | { tur: 'savol'; savol: SuhbatSavoli }
@@ -100,7 +103,7 @@ export const SUHBAT_QADAMLARI = [
   { n: 5, nom: 'Xitoydan topish', qurilgan: true },
   { n: 6, nom: 'Buyurtma va kargo', qurilgan: true },
   { n: 7, nom: 'Rasmiylashtirish', qurilgan: true },
-  { n: 8, nom: 'Qabul', qurilgan: false },
+  { n: 8, nom: 'Qabul', qurilgan: true },
   { n: 9, nom: 'Studiya', qurilgan: false },
   { n: 10, nom: 'Yuklash', qurilgan: false },
   { n: 11, nom: 'Sotuv boshlandi', qurilgan: false },
@@ -366,6 +369,102 @@ function bankMatni(n: RasmiyNatijasi): string {
 function kabinetMatni(n: RasmiyNatijasi): string {
   const u = n.faktlar.uzum;
   return `Uzum kabineti: ${u.kabinetUrl ?? '(manzil faktda yoʻq)'} da roʻyxat, hujjatlar (guvohnoma + pasport), my3.soliq.uz da Uzumni komissioner qilib qoʻshish (rekvizitlar yuqoridagi kartada), keyin biznes-qoʻllab-quvvatlashga skrinshot — tekshiruv ${u.faollashtirishKun !== null ? `taxminan ${u.faollashtirishKun} kun` : 'muddati faktda yoʻq'}. Kabinet holati qanday?`;
+}
+
+// ---- 8-qadam natijalari: qabul (yuk tekshiruvi va omborga topshirish). `suhbat-kod.ts` yasaydi.
+
+export interface QabulQatori {
+  productId: number;
+  title: string;
+  miqdor: number | null;
+  /** Uzum qadoq jadvalidan nom boʻyicha topilgan qoida; topilmasa `null` (umumiy qoida koʻrsatiladi). */
+  qadoq: Pick<QadoqQoidasi, 'tur' | 'usul' | 'belgilar'> | null;
+}
+
+export interface QabulQadamNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  faktlar: QabulFaktlar;
+  qatorlar: QabulQatori[];
+  /** Varaqadagi jami dona; biror qatorda miqdor boʻlmasa `null`. */
+  jamiDona: number | null;
+  izoh: string;
+}
+
+export interface QabulYakunNatijasi {
+  olchov_yoq: boolean;
+  sabab?: string;
+  yozildi: Array<{ tur: 'kutyapman' | 'tekshirish'; sabab: string; muddat: string | null; id: number | null; yangi: boolean }>;
+  izoh: string;
+}
+
+function qabulNatija(h: YolHolati): QabulQadamNatijasi | null {
+  const n = h.natijalar.qabul as QabulQadamNatijasi | undefined;
+  return n ?? null;
+}
+
+export const YUK_KELDI: readonly SuhbatVarianti[] = [
+  { qiymat: 'keldi', nom: 'Keldi' },
+  { qiymat: 'hali_yoq', nom: 'Hali kelmadi' },
+];
+export const YUK_KUTISH: readonly SuhbatVarianti[] = [{ qiymat: 'keldi', nom: 'Keldi' }];
+export const YUK_MOS: readonly SuhbatVarianti[] = [
+  { qiymat: 'mos', nom: 'Hammasi mos' },
+  { qiymat: 'kam', nom: 'Kam keldi' },
+  { qiymat: 'brak', nom: 'Nuqsonli bor' },
+];
+export const QADOQ_TAYYOR: readonly SuhbatVarianti[] = [
+  { qiymat: 'tayyor', nom: 'Tayyor' },
+  { qiymat: 'keyin', nom: 'Keyinroq' },
+  { qiymat: 'boshqacha', nom: 'Qoʻllanma boshqacha' },
+];
+export const YETKAZISH: readonly SuhbatVarianti[] = [
+  { qiymat: 'ozim', nom: 'Oʻzim Toshkent omboriga olib boraman' },
+  { qiymat: 'logistika', nom: 'Uzum logistikasi (BTP orqali, pullik)' },
+  { qiymat: 'keyin', nom: 'Keyinroq' },
+];
+export const TAYMSLOT: readonly SuhbatVarianti[] = [
+  { qiymat: 'oldim', nom: 'Yaratdim, taymslot oldim' },
+  { qiymat: 'keyin', nom: 'Keyinroq' },
+  { qiymat: 'boshqacha', nom: 'Kabinet boshqacha' },
+];
+export const TOPSHIRILDI: readonly SuhbatVarianti[] = [
+  { qiymat: 'topshirdim', nom: 'Topshirdim' },
+  { qiymat: 'kutyapman', nom: 'Taymslotni kutyapman' },
+  { qiymat: 'keyin', nom: 'Keyinroq' },
+  { qiymat: 'boshqacha', nom: 'Omborda boshqacha' },
+];
+
+/** Fakt boʻlmasa shunday deyiladi — nol yoki taxmin yozilmaydi. */
+function faktYoki(x: string | number | null, birlik = ''): string {
+  return x === null ? 'faktda yoʻq' : `${x}${birlik}`;
+}
+
+function yukKeldiMatni(n: QabulQadamNatijasi): string {
+  return `Yuk keldimi? Varaqada ${n.jamiDona !== null ? `${n.jamiDona} dona` : 'dona soni yoʻq'} (${n.qatorlar.length} tovar).`;
+}
+function yukKutishMatni(n: QabulQadamNatijasi): string {
+  const y = n.faktlar.yorliq;
+  return `Kelguncha tayyorlab turing: yorliq printeri yoki oddiy printer (yorliq ${y.tavsiya ?? 'oʻlchami faktda yoʻq'}, kod: ${y.kod ?? 'faktda yoʻq'}), qadoq materiallari (${n.faktlar.qadoqUmumiy ?? 'qoida faktda yoʻq'}). Yuk kelganda «Keldi» ni bosing.`;
+}
+function yukMosMatni(n: QabulQadamNatijasi): string {
+  return `Sanang va koʻzdan kechiring: varaqada ${n.jamiDona !== null ? `${n.jamiDona} dona` : 'dona soni yoʻq'}. Nuqsonli yoki qadogʻi buzilgan tovarni Uzum qabul qilmaydi (tafovut ${faktYoki(n.faktlar.tafovutSom, ' soʻm')} har birlik). Hammasi mosmi?`;
+}
+function qadoqMatni(n: QabulQadamNatijasi): string {
+  const y = n.faktlar.yorliq;
+  return `Har tovarga yorliq: ${y.kod ?? 'faktda yoʻq'}; oʻlcham ${y.tavsiya ?? 'faktda yoʻq'}. Quti ${n.faktlar.yetkazma.qutiToliqlik ?? 'toʻliqligi faktda yoʻq'} toʻlsin. Tovarlaringiz boʻyicha qadoq tavsiyasi yuqoridagi kartada. Qadoq va yorliqlar tayyormi?`;
+}
+function yetkazishMatni(n: QabulQadamNatijasi): string {
+  const f = n.faktlar;
+  return `Ombor: ${f.ombor.manzil ?? 'manzil faktda yoʻq'}, ${f.ombor.soat ?? 'soat faktda yoʻq'}. Viloyatdan — Uzum logistikasi: ${f.logistika.url ?? 'manzil faktda yoʻq'} (quti ${faktYoki(f.logistika.qutiKgMax, ' kg')} gacha, taymslotdan ${faktYoki(f.logistika.oldinKun, ' kun')} oldin, pullik). Qanday yetkazasiz?`;
+}
+function taymslotMatni(n: QabulQadamNatijasi): string {
+  const f = n.faktlar;
+  return `Kabinetda «Yetkazmalar → Yaratish»: tovarlar (${faktYoki(f.yetkazma.skuMax, ' SKU')} gacha), tannarx, dona, taymslot; yuborish aktini ${faktYoki(f.yetkazma.aktNusxa, ' nusxa')} chop eting. Taymslotni ${faktYoki(f.taymslot.ozgartirishMax, ' marta')} gacha oʻzgartirish mumkin, bekor qilish — ${faktYoki(f.taymslot.bekorSoat, ' soat')} oldin. Yaratdingizmi?`;
+}
+function topshirishMatni(n: QabulQadamNatijasi): string {
+  const f = n.faktlar;
+  return `Omborga topshirdingizmi? Qabul ${faktYoki(f.muddatKunMax, ' kun')} gacha choʻzilishi mumkin; tafovut (kam, ortiqcha, aralash, yorliqsiz) — ${faktYoki(f.tafovutSom, ' soʻm')} har birlik.`;
 }
 
 /** Yuk keladigan shahar tugmalari — profil roʻyxati bilan bir xil (`savollar.ts`); "Boshqa" oʻrniga erkin matn. */
@@ -645,11 +744,48 @@ export function keyingi(h: YolHolati): Keyingi {
   }
   if (h.natijalar.rasmiy_yakun === undefined) return { tur: 'kod', harakat: 'rasmiy_yakun', qadam: 7 };
 
-  // ---------------------------------------------------------- 8+. Hali qurilmagan
-  const q8 = SUHBAT_QADAMLARI[7];
+  // ---------------------------------------------------------- 8. Qabul
+  //
+  // Ssenariy: yuk keldi → sanash/tekshirish → qadoq va yorliq → omborga
+  // yetkazish usuli → yetkazma akti va taymslot → topshirish → qabulni
+  // kutish. Hamma raqam va manzil `fakt` dan (0058, Uzum qoʻllanmasi 6- va
+  // 14-bob). Yuk kelmagan boʻlsa suhbat «Keldi» tugmasida turadi — obunachi
+  // keyin qaytib bosadi. "Qoʻllanma boshqacha" — tekshirish ishi.
+  const qn = qabulNatija(h);
+  if (qn === null) return { tur: 'kod', harakat: 'qabul', qadam: 8 };
+  if (!berilgan(h, 'yuk_keldi')) {
+    return { tur: 'savol', savol: savol('yuk_keldi', 8, yukKeldiMatni(qn), 'tanlov', { variantlar: YUK_KELDI }) };
+  }
+  if (h.javoblar['yuk_keldi'] === 'hali_yoq' && !berilgan(h, 'yuk_kutish')) {
+    return { tur: 'savol', savol: savol('yuk_kutish', 8, yukKutishMatni(qn), 'tanlov', { variantlar: YUK_KUTISH }) };
+  }
+  if (!berilgan(h, 'yuk_mos')) {
+    return { tur: 'savol', savol: savol('yuk_mos', 8, yukMosMatni(qn), 'tanlov', { variantlar: YUK_MOS }) };
+  }
+  if ((h.javoblar['yuk_mos'] === 'kam' || h.javoblar['yuk_mos'] === 'brak') && !berilgan(h, 'yuk_izoh')) {
+    return { tur: 'savol', savol: savol('yuk_izoh', 8,
+      'Nima kam yoki nuqsonli? Qisqa yozing — agentga daʼvo uchun yozib qoʻyamiz.',
+      'matn', { erkin: true, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'qadoq_tayyor')) {
+    return { tur: 'savol', savol: savol('qadoq_tayyor', 8, qadoqMatni(qn), 'tanlov', { variantlar: QADOQ_TAYYOR, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'yetkazish')) {
+    return { tur: 'savol', savol: savol('yetkazish', 8, yetkazishMatni(qn), 'tanlov', { variantlar: YETKAZISH, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'taymslot')) {
+    return { tur: 'savol', savol: savol('taymslot', 8, taymslotMatni(qn), 'tanlov', { variantlar: TAYMSLOT, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'topshirildi')) {
+    return { tur: 'savol', savol: savol('topshirildi', 8, topshirishMatni(qn), 'tanlov', { variantlar: TOPSHIRILDI, otkazishMumkin: true }) };
+  }
+  if (h.natijalar.qabul_yakun === undefined) return { tur: 'kod', harakat: 'qabul_yakun', qadam: 8 };
+
+  // ---------------------------------------------------------- 9+. Hali qurilmagan
+  const q9 = SUHBAT_QADAMLARI[8];
   return {
-    tur: 'tezOrada', qadam: q8.n, nom: q8.nom,
-    matn: `Keyingi qadam — ${q8.nom}: yuk kelganda tekshirish va Uzum omboriga topshirish (qadoq, yorliq, taymslot). Bu qism hali qurilmagan. Tayyor boʻlganda shu chatda oʻzim aytaman. Rasmiylashtirish javoblaringiz va ochiq ishlar saqlanib turadi.`,
+    tur: 'tezOrada', qadam: q9.n, nom: q9.nom,
+    matn: `Keyingi qadam — ${q9.nom}: tovar suratlari va kartochka uchun kontent. Bu qism hali qurilmagan. Tayyor boʻlganda shu chatda oʻzim aytaman. Qabul javoblaringiz va ochiq ishlar saqlanib turadi.`,
   };
 }
 
@@ -818,6 +954,25 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     return `${n.royxat.length} ta tovar oʻlchangan va 8 ta tuzoq-filtrdan oʻtdi.`
       + (chiq ? ` ${chiq} tasi tuzoq sababli roʻyxatdan chiqarildi — sababi har birida yozilgan.` : '')
       + ' Sotuv raqamlari zaxira kamayishidan chiqarilgan taxmin, Uzum bermaydi.';
+  }
+  if (harakat === 'qabul') {
+    const n = natija as QabulQadamNatijasi;
+    if (n.olchov_yoq) return `Qabul faktlarini bera olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Bu "qoida yoʻq" degani EMAS — raqamlar yoʻq.`;
+    const f = n.faktlar;
+    const qadoqli = n.qatorlar.filter((q) => q.qadoq !== null).length;
+    const umumiy = n.qatorlar.length - qadoqli;
+    const yetishmaydi = f.yetishmaydi.length ? ` Faktda yoʻq: ${f.yetishmaydi.join(', ')}.` : '';
+    const manba = f.manba ? ` Manba: ${f.manba}${f.olchandi ? ` (${f.olchandi})` : ''}.` : '';
+    return `Qabul roʻyxati tayyor: ${n.qatorlar.length} ta tovar${n.jamiDona !== null ? `, ${n.jamiDona} dona` : ''}; ${qadoqli} tasiga Uzum qadoq jadvalidan qoida topildi${umumiy ? `, ${umumiy} tasiga umumiy qoida` : ''}. Ombor: ${f.ombor.manzil ?? 'manzil faktda yoʻq'} (${f.ombor.soat ?? 'soat faktda yoʻq'}). Qabul ${faktYoki(f.muddatKunMax, ' kun')} gacha; tafovut ${faktYoki(f.tafovutSom, ' soʻm')} har birlik.${yetishmaydi}${manba}`;
+  }
+  if (harakat === 'qabul_yakun') {
+    const n = natija as QabulYakunNatijasi;
+    const y = n.yozildi ?? [];
+    const royxat = y.map((x) => `${x.sabab}${x.muddat ? ` (${x.muddat} gacha)` : ''}`).join('; ');
+    if (n.olchov_yoq) return `Ochiq ishlarni yozishda xato: ${n.sabab ?? 'baza javob bermadi'}${y.length ? `; roʻyxat: ${royxat}` : ''}.`;
+    if (y.length === 0) return 'Qabul boʻyicha ochiq ish yoʻq — hammasi tayyor.';
+    const tekshirish = y.some((x) => x.tur === 'tekshirish');
+    return `Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' Tekshirish belgilari nazoratchiga ketdi.' : ''}`;
   }
   if (harakat === 'rasmiy') {
     const n = natija as RasmiyNatijasi;

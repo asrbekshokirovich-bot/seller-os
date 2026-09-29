@@ -66,6 +66,14 @@ kirmagan:** 1 m³ chakana qiymati ≥ 5 000 000 soʻm, balandlik ≤ 50 sm,
 Arzon hajmli tovar (yostiq, plastik idish) qabul qilinmaydi — TUZOQLAR
 roʻyxatiga tuzoq sifatida qoʻshish kerak (hajm/narx maʼlumoti bor).
 
+— [agent, 2026-09-29] **8-qadam qadoq tavsiyasi — kalit soʻz bilan, taxminiy.**
+`uzum.qabul.qadoq` faktidagi kalit soʻzlar tovar nomi bilan taqqoslanadi;
+Uzum toifasi (category) boʻyicha aniqroq moslash `category_requirements`
+kabi jadval talab qiladi. Nazoratchi Uzum jadvalining qolgan qatorlarini
+(avto, bogʻ, sochiluvchan, zargarlik…) faktga qoʻshishi mumkin — kod
+oʻzgarmaydi. Uzum ombor saqlash tarifi (6.7) va FBS/DBS sxemalari (8–10
+boblar) 8-qadamga kirmadi — FBO (Uzum ombori) asosiy yoʻl.
+
 — [agent, 2026-09-28] **Ochiq ish "tekshirish" turi nazoratchi paneliga
 chiqmaydi.** "Sayt boshqacha" belgilari `selleros.ochiq_ish` da
 (tur = tekshirish, props.savolId) yigʻiladi, lekin ularni koʻradigan

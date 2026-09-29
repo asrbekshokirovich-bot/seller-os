@@ -40,6 +40,9 @@ import {
   oylikSoliq,
   RASMIY_KALITLARI,
   rasmiyFaktlari,
+  qabulFaktlari,
+  QABUL_KALITLARI,
+  qadoqTavsiyasi,
   qadamOchiq,
   rasmYuklovchi,
   reja,
@@ -66,6 +69,8 @@ import {
   type OchiqIshNatijasi,
   type RasmiyNatijasi,
   type RasmiyYakunNatijasi,
+  type QabulQadamNatijasi,
+  type QabulYakunNatijasi,
   type XitoyLimitJavobi,
   type XitoyNatijasi,
   type XitoyQatori,
@@ -528,6 +533,97 @@ export function suhbatKodHarakatlari(
         ishlar.push({ savolId: 'uzum_kabinet', tur: 'kutyapman', sabab: 'Uzum kabinet faollashuvi', muddat });
       }
       const yozildi: RasmiyYakunNatijasi['yozildi'] = [];
+      let xato: string | null = null;
+      for (const ish of ishlar) {
+        const r = await rpc<{ xato?: string; id?: number; yangi?: boolean }>('so_ochiq_ish_yoz', {
+          p_token: xitoy.token, p_tur: ish.tur, p_sabab: ish.sabab, p_muddat: ish.muddat,
+          p_props: { savolId: ish.savolId, javob: j[ish.savolId] ?? null },
+        });
+        if (r === null || r.xato || typeof r.id !== 'number') {
+          xato = xato ?? (r?.xato ?? 'baza javob bermadi');
+          yozildi.push({ tur: ish.tur, sabab: ish.sabab, muddat: ish.muddat, id: null, yangi: false });
+        } else {
+          yozildi.push({ tur: ish.tur, sabab: ish.sabab, muddat: ish.muddat, id: r.id, yangi: r.yangi === true });
+        }
+      }
+      return xato === null ? { olchov_yoq: false, yozildi, izoh: IZOH } : { olchov_yoq: true, sabab: xato, yozildi, izoh: IZOH };
+    },
+
+    /**
+     * 8-qadam — QABUL: faktlar (0058) + 6-qadam varaqasidan tekshiruv
+     * roʻyxati; qadoq tavsiyasi tovar nomi boʻyicha (taxminiy — mos kelmasa
+     * umumiy qoida, "kerak emas" emas). Varaqa boʻlmasa — tovarlar javobi.
+     */
+    async qabul(holat: YolHolati): Promise<QabulQadamNatijasi> {
+      const IZOH = 'Qabul: manzil, muddat, jarima, yorliq va qadoq qoidalari Uzum rasmiy qoʻllanmasidan (6- va 14-bob) fakt jadvali orqali; qadoq tavsiyasi tovar nomi boʻyicha taxminiy — mos kelmasa umumiy qoida. Sanash va nazorat sizniki.';
+      const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...QABUL_KALITLARI] });
+      const faktlar = qabulFaktlari(faktlarniOqi(xom));
+      const bn = holat.natijalar.buyurtma as { qatorlar?: Array<{ productId: number; title: string; miqdor: number | null; holat: string }> } | undefined;
+      let asos: Array<{ productId: number; title: string; miqdor: number | null }> = (bn?.qatorlar ?? [])
+        .filter((q) => q.holat === 'tayyor')
+        .map((q) => ({ productId: q.productId, title: q.title, miqdor: typeof q.miqdor === 'number' ? q.miqdor : null }));
+      if (asos.length === 0) {
+        const tanlangan = Array.isArray(holat.javoblar['tovarlar']) ? (holat.javoblar['tovarlar'] as unknown[]).map(Number).filter(Number.isInteger) : [];
+        const tn = holat.natijalar.tovarlar as { royxat?: Array<{ nomzod: TovarNomzodi }> } | undefined;
+        asos = tanlangan.map((id) => {
+          const m = holat.javoblar[`miqdor:${id}`];
+          return { productId: id, title: tn?.royxat?.find((x) => x.nomzod.productId === id)?.nomzod.title ?? `#${id}`, miqdor: typeof m === 'number' && m > 0 ? m : null };
+        });
+      }
+      const qatorlar = asos.map((q) => {
+        const qoida = qadoqTavsiyasi(q.title, faktlar.qadoq);
+        return { ...q, qadoq: qoida ? { tur: qoida.tur, usul: qoida.usul, belgilar: qoida.belgilar } : null };
+      });
+      const jamiDona = qatorlar.length && qatorlar.every((q) => q.miqdor !== null)
+        ? qatorlar.reduce((sum, q) => sum + (q.miqdor ?? 0), 0) : null;
+      const natija = { faktlar, qatorlar, jamiDona, izoh: IZOH };
+      if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...natija };
+      if (faktlar.ombor.manzil === null && faktlar.qollanmaUrl === null) {
+        return { olchov_yoq: true, sabab: 'qabul faktlari kiritilmagan (0058 qoʻllanmagan)', ...natija };
+      }
+      return { olchov_yoq: false, ...natija };
+    },
+
+    /**
+     * 8-qadam — javoblar ochiq ish boʻladi: kam/nuqsonli yuk — tekshirish
+     * (agentga daʼvo, izoh bilan); "keyin"/oʻtkazilgan — kutyapman;
+     * topshirilgan yuk — Uzum qabulini kutish (muddat faktdan);
+     * "boshqacha" — nazoratchi tekshiradi (qoʻllanma eskirgan boʻlishi mumkin).
+     */
+    async qabulYakun(holat: YolHolati): Promise<QabulYakunNatijasi> {
+      const IZOH = 'Ochiq ishlar: kam/nuqsonli yuk — tekshirish (agentga daʼvo); "keyin" — kutyapman; topshirilgan yuk — Uzum qabulini kutish (muddat faktdan); "boshqacha" — nazoratchi tekshiradi. Eslatma mexanizmi hali yoʻq (BACKLOG).';
+      if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], izoh: IZOH };
+      const qn = holat.natijalar.qabul as { faktlar?: { muddatKunMax?: number | null } } | undefined;
+      const kun = qn?.faktlar?.muddatKunMax ?? null;
+      type Ish = { savolId: string; tur: 'kutyapman' | 'tekshirish'; sabab: string; muddat: string | null };
+      const ishlar: Ish[] = [];
+      const j = holat.javoblar;
+      const bor = (id: string) => Object.prototype.hasOwnProperty.call(j, id);
+      if (bor('yuk_mos') && (j['yuk_mos'] === 'kam' || j['yuk_mos'] === 'brak')) {
+        const izohXom = j['yuk_izoh'];
+        const izoh = typeof izohXom === 'string' && izohXom.trim() ? ` — ${izohXom.trim()}` : '';
+        ishlar.push({ savolId: 'yuk_mos', tur: 'tekshirish', sabab: `qabul: yuk ${j['yuk_mos'] === 'kam' ? 'kam keldi' : 'nuqsonli'}${izoh}`, muddat: null });
+      }
+      const qosh = (savolId: string, boshqacha: string | null, keyin: string) => {
+        if (!bor(savolId)) return;
+        const q = j[savolId];
+        if (q === 'boshqacha' && boshqacha) ishlar.push({ savolId, tur: 'tekshirish', sabab: boshqacha, muddat: null });
+        else if (q === 'keyin' || q === null) ishlar.push({ savolId, tur: 'kutyapman', sabab: keyin, muddat: null });
+      };
+      qosh('qadoq_tayyor', 'qabul: qadoq qoʻllanmasi boshqacha', 'qadoq va yorliqlar');
+      qosh('yetkazish', null, 'omborga yetkazish usuli');
+      qosh('taymslot', 'qabul: yetkazma/taymslot boshqacha', 'yetkazma akti va taymslot');
+      qosh('topshirildi', 'qabul: ombor topshirish boshqacha', 'omborga topshirish');
+      if (bor('topshirildi') && (j['topshirildi'] === 'topshirdim' || j['topshirildi'] === 'kutyapman')) {
+        let muddat: string | null = null;
+        if (kun !== null && Number.isFinite(kun)) {
+          const d = new Date((xitoy.hozir ?? (() => new Date()))().getTime());
+          d.setUTCDate(d.getUTCDate() + Math.round(kun));
+          muddat = d.toISOString().slice(0, 10);
+        }
+        ishlar.push({ savolId: 'topshirildi', tur: 'kutyapman', sabab: 'Uzum ombor qabuli', muddat });
+      }
+      const yozildi: QabulYakunNatijasi['yozildi'] = [];
       let xato: string | null = null;
       for (const ish of ishlar) {
         const r = await rpc<{ xato?: string; id?: number; yangi?: boolean }>('so_ochiq_ish_yoz', {

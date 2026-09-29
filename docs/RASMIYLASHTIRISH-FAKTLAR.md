@@ -138,6 +138,16 @@ jadval koʻrsatadi.
 - Toifalar boʻyicha sertifikat talabi Uzum kartochkasida "Sertifikatlar" maydoni bilan
   koʻrinadi — 10-qadam (yuklash) da tekshiriladi.
 
+## 6a. 8-qadam (Qabul) faktlari — 0058
+
+5-boʻlim 14-band + 14-bob (Logistika, 2026-09-29): viloyatdan Uzum
+logistikasi — logistics.uzum.uz, BTP dan topshiriladi, quti ≤ 20 kg,
+narx avtomatik, taymslotdan kamida 2 kun oldin yuklanadi, transport
+yukxati 3 nusxa (BTP, haydovchi, sotuvchi), shaxsni tasdiqlovchi hujjat
+kerak; 11.11 va yangi yilda oʻtkazuvchanlik pasayadi. Qadoq jadvali
+(6.1) 10 ta toifa bilan `uzum.qabul.qadoq` faktiga kalit soʻzlar bilan
+kiritildi — tovar nomi boʻyicha taxminiy moslash (BACKLOG).
+
 ## 7. Bu hujjat nimani QURMAYDI (ochiq savollar, nazoratchi uchun)
 
 1. Davlat boji hozir aynan 440 000 / 396 000 mi — soliq sahifasi 2025-04 da yangilangan,
