@@ -3,10 +3,12 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
-Doʻkonda: **Published — public** (0.1.1), 2026-09-02 dan beri. Yangi
-versiya — **0.2.0** (2026-09-29): yon panelda FAQAT CHAT + Uzum sahifasidagi
-tugma (0.1.3 tuzatishlari bilan). Doʻkonga nazoratchi yuklaydi (Developer
-Dashboard kengaytmalar bilan boshqarilmaydi).
+Doʻkonda: **Published — public** (0.1.1), 2026-09-02 dan beri. **0.2.0
+tekshiruvga yuborildi — 2026-09-29** (nazoratchi yukladi: yon panelda FAQAT
+CHAT + Uzum sahifasidagi tugma, 0.1.3 tuzatishlari bilan; sayt manzili
+`zumsavdo.vercel.app`, `sidePanel` ruxsati asoslandi, remote code — yoʻq,
+data usage — faqat "Website content"). Developer Dashboard kengaytmalar
+bilan boshqarilmaydi — yuklashni har doim nazoratchi qiladi.
 
 ## 2026-09-29 — 0.2.0: yon panel, faqat chat
 
