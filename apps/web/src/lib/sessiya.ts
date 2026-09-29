@@ -15,6 +15,7 @@
  */
 
 import { cookies } from 'next/headers';
+import { sorovTokeni } from './sessiya-sarlavha';
 
 export const COOKIE = 'so_sessiya';
 const YIL = 60 * 60 * 24 * 365;
@@ -36,8 +37,15 @@ export async function token(): Promise<string | null> {
  *
  * `null` — API sozlanmagan yoki javob bermadi. Chaqiruvchi buni
  * "sessiya yoʻq" deb emas, "ulanib boʻlmadi" deb koʻrsatishi kerak.
+ *
+ * KENGAYTMA REJIMI (0.2.0): Chrome yon panelidagi ramkada cookie
+ * ishlamaydi — token `x-sessiya` sarlavhasida keladi va cookie'dan
+ * USTUN turadi (`sessiya-sarlavha.ts` elagi bilan). Cookie yozilmaydi:
+ * ramkada u baribir saqlanmasdi.
  */
-export async function tokenYokiYangi(): Promise<string | null> {
+export async function tokenYokiYangi(request?: Request): Promise<string | null> {
+  const sarlavhadan = sorovTokeni(request);
+  if (sarlavhadan) return sarlavhadan;
   const bor = await token();
   if (bor) return bor;
   if (!sozlanganmi()) return null;

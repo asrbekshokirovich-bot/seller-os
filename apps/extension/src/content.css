@@ -3,12 +3,16 @@
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   margin: 8px 0;
   transition: background 0.15s;
+  /* Uzum "Savatga qoʻshish" ostida, oʻsha kenglikda. */
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 #selleros-xitoy-tugma:hover {
@@ -26,8 +30,51 @@
   border-radius: 8px;
   padding: 12px;
   margin: 8px 0;
-  max-height: 400px;
+  max-height: 480px;
   overflow-y: auto;
+  /* Tugmalar qatoridan keyin, toʻliq kenglikda (0.1.2 da flex ichida siqilardi). */
+  width: 100%;
+  box-sizing: border-box;
+  flex-basis: 100%;
+  color: #111827;
+  font-family: inherit;
+}
+
+.selleros-panel-bosh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.selleros-yopish {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.selleros-yopish:hover {
+  background: #f3f4f6;
+}
+
+.selleros-panel-holat {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 8px;
+}
+
+.selleros-panel-oxiri {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.selleros-panel-oxiri a {
+  color: #4f46e5;
 }
 
 #selleros-xitoy-panel h3 {
@@ -52,6 +99,8 @@
   height: 60px;
   object-fit: cover;
   border-radius: 4px;
+  flex-shrink: 0;
+  background: #e5e7eb;
 }
 
 .selleros-natija-matn {
@@ -59,6 +108,20 @@
   flex-direction: column;
   gap: 2px;
   font-size: 13px;
+  min-width: 0;
+}
+
+.selleros-xitoycha {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selleros-natija-matn .selleros-narx {
+  color: #111827;
+  font-weight: 600;
 }
 
 .selleros-natija-matn strong {

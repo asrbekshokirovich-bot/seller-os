@@ -58,6 +58,7 @@ import {
   type TurkumHolati,
   type XitoyLimitJavobi,
   type XitoyTovar,
+  kursniOl,
 } from '@selleros/shared';
 
 // ── Javob vaqtini oʻlchash (KPI: qadam_tezligi) ──────────────
@@ -974,6 +975,8 @@ export function build(): FastifyInstance {
         tashlandi: rasm.tashlandi,
         tashxis,
         limit: limitH.natija,
+        // Kengaytma yuanni soʻmga oʻgirishi uchun (0.1.3). Olinmasa null — yuan qoladi.
+        kurs: rasm.natijalar.length ? await kursniOl(fetch) : null,
         ...(rasm.natijalar.length === 0 ? { izoh: `1688 bu rasmga oʻxshash tovar bermadi${tashxis ? ` (${tashxis})` : ''}.` } : {}),
         ...(rasm.tashlandi > 0 ? { izoh_tashlandi: `${rasm.tashlandi} ta karta oʻqilmadi va koʻrsatilmadi.` } : {}),
       };
@@ -999,6 +1002,7 @@ export function build(): FastifyInstance {
         manba: kesh.manba,
         keshdan: true,
         limit: limitNatija,
+        kurs: kesh.natijalar.length ? await kursniOl(fetch) : null,
         ...(kesh.natijalar.length === 0 ? { izoh: '1688 bu rasmga oʻxshash tovar bermadi (72 soatlik keshdan).' } : {}),
       };
     }

@@ -22,7 +22,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   try {
-    const sessiya = await tokenYokiYangi();
+    const sessiya = await tokenYokiYangi(request);
     const r = await fetch(`${API}/tovarlar?turkum=${turkum}`, {
       headers: {
         Authorization: `Bearer ${KEY}`,

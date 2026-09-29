@@ -1,0 +1,25 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #0b0b0b;
+  color: #e6e7ea;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+#xabar {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  color: #9aa0ab;
+}
+
+#chat {
+  border: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#chat[hidden] {
+  display: none;
+}

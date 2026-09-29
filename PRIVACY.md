@@ -1,6 +1,6 @@
 # Privacy Policy — Seller OS: Xitoydan top
 
-**Last updated: 10 September 2026**
+**Last updated: 29 September 2026** (version 0.2.0 of the extension)
 
 This policy describes what the Chrome extension **"Seller OS — Xitoydan top"**
 does with data. It is written to match the extension's source code exactly;
@@ -11,23 +11,36 @@ the code is public at
 
 ## What the extension does
 
-The extension adds one button — **"Xitoydan top"** — to product pages on
-`uzum.uz`. When you click it, the extension looks up visually similar
-products on the Chinese wholesale marketplace 1688 and shows the results
-on the same page.
+Two things:
 
-That is its only function.
+1. It adds one button — **"Xitoydan top"** — to product pages on
+   `uzum.uz`. When you click it, the extension looks up visually similar
+   products on the Chinese wholesale marketplace 1688 and shows the results
+   on the same page.
+2. Clicking the extension icon opens a Chrome side panel that shows the
+   **Seller OS chat** — our own website (`/usta` page) loaded in a frame.
+   Everything you type there goes to our server exactly as it would if you
+   opened the website in a tab; the website's own privacy terms apply. The
+   panel uses the same anonymous session token as the button (see below),
+   so your daily search limit is counted once.
 
 ## What is sent off your device
 
-**Only one thing: the numeric product ID of the Uzum page you are on, and
-only when you click the button.**
+**Two things, and only when you click the button: the numeric product ID
+of the Uzum page you are on, and the web address of that product's main
+photo.**
 
 The extension reads the product ID from the page address
-(`uzum.uz/product/<id>`) and sends it to our own server at
-`duequijnnzcngzzvjqst.supabase.co`. Our server forwards that ID to a
-third-party product-search provider so it can find matching items, and
-returns the results to you.
+(`uzum.uz/product/<id>`) and the address of the product's main photo from
+the page (a public address on Uzum's image server, `images.uzum.uz/...`).
+It sends both to our own server at `duequijnnzcngzzvjqst.supabase.co`.
+Our server downloads that public product photo, converts it to JPEG, and
+sends it to a third-party image-search provider (Apify, running a 1688
+image-search actor) so it can find visually similar items. The results
+come back to you on the same page.
+
+The photo is the seller's public product picture. It is not a screenshot,
+not your camera, and not any image you uploaded.
 
 Nothing is sent when you merely browse. No button click, no request.
 
@@ -55,16 +68,24 @@ The extension does **not** collect, store, or transmit:
 - location or GPS data
 - your browsing history or the list of pages you visit
 - keystrokes, mouse movement or scrolling
-- page text, images or videos
+- page text or videos
+- screenshots, or any image other than the public address of the product's
+  main photo (see above)
 
 The extension runs **only** on `uzum.uz` pages. It has no access to any
 other website.
 
 ## Third parties
 
-The product ID is forwarded to a product-search provider solely to perform
-the search you requested. This is the extension's core function and no
-other data accompanies it.
+The product photo (downloaded by our server from its public address) is
+forwarded to an image-search provider — **Apify** (apify.com), which runs
+a 1688 image-search actor — solely to perform the search you requested.
+This is the extension's core function and no other data accompanies it:
+no session token, no product ID, nothing about you.
+
+Our server keeps the search result for 72 hours, keyed by the photo
+address, so that the same product is not searched twice; the cache holds
+1688 listings only, nothing about the person who searched.
 
 We do not sell user data. We do not transfer user data for advertising,
 profiling, credit scoring or lending. We do not use data for anything
@@ -103,20 +124,34 @@ nima qilishini tushuntiradi. Matn kodning oʻziga qarab yozilgan; kod ochiq:
 
 ## Kengaytma nima qiladi
 
-`uzum.uz` mahsulot sahifasiga bitta tugma qoʻshadi — **"Xitoydan top"**.
-Uni bosganingizda 1688 ulgurji bozoridan oʻxshash tovarlar qidiriladi va
-natija oʻsha sahifada koʻrsatiladi.
+Ikki narsa:
 
-Boshqa vazifasi yoʻq.
+1. `uzum.uz` mahsulot sahifasiga bitta tugma qoʻshadi — **"Xitoydan top"**.
+   Uni bosganingizda 1688 ulgurji bozoridan oʻxshash tovarlar qidiriladi va
+   natija oʻsha sahifada koʻrsatiladi.
+2. Kengaytma belgisini bossangiz Chrome yon paneli ochiladi va unda
+   **Seller OS chati** — oʻz saytimizning `/usta` sahifasi — ramkada
+   koʻrsatiladi. U yerga yozganingiz saytni oddiy ochgandagidek
+   serverimizga boradi; saytning oʻz maxfiylik shartlari amal qiladi. Panel
+   tugma bilan bir xil anonim seans tokenidan foydalanadi (quyida), kunlik
+   limit bir marta hisoblanadi.
 
 ## Qurilmangizdan nima chiqadi
 
-**Faqat bitta narsa: siz turgan Uzum sahifasining raqamli mahsulot
-identifikatori, va faqat tugmani bosganingizda.**
+**Ikkita narsa, va faqat tugmani bosganingizda: siz turgan Uzum
+sahifasining raqamli mahsulot identifikatori va oʻsha mahsulot asosiy
+rasmining internet manzili.**
 
-Kengaytma identifikatorni sahifa manzilidan (`uzum.uz/product/<id>`) oʻqiydi
-va oʻz serverimizga (`duequijnnzcngzzvjqst.supabase.co`) yuboradi. Server uni
-qidiruv provayderiga uzatadi va natijani sizga qaytaradi.
+Kengaytma identifikatorni sahifa manzilidan (`uzum.uz/product/<id>`),
+rasm manzilini esa sahifadan (Uzum rasm serveridagi ochiq manzil,
+`images.uzum.uz/...`) oʻqiydi va ikkalasini oʻz serverimizga
+(`duequijnnzcngzzvjqst.supabase.co`) yuboradi. Server oʻsha ochiq mahsulot
+rasmini yuklab oladi, JPEG ga oʻgiradi va rasm boʻyicha qidiruv
+provayderiga (Apify, 1688 rasm-qidiruv aktori) uzatadi — u oʻxshash
+tovarlarni topadi. Natija sizga oʻsha sahifada koʻrsatiladi.
+
+Bu rasm — sotuvchining ochiq mahsulot surati. Skrinshot emas, kamerangiz
+emas, siz yuklagan rasm emas.
 
 Shunchaki sahifani koʻrib turganingizda hech narsa yuborilmaydi.
 
@@ -144,16 +179,24 @@ Kengaytma quyidagilarni yigʻmaydi, saqlamaydi va uzatmaydi:
 - joylashuv yoki GPS
 - brauzer tarixi, koʻrgan sahifalaringiz roʻyxati
 - klaviatura bosishlari, sichqoncha harakati, varaqlash
-- sahifa matni, rasmlari, videolari
+- sahifa matni yoki videolari
+- skrinshot yoki mahsulot asosiy rasmining ochiq manzilidan boshqa har
+  qanday rasm (yuqoriga qarang)
 
 Kengaytma **faqat** `uzum.uz` sahifalarida ishlaydi. Boshqa saytlarga
 kirish huquqi yoʻq.
 
 ## Uchinchi tomonlar
 
-Mahsulot identifikatori faqat siz soʻragan qidiruvni bajarish uchun qidiruv
-provayderiga uzatiladi. Bu kengaytmaning asosiy vazifasi va u bilan birga
-boshqa hech qanday maʼlumot ketmaydi.
+Mahsulot rasmi (serverimiz uni ochiq manzildan yuklab oladi) faqat siz
+soʻragan qidiruvni bajarish uchun rasm-qidiruv provayderiga — **Apify**
+(apify.com, 1688 rasm-qidiruv aktori) — uzatiladi. Bu kengaytmaning asosiy
+vazifasi va u bilan birga boshqa hech qanday maʼlumot ketmaydi: seans
+tokeni ham, mahsulot identifikatori ham, siz haqingizda hech narsa ham.
+
+Serverimiz qidiruv natijasini rasm manzili boʻyicha 72 soat saqlaydi —
+bir tovar ikki marta qidirilmasin; keshda faqat 1688 takliflari turadi,
+kim qidirgani emas.
 
 Maʼlumotni sotmaymiz. Reklama, profillash, kredit baholash yoki qarz berish
 uchun uzatmaymiz. Yuqorida yozilgan yagona maqsaddan tashqari hech narsaga
