@@ -19,9 +19,30 @@ const JOY_SELEKTOR = '[data-testid="product-actions"], .product-actions, .produc
  */
 const SELLEROS_SAYT = '';
 
+/**
+ * Tovar id — manzildan. Uzum haqiqiy manzili `/uz/product/<slug>-<id>`
+ * (oʻlchandi 2026-09-29: `/uz/product/futbolkalar-erkaklar-uchun-2355174`);
+ * 0.1.1–0.1.2 faqat `/product/<id>` ni kutgan va shuning uchun haqiqiy
+ * sahifada tugma HECH QACHON chiqmagan. Ikkala shakl ham qabul qilinadi.
+ */
 function tovarIdOl(): number | null {
-  const mos = window.location.pathname.match(/\/product\/(\d+)/);
+  const mos = window.location.pathname.match(/\/product\/(?:[^/?#]*?-)?(\d+)(?:$|[/?#])/);
   return mos ? Number(mos[1]) : null;
+}
+
+/**
+ * "Savatga qoʻshish" tugmasi — oʻlchangan tuzilma (2026-09-29):
+ * `button.add-cart-…` → div → `div.action-wrapper` → `div.add-cart` (flex,
+ * 343 px) → … → `div.call-to-action` → `div.content-right`. Bizning tugma
+ * `.add-cart` blokidan keyin (Savatga ostida, toʻliq kenglikda), panel esa
+ * `.call-to-action` dan keyin (oʻng ustunda). Matn boʻyicha qidiriladi —
+ * Uzum klass nomlari oʻzgarsa ham "Savatga" soʻzi qoladi.
+ */
+function savatgaTugmasi(): HTMLElement | null {
+  for (const b of Array.from(document.querySelectorAll('button'))) {
+    if (/savatga/i.test(b.textContent ?? '')) return b;
+  }
+  return null;
 }
 
 /**
@@ -263,9 +284,12 @@ function natijalarniKorsat(natijalar: Natija[], meta: Meta): void {
   }
   panel.appendChild(oxiri);
 
-  // Tugmalar blokidan KEYIN, toʻliq kenglikda. Blok topilmasa — tugmadan keyin.
-  const joy = document.querySelector(JOY_SELEKTOR);
+  // Uzum sahifasida: "Savatga" blokining (`.call-to-action`) ostida, oʻng
+  // ustunda. Topilmasa — tugmalar blokidan keyin; u ham boʻlmasa — tugmadan keyin.
   const tugma = document.getElementById(TUGMA_ID);
+  const savatga = savatgaTugmasi();
+  const cta = savatga?.closest('.call-to-action') ?? null;
+  const joy = cta ?? document.querySelector(JOY_SELEKTOR);
   if (joy?.parentElement) joy.parentElement.insertBefore(panel, joy.nextSibling);
   else tugma?.parentElement?.insertBefore(panel, tugma.nextSibling);
 }
@@ -277,6 +301,12 @@ function joylashtir(): void {
 
   // Uzum.uz tovar sahifasida "Savatga" tugmasi yoniga qoʻshish.
   // Selektor oʻzgarishi mumkin — kengaytma yangilanadi.
+  const savatga = savatgaTugmasi();
+  const blok = savatga?.closest('.add-cart') ?? savatga?.parentElement ?? null;
+  if (blok?.parentElement) {
+    blok.parentElement.insertBefore(tugmaYarat(), blok.nextSibling);
+    return;
+  }
   const joy = document.querySelector(JOY_SELEKTOR);
   if (joy) {
     joy.appendChild(tugmaYarat());

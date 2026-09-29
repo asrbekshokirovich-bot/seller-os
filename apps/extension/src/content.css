@@ -3,12 +3,16 @@
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   margin: 8px 0;
   transition: background 0.15s;
+  /* Uzum "Savatga qoʻshish" ostida, oʻsha kenglikda. */
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 #selleros-xitoy-tugma:hover {

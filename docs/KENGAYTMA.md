@@ -23,6 +23,15 @@ content.js, jonli 1688 javobi). Topilgan va tuzatilganlar:
 5. Panel oxirida "Toʻliq hisob — Seller OS chatida" (havola `SELLEROS_SAYT`
    toʻldirilganda; boʻsh boʻlsa matn).
 
+6. **ASOSIY XATO (haqiqiy sahifada oʻlchandi, Chrome, 2026-09-29):** Uzum tovar
+   manzili `/uz/product/<slug>-<id>` (masalan
+   `/uz/product/futbolkalar-erkaklar-uchun-2355174`), kod esa faqat
+   `/product/<id>` ni kutgan — shuning uchun 0.1.1–0.1.2 haqiqiy sahifada
+   tugmani HECH QACHON chizmagan. Endi ikkala shakl qabul qilinadi.
+   Tugma "Savatga qoʻshish" (`.add-cart` bloki) ostiga, panel
+   `.call-to-action` ostiga (oʻng ustun) qoʻyiladi; "Savatga" matni boʻyicha
+   qidiriladi, klass oʻzgarsa ham ishlaydi; eski selektorlar zaxira.
+
 Maxfiylik siyosati oʻzgarmadi: kurs va limit serverdan keladi, qurilmadan
 yangi hech narsa chiqmaydi.
 
