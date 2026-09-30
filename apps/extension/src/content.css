@@ -1,42 +1,76 @@
+/*
+ * Uzum sahifasidagi "Xitoydan top" tugmasi va 1688 natijalari paneli —
+ * sayt dizayni (`apps/web/dizayn/ZumSavdo-Veb.html`, terrakota) ranglarida.
+ * Shrift — Uzum sahifasiniki (bu yerga shrift yuklanmaydi).
+ */
+
 #selleros-xitoy-tugma {
-  background: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  margin: 8px 0;
-  transition: background 0.15s;
   /* Uzum "Savatga qoʻshish" ostida, oʻsha kenglikda. */
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   box-sizing: border-box;
+  height: 48px;
+  margin: 8px 0;
+  padding: 0 20px;
+  border: none;
+  border-radius: 999px;
+  background: #d2552d;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -12px #d2552d;
+  transition: background 0.15s;
+}
+
+#selleros-xitoy-tugma::before {
+  content: 'Z';
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: #fff;
+  color: #d2552d;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #selleros-xitoy-tugma:hover {
-  background: #4338ca;
+  background: #bf4a25;
 }
 
 #selleros-xitoy-tugma:disabled {
-  background: #9ca3af;
+  background: #ede6da;
+  color: #6e6558;
+  box-shadow: none;
   cursor: wait;
 }
 
+#selleros-xitoy-tugma:disabled::before {
+  background: #d2552d;
+  color: #fff;
+}
+
 #selleros-xitoy-panel {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px;
-  margin: 8px 0;
-  max-height: 480px;
-  overflow-y: auto;
   /* Tugmalar qatoridan keyin, toʻliq kenglikda (0.1.2 da flex ichida siqilardi). */
   width: 100%;
   box-sizing: border-box;
   flex-basis: 100%;
-  color: #111827;
+  margin: 8px 0;
+  padding: 16px;
+  max-height: 480px;
+  overflow-y: auto;
+  background: #f4efe6;
+  border: 1px solid #e3dacb;
+  border-radius: 22px;
+  color: #1f1a14;
   font-family: inherit;
 }
 
@@ -47,81 +81,65 @@
   gap: 8px;
 }
 
+#selleros-xitoy-panel h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f1a14;
+}
+
 .selleros-yopish {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
   background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #374151;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.06), 0 6px 18px rgba(60, 40, 20, 0.06);
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f1a14;
   cursor: pointer;
 }
 
 .selleros-yopish:hover {
-  background: #f3f4f6;
+  background: #faf6ef;
 }
 
 .selleros-panel-holat {
-  font-size: 12px;
-  color: #6b7280;
-  margin: 0 0 8px;
-}
-
-.selleros-panel-oxiri {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.selleros-panel-oxiri a {
-  color: #4f46e5;
-}
-
-#selleros-xitoy-panel h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
-  color: #374151;
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: #6e6558;
 }
 
 .selleros-natija {
   display: flex;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.06), 0 6px 18px rgba(60, 40, 20, 0.06);
 }
 
 .selleros-natija:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .selleros-natija img {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 12px;
   flex-shrink: 0;
-  background: #e5e7eb;
+  background: #ede6da;
 }
 
 .selleros-natija-matn {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   font-size: 13px;
   min-width: 0;
-}
-
-.selleros-xitoycha {
-  font-size: 11px;
-  color: #9ca3af;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.selleros-natija-matn .selleros-narx {
-  color: #111827;
-  font-weight: 600;
 }
 
 .selleros-natija-matn strong {
@@ -130,8 +148,43 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  font-weight: 600;
+}
+
+.selleros-natija-matn strong a {
+  color: #d2552d;
+  text-decoration: none;
+}
+
+.selleros-natija-matn strong a:hover {
+  text-decoration: underline;
+}
+
+.selleros-xitoycha {
+  font-size: 11.5px;
+  color: #6e6558;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selleros-natija-matn .selleros-narx {
+  color: #1f1a14;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .selleros-natija-matn span {
-  color: #6b7280;
+  color: #6e6558;
+}
+
+.selleros-panel-oxiri {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: #6e6558;
+}
+
+.selleros-panel-oxiri a {
+  color: #d2552d;
+  font-weight: 600;
 }

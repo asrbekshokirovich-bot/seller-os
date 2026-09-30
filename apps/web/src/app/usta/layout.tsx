@@ -1,13 +1,12 @@
 /**
- * Usta uchun shriftlar va sarlavha.
+ * Usta uchun sarlavha va brauzer paneli rangi.
  *
- * Shriftlar `../shriftlar.ts` da — bosh sahifa bilan bir xil.
- * Sahifaning oʻzi `'use client'`, shrift esa server tomonda
- * yuklanishi kerak — shuning uchun alohida layout.
+ * Shriftlar ildiz layoutda (`../shriftlar.css`) — hamma sahifa uchun bitta.
+ * Sahifaning oʻzi `'use client'`, metadata esa server tomonda —
+ * shuning uchun alohida layout.
  */
 
 import type { Metadata, Viewport } from 'next';
-import { kirill, mono, sans } from '../shriftlar';
 
 export const metadata: Metadata = {
   title: 'ZumSavdo — Usta',
@@ -20,9 +19,9 @@ export const metadata: Metadata = {
  * chiziq qolardi.
  */
 export const viewport: Viewport = {
-  themeColor: '#0B0B0B',
+  themeColor: '#13100C',
 };
 
 export default function UstaLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`${sans.variable} ${kirill.variable} ${mono.variable}`}>{children}</div>;
+  return children;
 }

@@ -1,0 +1,28 @@
+/* Dizayn: `display:inline-flex;gap:2px;padding:4px;background:#EDE6DA;border-radius:999px`, tugma 36×36. */
+.mavzuTugma {
+  flex: none;
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--chip);
+  border-radius: 999px;
+}
+
+.mavzuTugma button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--xira);
+  cursor: pointer;
+}
+
+.mavzuTugma button[aria-pressed='true'] {
+  background: var(--matn);
+  color: var(--bg);
+}

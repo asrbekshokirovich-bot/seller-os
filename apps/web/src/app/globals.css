@@ -96,81 +96,76 @@ table.qismlar td.son { text-align: right; font-variant-numeric: tabular-nums; }
 details.izohli summary { cursor: pointer; color: var(--asosiy); font-size: .875rem; }
 
 /*
- * ZumSavdo mavzusi — `ZUMSavdo … .dc.html` dizayni tokenlari.
+ * ZumSavdo mavzusi — `dizayn/ZumSavdo-Veb.html` (terrakota, 2026-09-30).
  *
- * Bosh sahifa va Usta ikkalasi shu klassni oladi: rang bitta joyda
- * turadi va bir sahifada oʻzgarib, ikkinchisida eski qolmaydi.
- * Nomlar dizayn faylidagidek (`--a06`, `--a17` …) — keyingi versiyani
- * solishtirish oson.
+ * Ranglar OʻYLAB TOPILMAGAN: dizayndagi har ekranning yorugʻ va tungi
+ * nusxasi juftlab solishtirilgan (bir xil tuzilma, faqat rang farq
+ * qiladi) va shu jadval chiqqan. Bosh sahifa, Usta, Kirish, Obuna —
+ * hammasi shu klassni oladi: rang bitta joyda.
  *
- * Standart — TUNGI (nazoratchi qarori, 2026-09-24).
- *
- * `--accMatn` dizaynda yoʻq, ataylab: yorugʻ fonda sariq MATN 1,5:1
- * (oʻqib boʻlmaydi). Matn uchun toʻq-sariq #6B6100 — 5,5:1. Tugma va
- * fonlar baribir sariq.
+ * Standart — TUNGI (nazoratchi qarori, 2026-09-24). Mavzu tepa paneldagi
+ * quyosh/oy tugmasida va «Profilim» da.
  */
 .zs-mavzu {
-  --bg: #0b0b0b;
-  --glow1: rgba(230, 210, 0, 0.18);
-  --glow2: rgba(230, 210, 0, 0.06);
-  --ink: #ffffff;
-  --ink2: rgba(255, 255, 255, 0.74);
-  --ink3: rgba(255, 255, 255, 0.52);
-  --acc: #e6d200;
-  --acc2: #f5e84a;
-  --acc3: #c4b300;
-  --accInk: #0b0b0b;
-  --accInk2: rgba(11, 11, 11, 0.72);
-  --accMatn: #e6d200;
-  --accSoft: rgba(230, 210, 0, 0.2);
-  --accEdge: rgba(230, 210, 0, 0.45);
-  --a04: rgba(255, 255, 255, 0.05);
-  --a06: rgba(255, 255, 255, 0.08);
-  --a09: rgba(255, 255, 255, 0.11);
-  --a13: rgba(255, 255, 255, 0.15);
-  --a17: rgba(255, 255, 255, 0.2);
-  --a22: rgba(255, 255, 255, 0.26);
-  --a30: rgba(255, 255, 255, 0.34);
-  --shine: rgba(255, 255, 255, 0.45);
-  --navBg: rgba(11, 11, 11, 0.62);
-  --panelBg: #141414;
-  --ok: #4fbf7e;
-  --okBg: rgba(79, 191, 126, 0.16);
-  --warn: #e9a23b;
-  --warnBg: rgba(233, 162, 59, 0.16);
-  --bad: #e4574c;
-  --badBg: rgba(228, 87, 76, 0.16);
+  --bg: #13100c;
+  --yon: #17130f;
+  --kart: #1d1914;
+  --kart2: #25201a;
+  --chiziq: #3a3229;
+  --chip: #2b251e;
+  --matn: #f4efe6;
+  --xira: #afa595;
+  --acc: #e86e42;
+  --acc10: rgba(232, 110, 66, 0.16);
+  --acc1a: #e86e422e;
+  --ok: #4dbb84;
+  --okBg: #4dbb842e;
+  --ogoh: #e3a646;
+  --ogohBg: #e3a6462e;
+  --soya: 0 0 0 1px #2e2720, 0 8px 22px rgba(0, 0, 0, 0.35);
+  --parda: rgba(0, 0, 0, 0.6);
+  --unbounded: 'Unbounded', sans-serif;
+  --onest: 'Onest', -apple-system, sans-serif;
   color-scheme: dark;
+  /* Dizayndagi `body`: Onest, qator balandligi `normal` (1.55 emas). */
+  font-family: var(--onest);
+  font-size: 16px;
+  line-height: normal;
 }
 
 .zs-mavzu[data-mavzu='yorug'] {
-  --bg: #f1f0ea;
-  --glow1: rgba(230, 210, 0, 0.72);
-  --glow2: rgba(230, 210, 0, 0.3);
-  --ink: #0b0b0b;
-  --ink2: rgba(11, 11, 11, 0.78);
-  --ink3: rgba(11, 11, 11, 0.64);
-  --acc: #ddc800;
-  --acc2: #f0de00;
-  --acc3: #a89a00;
-  --accMatn: #6b6100;
-  --accSoft: rgba(221, 200, 0, 0.34);
-  --accEdge: rgba(168, 154, 0, 0.6);
-  --a04: rgba(11, 11, 11, 0.035);
-  --a06: rgba(11, 11, 11, 0.055);
-  --a09: rgba(11, 11, 11, 0.08);
-  --a13: rgba(255, 255, 255, 0.55);
-  --a17: rgba(11, 11, 11, 0.12);
-  --a22: rgba(11, 11, 11, 0.16);
-  --a30: rgba(11, 11, 11, 0.22);
-  --shine: rgba(255, 255, 255, 0.85);
-  --navBg: rgba(248, 247, 242, 0.78);
-  --panelBg: #f8f7f2;
-  --ok: #1e7a48;
-  --okBg: rgba(30, 138, 80, 0.14);
-  --warn: #8a5700;
-  --warnBg: rgba(184, 116, 0, 0.14);
-  --bad: #b0322a;
-  --badBg: rgba(195, 58, 48, 0.14);
+  --bg: #f4efe6;
+  --yon: #faf6ef;
+  --kart: #ffffff;
+  --kart2: #f8f4ec;
+  --chiziq: #e3dacb;
+  --chip: #ede6da;
+  --matn: #1f1a14;
+  --xira: #6e6558;
+  --acc: #d2552d;
+  --acc10: rgba(210, 85, 45, 0.1);
+  --acc1a: #d2552d1a;
+  --ok: #2e8b57;
+  --okBg: #2e8b571a;
+  --ogoh: #b7791f;
+  --ogohBg: #b7791f1a;
+  --soya: 0 1px 2px rgba(60, 40, 20, 0.06), 0 6px 18px rgba(60, 40, 20, 0.06);
+  --parda: rgba(31, 26, 20, 0.45);
   color-scheme: light;
 }
+
+/*
+ * Yuqoridagi eski umumiy `button` / `main` uslublari (eski forma davridan)
+ * yangi dizayn sahifalariga tegmasin: `:where` — ahamiyati `button` bilan
+ * teng, modul klasslari baribir ustun.
+ */
+:where(.zs-mavzu) button { padding: 0; border: 0; border-radius: 0; background: none; color: inherit; font: inherit; }
+:where(.zs-mavzu) button:disabled { cursor: default; }
+:where(.zs-mavzu) main { max-width: none; margin: 0; padding: 0; }
+:where(.zs-mavzu) input, :where(.zs-mavzu) select { padding: 0; min-width: 0; border: 0; border-radius: 0; background: none; font: inherit; color: inherit; }
+
+/* Dizayndagi global qoidalar: havola rangi va harakatni kamaytirish. */
+.zs-mavzu a { color: var(--acc); text-decoration: none; }
+.zs-mavzu a:hover { color: var(--matn); }
+@keyframes zsPuls { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .zs-mavzu * { animation: none !important; } }

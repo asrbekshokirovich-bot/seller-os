@@ -1,0 +1,390 @@
+/*
+ * Kirish — `dizayn/ZumSavdo-Veb.html`, w2 (telefon) va w3 (SMS kod).
+ * Oʻlchamlar dizayndagi inline uslubdan aynan: chap panel 640 px
+ * (20 px chekka, radius 28, ichki 44), forma 420 px.
+ */
+
+.sahifa {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 640px minmax(0, 1fr);
+  background: var(--bg);
+  color: var(--matn);
+  font-family: var(--onest);
+  -webkit-font-smoothing: antialiased;
+}
+
+.sahifa ::selection { background: var(--acc); color: #fff; }
+
+.sahifa :focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------- chap panel */
+
+.panel {
+  background: var(--acc);
+  color: #fff;
+  border-radius: 28px;
+  margin: 20px;
+  padding: 44px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sahifa .belgi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+}
+
+.nishon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--acc);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--unbounded);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.nom {
+  font-family: var(--unbounded);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.boshliq { flex: 1; min-height: 40px; }
+
+.shior {
+  font-family: var(--unbounded);
+  font-size: 44px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.shiorMatn {
+  margin: 18px 0 0;
+  max-width: 44ch;
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.raqamlar {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.raqamKarta {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.raqamSon {
+  font-family: var(--unbounded);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.raqamNom {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ---------------------------------------------------------- oʻng tomon — forma */
+
+.ong {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mavzu {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+}
+
+.forma {
+  width: 420px;
+  max-width: 100%;
+}
+
+.sarlavha {
+  margin: 0;
+  font-family: var(--unbounded);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.kodSarlavha { margin-top: 22px; }
+
+.izoh {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--xira);
+}
+
+.maydon {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--kart);
+  border-radius: 18px;
+  box-shadow: var(--soya);
+  cursor: text;
+}
+
+.maydon:focus-within { box-shadow: 0 0 0 2px var(--acc), var(--soya); }
+
+.maydonIkon { color: var(--xira); }
+
+.maydonIchi {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.maydonNom {
+  font-size: 12.5px;
+  color: var(--xira);
+}
+
+.sahifa .maydonQiymat {
+  margin-top: 4px;
+  width: 100%;
+  font-family: var(--unbounded);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: normal;
+  outline: 0;
+}
+
+.maydonQiymat::placeholder { color: var(--xira); opacity: 0.7; }
+
+.tugmalar {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asosiy,
+.qora {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 56px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sahifa .asosiy {
+  background: var(--acc);
+  color: #fff;
+  box-shadow: 0 10px 24px -12px var(--acc);
+}
+
+.sahifa .qora {
+  background: var(--matn);
+  color: var(--bg);
+}
+
+.asosiy:disabled { opacity: 0.55; cursor: default; }
+
+.xabar {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--ogohBg);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.yoki {
+  margin: 26px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--xira);
+}
+
+.yoki > span {
+  flex: 1;
+  height: 1px;
+  background: var(--chiziq);
+}
+
+.sahifa .mehmon {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--kart);
+  border-radius: 22px;
+  box-shadow: var(--soya);
+  color: var(--matn);
+}
+
+.mehmonIkon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--chip);
+  color: var(--xira);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mehmonMatn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.mehmonNom {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mehmonIzoh {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--xira);
+}
+
+.mehmonOq { color: var(--xira); }
+
+.shartlar {
+  margin-top: 26px;
+  font-size: 13px;
+  color: var(--xira);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------- SMS kod (w3) */
+
+.orqaga {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: none;
+  font-size: 14px;
+  color: var(--xira);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.raqamQalin {
+  color: var(--matn);
+  font-variant-numeric: tabular-nums;
+}
+
+.kodlar {
+  position: relative;
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.katak {
+  height: 64px;
+  border-radius: 16px;
+  background: var(--kart);
+  box-shadow: var(--soya);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.katakJoriy { box-shadow: 0 0 0 2px var(--acc), var(--soya); }
+
+.katakSon {
+  font-family: var(--unbounded);
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.kursor {
+  width: 2px;
+  height: 26px;
+  background: var(--acc);
+  animation: zsPuls 1s infinite;
+}
+
+.yashirin {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.kodOst {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--xira);
+}
+
+.tasdiq { margin-top: 28px; }
+
+/* ---------------------------------------------------------- tor ekran */
+
+@media (max-width: 1100px) {
+  .sahifa { grid-template-columns: minmax(0, 480px) minmax(0, 1fr); }
+  .shior { font-size: 34px; }
+}
+
+@media (max-width: 820px) {
+  .sahifa { grid-template-columns: minmax(0, 1fr); }
+  .forma { width: 100%; }
+  .panel { margin: 12px; padding: 24px; }
+  .boshliq { min-height: 24px; }
+  .shior { font-size: 28px; }
+  .raqamlar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .raqamSon { font-size: 17px; }
+  .ong { flex-direction: column; padding: 8px 20px 40px; }
+  .mavzu { position: static; align-self: flex-end; margin-bottom: 20px; }
+}
