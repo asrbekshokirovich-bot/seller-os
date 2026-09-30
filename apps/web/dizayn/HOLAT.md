@@ -1,24 +1,33 @@
 # Dizayn — holat
 
-**Qabul qilingan:** 2026-09-24 (nazoratchi).
-**Oldingisi:** `ZumSavdo-standalone.html` (koʻk + yashil, 2026-08-24) —
-olib tashlandi, uning oʻrnini shu dizayn egalladi.
+**Qabul qilingan:** 2026-09-30 (nazoratchi) — `ZumSavdo-Veb.html`,
+terrakota. **Oldingisi:** `ZUMSavdo-*.dc.html` (2026-09-24) — olib
+tashlandi, uning oʻrnini shu dizayn egalladi. Nazoratchi talabi:
+"piksellarigacha bir xil".
 
-## Manba fayllari
+## Manba fayli
 
-| Fayl | Sahifa | Kod |
+`ZumSavdo-Veb.html` — dizayn vositasining toʻplami (brauzerda ochiladi):
+9 ekran × yorugʻ/tungi, har biri 1440 px.
+
+| Ekran | Sahifa | Kod |
 |---|---|---|
-| `ZUMSavdo-K-Journey-Tinted.dc.html` | `/` | `src/app/page.tsx`, `BoshSahifa.tsx`, `bosh.module.css` |
-| `ZUMSavdo-Chat.dc.html` | `/usta` | `src/app/usta/page.tsx`, `usta.module.css` |
-| `ZUMSavdo-Chat-print.dc.html` | — | butun yoʻl bir sahifada, solishtirish uchun |
+| w1 Bosh sahifa | `/` | `src/app/BoshSahifa.tsx`, `bosh.module.css` |
+| w2–w3 Kirish (telefon, SMS kod) | `/kirish` | `src/app/kirish/` |
+| w4–w7 Usta (1, 3, 6, 8-qadam) | `/usta` | `src/app/usta/Suhbat.tsx`, `usta.module.css` |
+| w8 Profilim | `/usta` (oyna) | `Suhbat.tsx` → `Profilim` |
+| w9 Obunani oʻzgartirish | `/usta` (koʻrinish) | `usta/Obuna.tsx`, `obuna.module.css` |
 
-Fayllar dizayn vositasining formatida (`<x-dc>`, `support.js` kerak) —
-ular kod emas, **manba**. Sahifalar qoʻlda React ga oʻtkazilgan;
-qurish skripti yoʻq.
+Tokenlar `src/app/globals.css` dagi `.zs-mavzu` da (standart — tungi,
+`data-mavzu="yorug"` — yorugʻ): `--bg #F4EFE6/#13100C`,
+`--acc #D2552D/#E86E42`, `--matn #1F1A14/#F4EFE6`, `--xira #6E6558/#AFA595`,
+`--kart #FFF/#1D1914`, `--chiziq #E3DACB/#3A3229`, `--ok`, `--ogoh` va h.k.
+Shriftlar — dizayndagi Unbounded (sarlavha, raqam) va Onest (matn),
+aynan oʻsha woff2 fayllar `public/fonts/` da (`shriftlar.css`).
+Ikonkalar — `src/app/Ikon.tsx` (Lucide chiziqlari, dizayndagidek).
 
-Tokenlar (`--bg`, `--acc`, `--a06` …) dizayndagi nomlar bilan
-`src/app/globals.css` dagi `.zs-mavzu` da turadi — ikkala sahifa
-uchun bitta.
+Solishtirish (2026-09-30, 1440×900, Playwright): ekranlar orasidagi
+farq 0,3–2 % piksel; qolgani — jonli maʼlumot (son, sana) va apostrof.
 
 ## Nazoratchi qarorlari (2026-09-24)
 
@@ -147,7 +156,23 @@ uchun bitta.
     Soliq agenti qoidasi `[TASDIQ]` — tizim "komissioner hisobotida
     tekshiring" deydi, "toʻlaysiz" demaydi.
 
-## Dizayndan ataylab chetga chiqilgan joylar
+14. *(2026-09-30)* **Yangi dizayn — terrakota** (`ZumSavdo-Veb.html`).
+   Mavzu tugmasi (quyosh/oy) yana yon panel va bosh sahifada —
+   6-bandning "faqat «Profilim» da" qismi bekor. Yon paneldagi baza
+   vidjeti olib tashlandi (dizaynda yoʻq). Obuna — alohida sahifa emas,
+   `/usta` ichidagi koʻrinish (kengaytmada sessiya hash'i yoʻqolmasin).
+
+## Yangi dizayndan (2026-09-30) ataylab chetga chiqilgan joylar
+
+| Dizaynda | Kodda | Nega |
+|---|---|---|
+| Apostrof `'` (Qo'shimcha, bo'yicha) | `ʻ` (Qoʻshimcha, boʻyicha) | Oʻzbek imlosi; piksel farqining asosiy qismi shu. Nazoratchi xohlasa — bitta almashtirish |
+| SMS kod / Telegram orqali kirish | Tugmalar turadi, bosilsa "hali ulanmagan" deydi; kod ekrani (w3) tayyor, `SMS_ULANGAN` | SMS provayder va Telegram bot ulanmagan |
+| Payme / Click bilan toʻlash | Tugma oʻchiq, sababi yozilgan | Toʻlov ulanmagan |
+| Qadam soni va baza raqamlari | Jonli (bazadan) | Raqam toʻqilmaydi |
+| 6-qadamda savol pufagi yoʻq | Savol pufagi bor | Suhbat oqimi — savol matni koʻrinishi kerak |
+
+## Oldingi dizayndan (2026-09-24) chetga chiqilgan joylar
 
 Dizayn fayllari ishlayotgan mahsulotni koʻrsatadi. Bugungi tizim
 undan kichik, va QOIDALAR.md 4-boʻlim (halollik) dizayndan ustun.

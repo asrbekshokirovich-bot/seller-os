@@ -1,6 +1,6 @@
 // Yon panel — FAQAT CHAT (nazoratchi qarori, 2026-09-29).
 //
-// Panelda Seller OS saytining `/usta` sahifasi (suhbat) ramkada ochiladi.
+// Panelda ZumSavdo saytining `/usta` sahifasi (suhbat) ramkada ochiladi.
 // Boshqa hech narsa chizilmaydi: kartochka ham, natijalar ham, hisob ham —
 // hammasi chatning oʻzida.
 //
@@ -12,7 +12,7 @@
 // `x-sessiya` sarlavhasida yuboradi.
 
 /**
- * Seller OS sayt manzili (Vercel). Nazoratchi beradi; boʻsh boʻlsa panel
+ * ZumSavdo sayt manzili (Vercel). Nazoratchi beradi; boʻsh boʻlsa panel
  * rostini aytadi va hech qayerga ulanmaydi — kodda taxminiy manzil yoʻq.
  */
 const SAYT = 'https://zumsavdo.vercel.app';

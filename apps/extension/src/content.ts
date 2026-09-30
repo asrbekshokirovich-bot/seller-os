@@ -14,7 +14,7 @@ const PANEL_ID = 'selleros-xitoy-panel';
 /** Uzum.uz tovar sahifasida tugma qoʻyiladigan blok. Selektor oʻzgarishi mumkin — kengaytma yangilanadi. */
 const JOY_SELEKTOR = '[data-testid="product-actions"], .product-actions, .product-page';
 /**
- * Seller OS chat manzili — "toʻliq hisob" havolasi uchun. Boʻsh boʻlsa
+ * ZumSavdo chat manzili — "toʻliq hisob" havolasi uchun. Boʻsh boʻlsa
  * havola chizilmaydi (manzil nazoratchidan olinadi, kodda taxmin yoʻq).
  */
 const SELLEROS_SAYT = '';
@@ -87,7 +87,7 @@ function tugmaYarat(): HTMLButtonElement {
   const tugma = document.createElement('button');
   tugma.id = TUGMA_ID;
   tugma.textContent = 'Xitoydan top';
-  tugma.title = 'Seller OS: 1688 dan oʻxshash tovarlarni topish';
+  tugma.title = 'ZumSavdo: 1688 dan oʻxshash tovarlarni topish';
   tugma.addEventListener('click', async () => {
     const pid = tovarIdOl();
     if (!pid) {
@@ -277,10 +277,10 @@ function natijalarniKorsat(natijalar: Natija[], meta: Meta): void {
     a.href = `${SELLEROS_SAYT}/usta`;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.textContent = 'Toʻliq hisob (chegara narx, kargo, soliq) — Seller OS chatida';
+    a.textContent = 'Toʻliq hisob (chegara narx, kargo, soliq) — ZumSavdo chatida';
     oxiri.appendChild(a);
   } else {
-    oxiri.textContent = 'Toʻliq hisob (chegara narx, kargo, soliq) — Seller OS chatida.';
+    oxiri.textContent = 'Toʻliq hisob (chegara narx, kargo, soliq) — ZumSavdo chatida.';
   }
   panel.appendChild(oxiri);
 

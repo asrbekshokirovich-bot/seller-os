@@ -1,99 +1,93 @@
-// Kengaytma ikonkalarini generatsiya qiladi (48x48, 128x128 PNG).
-// sharp/canvas kerak emas — node:zlib bilan minimal PNG yaratadi.
+// Kengaytma ikonkalari (16, 32, 48, 128 px PNG) — sayt logotipi: terrakota
+// (#D2552D) yumaloq kvadrat, ichida oq "Z" (apps/web/dizayn/ZumSavdo-Veb.html).
+// Bogʻliqliksiz: shakl vektor (yumaloq kvadrat + Z koʻpburchagi), 8×8
+// qayta namunalash bilan silliqlanadi, node:zlib bilan RGBA PNG yoziladi.
 import { deflateSync } from 'node:zlib';
 import { writeFileSync, mkdirSync } from 'node:fs';
 
-function pngYarat(kenglik, balandlik, r, g, b) {
-  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const ACC = [0xd2, 0x55, 0x2d];
+const OQ = [0xff, 0xff, 0xff];
 
-  // IHDR
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(kenglik, 0);
-  ihdr.writeUInt32BE(balandlik, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // color type: RGB
-  const ihdrChunk = chunk('IHDR', ihdr);
+// Z — 100×100 birlikda (Unbounded qalin "Z" ga yaqin: qalin gorizontal chiziqlar, qiya oʻrta).
+const Z = [[30, 28], [72, 28], [72, 40], [45, 61], [72, 61], [72, 73], [28, 73], [28, 61], [55, 40], [30, 40]];
 
-  // IDAT — har qator: filter byte (0) + RGB piksellar
-  const qator = Buffer.alloc(1 + kenglik * 3);
-  qator[0] = 0; // no filter
-  for (let x = 0; x < kenglik; x++) {
-    qator[1 + x * 3 + 0] = r;
-    qator[1 + x * 3 + 1] = g;
-    qator[1 + x * 3 + 2] = b;
+function ichidami(x, y, poly) {
+  let ichida = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) ichida = !ichida;
   }
-
-  // Har qator uchun markazda oq "S" chizish
-  const raws = [];
-  for (let y = 0; y < balandlik; y++) {
-    const row = Buffer.from(qator);
-    // Oddiy "S" harfi shakli (piksel bilan)
-    const s = Math.floor(kenglik * 0.25);
-    const e = Math.floor(kenglik * 0.75);
-    const ym = balandlik;
-    const band = Math.floor(ym / 5);
-
-    if (y >= band && y < band * 2) {
-      // Tepa chiziq
-      for (let x = s; x < e; x++) { row[1+x*3]=255; row[2+x*3]=255; row[3+x*3]=255; }
-    } else if (y >= band * 2 && y < band * 3) {
-      // Oʻrta chiziq
-      for (let x = s; x < e; x++) { row[1+x*3]=255; row[2+x*3]=255; row[3+x*3]=255; }
-    } else if (y >= band * 3 && y < band * 4) {
-      // Past chiziq
-      for (let x = s; x < e; x++) { row[1+x*3]=255; row[2+x*3]=255; row[3+x*3]=255; }
-    }
-
-    // Chap ustun (yuqori yarim)
-    if (y >= band && y < band * 2.5) {
-      for (let x = s; x < s + Math.floor(kenglik * 0.12); x++) {
-        row[1+x*3]=255; row[2+x*3]=255; row[3+x*3]=255;
-      }
-    }
-    // Oʻng ustun (pastki yarim)
-    if (y >= band * 2.5 && y < band * 4) {
-      for (let x = e - Math.floor(kenglik * 0.12); x < e; x++) {
-        row[1+x*3]=255; row[2+x*3]=255; row[3+x*3]=255;
-      }
-    }
-
-    raws.push(row);
-  }
-
-  const raw = Buffer.concat(raws);
-  const compressed = deflateSync(raw);
-  const idatChunk = chunk('IDAT', compressed);
-
-  const iendChunk = chunk('IEND', Buffer.alloc(0));
-
-  return Buffer.concat([sig, ihdrChunk, idatChunk, iendChunk]);
+  return ichida;
 }
 
-function chunk(turi, data) {
-  const turiB = Buffer.from(turi, 'ascii');
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length, 0);
-  const body = Buffer.concat([turiB, data]);
-  const crc = crc32(body);
-  const crcB = Buffer.alloc(4);
-  crcB.writeUInt32BE(crc, 0);
-  return Buffer.concat([len, body, crcB]);
+/** Yumaloq kvadrat (0..100, radius 36 — dizayndagi 13/36). */
+function kvadratda(x, y) {
+  const r = 26;
+  const cx = Math.min(Math.max(x, r), 100 - r);
+  const cy = Math.min(Math.max(y, r), 100 - r);
+  return (x - cx) ** 2 + (y - cy) ** 2 <= r * r && x >= 0 && x <= 100 && y >= 0 && y <= 100;
+}
+
+function png(o) {
+  const N = 8;
+  const qatorlar = [];
+  for (let py = 0; py < o; py++) {
+    const q = Buffer.alloc(1 + o * 4);
+    for (let px = 0; px < o; px++) {
+      let fon = 0;
+      let zet = 0;
+      for (let sy = 0; sy < N; sy++) {
+        for (let sx = 0; sx < N; sx++) {
+          const x = ((px + (sx + 0.5) / N) / o) * 100;
+          const y = ((py + (sy + 0.5) / N) / o) * 100;
+          if (kvadratda(x, y)) {
+            fon++;
+            if (ichidami(x, y, Z)) zet++;
+          }
+        }
+      }
+      const a = fon / (N * N);
+      const z = fon ? zet / fon : 0;
+      const i = 1 + px * 4;
+      for (let k = 0; k < 3; k++) q[i + k] = Math.round(ACC[k] * (1 - z) + OQ[k] * z);
+      q[i + 3] = Math.round(a * 255);
+    }
+    qatorlar.push(q);
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(o, 0);
+  ihdr.writeUInt32BE(o, 4);
+  ihdr[8] = 8; // bit chuqurligi
+  ihdr[9] = 6; // RGBA
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    bolak('IHDR', ihdr),
+    bolak('IDAT', deflateSync(Buffer.concat(qatorlar))),
+    bolak('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+function bolak(tur, data) {
+  const t = Buffer.from(tur, 'ascii');
+  const uz = Buffer.alloc(4);
+  uz.writeUInt32BE(data.length, 0);
+  const tana = Buffer.concat([t, data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(tana), 0);
+  return Buffer.concat([uz, tana, crc]);
 }
 
 // CRC-32 (PNG spetsifikatsiyasi)
 function crc32(buf) {
-  let c = 0xFFFFFFFF;
+  let c = 0xffffffff;
   for (let i = 0; i < buf.length; i++) {
     c ^= buf[i];
-    for (let j = 0; j < 8; j++) {
-      c = (c >>> 1) ^ (c & 1 ? 0xEDB88320 : 0);
-    }
+    for (let j = 0; j < 8; j++) c = (c >>> 1) ^ (c & 1 ? 0xedb88320 : 0);
   }
-  return (c ^ 0xFFFFFFFF) >>> 0;
+  return (c ^ 0xffffffff) >>> 0;
 }
 
 mkdirSync('icons', { recursive: true });
-// Indigo (#4f46e5) — kengaytma tugmasiga mos rang
-writeFileSync('icons/icon48.png', pngYarat(48, 48, 79, 70, 229));
-writeFileSync('icons/icon128.png', pngYarat(128, 128, 79, 70, 229));
-console.log('Ikonkalar yaratildi: icons/icon48.png, icons/icon128.png');
+for (const o of [16, 32, 48, 128]) writeFileSync(`icons/icon${o}.png`, png(o));
+console.log('Ikonkalar yaratildi: icons/icon16/32/48/128.png');

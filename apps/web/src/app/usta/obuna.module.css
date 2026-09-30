@@ -1,0 +1,397 @@
+/*
+ * «Obunani oʻzgartirish» — `dizayn/ZumSavdo-Veb.html`, w9. Ustaning asosiy
+ * ustunida (yon panel joyida). Oʻlchamlar dizayndan aynan: 3 reja kartasi
+ * (radius 26, ichki 26) + 340 px toʻlov ustuni, oraliq 24 / 14.
+ */
+
+.tepa {
+  height: 76px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--chiziq);
+}
+
+.tepaChap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.orqaga {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--kart);
+  box-shadow: var(--soya);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sarlavha {
+  font-family: var(--unbounded);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.meta {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--xira);
+}
+
+.ichi {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  padding: 28px 32px;
+}
+
+.rejalar {
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+.reja {
+  flex: 1;
+  min-width: 0;
+  border-radius: 26px;
+  padding: 26px;
+  background: var(--kart);
+  box-shadow: var(--soya);
+  display: flex;
+  flex-direction: column;
+}
+
+.rejaTanlangan { box-shadow: 0 0 0 2px var(--acc), var(--soya); }
+
+.rejaBosh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.rejaNomi {
+  font-family: var(--unbounded);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.teg {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  background: var(--acc1a);
+  color: var(--acc);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tegNeytral { background: var(--chip); color: var(--xira); }
+
+/* Dizayndagidek: tor kartada raqam ham, birlik ham oʻz joyida oʻraladi (99 / 000). */
+.narx {
+  margin-top: 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.narxSon {
+  font-family: var(--unbounded);
+  font-weight: 600;
+  font-size: 36px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.narxAcc { color: var(--acc); }
+
+.narxBirlik {
+  font-size: 14px;
+  color: var(--xira);
+}
+
+.qadam {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--xira);
+}
+
+.chiziq {
+  margin: 20px 0;
+  height: 1px;
+  background: var(--chiziq);
+}
+
+.royxat {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.royxat li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.royxat li.yopiq { color: var(--xira); }
+
+.belgiBor,
+.belgiYoq {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.belgiBor { background: var(--okBg); color: var(--ok); }
+.belgiYoq { background: var(--chip); color: var(--xira); }
+
+.boshliq { flex: 1; }
+
+.tugma {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 50px;
+  margin-top: 22px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tugmaChiziq {
+  background: var(--kart);
+  box-shadow: inset 0 0 0 1.5px var(--chiziq);
+  color: var(--matn);
+}
+
+.tugmaChiziq:disabled { cursor: default; opacity: 1; }
+
+.tugmaAcc {
+  background: var(--acc);
+  color: #fff;
+}
+
+.tugmaQora {
+  background: var(--matn);
+  color: var(--bg);
+}
+
+/* ---------------------------------------------------------- toʻlov ustuni */
+
+.tolov {
+  background: var(--kart);
+  border-radius: 22px;
+  box-shadow: var(--soya);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.yorliq {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--xira);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.tolovReja {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.tolovNomi {
+  font-family: var(--unbounded);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.xira {
+  font-size: 14px;
+  color: var(--xira);
+}
+
+.qatorlar {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.qator {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.qator > span { color: var(--xira); }
+
+.qator > b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ajrat {
+  margin: 18px 0;
+  height: 1px;
+  background: var(--chiziq);
+}
+
+.jami {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.jamiQiymat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.jamiSon {
+  font-family: var(--unbounded);
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--acc);
+}
+
+.jamiBirlik {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--xira);
+}
+
+.usulYorliq { margin-top: 22px; }
+
+.usullar {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.usul {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: var(--kart2);
+  cursor: pointer;
+}
+
+.usulTanlangan {
+  background: var(--acc10);
+  box-shadow: inset 0 0 0 2px var(--acc);
+}
+
+.radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--chiziq);
+}
+
+.usulTanlangan .radio {
+  border: 6px solid var(--acc);
+  background: #fff;
+}
+
+.usulNomi {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ogoh {
+  margin-top: 18px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--ogohBg);
+  border-radius: 14px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ogohIkon {
+  flex: none;
+  color: var(--ogoh);
+}
+
+.tolash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 54px;
+  margin-top: 12px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--acc);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tolash:disabled { opacity: 0.5; }
+
+@media (max-width: 1200px) {
+  .ichi { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .rejalar { flex-direction: column; }
+}
+
+@media (max-width: 760px) {
+  .tepa { height: 64px; padding: 0 14px; }
+  .ichi { padding: 18px 14px; }
+}
