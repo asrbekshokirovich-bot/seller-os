@@ -27,7 +27,7 @@
  */
 
 import { type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat,
-  javobniQabulQil, joriyQadam, keyingi, natijaniYoz, tushuntir } from './ssenariy.ts';
+  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir } from './ssenariy.ts';
 import { natijaSonlari, tekshir } from './tekshiruv.ts';
 import type { ProfilJavoblari } from './profil.ts';
 
@@ -58,6 +58,14 @@ export interface SuhbatBogliqliklari {
     qabul: (holat: YolHolati) => Promise<unknown>;
     /** 8-qadam: kam/brak, keyin, topshirildi → ochiq ishlar. */
     qabulYakun: (holat: YolHolati) => Promise<unknown>;
+    /** 9-qadam: oq fonli suratlar (1688 + internet, Cloudflare Worker manzillari). Asinxron (Lens). */
+    studiya: (holat: YolHolati) => Promise<unknown>;
+    /** 9-qadam: "yetmadi / keyin" → ochiq ishlar. */
+    studiyaYakun: (holat: YolHolati) => Promise<unknown>;
+    /** 10-qadam: kartochka qoidalari + omborga topshirish faktlari. */
+    yuklash: (holat: YolHolati) => Promise<unknown>;
+    /** 10-qadam: kartochka, qadoq, yetkazma javoblari → ochiq ishlar. */
+    yuklashYakun: (holat: YolHolati) => Promise<unknown>;
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
@@ -114,12 +122,13 @@ export async function suhbatTurn(
 
   // ---- 1b. kutilayotgan ishni tekshirish (`tekshir`)
   if (kirish.tekshir === true) {
-    const kutilmoqda = (holat.natijalar.xitoy as { kutilmoqda?: unknown } | undefined)?.kutilmoqda;
-    if (!kutilmoqda) {
+    // Kutilayotgan ish: 5-qadam (1688) yoki 9-qadam (internet suratlari).
+    const kutilgan = kutilayotganHarakat(holat);
+    if (kutilgan === null) {
       return { xabarlar: [], keyingi: keyingi(holat), qadam: joriyQadam(holat), yozildi: true };
     }
-    const natija = await bajar(d, 'xitoy', holat);
-    const yangiHolat = natijaniYoz(holat, 'xitoy', natija);
+    const natija = await bajar(d, kutilgan, holat);
+    const yangiHolat = natijaniYoz(holat, kutilgan, natija);
     if ((natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
       // Hali tugamagan: holat oʻzgargan boʻlsa ham (urinish sanogʻi)
       // jurnalga xabar yozilmaydi; holat yoziladi.
@@ -127,7 +136,7 @@ export async function suhbatTurn(
       return { xabarlar: [], keyingi: keyingi(yangiHolat), qadam: joriyQadam(yangiHolat), yozildi: true };
     }
     holat = yangiHolat;
-    yangi.push({ rol: 'kod', matn: tushuntir('xitoy', natija), savolId: 'xitoy', javob: natija });
+    yangi.push({ rol: 'kod', matn: tushuntir(kutilgan, natija), savolId: kutilgan, javob: natija });
   }
 
   // ---- 2. javobni qabul qilish
@@ -224,6 +233,10 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
     if (harakat === 'rasmiy_yakun') return await d.kod.rasmiyYakun(h);
     if (harakat === 'qabul') return await d.kod.qabul(h);
     if (harakat === 'qabul_yakun') return await d.kod.qabulYakun(h);
+    if (harakat === 'studiya') return await d.kod.studiya(h);
+    if (harakat === 'studiya_yakun') return await d.kod.studiyaYakun(h);
+    if (harakat === 'yuklash') return await d.kod.yuklash(h);
+    if (harakat === 'yuklash_yakun') return await d.kod.yuklashYakun(h);
     return await d.kod.tannarx(h);
   } catch (e) {
     // Yiqilish jim o'tmaydi: natija sifatida sabab qaytadi va ssenariy

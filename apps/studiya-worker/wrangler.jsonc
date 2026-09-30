@@ -1,0 +1,10 @@
+{
+  // SellerOS Studiya — 9-qadam: tovar surati oq fonda, 3:4 (docs/STUDIYA.md).
+  // Joylash: `npx wrangler@4 deploy` (nazoratchi `wrangler login` qilgandan keyin).
+  // Sir: `STUDIYA_KALIT` — `wrangler secret put STUDIYA_KALIT` (Supabase dagi bilan bir xil).
+  "name": "selleros-studiya",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "images": { "binding": "IMAGES" },
+  "observability": { "enabled": true }
+}

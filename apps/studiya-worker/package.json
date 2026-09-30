@@ -1,0 +1,13 @@
+{
+  "name": "@selleros/studiya-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "deploy": "npx wrangler@4 deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260929.1"
+  }
+}

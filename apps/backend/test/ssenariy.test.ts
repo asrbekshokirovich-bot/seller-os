@@ -12,8 +12,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boshlangichHolat, faktlarniOqi, javobniQabulQil, joriyQadam, keyingi, natijaniYoz, qabulFaktlari, rasmiyFaktlari,
-  SHAHARLAR, SUHBAT_QADAMLARI, tushuntir, type YolHolati,
+  boshlangichHolat, faktlarniOqi, javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, qabulFaktlari,
+  rasmiyFaktlari, SHAHARLAR, SUHBAT_QADAMLARI, suratTalablari, tushuntir, type YolHolati,
 } from '@selleros/shared';
 
 const YONALISHLAR = {
@@ -102,6 +102,31 @@ const QABUL = {
   qatorlar: [{ productId: 100, title: 'Quloqchin A', miqdor: 30, qadoq: null }], jamiDona: 30, izoh: 'qabul',
 };
 const QABUL_YAKUN = { olchov_yoq: false, yozildi: [], izoh: 'qabul yakun' };
+/** 9-qadam: 0059 seed qisqasi (Uzum qoʻllanmasi 5.7). */
+const FS = (qiymat: unknown) => FQ(qiymat, 'seller.uzum.uz/manual/uz/5.product-creation (5.7)');
+const SURAT_SEED = {
+  'uzum.surat.format': FS('JPEG, JPG, WebP, PNG'), 'uzum.surat.min_eni': FS(750), 'uzum.surat.min_boyi': FS(1000),
+  'uzum.surat.nisbat': FS('vertikal 3:4'), 'uzum.surat.max_mb': FS(5), 'uzum.surat.tovar_ulush_min': FS(50),
+  'uzum.surat.qoidalar': FS(['Birinchi surat — old tomon', 'Matn faqat oʻzbek yoki rus tilida']),
+  'uzum.kartochka.qoidalar': FS(['Nom va tavsif ikki tilda', 'VGT oʻlchanadi', 'Stop-soʻzlar yoʻq']),
+};
+const TALABLAR = suratTalablari(faktlarniOqi(SURAT_SEED));
+const SURAT = (manba: '1688-tanlov' | '1688-oxshash' | 'internet', n: number) => ({
+  manba, asl: `https://cdn.example/${n}.jpg`, sayt: manba === 'internet' ? 'amazon.com' : '1688', eni: null, boyi: null, nom: null,
+  url: `https://studiya.example/?r=auto&src=${n}&s=x`,
+});
+const STUDIYA = {
+  olchov_yoq: false, talablar: TALABLAR, sozlangan: true, chiqishMos: true, kutilmoqda: null, izoh: 'studiya',
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', internet: 'qidirildi' as const, internetSabab: null, tashlandi: 2,
+    suratlar: [SURAT('1688-tanlov', 1), SURAT('internet', 2), SURAT('internet', 3), SURAT('1688-oxshash', 4)] }],
+};
+const STUDIYA_KUTISH = { ...STUDIYA, qatorlar: [], kutilmoqda: { boshlandi: '2026-09-29T09:00:00.000Z', runlar: [{ productId: 100, runId: 'L1', rasmUrl: 'https://cdn.example/1.jpg' }], tayyor: [] } };
+const STUDIYA_YAKUN = { olchov_yoq: false, yozildi: [], izoh: 'studiya yakun' };
+const YUKLASH = {
+  olchov_yoq: false, faktlar: qabulFaktlari(faktlarniOqi(QABUL_SEED)), talablar: TALABLAR,
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', miqdor: 30, qadoq: null }], jamiDona: 30, izoh: 'yuklash',
+};
+const YUKLASH_YAKUN = { olchov_yoq: false, yozildi: [], izoh: 'yuklash yakun' };
 
 /** Javob beradi va qabul qilinganini tekshiradi. */
 function javob(h: YolHolati, id: string, q: unknown): YolHolati {
@@ -117,9 +142,9 @@ function savolId(h: YolHolati): string {
 }
 
 describe('ssenariy — 12 qadam', () => {
-  it('12 qadam, dastlabki 8 tasi qurilgan', () => {
+  it('12 qadam, dastlabki 10 tasi qurilgan', () => {
     expect(SUHBAT_QADAMLARI.length).toBe(12);
-    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 });
 
@@ -308,7 +333,7 @@ describe('zanjir hech qayerda uzilmaydi', () => {
   it("har holatda keyingi() nimadir qaytaradi va savol matni bo'sh emas", () => {
     let h = boshlangichHolat();
     const korilgan: string[] = [];
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 60; i++) {
       const k = keyingi(h);
       korilgan.push(k.tur === 'savol' ? k.savol.id : k.tur);
       if (k.tur === 'tezOrada') { expect(k.matn.length).toBeGreaterThan(20); break; }
@@ -322,7 +347,11 @@ describe('zanjir hech qayerda uzilmaydi', () => {
                     : k.harakat === 'rasmiy' ? RASMIY
                       : k.harakat === 'rasmiy_yakun' ? YAKUN
                         : k.harakat === 'qabul' ? QABUL
-                          : k.harakat === 'qabul_yakun' ? QABUL_YAKUN : { ok: true });
+                          : k.harakat === 'qabul_yakun' ? QABUL_YAKUN
+                            : k.harakat === 'studiya' ? STUDIYA
+                              : k.harakat === 'studiya_yakun' ? STUDIYA_YAKUN
+                                : k.harakat === 'yuklash' ? YUKLASH
+                                  : k.harakat === 'yuklash_yakun' ? YUKLASH_YAKUN : { ok: true });
         continue;
       }
       if (k.tur === 'kutish') throw new Error('kutish: bu yoʻlda kutilmagan');
@@ -691,8 +720,8 @@ function qabulBoshi(): YolHolati {
   return natijaniYoz(h, 'rasmiy_yakun', YAKUN);
 }
 
-describe('8-qadam — Qabul (hamma raqam faktdan)', () => {
-  it('kod qabul → yuk_keldi → yuk_mos → qadoq_tayyor → yetkazish → taymslot → topshirildi → kod qabul_yakun → 9 "tez orada"', () => {
+describe('8-qadam — Qabul (Xitoydan kelgan yuk; hamma raqam faktdan)', () => {
+  it('kod qabul → yuk_keldi → yuk_mos → kod qabul_yakun → 9-qadam studiya kodi', () => {
     let h = qabulBoshi();
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'qabul', qadam: 8 });
     h = natijaniYoz(h, 'qabul', QABUL);
@@ -708,31 +737,10 @@ describe('8-qadam — Qabul (hamma raqam faktdan)', () => {
     expect(k2.savol.id).toBe('yuk_mos');
     expect(k2.savol.matn).toMatch(/varaqada 30 dona.*tafovut 2500 soʻm har birlik/);
     h = javob(h, 'yuk_mos', 'mos');
-    const k3 = keyingi(h);
-    if (k3.tur !== 'savol') throw new Error(k3.tur);
-    expect(k3.savol.id).toBe('qadoq_tayyor');
-    expect(k3.savol.matn).toMatch(/EAN-13 yoki Uzum QR; oʻlcham 58×40 mm\. Quti kamida 2\/3 toʻlsin/);
-    h = javob(h, 'qadoq_tayyor', 'tayyor');
-    const k4 = keyingi(h);
-    if (k4.tur !== 'savol') throw new Error(k4.tur);
-    expect(k4.savol.id).toBe('yetkazish');
-    expect(k4.savol.matn).toMatch(/Ombor: Toshkent, Sergeli, Xonabod 2\/2, 06:00–00:00\. Viloyatdan — Uzum logistikasi: https:\/\/logistics\.uzum\.uz \(quti 20 kg gacha, taymslotdan 2 kun oldin, pullik\)/);
-    h = javob(h, 'yetkazish', 'ozim');
-    const k5 = keyingi(h);
-    if (k5.tur !== 'savol') throw new Error(k5.tur);
-    expect(k5.savol.id).toBe('taymslot');
-    expect(k5.savol.matn).toMatch(/100 SKU gacha.*2 nusxa.*3 marta gacha.*48 soat oldin/);
-    h = javob(h, 'taymslot', 'oldim');
-    const k6 = keyingi(h);
-    if (k6.tur !== 'savol') throw new Error(k6.tur);
-    expect(k6.savol.id).toBe('topshirildi');
-    expect(k6.savol.matn).toMatch(/Qabul 7 kun gacha.*2500 soʻm har birlik/);
-    h = javob(h, 'topshirildi', 'topshirdim');
+    // Tartib tuzatildi: qadoq/yetkazma endi 10-qadamda — kartochkadan keyin.
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'qabul_yakun', qadam: 8 });
     h = natijaniYoz(h, 'qabul_yakun', QABUL_YAKUN);
-    const k9 = keyingi(h);
-    expect(k9.tur).toBe('tezOrada');
-    if (k9.tur === 'tezOrada') { expect(k9.qadam).toBe(9); expect(k9.nom).toBe('Studiya'); }
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'studiya', qadam: 9 });
     expect(joriyQadam(h)).toBe(9);
   });
 
@@ -749,7 +757,7 @@ describe('8-qadam — Qabul (hamma raqam faktdan)', () => {
     expect(savolId(h)).toBe('yuk_mos');
   });
 
-  it('kam / nuqsonli — izoh savoli (oʻtkazish mumkin); mos — soʻralmaydi', () => {
+  it('kam / nuqsonli — izoh savoli (oʻtkazish mumkin), keyin qabul yakuni; mos — izoh soʻralmaydi', () => {
     let h = natijaniYoz(qabulBoshi(), 'qabul', QABUL);
     h = javob(h, 'yuk_keldi', 'keldi');
     h = javob(h, 'yuk_mos', 'kam');
@@ -760,7 +768,7 @@ describe('8-qadam — Qabul (hamma raqam faktdan)', () => {
     expect(k.savol.otkazishMumkin).toBe(true);
     h = javob(h, 'yuk_izoh', ' 3 ta sumka yetishmadi ');
     expect(h.javoblar['yuk_izoh']).toBe('3 ta sumka yetishmadi');
-    expect(savolId(h)).toBe('qadoq_tayyor');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'qabul_yakun', qadam: 8 });
   });
 
   it('fakt yoʻq — matnlar "faktda yoʻq" deydi, nol yoʻq', () => {
@@ -769,22 +777,166 @@ describe('8-qadam — Qabul (hamma raqam faktdan)', () => {
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.matn).toBe('Yuk keldimi? Varaqada dona soni yoʻq (1 tovar).');
     h = javob(h, 'yuk_keldi', 'keldi');
-    h = javob(h, 'yuk_mos', 'mos');
+    const km = keyingi(h);
+    if (km.tur !== 'savol') throw new Error(km.tur);
+    expect(km.savol.matn).toMatch(/dona soni yoʻq.*tafovut faktda yoʻq/);
+    expect(km.savol.matn).not.toMatch(/\b0 /);
+  });
+
+  it('tushuntir(qabul / qabul_yakun): raqamlar natijadan, manba bilan', () => {
+    expect(tushuntir('qabul', QABUL)).toBe('Qabul roʻyxati tayyor: 1 ta tovar, 30 dona. Yuk kelganda sanang va koʻzdan kechiring: kam yoki nuqsonli boʻlsa agentga daʼvo uchun yozib qoʻyamiz. Nuqsonli tovarni Uzumga yubormang — omborda aniqlangan har muammo (brak, kam, ortiqcha, yorliqsiz) 2500 soʻm har birlik. Manba: seller.uzum.uz/manual 6.6 (2026-09-28).');
+    expect(tushuntir('qabul', { ...QABUL, olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' })).toMatch(/bera olmadim: fakt roʻyxati oʻqilmadi/);
+    expect(tushuntir('qabul_yakun', QABUL_YAKUN)).toBe('Qabul boʻyicha ochiq ish yoʻq — hammasi tayyor.');
+    const y = { ...QABUL_YAKUN, yozildi: [{ tur: 'tekshirish', sabab: 'qabul: yuk kam keldi — 3 ta', muddat: null, id: 1, yangi: true }] };
+    expect(tushuntir('qabul_yakun', y)).toBe('Ochiq ishlar yozildi (1): qabul: yuk kam keldi — 3 ta. Tekshirish belgilari nazoratchiga ketdi.');
+  });
+});
+
+/** 8-qadam tugagan holat (yuk mos, qabul yakuni yozilgan). */
+function studiyaBoshi(): YolHolati {
+  let h = natijaniYoz(qabulBoshi(), 'qabul', QABUL);
+  h = javob(h, 'yuk_keldi', 'keldi');
+  h = javob(h, 'yuk_mos', 'mos');
+  return natijaniYoz(h, 'qabul_yakun', QABUL_YAKUN);
+}
+
+describe('9-qadam — Studiya (oq fonli suratlar)', () => {
+  it('kod studiya → (internet qidiruvi) kutish → studiya_tayyor → kod studiya_yakun → 10-qadam yuklash kodi', () => {
+    let h = studiyaBoshi();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'studiya', qadam: 9 });
+    const kutish = natijaniYoz(h, 'studiya', STUDIYA_KUTISH);
+    const kk = keyingi(kutish);
+    expect(kk).toMatchObject({ tur: 'kutish', qadam: 9, boshlandi: '2026-09-29T09:00:00.000Z' });
+    if (kk.tur === 'kutish') expect(kk.matn).toMatch(/Internetdan oʻxshash suratlar qidirilmoqda \(1 ta tovar\)/);
+    expect(kutilayotganHarakat(kutish)).toBe('studiya');
+    h = natijaniYoz(h, 'studiya', STUDIYA);
+    expect(kutilayotganHarakat(h)).toBeNull();
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('studiya_tayyor');
+    expect(k.savol.qadam).toBe(9);
+    expect(k.savol.matn).toMatch(/^Jami 4 ta surat tayyorlandi — oq fonda, 3:4 \(1200×1600\)\. .*birinchisi — tovarning old tomoni.*Yetarlimi\?$/);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['tayyor', 'kam', 'qayta', 'keyin']);
+    expect(k.savol.otkazishMumkin).toBe(true);
+    h = javob(h, 'studiya_tayyor', 'tayyor');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'studiya_yakun', qadam: 9 });
+    h = natijaniYoz(h, 'studiya_yakun', STUDIYA_YAKUN);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yuklash', qadam: 10 });
+  });
+
+  it('kutilayotganHarakat: 1688 yurishi birinchi, keyin studiya', () => {
+    const h = natijaniYoz(natijaniYoz(studiyaBoshi(), 'studiya', STUDIYA_KUTISH), 'xitoy', { ...XITOY, kutilmoqda: { runId: 'X' } });
+    expect(kutilayotganHarakat(h)).toBe('xitoy');
+    expect(kutilayotganHarakat(boshlangichHolat())).toBeNull();
+  });
+
+  it('«Qayta qidir» — studiya natijasi va javobi tozalanadi, yana studiya kodi', () => {
+    let h = natijaniYoz(studiyaBoshi(), 'studiya', STUDIYA);
+    h = javob(h, 'studiya_tayyor', 'qayta');
+    expect(h.javoblar['studiya_tayyor']).toBeUndefined();
+    expect(h.natijalar.studiya).toBeUndefined();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'studiya', qadam: 9 });
+  });
+
+  it('studiya ulanmagan yoki surat yoʻq — rostini aytadi', () => {
+    const h = natijaniYoz(studiyaBoshi(), 'studiya', { ...STUDIYA, sozlangan: false });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/^Jami 4 ta surat tayyorlandi — asl holida — studiya xizmati hali ulanmagan\./);
+    const bosh = keyingi(natijaniYoz(studiyaBoshi(), 'studiya', { ...STUDIYA, qatorlar: [] }));
+    if (bosh.tur !== 'savol') throw new Error(bosh.tur);
+    expect(bosh.savol.matn).toMatch(/^Surat topilmadi\./);
+  });
+
+  it('tushuntir(studiya): manbalar soni, oq fon qoidasi, qidirilmagan sabab, Uzum talabi faktdan', () => {
+    expect(tushuntir('studiya', STUDIYA)).toBe('Studiya: 1 ta tovar uchun 4 ta surat (2 tasi 1688 dan, 2 tasi internetdan). Har biri 1200×1600 (3:4), oq fonda: foni oq boʻlsa faqat moslanadi, boʻlmasa fon olib tashlanadi — tovarning oʻzi oʻzgarmaydi. Uzum talabi: kamida 750×1000, vertikal 3:4, 5 MB gacha. Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.');
+    const qidirilmadi = { ...STUDIYA, sozlangan: false, talablar: null, qatorlar: [{ ...STUDIYA.qatorlar[0]!, internet: 'qidirilmadi' as const, internetSabab: 'provayder kaliti yoʻq', suratlar: [SURAT('1688-tanlov', 1)] }] };
+    expect(tushuntir('studiya', qidirilmadi)).toBe('Studiya: 1 ta tovar uchun 1 ta surat (1 tasi 1688 dan, 0 tasi internetdan). Studiya xizmati hali ulanmagan — suratlar asl holida, fon oqlanmagan. 1 ta tovarda internet qidiruvi boʻlmadi: provayder kaliti yoʻq. Uzum surat talablari faktda yoʻq. Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.');
+    expect(tushuntir('studiya', { ...STUDIYA, chiqishMos: false })).toMatch(/5 MB gacha\. DIQQAT: studiya chiqishi \(1200×1600\) bu talabga mos emas — nazoratchiga yozildi\. Xitoycha/);
+    expect(tushuntir('studiya', { ...STUDIYA, olchov_yoq: true, sabab: 'buyurtma varaqasida 1688 taklifi tanlangan tovar yoʻq' })).toBe('Studiya suratlarini tayyorlay olmadim: buyurtma varaqasida 1688 taklifi tanlangan tovar yoʻq.');
+    expect(tushuntir('studiya_yakun', { ...STUDIYA_YAKUN, yozildi: [{ tur: 'kutyapman', sabab: 'studiya: oʻz suratlari (yetmadi)', muddat: null, id: 3, yangi: true }] }))
+      .toBe('Ochiq ishlar yozildi (1): studiya: oʻz suratlari (yetmadi).');
+    expect(tushuntir('studiya_yakun', STUDIYA_YAKUN)).toBe('Studiya boʻyicha ochiq ish yoʻq — hammasi tayyor.');
+  });
+});
+
+/** 9-qadam tugagan holat. */
+function yuklashBoshi(): YolHolati {
+  let h = natijaniYoz(studiyaBoshi(), 'studiya', STUDIYA);
+  h = javob(h, 'studiya_tayyor', 'tayyor');
+  return natijaniYoz(h, 'studiya_yakun', STUDIYA_YAKUN);
+}
+
+describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
+  it('kod yuklash → kartochka → qadoq → yetkazish → taymslot → topshirildi → kod yuklash_yakun → 11 "tez orada"', () => {
+    let h = yuklashBoshi();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yuklash', qadam: 10 });
+    h = natijaniYoz(h, 'yuklash', YUKLASH);
+    const k1 = keyingi(h);
+    if (k1.tur !== 'savol') throw new Error(k1.tur);
+    expect(k1.savol.id).toBe('kartochka_yaratildi');
+    expect(k1.savol.qadam).toBe(10);
+    expect(k1.savol.matn).toMatch(/Surat talabi: kamida 750×1000, vertikal 3:4, 5 MB gacha\. Kartochka qoidalari \(3 ta qoida\)/);
+    expect(k1.savol.variantlar.map((v) => v.qiymat)).toEqual(['yaratdim', 'keyin', 'boshqacha']);
+    h = javob(h, 'kartochka_yaratildi', 'yaratdim');
+    const k2 = keyingi(h);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.id).toBe('qadoq_tayyor');
+    expect(k2.savol.qadam).toBe(10);
+    expect(k2.savol.matn).toMatch(/EAN-13 yoki Uzum QR; oʻlcham 58×40 mm\. Quti kamida 2\/3 toʻlsin/);
+    h = javob(h, 'qadoq_tayyor', 'tayyor');
+    const k3 = keyingi(h);
+    if (k3.tur !== 'savol') throw new Error(k3.tur);
+    expect(k3.savol.id).toBe('yetkazish');
+    expect(k3.savol.matn).toMatch(/Ombor: Toshkent, Sergeli, Xonabod 2\/2, 06:00–00:00\. Viloyatdan — Uzum logistikasi: https:\/\/logistics\.uzum\.uz \(quti 20 kg gacha, taymslotdan 2 kun oldin, pullik\)/);
+    h = javob(h, 'yetkazish', 'ozim');
+    const k4 = keyingi(h);
+    if (k4.tur !== 'savol') throw new Error(k4.tur);
+    expect(k4.savol.id).toBe('taymslot');
+    expect(k4.savol.matn).toMatch(/100 SKU gacha.*2 nusxa.*3 marta gacha.*48 soat oldin/);
+    h = javob(h, 'taymslot', 'oldim');
+    const k5 = keyingi(h);
+    if (k5.tur !== 'savol') throw new Error(k5.tur);
+    expect(k5.savol.id).toBe('topshirildi');
+    expect(k5.savol.matn).toMatch(/Qabul 7 kun gacha.*2500 soʻm har birlik/);
+    h = javob(h, 'topshirildi', 'topshirdim');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yuklash_yakun', qadam: 10 });
+    h = natijaniYoz(h, 'yuklash_yakun', YUKLASH_YAKUN);
+    const k11 = keyingi(h);
+    expect(k11.tur).toBe('tezOrada');
+    if (k11.tur === 'tezOrada') { expect(k11.qadam).toBe(11); expect(k11.nom).toBe('Sotuv boshlandi'); }
+    expect(joriyQadam(h)).toBe(11);
+  });
+
+  it('eski sessiya: 8-qadamda qadoq/yetkazma javob berilgan — 10-qadamda qayta soʻralmaydi', () => {
+    let h = yuklashBoshi();
+    h = { ...h, javoblar: { ...h.javoblar, qadoq_tayyor: 'tayyor', yetkazish: 'ozim', taymslot: 'oldim', topshirildi: 'topshirdim' } };
+    h = natijaniYoz(h, 'yuklash', YUKLASH);
+    expect(savolId(h)).toBe('kartochka_yaratildi');
+    h = javob(h, 'kartochka_yaratildi', 'yaratdim');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yuklash_yakun', qadam: 10 });
+  });
+
+  it('fakt yoʻq — "faktda yoʻq", nol yoʻq', () => {
+    let h = natijaniYoz(yuklashBoshi(), 'yuklash', { ...YUKLASH, faktlar: qabulFaktlari({}), talablar: suratTalablari({}) });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/Surat talabi: ruxsat faktda yoʻq, nisbat faktda yoʻq, hajm faktda yoʻq\. Kartochka qoidalari \(qoidalar faktda yoʻq\)/);
+    h = javob(h, 'kartochka_yaratildi', 'yaratdim');
     const kq = keyingi(h);
     if (kq.tur !== 'savol') throw new Error(kq.tur);
     expect(kq.savol.matn).toMatch(/yorliq: faktda yoʻq; oʻlcham faktda yoʻq\. Quti toʻliqligi faktda yoʻq/);
     expect(kq.savol.matn).not.toMatch(/\b0 /);
   });
 
-  it('tushuntir(qabul / qabul_yakun): raqamlar natijadan, manba bilan', () => {
-    const m = tushuntir('qabul', QABUL);
-    expect(m).toMatch(/^Qabul roʻyxati tayyor: 1 ta tovar, 30 dona; 0 tasiga Uzum qadoq jadvalidan qoida topildi, 1 tasiga umumiy qoida\. Ombor: Toshkent, Sergeli, Xonabod 2\/2 \(06:00–00:00\)\. Qabul 7 kun gacha; tafovut 2500 soʻm har birlik\. Manba: seller\.uzum\.uz\/manual 6\.6 \(2026-09-28\)\.$/);
-    expect(tushuntir('qabul', { ...QABUL, olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' })).toMatch(/bera olmadim: fakt roʻyxati oʻqilmadi/);
-    expect(tushuntir('qabul_yakun', QABUL_YAKUN)).toBe('Qabul boʻyicha ochiq ish yoʻq — hammasi tayyor.');
-    const y = { ...QABUL_YAKUN, yozildi: [
-      { tur: 'tekshirish', sabab: 'qabul: yuk kam keldi — 3 ta', muddat: null, id: 1, yangi: true },
+  it('tushuntir(yuklash / yuklash_yakun)', () => {
+    expect(tushuntir('yuklash', YUKLASH)).toBe('Yuklash: 1 ta tovar, 30 dona. Avval kartochka (3 ta qoida), keyin qadoq (0 tasiga Uzum jadvalidan qoida), yorliq, yetkazma akti va taymslot. Ombor: Toshkent, Sergeli, Xonabod 2/2 (06:00–00:00); qabul 7 kun gacha, tafovut 2500 soʻm har birlik. Manba: seller.uzum.uz/manual 6.6 (2026-09-28).');
+    expect(tushuntir('yuklash', { ...YUKLASH, olchov_yoq: true, sabab: 'yuklash faktlari kiritilmagan (0058/0059 qoʻllanmagan)' })).toMatch(/bera olmadim: yuklash faktlari kiritilmagan/);
+    const y = { ...YUKLASH_YAKUN, yozildi: [
+      { tur: 'tekshirish', sabab: 'yuklash: kabinet (kartochka) boshqacha', muddat: null, id: 1, yangi: true },
       { tur: 'kutyapman', sabab: 'Uzum ombor qabuli', muddat: '2026-10-06', id: 2, yangi: true },
     ] };
-    expect(tushuntir('qabul_yakun', y)).toBe('Ochiq ishlar yozildi (2): qabul: yuk kam keldi — 3 ta; Uzum ombor qabuli (2026-10-06 gacha). Tekshirish belgilari nazoratchiga ketdi.');
+    expect(tushuntir('yuklash_yakun', y)).toBe('Ochiq ishlar yozildi (2): yuklash: kabinet (kartochka) boshqacha; Uzum ombor qabuli (2026-10-06 gacha). Tekshirish belgilari nazoratchiga ketdi.');
+    expect(tushuntir('yuklash_yakun', YUKLASH_YAKUN)).toBe('Yuklash boʻyicha ochiq ish yoʻq — hammasi tayyor.');
   });
 });

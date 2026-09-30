@@ -7,6 +7,39 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-09-29] **Studiya (9-qadam) — Cloudflare limiti.** Free:
+oyiga 5 000 noyob oʻzgartirish, oshsa yangi surat 9422 xato bilan
+qaytadi (pul olinmaydi); Paid: $0.50 / 1 000 (developers.cloudflare.com/
+images/pricing, 2026-09-29). Bitta surat `auto` da 2 oʻzgartirish, bir
+tovar 8 tagacha surat — Free ≈ 300 tovar/oy. Oylik sarfni kuzatish
+(Cloudflare dashboard → Images → Transformations) va kerak boʻlsa Paid
+ga oʻtish — nazoratchi qarori. Arzonlatish yoʻli: zondni (48×48) olib
+tashlash uchun manba URL boʻyicha oq fon belgisini keshlash. Batafsil —
+docs/STUDIYA.md.
+
+— [agent, 2026-09-29] **Studiya — suratdagi xitoycha yozuv aniqlanmaydi.**
+Uzum 5.7: suratdagi matn faqat oʻzbek yoki rus tilida. 1688 suratlarida
+koʻpincha xitoycha reklama yozuvi bor; hozir sotuvchi tanlashda oʻzi
+koʻradi (savol matni aytadi). Yechim: OCR (Workers AI yoki Google Vision)
+bilan CJK belgisini topib, suratni "yozuvli" deb belgilash. Xarajat va
+aniqlik oʻlchanishi kerak.
+
+— [agent, 2026-09-29] **Studiya — sotuvchining oʻz surati.** "Yetmadi —
+oʻzim suratga olaman" hozir faqat ochiq ish yozadi. Keyingi qadam:
+yuklash (R2 yoki Supabase Storage) → Worker bilan oq fonga → toʻrga
+qoʻshish. Saqlash, hajm limiti va maxfiylik sahifasi yangilanishi kerak.
+
+— [agent, 2026-09-29] **Studiya — internet suratining huquqi.** Google
+Lens topgan surat boshqa doʻkonniki boʻlishi mumkin; faqat `uzum.uz`
+chiqarib tashlanadi (Uzum 2.12). Surat manbasi (sayt) kartada yoziladi.
+Kerak boʻlsa: faqat ishlab chiqaruvchi/ulgurji saytlar roʻyxati (1688,
+alibaba, made-in-china) — nazoratchi qarori.
+
+— [agent, 2026-09-29] **Uzum kartochkasi avtomatik yaratilmaydi.**
+10-qadam qoidalar va raqamni beradi, kartochkani sotuvchi kabinetda
+oʻzi yaratadi. Uzum Seller API (agar kartochka yaratish ochiq boʻlsa)
+bilan toʻgʻridan-toʻgʻri yuborish — alohida bosqich, kalit sotuvchidan.
+
 — [agent, 2026-09-25] **Backend matnlarining ruschasi.** Web ikki tilli
 boʻldi, lekin API tayyor oʻzbekcha jumla qaytaradigan joylar bor:
 tuzoq sababi (`Flag.reason`), `miqdorSababi`, `miqdor.hisob`,
@@ -72,14 +105,16 @@ Uzum toifasi (category) boʻyicha aniqroq moslash `category_requirements`
 kabi jadval talab qiladi. Nazoratchi Uzum jadvalining qolgan qatorlarini
 (avto, bogʻ, sochiluvchan, zargarlik…) faktga qoʻshishi mumkin — kod
 oʻzgarmaydi. Uzum ombor saqlash tarifi (6.7) va FBS/DBS sxemalari (8–10
-boblar) 8-qadamga kirmadi — FBO (Uzum ombori) asosiy yoʻl.
+boblar) 8-qadamga kirmadi — FBO (Uzum ombori) asosiy yoʻl. *(2026-09-29:
+qadoq, yetkazma va topshirish 10-qadamga koʻchdi — kartochkadan keyin.)*
 
 — [agent, 2026-09-28] **Ochiq ish "tekshirish" turi nazoratchi paneliga
 chiqmaydi.** "Sayt boshqacha" belgilari `selleros.ochiq_ish` da
 (tur = tekshirish, props.savolId) yigʻiladi, lekin ularni koʻradigan
 ekran yoʻq — hozircha SQL bilan. Eslatma mexanizmi bilan birga qurilsin.
 
-— [agent, 2026-09-25] **Ssenariy 6–12-qadamlari qurilmagan.** Mashina
+— [agent, 2026-09-25] **Ssenariy 6–12-qadamlari qurilmagan.** *(2026-09-29:
+6–10 QURILDI; 11 sotuv signallari va 12 hisobot qoldi.)* Mashina
 ularga yetganda rostini aytadi ("tez orada"). 5-qadam (Xitoydan topish)
 QURILDI: rasm → kesh → limit → TMAPI → CBU kursi → chegaraga solishtirish
 → har tovar uchun tanlov. Rasm bazada boʻlmasa (0054 qoʻllanmagan yoki

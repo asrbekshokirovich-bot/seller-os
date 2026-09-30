@@ -31,6 +31,14 @@ bilan. **Boʻlmasa ham suhbat ishlaydi**: LLM faqat jumlani odamdek aytadi,
 kalit yoʻq boʻlsa kodning jumlasi ketadi. Kalit qoʻyilgach javob
 `tekshiruv.ts` darvozasidan oʻtadi — LLM raqam qoʻshsa kod jumlasi qoladi.
 
+## Studiya (9-qadam) sirlari
+
+`STUDIYA_URL` va `STUDIYA_KALIT` — Cloudflare Worker manzili va imzo
+kaliti. Worker `main` deploy qadamiga **kirmaydi**: u alohida Cloudflare
+hisobida, bir marta `scripts\studiya-ulash.cmd` bilan joylanadi
+(docs/STUDIYA.md). Sirlar boʻlmasa suhbat ishlaydi — suratlar asl holida
+chiqadi va shu aytiladi.
+
 ## Sir yo'q bo'lsa nima bo'ladi
 
 Deploy ishi **qizil bo'ladi** va aniq xabar beradi:

@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-08-25';
+const YANGILANDI = '2026-09-29';
 
 export default function Maxfiylik() {
   return (
@@ -120,6 +120,21 @@ export default function Maxfiylik() {
                 <td>Sessiya kalitining xeshi va oxirgi tashrif vaqti</td>
                 <td><code>user_session</code></td>
               </tr>
+              <tr>
+                <td>
+                  Usta suhbati: savol-javoblar, qaysi qadamdasiz va har
+                  qadamda kod hisoblagan natija (yoʻnalish, tovar, 1688
+                  takliflari, varaqa, suratlar roʻyxati)
+                </td>
+                <td><code>suhbat_xabar</code>, <code>yol</code></td>
+              </tr>
+              <tr>
+                <td>
+                  Ochiq ishlar: «keyinroq» degan qadamlaringiz va yuk yoki
+                  Uzum qabulini kutish muddati
+                </td>
+                <td><code>ochiq_ish</code></td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -145,9 +160,15 @@ export default function Maxfiylik() {
         <h2>Kuzatuvchi skriptlar yoʻq</h2>
         <p>
           Sahifada Google Analytics, Facebook piksel yoki boshqa kuzatuv
-          vositasi <strong>yoʻq</strong>. Shriftlar va rasmlar ham tashqi
-          xizmatdan emas, oʻzimizning serverdan yuklanadi — yaʼni sahifani
-          ochganingizni uchinchi tomon bilmaydi.
+          vositasi <strong>yoʻq</strong>. Shriftlar oʻzimizning serverdan
+          yuklanadi.
+        </p>
+        <p>
+          <strong>Tovar rasmlari</strong> esa oʻz manbasidan koʻrsatiladi:
+          Uzum (<code>images.uzum.uz</code>), 1688 (<code>alicdn.com</code>),
+          9-qadamda studiya (Cloudflare) va surat topilgan sayt. Bu serverlar,
+          har qanday sayt kabi, rasmni soʻragan IP manzilni koʻradi. Rasm
+          soʻrovida qaysi sahifadan kelgani (<code>Referer</code>) yuborilmaydi.
         </p>
 
         <h2>Uzum maʼlumoti — sizniki emas</h2>
@@ -164,6 +185,22 @@ export default function Maxfiylik() {
           </li>
           <li>
             <strong>Vercel</strong> — sayt shu yerda joylashgan.
+          </li>
+          <li>
+            <strong>Apify</strong> — 5-qadamda (1688 qidiruvi) va 9-qadamda
+            (internetdan oʻxshash surat, Google Lens) tovar <strong>rasmi</strong>{' '}
+            yuboriladi. Javoblaringiz va sessiya kaliti yuborilmaydi.
+          </li>
+          <li>
+            <strong>Cloudflare</strong> — 9-qadamda tovar suratini oq fonga
+            oʻtkazadi: unga faqat rasm manzili boradi, tayyor surat Cloudflare
+            keshida 30 kungacha turadi.
+          </li>
+          <li>
+            <strong>Google Gemini</strong> (ulangan boʻlsa) — menejer savolini
+            tabiiyroq qilish uchun kod yozgan jumla yuboriladi; unda
+            raqamlar boʻlishi mumkin (masalan, dona soni). Sessiya kaliti
+            yuborilmaydi; jumlaga yangi raqam qoʻshilsa, kod uni tashlaydi.
           </li>
           <li>
             Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq va
