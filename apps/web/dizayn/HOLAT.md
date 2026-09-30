@@ -115,9 +115,11 @@ uchun bitta.
     kartochkadan keyin, kartochkaga surat kerak (qoʻllanma 5/6-bob) — shuning
     uchun 8 = yukni qabul qilish (keldi, sanash, kam/nuqson), 9 = suratlar,
     10 = kartochka → qadoq va yorliq → yetkazish → taymslot → topshirish.
-    Studiya: tanlangan 1688 rasmi bilan Google Lens (Apify, asinxron,
-    `kutish` + `tekshir`), 72 soat kesh, Uzum saytidan surat olinmaydi;
-    har surat Cloudflare Worker da 1200×1600 JPEG, oq fon — foni oq surat
+    Studiya: tanlangan 1688 taklifining oʻz galereyasi (Apify `offerIds`,
+    asinxron, `kutish` + `tekshir`), yetmasa oʻxshash takliflar; 72 soat
+    kesh. *(2026-09-30: internet — Google Lens — jonli sinovda boshqa tovar
+    va brendlarni berdi, rad etildi, BACKLOG "Rad etilgan".)*
+    Har surat Cloudflare Worker da 1200×1600 JPEG, oq fon — foni oq surat
     kesilmaydi (`auto`). Kartada 3:4 surat toʻri, belgilash va bitta
     faylga yuklab olish (koʻp boʻlsa ZIP). Faktlar 0059 (`uzum.surat.*`,
     `uzum.kartochka.*`, qoʻllanma 5.7). Worker ulanmagan boʻlsa suratlar

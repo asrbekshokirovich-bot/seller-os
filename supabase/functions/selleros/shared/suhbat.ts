@@ -58,7 +58,7 @@ export interface SuhbatBogliqliklari {
     qabul: (holat: YolHolati) => Promise<unknown>;
     /** 8-qadam: kam/brak, keyin, topshirildi → ochiq ishlar. */
     qabulYakun: (holat: YolHolati) => Promise<unknown>;
-    /** 9-qadam: oq fonli suratlar (1688 + internet, Cloudflare Worker manzillari). Asinxron (Lens). */
+    /** 9-qadam: oq fonli suratlar (tanlangan 1688 taklif galereyasi, Cloudflare Worker manzillari). Asinxron. */
     studiya: (holat: YolHolati) => Promise<unknown>;
     /** 9-qadam: "yetmadi / keyin" → ochiq ishlar. */
     studiyaYakun: (holat: YolHolati) => Promise<unknown>;

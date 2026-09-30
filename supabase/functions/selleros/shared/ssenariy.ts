@@ -27,7 +27,7 @@
  * `null` esa "aytmadi".
  *
  * 12 QADAM. Bugun 1–10 qurilgan (2026-09-29: 8 — Qabul (Xitoydan kelgan
- * yuk), 9 — Studiya (oq fonli suratlar: 1688 + internet, Cloudflare),
+ * yuk), 9 — Studiya (oq fonli suratlar: tanlangan 1688 taklif galereyasi, Cloudflare),
  * 10 — Yuklash (kartochka + omborga topshirish); tartib Uzum jarayoniga
  * moslab tuzatildi — yetkazma faqat kartochkadan keyin; faktlar 0058/0059;
  * 5 — Xitoydan topish, 2026-09-25;
@@ -414,23 +414,39 @@ export interface StudiyaSurati extends SuratNomzodi {
   url: string | null;
 }
 
-export type InternetHolati = 'qidirildi' | 'keshdan' | 'qidirilmadi' | 'xato';
+/**
+ * Tanlangan 1688 taklifi galereyasi: `olindi` (provayderdan), `keshdan`
+ * (72 soat), `olinmadi` (sabab bilan — kalit yoʻq, provayder bermadi),
+ * `xato` (yurish yiqildi). "Olinmadi" bilan "xato" farqlanadi (QOIDALAR §8).
+ */
+export type GalereyaHolati = 'olindi' | 'keshdan' | 'olinmadi' | 'xato';
 
 export interface StudiyaQatori {
   productId: number;
   title: string;
   suratlar: StudiyaSurati[];
-  /** Internet (Google Lens) qidiruvi holati — "topilmadi" bilan "qidirilmadi" farqlanadi (QOIDALAR §8). */
-  internet: InternetHolati;
-  internetSabab: string | null;
-  /** Lens natijasidan olinmaganlar: kichik, Uzum saytidan, takror. */
-  tashlandi: number;
+  galereya: GalereyaHolati;
+  galereyaSabab: string | null;
+  /** Taklif videosi (1688) — Uzum MP4 video qabul qiladi; xitoycha yozuv/ovoz boʻlishi mumkin. */
+  video: string | null;
+}
+
+/** Galereyasi tayyor tovar (kesh yoki provayderdan). */
+export interface StudiyaTayyor {
+  productId: number;
+  galereya: GalereyaHolati;
+  sabab: string | null;
+  rasmlar: string[];
+  video: string | null;
 }
 
 export interface StudiyaKutish {
   boshlandi: string;
-  runlar: Array<{ productId: number; runId: string; rasmUrl: string; urinish?: number }>;
-  tayyor: Array<{ productId: number; internet: InternetHolati; sabab: string | null; nomzodlar: SuratNomzodi[]; tashlandi: number }>;
+  /** Bitta Apify yurishi (`offerIds` rejimi) — hamma taklif uchun. */
+  runId: string;
+  kutilgan: Array<{ productId: number; offerId: string }>;
+  urinish?: number;
+  tayyor: StudiyaTayyor[];
 }
 
 export interface StudiyaNatijasi {
@@ -475,7 +491,7 @@ function yuklashNatija(h: YolHolati): YuklashNatijasi | null {
 
 /**
  * `tekshir` kelganda qaysi kod harakati tugashini kutyapmiz: 5-qadam (1688
- * qidiruvi) yoki 9-qadam (internet suratlari). Hech biri — `null`.
+ * qidiruvi) yoki 9-qadam (1688 taklif galereyasi). Hech biri — `null`.
  */
 export function kutilayotganHarakat(h: YolHolati): KodHarakati | null {
   if ((h.natijalar.xitoy as { kutilmoqda?: unknown } | undefined)?.kutilmoqda) return 'xitoy';
@@ -886,7 +902,7 @@ export function keyingi(h: YolHolati): Keyingi {
   // ---------------------------------------------------------- 9. Studiya
   //
   // Nazoratchi (2026-09-29): suratlar oq fonda, Uzumga moslab; manba — 1688
-  // (tanlangan + oʻxshash takliflar) va internet (Google Lens), "iloji
+  // (tanlangan taklif galereyasi + oʻxshash takliflar), "iloji
   // boricha studiyaga ishi tushmasin"; foni allaqachon oq surat kesilmaydi
   // (Worker aniqlaydi). Tizim suratni Uzumga YUKLAMAYDI — sotuvchi yuklab
   // olib 10-qadamda kartochkaga qoʻyadi.
@@ -894,7 +910,7 @@ export function keyingi(h: YolHolati): Keyingi {
   if (stn === null) return { tur: 'kod', harakat: 'studiya', qadam: 9 };
   if (stn.kutilmoqda) {
     return { tur: 'kutish', qadam: 9, boshlandi: stn.kutilmoqda.boshlandi,
-      matn: `Internetdan oʻxshash suratlar qidirilmoqda (${stn.kutilmoqda.runlar.length} ta tovar) — odatda 20–60 soniya. Tayyor boʻlgach shu yerda koʻrinadi.` };
+      matn: `1688 dan tovar suratlari olinmoqda (${stn.kutilmoqda.kutilgan.length} ta tovar) — odatda 20–60 soniya. Tayyor boʻlgach shu yerda koʻrinadi.` };
   }
   if (!berilgan(h, 'studiya_tayyor')) {
     return { tur: 'savol', savol: savol('studiya_tayyor', 9, studiyaTayyorMatni(stn), 'tanlov', { variantlar: STUDIYA_TAYYOR, otkazishMumkin: true }) };
@@ -1037,7 +1053,7 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
   // `keyingi()` yana `xitoy` kodini chaqiradi (kesh topilganlarni
   // qayta sotib olmaydi).
   // "Qayta qidir" (9-qadam) — studiya natijasi va javobi tozalanadi,
-  // `keyingi()` yana `studiya` kodini chaqiradi (internet keshi 72 soat —
+  // `keyingi()` yana `studiya` kodini chaqiradi (galereya keshi 72 soat —
   // qayta pul olinmaydi).
   if (s.id === 'studiya_tayyor' && qiymat === 'qayta') {
     const yangi = { ...holat.javoblar };
@@ -1122,22 +1138,23 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
   if (harakat === 'qabul_yakun') return ochiqIshlarMatni(natija as QabulYakunNatijasi, 'Qabul');
   if (harakat === 'studiya') {
     const n = natija as StudiyaNatijasi;
-    if (n.kutilmoqda) return `Internetdan oʻxshash suratlar qidirilmoqda (${n.kutilmoqda.runlar.length} ta tovar) — odatda 20–60 soniya.`;
+    if (n.kutilmoqda) return `1688 dan tovar suratlari olinmoqda (${n.kutilmoqda.kutilgan.length} ta tovar) — odatda 20–60 soniya.`;
     if (n.olchov_yoq) return `Studiya suratlarini tayyorlay olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}.`;
     const q = n.qatorlar;
     const jami = q.reduce((sum, x) => sum + x.suratlar.length, 0);
-    const internet = q.reduce((sum, x) => sum + x.suratlar.filter((y) => y.manba === 'internet').length, 0);
-    const qidirilmadi = q.filter((x) => x.internet === 'qidirilmadi' || x.internet === 'xato');
-    const sabablar = [...new Set(qidirilmadi.map((x) => x.internetSabab ?? 'sabab yozilmagan'))].join('; ');
+    const oxshash = q.reduce((sum, x) => sum + x.suratlar.filter((y) => y.manba === '1688-oxshash').length, 0);
+    const olinmadi = q.filter((x) => x.galereya === 'olinmadi' || x.galereya === 'xato');
+    const sabablar = [...new Set(olinmadi.map((x) => x.galereyaSabab ?? 'sabab yozilmagan'))].join('; ');
     const t = n.talablar;
     const talab = t && t.minEni !== null && t.minBoyi !== null
       ? ` Uzum talabi: kamida ${t.minEni}×${t.minBoyi}, ${t.nisbat ?? 'nisbat faktda yoʻq'}${t.maxMb !== null ? `, ${t.maxMb} MB gacha` : ''}.`
       : ' Uzum surat talablari faktda yoʻq.';
-    return `Studiya: ${q.length} ta tovar uchun ${jami} ta surat (${jami - internet} tasi 1688 dan, ${internet} tasi internetdan).`
+    return `Studiya: ${q.length} ta tovar uchun ${jami} ta surat (${jami - oxshash} tasi siz tanlagan taklifdan, ${oxshash} tasi oʻxshash takliflardan).`
       + (n.sozlangan
         ? ` Har biri ${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi} (3:4), oq fonda: foni oq boʻlsa faqat moslanadi, boʻlmasa fon olib tashlanadi — tovarning oʻzi oʻzgarmaydi.`
         : ' Studiya xizmati hali ulanmagan — suratlar asl holida, fon oqlanmagan.')
-      + (qidirilmadi.length ? ` ${qidirilmadi.length} ta tovarda internet qidiruvi boʻlmadi: ${sabablar}.` : '')
+      + (olinmadi.length ? ` ${olinmadi.length} ta tovarda taklif galereyasi olinmadi: ${sabablar}.` : '')
+      + (oxshash ? ' Oʻxshash taklif surati boshqa sotuvchiniki — tovar aynan bir xilligini tekshiring.' : '')
       + talab
       + (n.chiqishMos === false ? ` DIQQAT: studiya chiqishi (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) bu talabga mos emas — nazoratchiga yozildi.` : '')
       + ' Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.';

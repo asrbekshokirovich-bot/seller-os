@@ -29,11 +29,11 @@ oʻzim suratga olaman" hozir faqat ochiq ish yozadi. Keyingi qadam:
 yuklash (R2 yoki Supabase Storage) → Worker bilan oq fonga → toʻrga
 qoʻshish. Saqlash, hajm limiti va maxfiylik sahifasi yangilanishi kerak.
 
-— [agent, 2026-09-29] **Studiya — internet suratining huquqi.** Google
-Lens topgan surat boshqa doʻkonniki boʻlishi mumkin; faqat `uzum.uz`
-chiqarib tashlanadi (Uzum 2.12). Surat manbasi (sayt) kartada yoziladi.
-Kerak boʻlsa: faqat ishlab chiqaruvchi/ulgurji saytlar roʻyxati (1688,
-alibaba, made-in-china) — nazoratchi qarori.
+— [agent, 2026-09-30] **Studiya — 1688 tafsilotidagi qadoq oʻlchami va
+vazni.** `offerIds` tafsiloti `productPackInfo` (sm, g) va `weightKg` ni
+ham beradi. 10-qadamda VGT maslahati sifatida koʻrsatish mumkin ("1688
+boʻyicha taxminan …, oʻzingiz oʻlchang") — Uzum omborda qayta oʻlchaydi.
+Nega keyinroq: sotuvchi baribir oʻlchashi kerak; notoʻgʻri raqam jarima.
 
 — [agent, 2026-09-29] **Uzum kartochkasi avtomatik yaratilmaydi.**
 10-qadam qoidalar va raqamni beradi, kartochkani sotuvchi kabinetda
@@ -197,7 +197,19 @@ hech qachon chaqirilmagan).
 
 ## Rad etilgan
 
-*(bo'sh)*
+— [agent, 2026-09-30] **Studiya suratlarini internetdan (Google Lens) olish.**
+Nazoratchi "1688 + internetdan" degan edi (2026-09-29). Jonli sinov
+(2026-09-30, ikki sumka, Apify `johnvc~google-lens-api`, `visual_matches`):
+17 va 14 ta natijaning koʻpi BOSHQA tovar — Jacquemus, Louis
+Vuitton, Tod's, Coach, Dooney & Bourke sumkalari, DHgate "designer"
+nusxalari, qizil gilamdagi aktrisa surati. Kartochkada bunday surat
+chalgʻituvchi (Uzum 5.7) va brend/mualliflik huquqini buzadi.
+`exact_matches` (aynan shu surat) toʻliq suratni bermaydi (aktor: `image`
+— null), `products` — yana oʻxshash tovarlar. Oʻrniga: tanlangan 1688
+taklifining oʻz galereyasi (`offerIds` rejimi, $0.003/taklif) — aynan
+sotuvchi oladigan tovar. Qayta ochish sharti: aynan shu tovarni
+aniqlaydigan ishonchli usul (masalan, 1688 taklif raqami boʻyicha boshqa
+marketpleysdagi listing) topilsa.
 
 ## Id → sana kalibrovkasini yangilash
 
