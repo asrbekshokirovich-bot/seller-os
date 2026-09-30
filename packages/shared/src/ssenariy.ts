@@ -859,9 +859,13 @@ function sotuvHolatMatni(sn: SotuvNatijasi): string {
   const j = sn.jami;
   const zaxira = olchangan.reduce((s, q) => s + (q.oz?.zaxira ?? 0), 0);
   const tez = olchangan.filter((q) => q.oz?.zaxiraKun !== null).sort((a, b) => (a.oz?.zaxiraKun ?? 0) - (b.oz?.zaxiraKun ?? 0))[0];
+  // Tezlik 0 — oxirgi kunlarda sotuv yoʻq (oy boshidagi sotuv yashirilmaydi); null — oʻlchov yetmaydi.
+  const nolTezlik = olchangan.filter((q) => q.oz?.tezlik === 0);
   const kunGapi = tez?.oz?.zaxiraKun !== undefined && tez.oz.zaxiraKun !== null
     ? ` Shu tezlikda ${olchangan.length > 1 ? `eng oldin «${tez.title}» ` : ''}${tez.oz.zaxiraKun} kunga yetadi. Bu bashorat emas, hozirgi tezlik.`
-    : ' Hozircha sotuv qayd etilmadi — tezlikni hisoblab boʻlmaydi.';
+    : nolTezlik.length
+      ? ` Oxirgi ${Math.max(...nolTezlik.map((q) => q.oz?.tezlikKun ?? 0))} oʻlchangan kunda sotuv qayd etilmadi${j.oyDona ? ` (shu oy jami ${j.oyDona} dona)` : ''} — zaxira necha kunga yetishini hisoblab boʻlmaydi.`
+      : ' Sotuv tezligi ikki zaxira oʻlchovidan keyin chiqadi.';
   return `Bugun: ${j.bugunDona ?? 0} dona, oʻlchangan (zaxira kamayishidan). Zaxira: ${zaxira} dona.${kunGapi} Oy yakunida — «Oy hisoboti».`;
 }
 

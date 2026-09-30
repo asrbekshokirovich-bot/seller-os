@@ -389,6 +389,8 @@ describe('suhbatTurn', () => {
     // Yangi oy — 11-qadamga qaytish: sotuv yana oʻlchanadi, javob berilgan signal qayta soʻralmaydi.
     const t23 = await suhbatTurn(d, 'tok', { savolId: 'yangi_oy', javob: 'boshlaymiz' });
     expect(t23.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
+    // Javob holatdan oʻchiriladi (yangi oy), lekin chatda bosilgani koʻrinadi.
+    expect(t23.xabarlar[0]).toMatchObject({ matn: 'Boshlaymiz', javob: 'boshlaymiz' });
     expect(t23.xabarlar[1]!.savolId).toBe('sotuv');
     if (t23.keyingi.tur !== 'savol') throw new Error(t23.keyingi.tur);
     expect(t23.keyingi.savol.id).toBe('sotuv_holat');
