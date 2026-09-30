@@ -51,10 +51,12 @@ import {
   deklaratsiyaQadamlari,
   HISOBOT_KALITLARI,
   hisobotFaktlari,
+  hisobotQamrovi,
   keyingiOyRejasi,
   kuzatuvlarniOqi,
   oyHisobi,
   oyKaliti,
+  oyKunSoni,
   oyYigindisi,
   ozHolati,
   partiyaRaqami,
@@ -972,14 +974,20 @@ export function suhbatKodHarakatlari(
       const tarix = ozIdlar.length ? await rpc<unknown>('so_sotuv_holati', { p_external_ids: ozIdlar, p_kun: 62 }) : [];
       const k = kuzatuvlarniOqi(tarix);
       const qatorlar = (sn?.qatorlar ?? []).map((q) => {
-        const y = q.ozId !== null ? oyYigindisi(k.find((x) => x.externalId === q.ozId) ?? null, oy) : { dona: null, som: null };
-        return { productId: q.productId, title: q.title, oyDona: y.dona, oySom: y.som };
+        const y = q.ozId !== null ? oyYigindisi(k.find((x) => x.externalId === q.ozId) ?? null, oy) : { dona: null, som: null, kun: 0 };
+        return { productId: q.productId, title: q.title, oyDona: y.dona, oySom: y.som, olchovKun: y.kun };
       });
+      // Qamrov: oyda necha kun oʻlchangan (joriy oy — bugungacha). Taxmin qisman boʻlsa shunday aytiladi.
+      const olchovKun = qatorlar.some((q) => q.olchovKun > 0) ? Math.max(...qatorlar.map((q) => q.olchovKun)) : null;
+      const bugunKun = Number((sn?.sana ?? '').slice(8, 10));
+      const oyKunlari = oy === joriy && Number.isInteger(bugunKun) && bugunKun >= 1 ? bugunKun : oyKunSoni(oy);
       const yig = (f: (q: (typeof qatorlar)[number]) => number | null): number | null => {
         const v = qatorlar.map(f).filter((x): x is number => x !== null);
         return v.length ? v.reduce((s, x) => s + x, 0) : null;
       };
-      const natija = { oy, tugagan: oy < joriy, faktlar, olchovSotuv: yig((q) => q.oySom), olchovDona: yig((q) => q.oyDona), qatorlar, izoh: IZOH };
+      const natija = {
+        oy, tugagan: oy < joriy, faktlar, olchovSotuv: yig((q) => q.oySom), olchovDona: yig((q) => q.oyDona), olchovKun, oyKunlari, qatorlar, izoh: IZOH,
+      };
       if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...natija };
       return { olchov_yoq: false, ...natija };
     },
@@ -991,7 +999,7 @@ export function suhbatKodHarakatlari(
       const faktlar = hn?.faktlar ?? hisobotFaktlari({});
       const oy = hn?.oy ?? oyKaliti((xitoy?.hozir ?? (() => new Date()))());
       const hisob = oyHisobi({ oy, kabinetSotuv: holat.javoblar['oy_sotuv'], olchovSotuv: hn?.olchovSotuv ?? null, komissiya: holat.javoblar['oy_komissiya'], f: faktlar });
-      return { ...hisob, tugagan: hn?.tugagan ?? true, faktlar, qadamlar: deklaratsiyaQadamlari(hisob, faktlar), izoh: IZOH };
+      return { ...hisob, tugagan: hn?.tugagan ?? true, qamrov: hn ? hisobotQamrovi(hn) : null, faktlar, qadamlar: deklaratsiyaQadamlari(hisob, faktlar), izoh: IZOH };
     },
 
     /**

@@ -546,12 +546,18 @@ export interface HisobotNatijasi {
   faktlar: HisobotFaktlar;
   olchovSotuv: number | null;
   olchovDona: number | null;
-  qatorlar: Array<{ productId: number; title: string; oyDona: number | null; oySom: number | null }>;
+  /** Shu oyda sotuvi oʻlchangan kunlar (tovarlar ichida eng koʻpi); oʻlchov yoʻq — `null`. */
+  olchovKun: number | null;
+  /** Oydagi kunlar (joriy oy — bugungacha). */
+  oyKunlari: number | null;
+  qatorlar: Array<{ productId: number; title: string; oyDona: number | null; oySom: number | null; olchovKun: number }>;
   izoh: string;
 }
 
 export interface HisobotHisobNatijasi extends OyHisobi {
   tugagan: boolean;
+  /** Taxmin oyning bir qismidan boʻlsa — necha kundan nechtasi oʻlchangan. */
+  qamrov: { kun: number; jami: number } | null;
   faktlar: HisobotFaktlar;
   /** Deklaratsiya qadam kartalari (7-qadamdagidek) — hamma raqam faktdan. */
   qadamlar: string[];
@@ -565,6 +571,17 @@ export interface HisobotYakunNatijasi {
   /** Keyingi oy rejasi — har tovar uchun bitta jumla. */
   reja: string[];
   izoh: string;
+}
+
+/** Oʻlchov oyni toʻliq qoplamasa — necha kundan nechtasi; qoplasa yoki nomaʼlum — `null`. */
+export function hisobotQamrovi(hn: Pick<HisobotNatijasi, 'olchovKun' | 'oyKunlari'>): { kun: number; jami: number } | null {
+  const kun = hn.olchovKun ?? null;
+  const jami = hn.oyKunlari ?? null;
+  return kun !== null && jami !== null && kun < jami ? { kun, jami } : null;
+}
+
+function qamrovMatni(q: { kun: number; jami: number } | null | undefined): string {
+  return q ? `${q.jami} kundan ${q.kun} kuni oʻlchangan` : '';
 }
 
 function sotuvNatija(h: YolHolati): SotuvNatijasi | null {
@@ -857,7 +874,8 @@ function sotuvHolatMatni(sn: SotuvNatijasi): string {
     return `Kartochkalar kuzatuvga qoʻshildi (${ozlar.length} ta). Birinchi oʻlchov skreyperning keyingi aylanishida (kuniga 3 marta: ${KUZATUV_VAQTLARI}, Toshkent), sotuv raqami — ikki oʻlchovdan keyin. Ertaga «Yangilash» ni bosing.`;
   }
   const j = sn.jami;
-  const zaxira = olchangan.reduce((s, q) => s + (q.oz?.zaxira ?? 0), 0);
+  const zaxiralar = olchangan.map((q) => q.oz?.zaxira ?? null).filter((x): x is number => x !== null);
+  const zaxira = zaxiralar.length ? `${zaxiralar.reduce((s, x) => s + x, 0)} dona` : 'oʻlchanmagan';
   const tez = olchangan.filter((q) => q.oz?.zaxiraKun !== null).sort((a, b) => (a.oz?.zaxiraKun ?? 0) - (b.oz?.zaxiraKun ?? 0))[0];
   // Tezlik 0 — oxirgi kunlarda sotuv yoʻq (oy boshidagi sotuv yashirilmaydi); null — oʻlchov yetmaydi.
   const nolTezlik = olchangan.filter((q) => q.oz?.tezlik === 0);
@@ -866,7 +884,10 @@ function sotuvHolatMatni(sn: SotuvNatijasi): string {
     : nolTezlik.length
       ? ` Oxirgi ${Math.max(...nolTezlik.map((q) => q.oz?.tezlikKun ?? 0))} oʻlchangan kunda sotuv qayd etilmadi${j.oyDona ? ` (shu oy jami ${j.oyDona} dona)` : ''} — zaxira necha kunga yetishini hisoblab boʻlmaydi.`
       : ' Sotuv tezligi ikki zaxira oʻlchovidan keyin chiqadi.';
-  return `Bugun: ${j.bugunDona ?? 0} dona, oʻlchangan (zaxira kamayishidan). Zaxira: ${zaxira} dona.${kunGapi} Oy yakunida — «Oy hisoboti».`;
+  const bugun = j.bugunDona === null
+    ? 'Bugungi sotuv hali hisoblanmadi (ikki zaxira oʻlchovi kerak).'
+    : `Bugun: ${j.bugunDona} dona, oʻlchangan (zaxira kamayishidan).`;
+  return `${bugun} Zaxira: ${zaxira}.${kunGapi} Oy yakunida — «Oy hisoboti».`;
 }
 
 function sotuvHolatVariantlari(sn: SotuvNatijasi, h: YolHolati): SuhbatVarianti[] {
@@ -880,12 +901,17 @@ function sotuvHolatVariantlari(sn: SotuvNatijasi, h: YolHolati): SuhbatVarianti[
 function oySotuvMatni(hn: HisobotNatijasi): string {
   const k = hn.faktlar.komissionerKun;
   const davr = hn.tugagan === false ? `${oyNomi(hn.oy)}, hozirgacha — oy hali tugamagan` : oyNomi(hn.oy);
-  return `Oy hisoboti (${davr}). Oʻlchovimiz boʻyicha: ${hn.olchovDona ?? 'oʻlchov yoʻq'}${hn.olchovDona !== null ? ' dona' : ''}, taxminan ${som(hn.olchovSotuv)} (zaxira kamayishidan). Aniq summa — Uzum kabinetidagi komissioner hisobotida${k !== null ? ` (keyingi oyning ${k}-sanasigacha tayyor boʻladi)` : ''}. Hisobotdagi SOTUV summasini yozing — soliq xaridor toʻlagan toʻliq narxdan olinadi. Bilmasangiz — oʻtkazib yuboring, taxmin bilan hisoblayman.`;
+  const q = qamrovMatni(hisobotQamrovi(hn));
+  const olchov = hn.olchovDona === null
+    ? 'Bu oy uchun oʻlchovimiz yoʻq.'
+    : `Oʻlchovimiz boʻyicha: ${hn.olchovDona} dona, taxminan ${som(hn.olchovSotuv)} (zaxira kamayishidan${q ? `; ${q} — qisman` : ''}).`;
+  return `Oy hisoboti (${davr}). ${olchov} Aniq summa — Uzum kabinetidagi komissioner hisobotida${k !== null ? ` (keyingi oyning ${k}-sanasigacha tayyor boʻladi)` : ''}. Hisobotdagi SOTUV summasini yozing — soliq xaridor toʻlagan toʻliq narxdan olinadi. Bilmasangiz — oʻtkazib yuboring, taxmin bilan hisoblayman.`;
 }
 
 function deklaratsiyaMatni(n: HisobotHisobNatijasi): string {
   const f = n.faktlar.soliq;
-  const manba = n.sotuvManbasi === 'kabinet' ? '' : n.sotuvManbasi === 'olchov' ? ' (taxmin)' : '';
+  const q = qamrovMatni(n.qamrov);
+  const manba = n.sotuvManbasi === 'olchov' ? ` (taxmin${q ? `, ${q}` : ''})` : '';
   const bosh = n.tugagan === false ? `${oyNomi(n.oy)} hali tugamagan — hozirgacha hisob.` : `Oy tugadi (${oyNomi(n.oy)}).`;
   return `${bosh} Sotuv ${som(n.sotuvSom)}${manba}, komissiya ${n.komissiyaSom !== null ? som(n.komissiyaSom) : 'yozilmagan'}, sof ${n.sofSom !== null ? som(n.sofSom) : 'hisoblanmadi'}. Soliq: YATT uchun ${f.aylanmaFoiz !== null ? `${f.aylanmaFoiz} %` : 'foiz faktda yoʻq'} aylanmadan — ${som(n.soliq.aylanmaSom)}; ijtimoiy soliq ${som(n.soliq.ijtimoiySom)}. Muddat ${n.ijtimoiyMuddat ?? 'faktda yoʻq'} gacha. Deklaratsiyani tayyorlaymizmi?`;
 }
@@ -1622,18 +1648,25 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     const sig = n.signallar.length ? ` Signallar: ${n.signallar.length} ta.` : ' Signal yoʻq.';
     if (ozlar.length === 0) return `Sotuv: kartochka havolasi yoʻq — oʻz sotuvingizni kuzata olmayman.${sig}`;
     if (olchangan.length === 0) return `Sotuv:${kuz} Hali oʻlchanmagan — skreyper kuniga 3 marta aylanadi (${KUZATUV_VAQTLARI}), sotuv raqami ikki oʻlchovdan keyin chiqadi.${sig}`;
-    return `Sotuv (${n.sana}):${kuz} Bugun ${n.jami.bugunDona ?? 0} dona, shu oy ${n.jami.oyDona ?? 0} dona, taxminan ${som(n.jami.oySom)} — zaxira kamayishidan (Uzum buyurtma sonini bermaydi).${sig}`;
+    const bugun = n.jami.bugunDona === null ? 'hisoblanmagan' : `${n.jami.bugunDona} dona`;
+    const oy = n.jami.oyDona === null ? 'hisoblanmagan' : `${n.jami.oyDona} dona, taxminan ${som(n.jami.oySom)}`;
+    return `Sotuv (${n.sana}):${kuz} Bugun ${bugun}, shu oy ${oy} — zaxira kamayishidan (Uzum buyurtma sonini bermaydi).${sig}`;
   }
   if (harakat === 'hisobot') {
     const n = natija as HisobotNatijasi;
     if (n.olchov_yoq) return `Hisobot faktlarini oʻqiy olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}.`;
     const y = n.faktlar.yetishmaydi.length ? ` Faktda yoʻq: ${n.faktlar.yetishmaydi.join(', ')}.` : '';
-    return `Oy hisoboti (${oyNomi(n.oy)}${n.tugagan === false ? ', hozirgacha' : ''}): oʻlchovimiz boʻyicha ${n.olchovDona ?? 0} dona, taxminan ${som(n.olchovSotuv)}. Aniq raqamni Uzum komissioner hisobotidan olamiz.${y}`;
+    const q = qamrovMatni(hisobotQamrovi(n));
+    const olchov = n.olchovDona === null
+      ? 'bu oy uchun oʻlchovimiz yoʻq'
+      : `oʻlchovimiz boʻyicha ${n.olchovDona} dona, taxminan ${som(n.olchovSotuv)}${q ? ` (${q} — qisman)` : ''}`;
+    return `Oy hisoboti (${oyNomi(n.oy)}${n.tugagan === false ? ', hozirgacha' : ''}): ${olchov}. Aniq raqamni Uzum komissioner hisobotidan olamiz.${y}`;
   }
   if (harakat === 'hisobot_hisob') {
     const n = natija as HisobotHisobNatijasi;
     const s = n.soliq;
-    return `Hisob: sotuv ${som(n.sotuvSom)}${n.sotuvManbasi === 'olchov' ? ' (taxmin)' : ''}, aylanma soligʻi ${som(s.aylanmaSom)}, ijtimoiy soliq ${som(s.ijtimoiySom)}${s.jamiSom !== null ? ` — jami ${som(s.jamiSom)}` : ''}. Soliq bazasi — xaridor toʻlagan toʻliq narx, komissiya chegirilmaydi. Bu soliq maslahati emas.`
+    const q = qamrovMatni(n.qamrov);
+    return `Hisob: sotuv ${som(n.sotuvSom)}${n.sotuvManbasi === 'olchov' ? ` (taxmin${q ? `, ${q}` : ''})` : ''}, aylanma soligʻi ${som(s.aylanmaSom)}, ijtimoiy soliq ${som(s.ijtimoiySom)}${s.jamiSom !== null ? ` — jami ${som(s.jamiSom)}` : ''}. Soliq bazasi — xaridor toʻlagan toʻliq narx, komissiya chegirilmaydi. Bu soliq maslahati emas.`
       + (n.faktlar.agent ? ` Aylanma soligʻi: ${n.faktlar.agent} — komissioner hisobotida ushlab qolinganini tekshiring.` : '');
   }
   if (harakat === 'hisobot_yakun') {

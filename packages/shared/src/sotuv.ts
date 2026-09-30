@@ -103,13 +103,18 @@ export function kuzatuvlarniOqi(json: unknown): TovarKuzatuvi[] {
   return natija;
 }
 
-/** Shu oy (`YYYY-MM`) oʻlchangan kunlardagi sotuv — dona va tushum (taxmin). Oʻlchangan kun yoʻq — `null`. */
-export function oyYigindisi(k: TovarKuzatuvi | null, oy: string): { dona: number | null; som: number | null } {
+/**
+ * Shu oy (`YYYY-MM`) oʻlchangan kunlardagi sotuv — dona va tushum (taxmin);
+ * `kun` — sotuvi oʻlchangan kunlar soni (oy toʻliq qoplanmagan boʻlsa
+ * shunday aytiladi). Oʻlchangan kun yoʻq — `null`, bu "sotuv yoʻq" EMAS.
+ */
+export function oyYigindisi(k: TovarKuzatuvi | null, oy: string): { dona: number | null; som: number | null; kun: number } {
   const kunlar = (k?.kunlar ?? []).filter((x) => x.sotildi !== null && x.sana.startsWith(oy));
-  if (!kunlar.length) return { dona: null, som: null };
+  if (!kunlar.length) return { dona: null, som: null, kun: 0 };
   return {
     dona: kunlar.reduce((s, x) => s + (x.sotildi ?? 0), 0),
     som: Math.round(kunlar.reduce((s, x) => s + (x.daromad ?? (x.sotildi !== null && x.narx !== null ? x.sotildi * x.narx : 0)), 0)),
+    kun: kunlar.length,
   };
 }
 

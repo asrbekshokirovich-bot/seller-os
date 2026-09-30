@@ -1303,7 +1303,7 @@ interface HisobotFaktlarQ {
 }
 interface HisobotQ {
   olchov_yoq?: boolean; sabab?: string; oy?: string; tugagan?: boolean; faktlar?: HisobotFaktlarQ;
-  olchovSotuv?: number | null; olchovDona?: number | null;
+  olchovSotuv?: number | null; olchovDona?: number | null; olchovKun?: number | null; oyKunlari?: number | null;
   qatorlar?: Array<{ productId: number; title: string; oyDona: number | null; oySom: number | null }>;
   izoh?: string;
 }
@@ -1325,7 +1325,10 @@ function HisobotKartasi({ n, tr }: { n: HisobotQ; tr: Tr }) {
           </div>
         ))}
         <div className={u.statlar}>
-          <Stat nom={tr('Oʻlchovimiz (taxmin)', 'Наш замер (оценка)')} q={somQ(n.olchovSotuv, tr)} izoh={n.olchovDona !== null && n.olchovDona !== undefined ? `${n.olchovDona} ${tr('dona', 'шт')}` : undefined} />
+          <Stat nom={tr('Oʻlchovimiz (taxmin)', 'Наш замер (оценка)')} q={somQ(n.olchovSotuv, tr)}
+            izoh={n.olchovDona !== null && n.olchovDona !== undefined
+              ? `${n.olchovDona} ${tr('dona', 'шт')}${n.olchovKun && n.oyKunlari && n.olchovKun < n.oyKunlari ? ` · ${tr(`${n.oyKunlari} kundan ${n.olchovKun} kuni oʻlchangan`, `замер ${n.olchovKun} из ${n.oyKunlari} дн`)}` : ''}`
+              : tr('bu oy oʻlchanmagan', 'месяц не измерен')} />
           <Stat nom={tr('Komissioner hisoboti', 'Отчёт комиссионера')} q={f?.komissionerKun !== null && f?.komissionerKun !== undefined ? tr(`keyingi oyning ${f.komissionerKun}-sanasigacha`, `до ${f.komissionerKun} числа след. месяца`) : '—'} izoh={tr('aniq summa shu yerda', 'точная сумма там')} />
         </div>
       </div>
@@ -1335,7 +1338,8 @@ function HisobotKartasi({ n, tr }: { n: HisobotQ; tr: Tr }) {
 }
 
 interface HisobotHisobQ {
-  oy?: string; tugagan?: boolean; sotuvSom?: number | null; sotuvManbasi?: 'kabinet' | 'olchov' | null; komissiyaSom?: number | null; sofSom?: number | null;
+  oy?: string; tugagan?: boolean; qamrov?: { kun: number; jami: number } | null;
+  sotuvSom?: number | null; sotuvManbasi?: 'kabinet' | 'olchov' | null; komissiyaSom?: number | null; sofSom?: number | null;
   soliq?: { ijtimoiySom: number | null; aylanmaSom: number | null; jamiSom: number | null };
   ijtimoiyMuddat?: string | null; komissionerSana?: string | null; yetishmaydi?: string[];
   faktlar?: HisobotFaktlarQ; qadamlar?: string[]; izoh?: string;
@@ -1352,7 +1356,11 @@ function HisobotHisobKartasi({ n, tr }: { n: HisobotHisobQ; tr: Tr }) {
           {n.tugagan === false && <span className={`${u.teg} ${u.tegNeytral}`}>{tr('hozirgacha', 'на сегодня')}</span>}
         </div>
         <div className={u.statlar}>
-          <Stat nom={tr('Sotuv', 'Продажи')} q={somQ(n.sotuvSom, tr)} izoh={n.sotuvManbasi === 'kabinet' ? tr('kabinet hisobotidan', 'из отчёта кабинета') : n.sotuvManbasi === 'olchov' ? tr('taxmin, oʻlchovdan', 'оценка по замеру') : undefined} />
+          <Stat nom={tr('Sotuv', 'Продажи')} q={somQ(n.sotuvSom, tr)}
+            izoh={n.sotuvManbasi === 'kabinet' ? tr('kabinet hisobotidan', 'из отчёта кабинета')
+              : n.sotuvManbasi === 'olchov'
+                ? `${tr('taxmin, oʻlchovdan', 'оценка по замеру')}${n.qamrov ? ` · ${tr(`${n.qamrov.jami} kundan ${n.qamrov.kun} kuni`, `${n.qamrov.kun} из ${n.qamrov.jami} дн`)}` : ''}`
+                : undefined} />
           <Stat nom={tr('Komissiya', 'Комиссия')} q={n.komissiyaSom === null || n.komissiyaSom === undefined ? tr('yozilmagan', 'не указана') : somQ(n.komissiyaSom, tr)} />
           <Stat nom={tr('Sof tushum', 'Чистая выручка')} q={n.sofSom === null || n.sofSom === undefined ? '—' : somQ(n.sofSom, tr)} />
           <Stat nom={tr('Aylanma soligʻi', 'Налог с оборота')} q={somQ(s?.aylanmaSom, tr)} izoh={f?.soliq.aylanmaFoiz !== null && f?.soliq.aylanmaFoiz !== undefined ? `${f.soliq.aylanmaFoiz} %` : undefined} />
