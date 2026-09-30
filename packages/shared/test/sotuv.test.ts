@@ -146,7 +146,7 @@ describe('keyingiOyRejasi', () => {
     ]);
     expect(r[0]).toMatch(/^«A»: kartochka havolasi yoʻq/);
     expect(r[1]).toMatch(/^«B»: kuzatuv endi boshlandi/);
-    expect(r[2]).toMatch(/^«C»: sotuv qayd etilmadi — narx \(raqobatchi 90000 soʻm\)/);
+    expect(r[2]).toBe('«C»: oxirgi 1 oʻlchangan kunda sotuv qayd etilmadi — narxingiz 100000 soʻm, raqobatchi 90000 soʻm; birinchi surat va nomni tekshiring.');
     expect(r[3]).toMatch(/^«D»: kuniga ~3 dona, zaxira 3 kunga yetadi/);
   });
 });

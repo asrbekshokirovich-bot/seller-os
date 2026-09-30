@@ -72,7 +72,7 @@ describe('deklaratsiyaQadamlari', () => {
     const f = hisobotFaktlari(FAKT);
     const q = deklaratsiyaQadamlari(oyHisobi({ oy: '2026-09', kabinetSotuv: 5_000_000, olchovSotuv: null, komissiya: null, f }), f);
     expect(q).toHaveLength(5);
-    expect(q[0]).toMatch(/2026-09 uchun komissioner hisobotini .*2026-10-19 gacha/);
+    expect(q[0]).toMatch(/2026-yil sentyabr uchun komissioner hisobotini .*2026-10-19 gacha/);
     expect(q[1]).toMatch(/^https:\/\/my3\.soliq\.uz ga E-imzo/);
     expect(q[2]).toMatch(/Ijtimoiy soliq: 440000 soʻm — 2026-10-15 gacha/);
     expect(q[3]).toMatch(/^Aylanma soligʻi \(1 %\): 50000 soʻm\. Toʻlov tashkiloti .* topshirasiz \(chorakdan keyingi oyning 15-sanasigacha — tasdiqlanishi kerak\)\.$/);

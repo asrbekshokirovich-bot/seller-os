@@ -257,8 +257,11 @@ export function keyingiOyRejasi(
     if (q.ozId === null) return `«${q.title}»: kartochka havolasi yoʻq — sotuv kuzatilmayapti; kartochka chiqqach havolani yuboring.`;
     const o = q.oz;
     if (!o || o.holat === 'kutilmoqda') return `«${q.title}»: kuzatuv endi boshlandi — birinchi raqamlar keyingi kunlarda chiqadi.`;
-    if (o.tezlik === null || o.tezlik === 0) {
-      return `«${q.title}»: sotuv qayd etilmadi — narx${q.raqobatchi?.narx ? ` (raqobatchi ${q.raqobatchi.narx} soʻm)` : ''}, birinchi surat va nomni tekshiring.`;
+    if (o.tezlik === null) return `«${q.title}»: sotuv tezligi hali hisoblanmadi — ikki zaxira oʻlchovidan keyin chiqadi.`;
+    if (o.tezlik === 0) {
+      const narx = o.narx !== null ? `narxingiz ${o.narx} soʻm` : 'narxingiz oʻlchanmagan';
+      const raqobatchi = q.raqobatchi?.narx ? `, raqobatchi ${q.raqobatchi.narx} soʻm` : '';
+      return `«${q.title}»: oxirgi ${o.tezlikKun} oʻlchangan kunda sotuv qayd etilmadi${o.oyDona ? ` (shu oy ${o.oyDona} dona)` : ''} — ${narx}${raqobatchi}; birinchi surat va nomni tekshiring.`;
     }
     return `«${q.title}»: kuniga ~${o.tezlik} dona, zaxira ${o.zaxiraKun ?? '—'} kunga yetadi — yangi partiya shu muddatdan oldin kelishi uchun 1688 va kargo muddatini hisoblab buyurtma bering.`;
   });

@@ -162,11 +162,17 @@ export async function suhbatTurn(
     }
     holat = q.holat;
     profil = q.profil;
+    // Ayrim javoblar yoʻlni qayta ochadi («Yangilash», «Qayta qidir», «Boshlaymiz»
+    // — yangi oy): `yoz()` ularni holatdan oʻchiradi. Chatda baribir obunachi
+    // BOSGAN narsa koʻrinsin, "oʻtkazib yuborildi" emas.
+    const yozilgan = Object.prototype.hasOwnProperty.call(holat.javoblar, savolId)
+      ? holat.javoblar[savolId]
+      : k0.savol.variantlar.find((v) => String(v.qiymat) === String(xom))?.qiymat ?? xom ?? null;
     yangi.push({
       rol: 'obunachi',
-      matn: javobMatni(k0.savol.variantlar, holat.javoblar[savolId]),
+      matn: javobMatni(k0.savol.variantlar, yozilgan),
       savolId,
-      javob: holat.javoblar[savolId] ?? null,
+      javob: yozilgan ?? null,
     });
   }
 

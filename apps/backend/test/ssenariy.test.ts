@@ -1044,6 +1044,20 @@ describe('11-qadam — Sotuv boshlandi (oʻz kartochka kuzatuvi, signallar)', ()
     expect(k2.savol.id).toBe('uzum_havola:100');
   });
 
+  it('oxirgi kunlarda sotuv yoʻq — oy boshidagi sotuv yashirilmaydi; tezlik yoʻq — "ikki oʻlchovdan keyin"', () => {
+    const jim = { ...OZ, bugunSotildi: 0, tezlik: 0, tezlikKun: 7, zaxira: 7, zaxiraKun: null, oyDona: 3 };
+    const h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv',
+      { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: jim }], jami: { bugunDona: 0, oyDona: 3, oySom: 297_000 } });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toBe('Bugun: 0 dona, oʻlchangan (zaxira kamayishidan). Zaxira: 7 dona. Oxirgi 7 oʻlchangan kunda sotuv qayd etilmadi (shu oy jami 3 dona) — zaxira necha kunga yetishini hisoblab boʻlmaydi. Oy yakunida — «Oy hisoboti».');
+    const h2 = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv',
+      { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: { ...jim, tezlik: null, tezlikKun: 0 } }] });
+    const k2 = keyingi(h2);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.matn).toMatch(/Sotuv tezligi ikki zaxira oʻlchovidan keyin chiqadi\./);
+  });
+
   it('oʻlchov hali yoʻq — "kuzatuvga qoʻshildi, ertaga Yangilash" (sotuv yoʻq DEMAYDI)', () => {
     const h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv',
       { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: { ...OZ, holat: 'kutilmoqda' as const } }] });

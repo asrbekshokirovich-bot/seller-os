@@ -159,7 +159,7 @@ export function deklaratsiyaQadamlari(h: OyHisobi, f: HisobotFaktlar): string[] 
   const oziTopshirsa = f.aylanmaDavri && f.aylanmaKun !== null
     ? ` (${f.aylanmaDavri}dan keyingi oyning ${f.aylanmaKun}-sanasigacha — tasdiqlanishi kerak)` : '';
   return [
-    `Uzum kabinetidan ${h.oy} uchun komissioner hisobotini yuklab oling${h.komissionerSana ? ` (${h.komissionerSana} gacha tayyor boʻladi)` : ''} — soliq hisobotining asos hujjati.`,
+    `Uzum kabinetidan ${oyNomi(h.oy)} uchun komissioner hisobotini yuklab oling${h.komissionerSana ? ` (${h.komissionerSana} gacha tayyor boʻladi)` : ''} — soliq hisobotining asos hujjati.`,
     `${f.portalUrl ?? 'Soliq portali (manzil faktda yoʻq)'} ga E-imzo (ERI) bilan kiring.`,
     `Ijtimoiy soliq: ${s.ijtimoiySom !== null ? `${s.ijtimoiySom} soʻm` : 'miqdor faktda yoʻq'} — ${h.ijtimoiyMuddat ?? 'muddat faktda yoʻq'} gacha toʻlang, sotuv boʻlmasa ham.`,
     `Aylanma soligʻi (${f.soliq.aylanmaFoiz ?? '?'} %): ${s.aylanmaSom !== null ? `${s.aylanmaSom} soʻm` : 'hisoblanmadi'}.${agent} Komissioner hisobotida ushlab qolinganini tekshiring; ushlanmagan boʻlsa hisob-kitobni oʻzingiz topshirasiz${oziTopshirsa}.`,
