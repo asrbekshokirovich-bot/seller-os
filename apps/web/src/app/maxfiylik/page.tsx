@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-08-25';
+const YANGILANDI = '2026-09-30';
 
 export default function Maxfiylik() {
   return (
@@ -87,6 +87,17 @@ export default function Maxfiylik() {
         <p>
           Cookie ni oʻchirsangiz sayt sizni tanimaydi va javoblaringiz
           koʻrinmay qoladi.
+        </p>
+
+        <h2>Mobil ilova (Android)</h2>
+        <p>
+          ZumSavdo ilovasi sayt bilan bir xil ishlaydi va shu siyosat unga ham
+          tegishli. Farqi bitta: cookie oʻrniga sessiya kaliti telefonning
+          himoyalangan xotirasida (Android Keystore) saqlanadi va har soʻrovga
+          qoʻshib yuboriladi. Ilova ism, telefon raqami, elektron pochta,
+          joylashuv, kontaktlar yoki fayllarga ruxsat soʻramaydi, reklama va
+          kuzatuvchi kutubxonalar yoʻq. Ilovani oʻchirsangiz kalit ham
+          oʻchadi.
         </p>
 
         <h2>Nima saqlanadi</h2>
