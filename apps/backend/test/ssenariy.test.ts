@@ -148,10 +148,10 @@ const HISOBOT_F = hisobotFaktlari(faktlarniOqi({
   ...RASMIY_SEED, 'soliq.agent': FQ('Javobgarlik soliq agentida'), 'soliq.aylanma.hisobot_davri': FQ('chorak'),
   'soliq.aylanma.hisobot_kun': FQ(15), 'soliq.portal.url': FQ('https://my3.soliq.uz'), 'uzum.hisobot.komissioner_kun': FQ(19),
 }));
-const HISOBOT = { olchov_yoq: false, oy: '2026-09', tugagan: true, faktlar: HISOBOT_F, olchovSotuv: 2_574_000, olchovDona: 26,
+const HISOBOT = { olchov_yoq: false, oy: '2026-09', tugagan: true, faktlar: HISOBOT_F, olchovSotuv: 2_574_000, olchovDona: 26, olchovKun: 30, oyKunlari: 30,
   qatorlar: [{ productId: 100, title: 'Quloqchin A', oyDona: 26, oySom: 2_574_000 }], izoh: 'hisobot' };
 const HISOB = oyHisobi({ oy: '2026-09', kabinetSotuv: 2_600_000, olchovSotuv: 2_574_000, komissiya: 400_000, f: HISOBOT_F });
-const HISOBOT_HISOB = { ...HISOB, tugagan: true, faktlar: HISOBOT_F, qadamlar: deklaratsiyaQadamlari(HISOB, HISOBOT_F), izoh: 'hisob' };
+const HISOBOT_HISOB = { ...HISOB, tugagan: true, qamrov: null, faktlar: HISOBOT_F, qadamlar: deklaratsiyaQadamlari(HISOB, HISOBOT_F), izoh: 'hisob' };
 const HISOBOT_YAKUN = { olchov_yoq: false, yozildi: [], reja: ['«Quloqchin A»: kuniga ~2.5 dona, zaxira 1 kunga yetadi.'], izoh: 'yakun' };
 
 /** Javob beradi va qabul qilinganini tekshiradi. */
@@ -1162,6 +1162,28 @@ describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
     if (k3.tur !== 'savol') throw new Error(k3.tur);
     expect(k3.savol.matn).toMatch(/^2026-yil sentyabr hali tugamagan — hozirgacha hisob\. Sotuv 2574000 soʻm \(taxmin\)/);
     expect(tushuntir('hisobot', { ...HISOBOT, tugagan: false })).toMatch(/^Oy hisoboti \(2026-yil sentyabr, hozirgacha\): /);
+  });
+
+  it('oʻlchov oyni toʻliq qoplamasa — "N kundan M kuni oʻlchangan, qisman"; oʻlchov yoʻq — "0 dona" DEMAYDI', () => {
+    let h = hisobotBoshi();
+    h = natijaniYoz(h, 'hisobot', { ...HISOBOT, oy: '2026-08', olchovSotuv: 0, olchovDona: 0, olchovKun: 4, oyKunlari: 31 });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/^Oy hisoboti \(2026-yil avgust\)\. Oʻlchovimiz boʻyicha: 0 dona, taxminan 0 soʻm \(zaxira kamayishidan; 31 kundan 4 kuni oʻlchangan — qisman\)\. Aniq summa/);
+    expect(tushuntir('hisobot', { ...HISOBOT, olchovSotuv: null, olchovDona: null, olchovKun: null }))
+      .toBe('Oy hisoboti (2026-yil sentyabr): bu oy uchun oʻlchovimiz yoʻq. Aniq raqamni Uzum komissioner hisobotidan olamiz.');
+    const bosh = natijaniYoz(hisobotBoshi(), 'hisobot', { ...HISOBOT, olchovSotuv: null, olchovDona: null, olchovKun: null });
+    const k0 = keyingi(bosh);
+    if (k0.tur !== 'savol') throw new Error(k0.tur);
+    expect(k0.savol.matn).toMatch(/^Oy hisoboti \(2026-yil sentyabr\)\. Bu oy uchun oʻlchovimiz yoʻq\. Aniq summa/);
+    h = javob(javob(h, 'oy_sotuv', null), 'oy_komissiya', null);
+    const taxmin = oyHisobi({ oy: '2026-08', kabinetSotuv: null, olchovSotuv: 0, komissiya: null, f: HISOBOT_F });
+    const hh = { ...taxmin, tugagan: true, qamrov: { kun: 4, jami: 31 }, faktlar: HISOBOT_F, qadamlar: [], izoh: 'hisob' };
+    h = natijaniYoz(h, 'hisobot_hisob', hh);
+    const k2 = keyingi(h);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.matn).toMatch(/^Oy tugadi \(2026-yil avgust\)\. Sotuv 0 soʻm \(taxmin, 31 kundan 4 kuni oʻlchangan\), komissiya yozilmagan/);
+    expect(tushuntir('hisobot_hisob', hh)).toMatch(/^Hisob: sotuv 0 soʻm \(taxmin, 31 kundan 4 kuni oʻlchangan\), aylanma/);
   });
 
   it('kod hisobot → oy_sotuv → oy_komissiya → kod hisobot_hisob → deklaratsiya → qadamlar → kod yakun → yangi oy', () => {

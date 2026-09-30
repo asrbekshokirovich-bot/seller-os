@@ -79,6 +79,13 @@ export function oyNomi(oy: string): string {
   return m && n >= 1 && n <= 12 ? `${m[1]}-yil ${OYLAR[n - 1]}` : oy;
 }
 
+/** Oydagi kunlar soni (`YYYY-MM`). Kalit notoʻgʻri boʻlsa — `null`. */
+export function oyKunSoni(oy: string): number | null {
+  const m = /^(\d{4})-(\d{2})$/.exec(oy);
+  const n = m ? Number(m[2]) : 0;
+  return m && n >= 1 && n <= 12 ? new Date(Date.UTC(Number(m[1]), n, 0)).getUTCDate() : null;
+}
+
 /** Oldingi oy kaliti (`YYYY-MM`). Kalit notoʻgʻri boʻlsa — oʻzi. */
 export function oldingiOy(oy: string): string {
   const m = /^(\d{4})-(\d{2})$/.exec(oy);

@@ -142,13 +142,14 @@ describe('hisobot (12-qadam)', () => {
     const sn = await k.sotuv(holatYasa());
     const b = soxtaBaza();
     const hn = await kod(b).hisobot(holatYasa({}, { sotuv: sn }));
-    expect(hn).toMatchObject({ olchov_yoq: false, oy: '2026-09', tugagan: false, olchovSotuv: 3_000_000, olchovDona: 25 });
+    // 5001: 28-sentyabr birinchi oʻlchov, 29 va 30 da sotuv hisoblangan — 30 kundan 2 kuni.
+    expect(hn).toMatchObject({ olchov_yoq: false, oy: '2026-09', tugagan: false, olchovSotuv: 3_000_000, olchovDona: 25, olchovKun: 2, oyKunlari: 30 });
     // Tanlangan oy oʻlchovi qayta oʻqiladi — 62 kun (oldingi oy toʻliq kiradi).
     expect(b.kim('so_sotuv_holati')).toEqual([{ p_external_ids: [5001], p_kun: 62 }]);
     expect(hn.faktlar.yetishmaydi).toEqual([]);
     expect(hn.qatorlar).toEqual([
-      { productId: 100, title: 'Sumka', oyDona: 25, oySom: 3_000_000 },
-      { productId: 200, title: 'Gʻilof', oyDona: null, oySom: null },
+      { productId: 100, title: 'Sumka', oyDona: 25, oySom: 3_000_000, olchovKun: 2 },
+      { productId: 200, title: 'Gʻilof', oyDona: null, oySom: null, olchovKun: 0 },
     ]);
   });
 
@@ -156,12 +157,15 @@ describe('hisobot (12-qadam)', () => {
     const k = kod(soxtaBaza());
     const sn = await k.sotuv(holatYasa());
     const avg = await k.hisobot(holatYasa({ hisobot_oy: '2026-08' }, { sotuv: sn }));
-    expect(avg).toMatchObject({ oy: '2026-08', tugagan: true, olchovSotuv: null, olchovDona: null });
+    expect(avg).toMatchObject({ oy: '2026-08', tugagan: true, olchovSotuv: null, olchovDona: null, olchovKun: null, oyKunlari: 31 });
     const avgustli = HOLATI.map((x) => (x.externalId === 5001 ? { ...x, kunlar: [kun('2026-08-30', 100_000, 40, 4), ...x.kunlar] } : x));
     const avg2 = await kod(soxtaBaza({ holati: avgustli })).hisobot(holatYasa({ hisobot_oy: '2026-08' }, { sotuv: sn }));
-    expect(avg2).toMatchObject({ oy: '2026-08', olchovSotuv: 400_000, olchovDona: 4 });
-    const hh = await k.hisobotHisob(holatYasa({ oy_sotuv: 500_000, oy_komissiya: null }, { hisobot: avg2 }));
-    expect(hh).toMatchObject({ oy: '2026-08', tugagan: true, ijtimoiyMuddat: '2026-09-15' });
+    expect(avg2).toMatchObject({ oy: '2026-08', olchovSotuv: 400_000, olchovDona: 4, olchovKun: 1, oyKunlari: 31 });
+    // Summa yozilmasa taxmin — oyning 1 kunidan; bu hisobda aytiladi.
+    const hh = await k.hisobotHisob(holatYasa({ oy_sotuv: null, oy_komissiya: null }, { hisobot: avg2 }));
+    expect(hh).toMatchObject({ oy: '2026-08', tugagan: true, sotuvManbasi: 'olchov', sotuvSom: 400_000, qamrov: { kun: 1, jami: 31 }, ijtimoiyMuddat: '2026-09-15' });
+    const hh2 = await k.hisobotHisob(holatYasa({ oy_sotuv: 500_000 }, { hisobot: { ...avg2, olchovKun: 31 } }));
+    expect(hh2.qamrov).toBeNull();
   });
 
   it('hisobotHisob: kabinet summasi ustun, soliq toʻliq sotuvdan, qadam kartalari', async () => {

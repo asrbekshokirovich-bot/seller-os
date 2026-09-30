@@ -82,11 +82,12 @@ describe('ozHolati', () => {
     expect(o.tezlik).toBe(0);
     expect(o.zaxiraKun).toBeNull();
   });
-  it('oyYigindisi: faqat shu oy oʻlchangan kunlari; daromad yoʻq — sotildi × narx; kun yoʻq — null', () => {
-    expect(oyYigindisi(k, '2026-09')).toEqual({ dona: 6, som: 600_000 });
-    expect(oyYigindisi(k, '2026-10')).toEqual({ dona: 4, som: 400_000 });
-    expect(oyYigindisi(k, '2026-08')).toEqual({ dona: null, som: null });
-    expect(oyYigindisi(null, '2026-09')).toEqual({ dona: null, som: null });
+  it('oyYigindisi: faqat shu oy oʻlchangan kunlari (soni bilan); daromad yoʻq — sotildi × narx; kun yoʻq — null', () => {
+    // 25-sentyabr — birinchi oʻlchov (sotuv hisoblanmaydi), shuning uchun 3 kun.
+    expect(oyYigindisi(k, '2026-09')).toEqual({ dona: 6, som: 600_000, kun: 3 });
+    expect(oyYigindisi(k, '2026-10')).toEqual({ dona: 4, som: 400_000, kun: 1 });
+    expect(oyYigindisi(k, '2026-08')).toEqual({ dona: null, som: null, kun: 0 });
+    expect(oyYigindisi(null, '2026-09')).toEqual({ dona: null, som: null, kun: 0 });
   });
   it('qayta buyurtma: yangi partiya omborga tushmaguncha boshlangʻich yoʻq (eski qoldiq signal bermaydi)', () => {
     const tarix: TovarKuzatuvi = { ...k, kunlar: [

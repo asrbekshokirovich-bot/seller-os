@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { deklaratsiyaQadamlari, hisobotFaktlari, keyingiOySanasi, oldingiOy, oyHisobi, oyKaliti, oyNomi } from '../src/index.js';
+import { deklaratsiyaQadamlari, hisobotFaktlari, keyingiOySanasi, oldingiOy, oyHisobi, oyKaliti, oyKunSoni, oyNomi } from '../src/index.js';
 
 const F = (qiymat: unknown, manba = 'manba') => ({ qiymat, birlik: null, manba, olchandi: '2026-09-30', izoh: null });
 const FAKT = {
@@ -45,6 +45,7 @@ describe('sanalar', () => {
     expect(oldingiOy('2026-10')).toBe('2026-09');
     expect(oldingiOy('2027-01')).toBe('2026-12');
     expect(oldingiOy('buzuq')).toBe('buzuq');
+    expect([oyKunSoni('2026-09'), oyKunSoni('2026-08'), oyKunSoni('2028-02'), oyKunSoni('buzuq')]).toEqual([30, 31, 29, null]);
   });
 });
 
