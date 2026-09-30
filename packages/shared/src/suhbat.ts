@@ -66,6 +66,14 @@ export interface SuhbatBogliqliklari {
     yuklash: (holat: YolHolati) => Promise<unknown>;
     /** 10-qadam: kartochka, qadoq, yetkazma javoblari → ochiq ishlar. */
     yuklashYakun: (holat: YolHolati) => Promise<unknown>;
+    /** 11-qadam: oʻz kartochkalarni kuzatuvga qoʻshish, oʻlchov va signallar. */
+    sotuv: (holat: YolHolati) => Promise<unknown>;
+    /** 12-qadam: oy hisoboti uchun faktlar va oʻlchovdan taxmin. */
+    hisobot: (holat: YolHolati) => Promise<unknown>;
+    /** 12-qadam: sotuv, komissiya, soliq va muddatlar (sotuvchi yozgan summa bilan). */
+    hisobotHisob: (holat: YolHolati) => Promise<unknown>;
+    /** 12-qadam: ochiq ishlar (soliq toʻlovi) va keyingi oy rejasi. */
+    hisobotYakun: (holat: YolHolati) => Promise<unknown>;
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
@@ -237,6 +245,10 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
     if (harakat === 'studiya_yakun') return await d.kod.studiyaYakun(h);
     if (harakat === 'yuklash') return await d.kod.yuklash(h);
     if (harakat === 'yuklash_yakun') return await d.kod.yuklashYakun(h);
+    if (harakat === 'sotuv') return await d.kod.sotuv(h);
+    if (harakat === 'hisobot') return await d.kod.hisobot(h);
+    if (harakat === 'hisobot_hisob') return await d.kod.hisobotHisob(h);
+    if (harakat === 'hisobot_yakun') return await d.kod.hisobotYakun(h);
     return await d.kod.tannarx(h);
   } catch (e) {
     // Yiqilish jim o'tmaydi: natija sifatida sabab qaytadi va ssenariy

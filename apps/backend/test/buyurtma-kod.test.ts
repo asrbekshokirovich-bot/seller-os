@@ -174,6 +174,35 @@ describe('buyurtma — kargo hamkori YOʻQ (0056 holati)', () => {
   });
 });
 
+describe('buyurtma — qayta buyurtma (11-qadam «Ha, yana buyurtma», partiya ≥ 2)', () => {
+  const ARXIV = [{ partiya: 1, sana: '2026-09-30', buyurtma: { qatorlar: [
+    { productId: 100, title: 'Quloqchin A', miqdor: 30, holat: 'tayyor' },
+    { productId: 200, title: 'Quloqchin B', miqdor: 10, holat: 'tayyor' },
+  ] }, zaxira: { 100: 4, 200: 3 }, tezlik: { 100: 2.5, 200: 1 } }];
+
+  it('miqdor partiya_miqdor javobidan; 0 — varaqaga kirmaydi; sotuvchisi nomaʼlum tovar yoʻq; izohda partiya', async () => {
+    const h = holatYasa({ 'xitoy_tanlov:200': '111', 'partiya_miqdor:100': 75, 'partiya_miqdor:200': 0 }, { partiya: 2, oldingi_partiyalar: ARXIV });
+    const n = await kod(soxtaBaza()).buyurtma(h);
+    expect(n.qatorlar.map((q) => [q.productId, q.miqdor, q.holat])).toEqual([[100, 75, 'tayyor']]);
+    expect(qator(n, 100)).toMatchObject({ narxYuan: 27, jamiYuan: 2025 });
+    expect(n.jami).toMatchObject({ dona: 75, tayyor: 1, tanlanmagan: 0 });
+    expect(n.izoh).toMatch(/^2-partiya \(qayta buyurtma\)\. Varaqa:/);
+  });
+
+  it('oʻtkazilgan — oldingi partiya miqdori; hammasiga 0 — olchov_yoq, sababi aytiladi', async () => {
+    const n = await kod(soxtaBaza()).buyurtma(holatYasa({ 'partiya_miqdor:100': null }, { partiya: 2, oldingi_partiyalar: ARXIV }));
+    expect(qator(n, 100).miqdor).toBe(30);
+    const n0 = await kod(soxtaBaza()).buyurtma(holatYasa({ 'partiya_miqdor:100': 0 }, { partiya: 2, oldingi_partiyalar: ARXIV }));
+    expect(n0).toMatchObject({ olchov_yoq: true, sabab: '2-partiyada hamma tovarga 0 dona', qatorlar: [] });
+  });
+
+  it('ochiq ish sababida partiya raqami (birinchisi bilan qoʻshilib ketmaydi)', async () => {
+    const b = soxtaBaza();
+    await kod(b).ochiqIsh(holatYasa({}, { partiya: 2 }));
+    expect(b.chaqiruvlar.find((x) => x.nom === 'so_ochiq_ish_yoz')!.arg).toMatchObject({ p_sabab: 'yuk kelishi (2-partiya)', p_props: { partiya: 2 } });
+  });
+});
+
 describe('buyurtma — fakt toʻldirilgan (hamkor bor)', () => {
   it('kargo ogʻirlik boʻyicha, tanlangan yoʻl; ogʻirliksiz tovar — null', async () => {
     const b = soxtaBaza({ fakt: FAKT_TOLIQ });

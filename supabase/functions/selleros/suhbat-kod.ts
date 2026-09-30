@@ -48,6 +48,21 @@ import {
   runNatijasiSorovi,
   studiyaManzili,
   studiyaNomzodlari,
+  deklaratsiyaQadamlari,
+  HISOBOT_KALITLARI,
+  hisobotFaktlari,
+  keyingiOyRejasi,
+  kuzatuvlarniOqi,
+  oyHisobi,
+  oyKaliti,
+  oyYigindisi,
+  ozHolati,
+  partiyaRaqami,
+  qaytaTovarlar,
+  raqobatchiHolati,
+  sotuvSignallari,
+  sotuvTovarlari,
+  uzumMahsulotId,
   tafsilotKeshKaliti,
   tafsilotlarniOqi,
   tafsilotSorovi,
@@ -89,6 +104,12 @@ import {
   type StudiyaQatori,
   type StudiyaSurati,
   type StudiyaTayyor,
+  type HisobotHisobNatijasi,
+  type HisobotNatijasi,
+  type HisobotYakunNatijasi,
+  type OzHolat,
+  type SotuvNatijasi,
+  type SotuvTovari,
   type YuklashNatijasi,
   type QabulYakunNatijasi,
   type XitoyLimitJavobi,
@@ -134,7 +155,7 @@ const BIR_TURNDA_MAX = 5;
 /** 9-qadam: 1688 galereya yurishini shundan uzoq kutilmaydi. */
 const STUDIYA_KUTISH_MAX_MS = 5 * 60_000;
 
-type OchiqIsh = { savolId: string; tur: 'kutyapman' | 'tekshirish'; sabab: string; muddat: string | null };
+type OchiqIsh = { savolId: string; tur: 'kutyapman' | 'tekshirish' | 'tolov'; sabab: string; muddat: string | null };
 
 /** `kun` kundan keyingi sana (UTC, ISO). `kun` yoʻq — `null` (muddat nomaʼlum, nol emas). */
 function muddatSana(hozir: () => Date, kun: number | null): string | null {
@@ -170,8 +191,15 @@ function varaqaQatorlari(holat: YolHolati, qoidalar: QadoqQoidasi[]): { qatorlar
   return { qatorlar, jamiDona };
 }
 
-/** Ochiq ishlarni yozadi (`so_ochiq_ish_yoz`); biror yozuv yiqilsa `olchov_yoq` + sabab, roʻyxat yashirilmaydi. */
-async function ochiqIshlarniYoz(rpc: Rpc, token: string, ishlar: OchiqIsh[], j: Record<string, unknown>, izoh: string): Promise<QabulYakunNatijasi> {
+/**
+ * Ochiq ishlarni yozadi (`so_ochiq_ish_yoz`); biror yozuv yiqilsa `olchov_yoq` + sabab, roʻyxat yashirilmaydi.
+ * `partiya` > 1 (qayta buyurtma) — sababga partiya raqami qoʻshiladi: bir xil
+ * ochiq ish ikki marta yozilmaydi, oldingi partiyaniki bilan qoʻshilib ketmasin.
+ */
+async function ochiqIshlarniYoz(
+  rpc: Rpc, token: string, ishlarXom: OchiqIsh[], j: Record<string, unknown>, izoh: string, partiya = 1,
+): Promise<QabulYakunNatijasi> {
+  const ishlar = partiya > 1 ? ishlarXom.map((x) => ({ ...x, sabab: `${x.sabab} (${partiya}-partiya)` })) : ishlarXom;
   const yozildi: QabulYakunNatijasi['yozildi'] = [];
   let xato: string | null = null;
   for (const ish of ishlar) {
@@ -480,12 +508,27 @@ export function suhbatKodHarakatlari(
       const yolTanlovi = holat.javoblar['kargo_yol'];
       const yol = yolTanlovi === 'avia' ? kf.stavka.avia : yolTanlovi === 'quruqlik' ? kf.stavka.quruqlik : arzonYol(kf.stavka);
 
-      const qatorlar: BuyurtmaQatori[] = tanlangan.map((id) => {
+      // Qayta buyurtma (partiya ≥ 2): faqat 1688 sotuvchisi maʼlum tovarlar;
+      // miqdor `partiya_miqdor:` javobidan, 0 — bu safar olinmaydi (varaqaga
+      // kirmaydi), oʻtkazilgan — oldingidek.
+      const P = partiyaRaqami(holat);
+      const qayta = P > 1 ? new Map(qaytaTovarlar(holat).map((t) => [t.productId, t])) : null;
+      const miqdorOl = (id: number): number | null => {
+        if (qayta !== null) {
+          const j = holat.javoblar[`partiya_miqdor:${id}`];
+          if (typeof j === 'number') return j > 0 ? j : 0;
+          return qayta.get(id)?.oldingi ?? null;
+        }
+        const m = holat.javoblar[`miqdor:${id}`];
+        return typeof m === 'number' && m > 0 ? m : null;
+      };
+      const royxat = qayta === null ? tanlangan : tanlangan.filter((id) => qayta.has(id) && miqdorOl(id) !== 0);
+
+      const qatorlar: BuyurtmaQatori[] = royxat.map((id) => {
         const t = tovar(id);
         const title = t?.title ?? `#${id}`;
         const weightG = t?.weightG ?? null;
-        const miqdorXom = holat.javoblar[`miqdor:${id}`];
-        const miqdor = typeof miqdorXom === 'number' && miqdorXom > 0 ? miqdorXom : null;
+        const miqdor = miqdorOl(id);
         const tanlov = holat.javoblar[`xitoy_tanlov:${id}`];
         const taklif = tanlov === null || tanlov === undefined ? null
           : xn?.qatorlar?.find((q) => q.productId === id)?.takliflar.find((x) => String(x.sourceId) === String(tanlov)) ?? null;
@@ -517,7 +560,9 @@ export function suhbatKodHarakatlari(
       };
       return {
         olchov_yoq: tayyor.length === 0,
-        ...(tayyor.length === 0 ? { sabab: tanlangan.length ? '1688 taklifi tanlanmagan' : 'tovar tanlanmagan' } : {}),
+        ...(tayyor.length === 0
+          ? { sabab: royxat.length ? '1688 taklifi tanlanmagan' : tanlangan.length ? `${P}-partiyada hamma tovarga 0 dona` : 'tovar tanlanmagan' }
+          : {}),
         qatorlar,
         jami: {
           yuan: yig((q) => q.jamiYuan), som: yig((q) => q.jamiSom),
@@ -527,7 +572,7 @@ export function suhbatKodHarakatlari(
         },
         kargo: kf.stavka,
         kurs: { cny, usd: kf.usd },
-        izoh: IZOH,
+        izoh: P > 1 ? `${P}-partiya (qayta buyurtma). ${IZOH}` : IZOH,
       };
     },
 
@@ -544,9 +589,10 @@ export function suhbatKodHarakatlari(
         d.setUTCDate(d.getUTCDate() + Math.round(kun));
         muddat = d.toISOString().slice(0, 10);
       }
+      const P = partiyaRaqami(holat);
       const r = await rpc<{ xato?: string; id?: number; yangi?: boolean }>('so_ochiq_ish_yoz', {
-        p_token: xitoy.token, p_tur: 'kutyapman', p_sabab: 'yuk kelishi', p_muddat: muddat,
-        p_props: { shahar: holat.javoblar['shahar'] ?? null, kargo_yol: yolTanlovi ?? null, buyurtma_raqami: holat.javoblar['buyurtma_raqami'] ?? null },
+        p_token: xitoy.token, p_tur: 'kutyapman', p_sabab: P > 1 ? `yuk kelishi (${P}-partiya)` : 'yuk kelishi', p_muddat: muddat,
+        p_props: { shahar: holat.javoblar['shahar'] ?? null, kargo_yol: yolTanlovi ?? null, buyurtma_raqami: holat.javoblar['buyurtma_raqami'] ?? null, partiya: P },
       });
       if (r === null || r.xato || typeof r.id !== 'number') {
         return { olchov_yoq: true, sabab: r?.xato ?? 'baza javob bermadi', id: null, yangi: false, tur: 'kutyapman', muddat, izoh: IZOH };
@@ -658,7 +704,7 @@ export function suhbatKodHarakatlari(
         const izoh = typeof izohXom === 'string' && izohXom.trim() ? ` — ${izohXom.trim()}` : '';
         ishlar.push({ savolId: 'yuk_mos', tur: 'tekshirish', sabab: `qabul: yuk ${j['yuk_mos'] === 'kam' ? 'kam keldi' : 'nuqsonli'}${izoh}`, muddat: null });
       }
-      return ochiqIshlarniYoz(rpc, xitoy.token, ishlar, j, IZOH);
+      return ochiqIshlarniYoz(rpc, xitoy.token, ishlar, j, IZOH, partiyaRaqami(holat));
     },
 
     /**
@@ -858,7 +904,118 @@ export function suhbatKodHarakatlari(
       if (bor('topshirildi') && (j['topshirildi'] === 'topshirdim' || j['topshirildi'] === 'kutyapman')) {
         ishlar.push({ savolId: 'topshirildi', tur: 'kutyapman', sabab: 'Uzum ombor qabuli', muddat: muddatSana(xitoy.hozir ?? (() => new Date()), kun) });
       }
-      return ochiqIshlarniYoz(rpc, xitoy.token, ishlar, j, IZOH);
+      return ochiqIshlarniYoz(rpc, xitoy.token, ishlar, j, IZOH, partiyaRaqami(holat));
+    },
+
+    /**
+     * 11-qadam — SOTUV. Sotuvchining oʻz kartochkalari (havoladan) kuzatuvga
+     * qoʻshiladi (`so_sotuv_kuzat`, 0061), oʻlchov oʻqiladi (`so_sotuv_holati`)
+     * — raqobatchi (3-qadam tovari) narxi bilan birga. Signallar va raqamlar
+     * `sotuv.ts` da; bu yerda faqat maʼlumot yigʻiladi.
+     */
+    async sotuv(holat: YolHolati): Promise<SotuvNatijasi> {
+      const IZOH = 'Sotuv: oʻz kartochkangiz narxi, zaxirasi va sharhlari kuniga 3 marta oʻlchanadi; sotilgan dona — zaxira kamayishidan taxmin (Uzum buyurtma sonini bermaydi). Raqobatchi — 3-qadamda tanlangan Uzum tovari.';
+      const hozir = xitoy?.hozir ?? (() => new Date());
+      const sana = hozir().toISOString().slice(0, 10);
+      const oy = sana.slice(0, 7);
+      const partiya = partiyaRaqami(holat);
+      // Hamma partiyalar tovarlari: qayta buyurtmada olinmagani ham sotuvda.
+      const asos = sotuvTovarlari(holat).map((t) => ({ ...t, ozId: uzumMahsulotId(holat.javoblar[`uzum_havola:${t.productId}`]) }));
+      const ozIdlar = [...new Set(asos.map((a) => a.ozId).filter((x): x is number => x !== null))];
+      let kuzatuv: SotuvNatijasi['kuzatuv'] = null;
+      let kuzatuvXato: string | null = null;
+      if (ozIdlar.length) {
+        if (xitoy === null) {
+          kuzatuvXato = 'sessiya yoʻq';
+        } else {
+          const r = await rpc<{ xato?: string; qoshildi?: number; bor?: number }>('so_sotuv_kuzat', { p_token: xitoy.token, p_external_ids: ozIdlar });
+          if (r === null || r.xato) kuzatuvXato = r?.xato ?? 'baza javob bermadi';
+          else kuzatuv = { qoshildi: Number(r.qoshildi ?? 0), bor: Number(r.bor ?? 0) };
+        }
+      }
+      const idlar = [...ozIdlar, ...asos.map((a) => a.productId)];
+      const xom = idlar.length ? await rpc<unknown>('so_sotuv_holati', { p_external_ids: idlar, p_kun: 45 }) : [];
+      const k = kuzatuvlarniOqi(xom);
+      const topish = (id: number) => k.find((x) => x.externalId === id) ?? null;
+      const qatorlar: SotuvTovari[] = asos.map(({ qayta, ...a }) => ({
+        ...a,
+        oz: a.ozId !== null ? ozHolati(topish(a.ozId), a.ozId, oy, qayta) : null,
+        raqobatchi: raqobatchiHolati(topish(a.productId), a.productId),
+      }));
+      const signallar = sotuvSignallari(qatorlar);
+      const olchangan = qatorlar.map((q) => q.oz).filter((o): o is OzHolat => o !== null && o.holat === 'olchandi');
+      const yig = (f: (o: OzHolat) => number | null): number | null => {
+        const v = olchangan.map(f).filter((x): x is number => x !== null);
+        return v.length ? v.reduce((sum, x) => sum + x, 0) : null;
+      };
+      const natija: SotuvNatijasi = {
+        olchov_yoq: false, sana, oy, partiya, qatorlar, signallar, kuzatuv, kuzatuvXato,
+        jami: { bugunDona: yig((o) => o.bugunSotildi), oyDona: yig((o) => o.oyDona), oySom: yig((o) => o.oySom) },
+        izoh: IZOH,
+      };
+      if (xom === null) return { ...natija, olchov_yoq: true, sabab: 'oʻlchov oʻqilmadi (baza javob bermadi)' };
+      if (asos.length === 0) return { ...natija, olchov_yoq: true, sabab: 'partiyada tovar yoʻq' };
+      return natija;
+    },
+
+    /** 12-qadam — oy hisoboti uchun faktlar (0057, 0060) va 11-qadam oʻlchovidan taxmin. */
+    async hisobot(holat: YolHolati): Promise<HisobotNatijasi> {
+      const IZOH = 'Oy hisoboti: aniq summa — Uzum kabinetidagi komissioner hisobotidan (soliq hisobotining asos hujjati, qoʻllanma 3.3); oʻlchovimiz — zaxira kamayishidan taxmin. Soliq foizi va muddatlar fakt jadvalidan (0057, 0060). Bu soliq maslahati emas.';
+      const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...HISOBOT_KALITLARI] });
+      const faktlar = hisobotFaktlari(faktlarniOqi(xom));
+      const sn = holat.natijalar.sotuv as SotuvNatijasi | undefined;
+      const joriy = sn?.oy ?? oyKaliti((xitoy?.hozir ?? (() => new Date()))());
+      const tanlov = holat.javoblar['hisobot_oy'];
+      const oy = typeof tanlov === 'string' && /^\d{4}-\d{2}$/.test(tanlov) ? tanlov : joriy;
+      // Tanlangan oy oʻlchovi qayta oʻqiladi: 62 kun — oldingi oy toʻliq kiradi.
+      const ozIdlar = [...new Set((sn?.qatorlar ?? []).map((q) => q.ozId).filter((x): x is number => x !== null))];
+      const tarix = ozIdlar.length ? await rpc<unknown>('so_sotuv_holati', { p_external_ids: ozIdlar, p_kun: 62 }) : [];
+      const k = kuzatuvlarniOqi(tarix);
+      const qatorlar = (sn?.qatorlar ?? []).map((q) => {
+        const y = q.ozId !== null ? oyYigindisi(k.find((x) => x.externalId === q.ozId) ?? null, oy) : { dona: null, som: null };
+        return { productId: q.productId, title: q.title, oyDona: y.dona, oySom: y.som };
+      });
+      const yig = (f: (q: (typeof qatorlar)[number]) => number | null): number | null => {
+        const v = qatorlar.map(f).filter((x): x is number => x !== null);
+        return v.length ? v.reduce((s, x) => s + x, 0) : null;
+      };
+      const natija = { oy, tugagan: oy < joriy, faktlar, olchovSotuv: yig((q) => q.oySom), olchovDona: yig((q) => q.oyDona), qatorlar, izoh: IZOH };
+      if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...natija };
+      return { olchov_yoq: false, ...natija };
+    },
+
+    /** 12-qadam — sotuv (sotuvchi yozgan yoki taxmin), komissiya, sof, soliq, muddat, qadam kartalari. */
+    async hisobotHisob(holat: YolHolati): Promise<HisobotHisobNatijasi> {
+      const IZOH = 'Hisob: soliq bazasi — xaridor toʻlagan toʻliq narx (komissiya chegirilmaydi); foiz, ijtimoiy soliq va muddatlar fakt jadvalidan. Bu soliq maslahati emas — aniq qoidani soliq organi yoki buxgalter tasdiqlaydi.';
+      const hn = holat.natijalar.hisobot as HisobotNatijasi | undefined;
+      const faktlar = hn?.faktlar ?? hisobotFaktlari({});
+      const oy = hn?.oy ?? oyKaliti((xitoy?.hozir ?? (() => new Date()))());
+      const hisob = oyHisobi({ oy, kabinetSotuv: holat.javoblar['oy_sotuv'], olchovSotuv: hn?.olchovSotuv ?? null, komissiya: holat.javoblar['oy_komissiya'], f: faktlar });
+      return { ...hisob, tugagan: hn?.tugagan ?? true, faktlar, qadamlar: deklaratsiyaQadamlari(hisob, faktlar), izoh: IZOH };
+    },
+
+    /**
+     * 12-qadam yakuni — ochiq ishlar: deklaratsiya bajarilmagan boʻlsa ijtimoiy
+     * soliq toʻlovi (muddat faktdan) va "oylik soliq hisoboti" kutyapman;
+     * "sayt boshqacha" — tekshirish. Keyingi oy rejasi — hozirgi tezlikdan.
+     */
+    async hisobotYakun(holat: YolHolati): Promise<HisobotYakunNatijasi> {
+      const IZOH = 'Ochiq ishlar: ijtimoiy soliq toʻlovi (muddat faktdan), deklaratsiya keyinga qoldirilsa — kutyapman, sayt boshqacha — tekshirish. Keyingi oy rejasi — hozirgi sotuv tezligi va zaxiradan, bashorat emas.';
+      const hh = holat.natijalar.hisobot_hisob as HisobotHisobNatijasi | undefined;
+      const sn = holat.natijalar.sotuv as SotuvNatijasi | undefined;
+      const reja = keyingiOyRejasi(sn?.qatorlar ?? []);
+      if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], reja, izoh: IZOH };
+      const j = holat.javoblar;
+      const bajardi = j['deklaratsiya'] === 'tayyorlaymiz' && j['deklaratsiya_qadam'] === 'bajardim';
+      const ishlar: OchiqIsh[] = [];
+      const oy = hh?.oy ?? '';
+      if (!bajardi) {
+        if (hh && hh.soliq.ijtimoiySom !== null) ishlar.push({ savolId: 'deklaratsiya', tur: 'tolov', sabab: `ijtimoiy soliq (${oy})`, muddat: hh.ijtimoiyMuddat });
+        ishlar.push({ savolId: 'deklaratsiya', tur: 'kutyapman', sabab: `oylik soliq hisoboti (${oy})`, muddat: hh?.ijtimoiyMuddat ?? null });
+      }
+      if (j['deklaratsiya_qadam'] === 'boshqacha') ishlar.push({ savolId: 'deklaratsiya_qadam', tur: 'tekshirish', sabab: 'hisobot: soliq portali boshqacha', muddat: null });
+      const y = await ochiqIshlarniYoz(rpc, xitoy.token, ishlar, j, IZOH);
+      return { ...y, reja };
     },
   };
 }

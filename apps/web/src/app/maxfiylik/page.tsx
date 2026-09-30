@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-09-29';
+const YANGILANDI = '2026-09-30';
 
 export default function Maxfiylik() {
   return (
@@ -134,6 +134,14 @@ export default function Maxfiylik() {
                   Uzum qabulini kutish muddati
                 </td>
                 <td><code>ochiq_ish</code></td>
+              </tr>
+              <tr>
+                <td>
+                  Oʻz Uzum kartochkangiz raqami (11-qadamda yuborsangiz) —
+                  narx, zaxira va sotuvni kuzatish uchun. Oy hisobotiga
+                  yozgan sotuv va komissiya summasi suhbat holatida turadi.
+                </td>
+                <td><code>sotuvchi_tovar</code>, <code>yol</code></td>
               </tr>
             </tbody>
           </table>

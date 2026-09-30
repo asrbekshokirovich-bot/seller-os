@@ -7,6 +7,36 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-09-30] **11-qadam kunlik xabari — "tortish", "itarish" emas.**
+Ssenariy "Menejer, har kuni: Bugun … dona" deydi. Hozir raqam sotuvchi chatni
+ochib «Yangilash» ni bosganda chiqadi; oʻzi yozmaydi. Kerak: cron (kuniga
+bir marta, skreyperdan keyin) + xabar kanali (Telegram bot yoki push) —
+ochiq ish eslatmasi bilan birga quriladi.
+
+— [agent, 2026-09-30] **Sharhga javob yordami yoʻq.** 11-qadam faqat sharhlar
+SONI oshganini biladi (`product_daily.reviews`); sharh matni va har sharh
+bahosi saqlanmaydi. "Javob yozamizmi?" → hozircha sotuvchi kabinetda yozadi.
+Kerak: sharh matnini oʻqish (skreyper) va javob loyihasi.
+
+— [agent, 2026-09-30] **Asl ssenariyning 10-qadam qismlari qurilmagan:** har
+tovar narxini tasdiqlash ("tannarx, marja, narx; raqobatchilar p25–p75"),
+tavsif/xususiyat matnini tayyorlash, kengaytma kabinet maydonlarini
+toʻldirishi, moderatsiya (rad etilsa sababi) kuzatuvi. Hozirgi 10-qadam —
+kartochka qoidalari va omborga topshirish. 9-qadam ham asl ssenariydan
+farq qiladi (Uzum Fotostudiyasiga olib borish oʻrniga oq fonli suratlar —
+nazoratchi qarori 2026-09-29).
+
+— [agent, 2026-09-30] **12-qadam soliq faktlari `[TASDIQ]`:** Uzum sotuvchisi
+uchun soliq agenti kim va aylanma soligʻi ushlab qolinadimi (OʻRQ-1108,
+SK 461); oʻzi topshirsa hisobot davri (chorak/oy) — rasmiy matn topilmadi,
+ikkilamchi manba (azma.uz). Tuzatish — `selleros.fakt` da (0060), kod
+oʻzgarmaydi. Buxgalteriya xizmati (ssenariy: "shu yerda kiradi") yoʻq.
+
+— [agent, 2026-09-30] **Sotuvchi qoʻshgan kuzatuv tozalanmaydi.** 11-qadam
+havolasi `tracked_product` ga qator qoʻshadi (sessiyaga 20 tagacha,
+`sotuvchi_tovar`); tashlab ketilgan sessiyaning tovari skreyperda qolaveradi.
+Kerak: 60 kun faol boʻlmagan sessiya tovarlarini `active = false` qilish.
+
 — [agent, 2026-09-29] **Studiya (9-qadam) — Cloudflare limiti.** Free:
 oyiga 5 000 noyob oʻzgartirish, oshsa yangi surat 9422 xato bilan
 qaytadi (pul olinmaydi); Paid: $0.50 / 1 000 (developers.cloudflare.com/
@@ -113,8 +143,9 @@ chiqmaydi.** "Sayt boshqacha" belgilari `selleros.ochiq_ish` da
 (tur = tekshirish, props.savolId) yigʻiladi, lekin ularni koʻradigan
 ekran yoʻq — hozircha SQL bilan. Eslatma mexanizmi bilan birga qurilsin.
 
-— [agent, 2026-09-25] **Ssenariy 6–12-qadamlari qurilmagan.** *(2026-09-29:
-6–10 QURILDI; 11 sotuv signallari va 12 hisobot qoldi.)* Mashina
+— [agent, 2026-09-25] **Ssenariy 6–12-qadamlari qurilmagan.** *(2026-09-30:
+HAMMASI QURILDI — 11 sotuv signallari va 12 hisobot ham; qolgan kamchiliklar
+pastdagi 2026-09-30 bandlarida.)* Mashina
 ularga yetganda rostini aytadi ("tez orada"). 5-qadam (Xitoydan topish)
 QURILDI: rasm → kesh → limit → TMAPI → CBU kursi → chegaraga solishtirish
 → har tovar uchun tanlov. Rasm bazada boʻlmasa (0054 qoʻllanmagan yoki
