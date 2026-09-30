@@ -30,5 +30,7 @@ export * from './fakt.js';
 export * from './rasmiy.js';
 export * from './qabul.js';
 export * from './studiya.js';
+export * from './hisobot.js';
+export * from './sotuv.js';
 export * from './xizmat.js';
 export * from './kartochka.js';

@@ -12,8 +12,9 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boshlangichHolat, faktlarniOqi, javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, qabulFaktlari,
-  rasmiyFaktlari, SHAHARLAR, SUHBAT_QADAMLARI, suratTalablari, tushuntir, type YolHolati,
+  boshlangichHolat, deklaratsiyaQadamlari, faktlarniOqi, hisobotFaktlari, javobniQabulQil, joriyQadam, keyingi,
+  kutilayotganHarakat, natijaniYoz, oyHisobi, qabulFaktlari, rasmiyFaktlari, SHAHARLAR, sotuvTovarlari, SUHBAT_QADAMLARI,
+  suratTalablari, tushuntir, type YolHolati,
 } from '@selleros/shared';
 
 const YONALISHLAR = {
@@ -127,6 +128,31 @@ const YUKLASH = {
   qatorlar: [{ productId: 100, title: 'Quloqchin A', miqdor: 30, qadoq: null }], jamiDona: 30, izoh: 'yuklash',
 };
 const YUKLASH_YAKUN = { olchov_yoq: false, yozildi: [], izoh: 'yuklash yakun' };
+/** 11-qadam: oʻz kartochka 5001 (raqobatchi 100 ning nusxasi) — uchta signal. */
+const OZ = { externalId: 5001, holat: 'olchandi' as const, sana: '2026-09-30', bugunSotildi: 3, tezlik: 2.5, tezlikKun: 4, zaxira: 4, zaxiraKun: 1,
+  boshlangichZaxira: 30, zaxiraUlush: 0.13, narx: 99_000, sharh: 7, reyting: 4.6, yangiSharh: 1, oyDona: 26, oySom: 2_574_000, olchovKun: 5 };
+const SOTUV = {
+  olchov_yoq: false, sana: '2026-09-30', oy: '2026-09', partiya: 1, kuzatuv: { qoshildi: 1, bor: 0 }, kuzatuvXato: null,
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', miqdor: 30, ozId: 5001, xaridYuan: 27, partiya: 1, oz: OZ,
+    raqobatchi: { productId: 100, sana: '2026-09-30', narx: 95_000, oldingiNarx: 100_000, tushdiFoiz: 5 } }],
+  signallar: [
+    { id: 'zaxira:100:p1', tur: 'zaxira' as const, productId: 100, zaxira: 4, ulush: 0.13, kun: 1 },
+    { id: 'narx:100:2026-09-30:95000', tur: 'narx' as const, productId: 100, narx: 95_000, oldingiNarx: 100_000, foiz: 5, sana: '2026-09-30', ozNarx: 99_000 },
+    { id: 'sharh:100:7', tur: 'sharh' as const, productId: 100, yangi: 1, jami: 7, reyting: 4.6 },
+  ],
+  jami: { bugunDona: 3, oyDona: 26, oySom: 2_574_000 }, izoh: 'sotuv',
+};
+const SOTUV_JIM = { ...SOTUV, signallar: [] };
+/** 12-qadam: 0057 + 0060 faktlari. */
+const HISOBOT_F = hisobotFaktlari(faktlarniOqi({
+  ...RASMIY_SEED, 'soliq.agent': FQ('Javobgarlik soliq agentida'), 'soliq.aylanma.hisobot_davri': FQ('chorak'),
+  'soliq.aylanma.hisobot_kun': FQ(15), 'soliq.portal.url': FQ('https://my3.soliq.uz'), 'uzum.hisobot.komissioner_kun': FQ(19),
+}));
+const HISOBOT = { olchov_yoq: false, oy: '2026-09', tugagan: true, faktlar: HISOBOT_F, olchovSotuv: 2_574_000, olchovDona: 26,
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', oyDona: 26, oySom: 2_574_000 }], izoh: 'hisobot' };
+const HISOB = oyHisobi({ oy: '2026-09', kabinetSotuv: 2_600_000, olchovSotuv: 2_574_000, komissiya: 400_000, f: HISOBOT_F });
+const HISOBOT_HISOB = { ...HISOB, tugagan: true, faktlar: HISOBOT_F, qadamlar: deklaratsiyaQadamlari(HISOB, HISOBOT_F), izoh: 'hisob' };
+const HISOBOT_YAKUN = { olchov_yoq: false, yozildi: [], reja: ['«Quloqchin A»: kuniga ~2.5 dona, zaxira 1 kunga yetadi.'], izoh: 'yakun' };
 
 /** Javob beradi va qabul qilinganini tekshiradi. */
 function javob(h: YolHolati, id: string, q: unknown): YolHolati {
@@ -142,9 +168,9 @@ function savolId(h: YolHolati): string {
 }
 
 describe('ssenariy — 12 qadam', () => {
-  it('12 qadam, dastlabki 10 tasi qurilgan', () => {
+  it('12 qadam, hammasi qurilgan', () => {
     expect(SUHBAT_QADAMLARI.length).toBe(12);
-    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(SUHBAT_QADAMLARI.filter((q) => q.qurilgan).map((q) => q.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   });
 });
 
@@ -333,10 +359,12 @@ describe('zanjir hech qayerda uzilmaydi', () => {
   it("har holatda keyingi() nimadir qaytaradi va savol matni bo'sh emas", () => {
     let h = boshlangichHolat();
     const korilgan: string[] = [];
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 90; i++) {
       const k = keyingi(h);
       korilgan.push(k.tur === 'savol' ? k.savol.id : k.tur);
-      if (k.tur === 'tezOrada') { expect(k.matn.length).toBeGreaterThan(20); break; }
+      if (k.tur === 'tezOrada') throw new Error('tez orada: hamma qadam qurilgan boʻlishi kerak');
+      // Oy aylanishining oxiri — "yangi oy" savoli; undan keyin 11-qadam qaytadan.
+      if (k.tur === 'savol' && k.savol.id === 'yangi_oy') break;
       if (k.tur === 'kod') {
         h = natijaniYoz(h, k.harakat,
           k.harakat === 'yonalishlar' ? YONALISHLAR
@@ -351,18 +379,27 @@ describe('zanjir hech qayerda uzilmaydi', () => {
                             : k.harakat === 'studiya' ? STUDIYA
                               : k.harakat === 'studiya_yakun' ? STUDIYA_YAKUN
                                 : k.harakat === 'yuklash' ? YUKLASH
-                                  : k.harakat === 'yuklash_yakun' ? YUKLASH_YAKUN : { ok: true });
+                                  : k.harakat === 'yuklash_yakun' ? YUKLASH_YAKUN
+                                    : k.harakat === 'sotuv' ? SOTUV
+                                      : k.harakat === 'hisobot' ? HISOBOT
+                                        : k.harakat === 'hisobot_hisob' ? HISOBOT_HISOB
+                                          : k.harakat === 'hisobot_yakun' ? HISOBOT_YAKUN : { ok: true });
         continue;
       }
       if (k.tur === 'kutish') throw new Error('kutish: bu yoʻlda kutilmagan');
       expect(k.savol.matn.trim().length).toBeGreaterThan(5);
       const s = k.savol;
-      const q = s.turi === 'kopTanlov' ? [s.variantlar[0]!.qiymat]
-        : s.variantlar.length ? s.variantlar[0]!.qiymat
-          : s.turi === 'son' ? 7 : 'sinov';
+      // Aylanmaydigan javoblar: oʻz kartochka havolasi, «Oy hisoboti», «Hozircha yoʻq».
+      const q = s.id.startsWith('uzum_havola:') ? 'https://uzum.uz/uz/product/mening-quloqchinim-5001'
+        : s.id === 'sotuv_holat' ? 'hisobot'
+          : s.id.startsWith('signal:zaxira:') ? 'yoq'
+            : s.turi === 'kopTanlov' ? [s.variantlar[0]!.qiymat]
+              : s.variantlar.length ? s.variantlar[0]!.qiymat
+                : s.turi === 'son' ? 7 : 'sinov';
       h = javob(h, s.id, q);
     }
-    expect(korilgan[korilgan.length - 1]).toBe('tezOrada');
+    expect(korilgan[korilgan.length - 1]).toBe('yangi_oy');
+    expect(korilgan).toEqual(expect.arrayContaining(['uzum_havola:100', 'signal:zaxira:100:p1', 'sotuv_holat', 'oy_sotuv', 'deklaratsiya_qadam']));
     // Hech bir savol ikki marta so'ralmagan.
     const savollar = korilgan.filter((x) => !['kod', 'tezOrada'].includes(x));
     expect(new Set(savollar).size).toBe(savollar.length);
@@ -903,8 +940,9 @@ describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yuklash_yakun', qadam: 10 });
     h = natijaniYoz(h, 'yuklash_yakun', YUKLASH_YAKUN);
     const k11 = keyingi(h);
-    expect(k11.tur).toBe('tezOrada');
-    if (k11.tur === 'tezOrada') { expect(k11.qadam).toBe(11); expect(k11.nom).toBe('Sotuv boshlandi'); }
+    if (k11.tur !== 'savol') throw new Error(k11.tur);
+    expect(k11.savol.id).toBe('uzum_havola:100');
+    expect(k11.savol.qadam).toBe(11);
     expect(joriyQadam(h)).toBe(11);
   });
 
@@ -938,5 +976,238 @@ describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
     ] };
     expect(tushuntir('yuklash_yakun', y)).toBe('Ochiq ishlar yozildi (2): yuklash: kabinet (kartochka) boshqacha; Uzum ombor qabuli (2026-10-06 gacha). Tekshirish belgilari nazoratchiga ketdi.');
     expect(tushuntir('yuklash_yakun', YUKLASH_YAKUN)).toBe('Yuklash boʻyicha ochiq ish yoʻq — hammasi tayyor.');
+  });
+});
+
+/** 10-qadam tugagan holat (kartochka yaratildi, topshirildi). */
+function sotuvBoshi(): YolHolati {
+  let h = natijaniYoz(yuklashBoshi(), 'yuklash', YUKLASH);
+  for (const [id, q] of [['kartochka_yaratildi', 'yaratdim'], ['qadoq_tayyor', 'tayyor'], ['yetkazish', 'ozim'], ['taymslot', 'oldim'], ['topshirildi', 'topshirdim']] as const) {
+    h = javob(h, id, q);
+  }
+  return natijaniYoz(h, 'yuklash_yakun', YUKLASH_YAKUN);
+}
+
+describe('11-qadam — Sotuv boshlandi (oʻz kartochka kuzatuvi, signallar)', () => {
+  it('havola: notoʻgʻri — rad; raqobatchi (3-qadam) tovari — rad; oʻtkazish — null; toʻgʻri — kod sotuv', () => {
+    const h = sotuvBoshi();
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/^«Quloqchin A» Uzumda sotuvga chiqdimi\? Oʻz kartochkangiz havolasini yuboring/);
+    expect(javobniQabulQil(h, 'uzum_havola:100', 'salom').xato).toMatch(/Uzum kartochka havolasini yuboring/);
+    expect(javobniQabulQil(h, 'uzum_havola:100', 'https://uzum.uz/uz/product/quloqchin-a-100').xato).toMatch(/raqobatchi tovari/);
+    expect(javobniQabulQil(h, 'uzum_havola:100', '').holat.javoblar['uzum_havola:100']).toBeNull();
+    const h2 = javob(h, 'uzum_havola:100', ' https://uzum.uz/uz/product/mening-quloqchinim-5001 ');
+    expect(h2.javoblar['uzum_havola:100']).toBe('https://uzum.uz/uz/product/mening-quloqchinim-5001');
+    expect(keyingi(h2)).toEqual({ tur: 'kod', harakat: 'sotuv', qadam: 11 });
+  });
+
+  it('signallar ketma-ket (matni ssenariydagidek), keyin holat savoli; «Yangilash» natijani tozalaydi', () => {
+    let h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', 'https://uzum.uz/uz/product/x-5001'), 'sotuv', SOTUV);
+    const k1 = keyingi(h);
+    if (k1.tur !== 'savol') throw new Error(k1.tur);
+    expect(k1.savol.id).toBe('signal:zaxira:100:p1');
+    expect(k1.savol.matn).toBe('«Quloqchin A» zaxirasi 13 % ga tushdi — 4 dona qoldi, shu tezlikda 1 kunga yetadi. Yangi partiya buyurtma qilamizmi? Oxirgi safar 1688 da ¥27 dan olgansiz — sotuvchi maʼlum, yoʻl qisqa.');
+    expect(k1.savol.variantlar.map((v) => v.qiymat)).toEqual(['yana', 'yoq']);
+    h = javob(h, 'signal:zaxira:100:p1', 'yoq');
+    const k2 = keyingi(h);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.matn).toBe('Raqobatchi («Quloqchin A») narxini 95000 soʻmga tushirdi (oldin 100000, −5 %), oʻlchangan 2026-09-30. Sizniki: 99000 soʻm. Tegmaymiz yoki tushiramiz?');
+    h = javob(h, k2.savol.id, 'tegmaymiz');
+    const k3 = keyingi(h);
+    if (k3.tur !== 'savol') throw new Error(k3.tur);
+    expect(k3.savol.matn).toBe('«Quloqchin A» ga yangi sharh: 1 ta (jami 7), oʻrtacha baho 4.6. Javob yozamizmi?');
+    h = javob(h, k3.savol.id, 'keyin');
+    const k4 = keyingi(h);
+    if (k4.tur !== 'savol') throw new Error(k4.tur);
+    expect(k4.savol.id).toBe('sotuv_holat');
+    expect(k4.savol.matn).toBe('Bugun: 3 dona, oʻlchangan (zaxira kamayishidan). Zaxira: 4 dona. Shu tezlikda 1 kunga yetadi. Bu bashorat emas, hozirgi tezlik. Oy yakunida — «Oy hisoboti».');
+    expect(k4.savol.variantlar.map((v) => v.qiymat)).toEqual(['yangila', 'hisobot']);
+    const y = javob(h, 'sotuv_holat', 'yangila');
+    expect(y.natijalar.sotuv).toBeUndefined();
+    expect(y.javoblar['sotuv_holat']).toBeUndefined();
+    expect(y.javoblar['signal:zaxira:100:p1']).toBe('yoq');
+    expect(keyingi(y)).toEqual({ tur: 'kod', harakat: 'sotuv', qadam: 11 });
+  });
+
+  it('havola oʻtkazilgan — «Havola qoʻshish» varianti; bosilsa havola qayta soʻraladi', () => {
+    let h = javob(sotuvBoshi(), 'uzum_havola:100', null);
+    h = natijaniYoz(h, 'sotuv', { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, ozId: null, oz: null }], jami: { bugunDona: null, oyDona: null, oySom: null } });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/^Kartochka havolasi berilmagan — kuzatadigan narsa yoʻq/);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['yangila', 'havola', 'hisobot']);
+    const h2 = javob(h, 'sotuv_holat', 'havola');
+    expect(Object.prototype.hasOwnProperty.call(h2.javoblar, 'uzum_havola:100')).toBe(false);
+    const k2 = keyingi(h2);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.id).toBe('uzum_havola:100');
+  });
+
+  it('oʻlchov hali yoʻq — "kuzatuvga qoʻshildi, ertaga Yangilash" (sotuv yoʻq DEMAYDI)', () => {
+    const h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv',
+      { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: { ...OZ, holat: 'kutilmoqda' as const } }] });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/^Kartochkalar kuzatuvga qoʻshildi \(1 ta\)\. Birinchi oʻlchov .*09:00, 17:00, 01:00.*«Yangilash» ni bosing\.$/);
+  });
+
+  it('«Ha, yana buyurtma» — ikkinchi partiya: miqdor oʻz tezligidan soʻraladi, 6-qadamdan qayta; sotuvchi, rasmiylashtirish, kartochka saqlanadi', () => {
+    let h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv', SOTUV);
+    const tanlov = h.javoblar['xitoy_tanlov:100'];
+    h = javob(h, 'signal:zaxira:100:p1', 'yana');
+    expect(h.natijalar.partiya).toBe(2);
+    expect(h.natijalar.oldingi_partiyalar).toEqual([{ partiya: 1, sana: '2026-09-30', buyurtma: BUYURTMA, zaxira: { 100: 4 }, tezlik: { 100: 2.5 } }]);
+    expect(h.natijalar.buyurtma).toBeUndefined();
+    expect(h.natijalar.sotuv).toBeUndefined();
+    expect(h.javoblar['xitoy_tanlov:100']).toBe(tanlov);
+    expect(h.javoblar['kartochka_yaratildi']).toBe('yaratdim');
+    expect(h.javoblar['uzum_havola:100']).toBe('5001');
+    expect(h.javoblar['topshirildi']).toBeUndefined();
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('partiya_miqdor:100');
+    expect(k.savol.qadam).toBe(6);
+    expect(k.savol.matn).toBe('«Quloqchin A» — 2-partiya. Oldingi safar 30 dona olgansiz; oʻz kartochkangiz tezligi — kuniga ~2.5 dona (zaxira kamayishidan). Bu safar nechta olasiz? 0 — bu safar olmayman; oʻtkazsangiz — oldingidek.');
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([75, 150, 30, 0]);
+    expect(javob(h, 'partiya_miqdor:100', 0).javoblar['partiya_miqdor:100']).toBe(0);
+    h = javob(h, 'partiya_miqdor:100', 60);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
+    // Ikkinchi aylanish qisqa: shahar va 7-qadam (rasmiylashtirish) qayta soʻralmaydi.
+    h = natijaniYoz(h, 'buyurtma', { ...BUYURTMA, qatorlar: [{ ...BUYURTMA.qatorlar[0]!, miqdor: 60 }] });
+    h = javob(h, 'buyurtma_raqami', 'YT-2');
+    h = javob(h, 'dokon_tayyorlash', 'boshlaymiz');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'ochiq_ish', qadam: 6 });
+    h = natijaniYoz(h, 'ochiq_ish', OCHIQ);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'qabul', qadam: 8 });
+    // Uchinchi partiyada oldingi miqdor — ikkinchisiniki; partiya_miqdor javobi tozalanadi.
+    const b2 = { ...BUYURTMA, qatorlar: [{ ...BUYURTMA.qatorlar[0]!, miqdor: 60 }] };
+    let h2 = javob(sotuvBoshi(), 'uzum_havola:100', '5001');
+    h2 = { javoblar: { ...h2.javoblar, 'partiya_miqdor:100': 60 }, natijalar: { ...h2.natijalar, partiya: 2, buyurtma: b2,
+      oldingi_partiyalar: [{ partiya: 1, sana: '2026-09-30', buyurtma: BUYURTMA, zaxira: { 100: 4 }, tezlik: { 100: 2.5 } }] } };
+    h2 = natijaniYoz(h2, 'sotuv', { ...SOTUV, partiya: 2, qatorlar: [{ ...SOTUV.qatorlar[0]!, partiya: 2 }], signallar: [{ ...SOTUV.signallar[0]!, id: 'zaxira:100:p2' }] });
+    const h3 = javob(h2, 'signal:zaxira:100:p2', 'yana');
+    expect(h3.natijalar.partiya).toBe(3);
+    expect(Object.prototype.hasOwnProperty.call(h3.javoblar, 'partiya_miqdor:100')).toBe(false);
+    const k3 = keyingi(h3);
+    if (k3.tur !== 'savol') throw new Error(k3.tur);
+    expect(k3.savol.matn).toMatch(/^«Quloqchin A» — 3-partiya\. Oldingi safar 60 dona olgansiz;/);
+  });
+
+  it('sotuvTovarlari: hamma partiyalar tovarlari — qayta olingani yangi partiya va buyurtma kuni bilan, olinmagani eskisi bilan', () => {
+    const B200 = { ...BUYURTMA.qatorlar[0]!, productId: 200, title: 'Quloqchin B', miqdor: 10, narxYuan: 15 };
+    const h: YolHolati = { javoblar: {}, natijalar: {
+      partiya: 2,
+      oldingi_partiyalar: [{ partiya: 1, sana: '2026-09-30', buyurtma: { ...BUYURTMA, qatorlar: [BUYURTMA.qatorlar[0]!, B200] }, zaxira: { 100: 4, 200: 9 }, tezlik: { 100: 2.5, 200: 0.5 } }],
+      buyurtma: { ...BUYURTMA, qatorlar: [{ ...BUYURTMA.qatorlar[0]!, miqdor: 60 }] },
+    } };
+    expect(sotuvTovarlari(h)).toEqual([
+      { productId: 100, title: 'Quloqchin A', miqdor: 60, xaridYuan: 27, partiya: 2, qayta: { sana: '2026-09-30', zaxira: 4 } },
+      { productId: 200, title: 'Quloqchin B', miqdor: 10, xaridYuan: 15, partiya: 1, qayta: null },
+    ]);
+  });
+
+  it('tushuntir(sotuv): oʻlchov manbasi va signallar soni; havola yoʻq; kuzatuv xatosi', () => {
+    expect(tushuntir('sotuv', SOTUV)).toBe('Sotuv (2026-09-30): Kuzatuvda: 1 ta kartochka (1 tasi yangi qoʻshildi). Bugun 3 dona, shu oy 26 dona, taxminan 2574000 soʻm — zaxira kamayishidan (Uzum buyurtma sonini bermaydi). Signallar: 3 ta.');
+    expect(tushuntir('sotuv', { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, ozId: null, oz: null }] })).toBe('Sotuv: kartochka havolasi yoʻq — oʻz sotuvingizni kuzata olmayman. Signal yoʻq.');
+    expect(tushuntir('sotuv', { ...SOTUV_JIM, kuzatuv: null, kuzatuvXato: 'sessiya yoʻq', qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: { ...OZ, holat: 'kutilmoqda' as const } }] }))
+      .toMatch(/Kuzatuvga qoʻshib boʻlmadi: sessiya yoʻq\. Hali oʻlchanmagan/);
+    expect(tushuntir('sotuv', { ...SOTUV, olchov_yoq: true, sabab: 'oʻlchov oʻqilmadi (baza javob bermadi)' })).toMatch(/Bu "sotuv yoʻq" degani EMAS/);
+  });
+});
+
+/** 11-qadam tugagan holat: signallar javob berilgan, «Oy hisoboti» bosilgan. */
+function hisobotBoshi(): YolHolati {
+  let h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv', SOTUV);
+  for (const [id, q] of [['signal:zaxira:100:p1', 'yoq'], ['signal:narx:100:2026-09-30:95000', 'tegmaymiz'], ['signal:sharh:100:7', 'javob'], ['sotuv_holat', 'hisobot'], ['hisobot_oy', '2026-09']] as const) {
+    h = javob(h, id, q);
+  }
+  return h;
+}
+
+describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
+  it('«Oy hisoboti» — avval qaysi oy: tugagan yoki joriy (hozirgacha); matnlar shunga qarab', () => {
+    let h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv', SOTUV_JIM);
+    h = javob(h, 'sotuv_holat', 'hisobot');
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('hisobot_oy');
+    expect(k.savol.qadam).toBe(12);
+    expect(k.savol.variantlar).toEqual([{ qiymat: '2026-08', nom: '2026-yil avgust — tugagan' }, { qiymat: '2026-09', nom: '2026-yil sentyabr — hozirgacha' }]);
+    expect(javobniQabulQil(h, 'hisobot_oy', '2026-07').xato).toBe('variantlardan birini tanlang');
+    h = javob(h, 'hisobot_oy', '2026-09');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'hisobot', qadam: 12 });
+    h = natijaniYoz(h, 'hisobot', { ...HISOBOT, tugagan: false });
+    const k2 = keyingi(h);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.matn).toMatch(/^Oy hisoboti \(2026-yil sentyabr, hozirgacha — oy hali tugamagan\)\. /);
+    h = javob(javob(h, 'oy_sotuv', null), 'oy_komissiya', null);
+    const taxmin = oyHisobi({ oy: '2026-09', kabinetSotuv: null, olchovSotuv: 2_574_000, komissiya: null, f: HISOBOT_F });
+    h = natijaniYoz(h, 'hisobot_hisob', { ...taxmin, tugagan: false, faktlar: HISOBOT_F, qadamlar: [], izoh: 'hisob' });
+    const k3 = keyingi(h);
+    if (k3.tur !== 'savol') throw new Error(k3.tur);
+    expect(k3.savol.matn).toMatch(/^2026-yil sentyabr hali tugamagan — hozirgacha hisob\. Sotuv 2574000 soʻm \(taxmin\)/);
+    expect(tushuntir('hisobot', { ...HISOBOT, tugagan: false })).toMatch(/^Oy hisoboti \(2026-yil sentyabr, hozirgacha\): /);
+  });
+
+  it('kod hisobot → oy_sotuv → oy_komissiya → kod hisobot_hisob → deklaratsiya → qadamlar → kod yakun → yangi oy', () => {
+    let h = hisobotBoshi();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'hisobot', qadam: 12 });
+    h = natijaniYoz(h, 'hisobot', HISOBOT);
+    const k1 = keyingi(h);
+    if (k1.tur !== 'savol') throw new Error(k1.tur);
+    expect(k1.savol.id).toBe('oy_sotuv');
+    expect(k1.savol.turi).toBe('son');
+    expect(k1.savol.matn).toBe('Oy hisoboti (2026-yil sentyabr). Oʻlchovimiz boʻyicha: 26 dona, taxminan 2574000 soʻm (zaxira kamayishidan). Aniq summa — Uzum kabinetidagi komissioner hisobotida (keyingi oyning 19-sanasigacha tayyor boʻladi). Hisobotdagi SOTUV summasini yozing — soliq xaridor toʻlagan toʻliq narxdan olinadi. Bilmasangiz — oʻtkazib yuboring, taxmin bilan hisoblayman.');
+    h = javob(h, 'oy_sotuv', 2_600_000);
+    h = javob(h, 'oy_komissiya', 400_000);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'hisobot_hisob', qadam: 12 });
+    h = natijaniYoz(h, 'hisobot_hisob', HISOBOT_HISOB);
+    const k2 = keyingi(h);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.id).toBe('deklaratsiya');
+    expect(k2.savol.matn).toBe('Oy tugadi (2026-yil sentyabr). Sotuv 2600000 soʻm, komissiya 400000 soʻm, sof 2200000 soʻm. Soliq: YATT uchun 1 % aylanmadan — 26000 soʻm; ijtimoiy soliq 440000 soʻm. Muddat 2026-10-15 gacha. Deklaratsiyani tayyorlaymizmi?');
+    h = javob(h, 'deklaratsiya', 'tayyorlaymiz');
+    const k3 = keyingi(h);
+    if (k3.tur !== 'savol') throw new Error(k3.tur);
+    expect(k3.savol.id).toBe('deklaratsiya_qadam');
+    expect(k3.savol.matn).toMatch(/^https:\/\/my3\.soliq\.uz ga E-imzo bilan kiring\./);
+    expect(k3.savol.variantlar.map((v) => v.qiymat)).toEqual(['bajardim', 'keyin', 'boshqacha']);
+    h = javob(h, 'deklaratsiya_qadam', 'bajardim');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'hisobot_yakun', qadam: 12 });
+    h = natijaniYoz(h, 'hisobot_yakun', HISOBOT_YAKUN);
+    const k4 = keyingi(h);
+    if (k4.tur !== 'savol') throw new Error(k4.tur);
+    expect(k4.savol.id).toBe('yangi_oy');
+    expect(joriyQadam(h)).toBe(12);
+    const y = javob(h, 'yangi_oy', 'boshlaymiz');
+    expect(y.natijalar.oylar).toEqual([{ oy: '2026-09', sotuvSom: 2_600_000, komissiyaSom: 400_000, sofSom: 2_200_000, soliq: HISOB.soliq }]);
+    expect(y.natijalar.sotuv).toBeUndefined();
+    expect(y.natijalar.hisobot_yakun).toBeUndefined();
+    expect(y.javoblar['oy_sotuv']).toBeUndefined();
+    expect(y.javoblar['hisobot_oy']).toBeUndefined();
+    expect(y.javoblar['signal:zaxira:100:p1']).toBe('yoq');
+    expect(keyingi(y)).toEqual({ tur: 'kod', harakat: 'sotuv', qadam: 11 });
+  });
+
+  it('deklaratsiya «Keyinroq» — qadamlar soʻralmaydi, yakun kodi; summa oʻtkazilsa taxmin deyiladi', () => {
+    let h = natijaniYoz(hisobotBoshi(), 'hisobot', HISOBOT);
+    h = javob(h, 'oy_sotuv', null);
+    h = javob(h, 'oy_komissiya', null);
+    const taxmin = oyHisobi({ oy: '2026-09', kabinetSotuv: null, olchovSotuv: 2_574_000, komissiya: null, f: HISOBOT_F });
+    h = natijaniYoz(h, 'hisobot_hisob', { ...taxmin, tugagan: true, faktlar: HISOBOT_F, qadamlar: [], izoh: 'hisob' });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/^Oy tugadi \(2026-yil sentyabr\)\. Sotuv 2574000 soʻm \(taxmin\), komissiya yozilmagan, sof hisoblanmadi\. Soliq: YATT uchun 1 % aylanmadan — 25740 soʻm/);
+    h = javob(h, 'deklaratsiya', 'keyin');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'hisobot_yakun', qadam: 12 });
+  });
+
+  it('tushuntir(hisobot / hisobot_hisob / hisobot_yakun)', () => {
+    expect(tushuntir('hisobot', HISOBOT)).toBe('Oy hisoboti (2026-yil sentyabr): oʻlchovimiz boʻyicha 26 dona, taxminan 2574000 soʻm. Aniq raqamni Uzum komissioner hisobotidan olamiz.');
+    expect(tushuntir('hisobot_hisob', HISOBOT_HISOB)).toBe('Hisob: sotuv 2600000 soʻm, aylanma soligʻi 26000 soʻm, ijtimoiy soliq 440000 soʻm — jami 466000 soʻm. Soliq bazasi — xaridor toʻlagan toʻliq narx, komissiya chegirilmaydi. Bu soliq maslahati emas. Aylanma soligʻi: Javobgarlik soliq agentida — komissioner hisobotida ushlab qolinganini tekshiring.');
+    expect(tushuntir('hisobot_yakun', HISOBOT_YAKUN)).toBe('Hisobot boʻyicha ochiq ish yoʻq — hammasi tayyor. Keyingi oy rejasi: «Quloqchin A»: kuniga ~2.5 dona, zaxira 1 kunga yetadi.');
+    const y = { ...HISOBOT_YAKUN, yozildi: [{ tur: 'tolov', sabab: 'ijtimoiy soliq (2026-09)', muddat: '2026-10-15', id: 1, yangi: true }] };
+    expect(tushuntir('hisobot_yakun', y)).toMatch(/^Ochiq ishlar yozildi \(1\): ijtimoiy soliq \(2026-09\) \(2026-10-15 gacha\)\./);
   });
 });

@@ -125,6 +125,28 @@ uchun bitta.
     `uzum.kartochka.*`, qoʻllanma 5.7). Worker ulanmagan boʻlsa suratlar
     asl holida va shu aytiladi. Joylash — docs/STUDIYA.md.
 
+13. *(2026-09-30, nazoratchi: "keyingi reportingda butun zumsavdoning barcha
+    12 ta qadami tayyor bo'lsin")***11-qadam — Sotuv boshlandi va 12-qadam —
+    Hisobot — qurildi; 12 qadamning hammasi ishlaydi.** 11: har tovar uchun
+    oʻz Uzum kartochkasi havolasi (raqobatchi tovari rad etiladi) →
+    `so_sotuv_kuzat` uni skreyper kuzatuviga qoʻshadi (0061, sessiyaga 20
+    tagacha) → kuniga 3 marta narx, zaxira, sharhlar; sotuv — zaxira
+    kamayishidan taxmin. Signallar (`sotuv.ts`): zaxira boshlangʻichning
+    20 % dan tushsa — "Yana buyurtma" (6-qadamdan yangi partiya: miqdor
+    oʻz kartochka tezligidan qayta soʻraladi, 0 — bu safar olmayman; 5-qadam
+    tanlovi, rasmiylashtirish, suratlar va kartochka saqlanadi; yangi
+    partiya omborga tushmaguncha zaxira signali qayta chiqmaydi), raqobatchi
+    narxi ≥ 3 % tushsa, yangi sharh. «Yangilash» — yangi oʻlchov, «Oy
+    hisoboti» — 12. 12: qaysi oy (tugagan yoki joriy — hozirgacha) →
+    oʻlchovdan taxmin → sotuvchi kabinetdagi komissioner
+    hisobotidan sotuv va komissiyani yozadi (oʻtkazsa — taxmin) → sotuv,
+    komissiya, sof, aylanma soligʻi (1 %), ijtimoiy soliq, muddat (faktdan,
+    0057/0060) → deklaratsiya qadam kartalari (Bajardim / Keyinroq / Sayt
+    boshqacha) → ochiq ishlar (toʻlov muddati bilan) va keyingi oy rejasi →
+    «Boshlaymiz» — yangi oy, 11 ga qaytish (oy arxivi `natijalar.oylar`).
+    Soliq agenti qoidasi `[TASDIQ]` — tizim "komissioner hisobotida
+    tekshiring" deydi, "toʻlaysiz" demaydi.
+
 ## Dizayndan ataylab chetga chiqilgan joylar
 
 Dizayn fayllari ishlayotgan mahsulotni koʻrsatadi. Bugungi tizim

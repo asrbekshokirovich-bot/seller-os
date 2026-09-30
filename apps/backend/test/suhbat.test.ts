@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boshlangichHolat, suhbatBoshdan, suhbatOqi, suhbatTurn,
+  boshlangichHolat, deklaratsiyaQadamlari, hisobotFaktlari, oyHisobi, suhbatBoshdan, suhbatOqi, suhbatTurn,
   type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
@@ -82,6 +82,23 @@ const YUKLASH_N = {
 /** Yurish boshlandi — natija hali yoʻq. */
 const XITOY_KUTISH = { ...XITOY, qatorlar: [], kutilmoqda: { runId: 'HG7ML7M8z78YcAPEB', boshlandi: '2026-09-25T20:00:00.000Z', rasmlar: [{ productId: 100, rasmUrl: RASM }] } };
 
+/** 11-qadam: oʻz kartochka oʻlchangan, bitta signal (yangi sharh). */
+const SOTUV_N = {
+  olchov_yoq: false, sana: '2026-09-30', oy: '2026-09', partiya: 1, kuzatuv: { qoshildi: 1, bor: 0 }, kuzatuvXato: null,
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', miqdor: 30, ozId: 5001, xaridYuan: 27,
+    oz: { externalId: 5001, holat: 'olchandi', sana: '2026-09-30', bugunSotildi: 2, tezlik: 2, tezlikKun: 3, zaxira: 20, zaxiraKun: 10,
+      boshlangichZaxira: 30, zaxiraUlush: 0.67, narx: 99_000, sharh: 7, reyting: 4.6, yangiSharh: 1, oyDona: 6, oySom: 594_000, olchovKun: 4 },
+    raqobatchi: { productId: 100, sana: '2026-09-30', narx: 95_000, oldingiNarx: null, tushdiFoiz: null } }],
+  signallar: [{ id: 'sharh:100:7', tur: 'sharh', productId: 100, yangi: 1, jami: 7, reyting: 4.6 }],
+  jami: { bugunDona: 2, oyDona: 6, oySom: 594_000 }, izoh: 'sotuv',
+};
+/** 12-qadam: faktlar boʻsh ("faktda yoʻq"), hisob sotuvchi yozgan summa bilan. */
+const HISOBOT_F = hisobotFaktlari({});
+const HISOBOT_N = { olchov_yoq: false, oy: '2026-09', tugagan: true, faktlar: HISOBOT_F, olchovSotuv: 594_000, olchovDona: 6, qatorlar: [], izoh: 'hisobot' };
+const HISOB_N = oyHisobi({ oy: '2026-09', kabinetSotuv: 600_000, olchovSotuv: 594_000, komissiya: 90_000, f: HISOBOT_F });
+const HISOBOT_HISOB_N = { ...HISOB_N, tugagan: true, faktlar: HISOBOT_F, qadamlar: deklaratsiyaQadamlari(HISOB_N, HISOBOT_F), izoh: 'hisob' };
+const HISOBOT_YAKUN_N = { olchov_yoq: false, yozildi: [], reja: ['«Quloqchin A»: kuniga ~2 dona, zaxira 10 kunga yetadi.'], izoh: 'yakun' };
+
 /** Xotiradagi soxta baza — so_suhbat_* RPC lari. */
 function soxtaBaza(boshlangich: YolHolati | null = null) {
   const jurnal: unknown[] = [];
@@ -123,6 +140,10 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       studiyaYakun: async () => YAKUN_N,
       yuklash: async () => YUKLASH_N,
       yuklashYakun: async () => YAKUN_N,
+      sotuv: async () => SOTUV_N,
+      hisobot: async () => HISOBOT_N,
+      hisobotHisob: async () => HISOBOT_HISOB_N,
+      hisobotYakun: async () => HISOBOT_YAKUN_N,
     },
     ...(llm ? { llm } : {}),
   };
@@ -227,7 +248,7 @@ describe('suhbatTurn', () => {
     expect(r.xabarlar[1]!.matn).toBe('Uzumda doʻkoningiz bormi?');
   });
 
-  it('to\'liq yo\'l: 1-qadamdan 11-qadam "tez orada" gacha, har turnda bitta savol', async () => {
+  it('to\'liq yo\'l: 1-qadamdan 12-qadam va yangi oyga qaytishgacha, har turnda bitta savol', async () => {
     const b = soxtaBaza();
     const d = bogliq(b);
     const qadamlar: Array<{ savolId?: string; javob?: unknown }> = [
@@ -330,15 +351,53 @@ describe('suhbatTurn', () => {
       if (t.keyingi.tur !== 'savol') throw new Error(`${savolId}: ${t.keyingi.tur}`);
       expect(t.keyingi.savol.id).toBe(keyingiId);
     }
-    const oxir = await suhbatTurn(d, 'tok', { savolId: 'topshirildi', javob: 'topshirdim' });
-    expect(oxir.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
-    expect(oxir.xabarlar[1]!.savolId).toBe('yuklash_yakun');
-    expect(oxir.keyingi.tur).toBe('tezOrada');
-    expect(oxir.qadam).toBe(11);
+    const t16 = await suhbatTurn(d, 'tok', { savolId: 'topshirildi', javob: 'topshirdim' });
+    expect(t16.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
+    expect(t16.xabarlar[1]!.savolId).toBe('yuklash_yakun');
+    if (t16.keyingi.tur !== 'savol') throw new Error(t16.keyingi.tur);
+    expect(t16.keyingi.savol.id).toBe('uzum_havola:100');
+    expect(t16.qadam).toBe(11);
+    // 11-qadam: havola → kuzatuv va oʻlchov (kod) → signal savoli, bitta turnda.
+    const t17 = await suhbatTurn(d, 'tok', { savolId: 'uzum_havola:100', javob: 'https://uzum.uz/uz/product/mening-quloqchinim-5001' });
+    expect(t17.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
+    expect(t17.xabarlar[1]!.savolId).toBe('sotuv');
+    expect(t17.xabarlar[1]!.matn).toMatch(/^Sotuv \(2026-09-30\): Kuzatuvda: 1 ta kartochka/);
+    if (t17.keyingi.tur !== 'savol') throw new Error(t17.keyingi.tur);
+    expect(t17.keyingi.savol.id).toBe('signal:sharh:100:7');
+    const t18 = await suhbatTurn(d, 'tok', { savolId: 'signal:sharh:100:7', javob: 'keyin' });
+    if (t18.keyingi.tur !== 'savol') throw new Error(t18.keyingi.tur);
+    expect(t18.keyingi.savol.id).toBe('sotuv_holat');
+    // 12-qadam: «Oy hisoboti» → faktlar kodi → sotuv summasi → komissiya → hisob kodi → deklaratsiya.
+    const t19 = await suhbatTurn(d, 'tok', { savolId: 'sotuv_holat', javob: 'hisobot' });
+    expect(t19.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    if (t19.keyingi.tur !== 'savol') throw new Error(t19.keyingi.tur);
+    expect(t19.keyingi.savol.id).toBe('hisobot_oy');
+    expect(t19.qadam).toBe(12);
+    const t20 = await suhbatTurn(d, 'tok', { savolId: 'hisobot_oy', javob: '2026-09' });
+    expect(t20.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
+    expect(t20.xabarlar[1]!.savolId).toBe('hisobot');
+    await suhbatTurn(d, 'tok', { savolId: 'oy_sotuv', javob: 600_000 });
+    const t21 = await suhbatTurn(d, 'tok', { savolId: 'oy_komissiya', javob: 90_000 });
+    expect(t21.xabarlar[1]!.savolId).toBe('hisobot_hisob');
+    if (t21.keyingi.tur !== 'savol') throw new Error(t21.keyingi.tur);
+    expect(t21.keyingi.savol.id).toBe('deklaratsiya');
+    const t22 = await suhbatTurn(d, 'tok', { savolId: 'deklaratsiya', javob: 'keyin' });
+    expect(t22.xabarlar[1]!.savolId).toBe('hisobot_yakun');
+    expect(t22.xabarlar[1]!.matn).toMatch(/Keyingi oy rejasi: «Quloqchin A»/);
+    if (t22.keyingi.tur !== 'savol') throw new Error(t22.keyingi.tur);
+    expect(t22.keyingi.savol.id).toBe('yangi_oy');
+    // Yangi oy — 11-qadamga qaytish: sotuv yana oʻlchanadi, javob berilgan signal qayta soʻralmaydi.
+    const t23 = await suhbatTurn(d, 'tok', { savolId: 'yangi_oy', javob: 'boshlaymiz' });
+    expect(t23.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
+    expect(t23.xabarlar[1]!.savolId).toBe('sotuv');
+    if (t23.keyingi.tur !== 'savol') throw new Error(t23.keyingi.tur);
+    expect(t23.keyingi.savol.id).toBe('sotuv_holat');
+    expect(t23.qadam).toBe(11);
     // Har turnda bitta menejer gapi: 7 javob + (1688 tekshir, tanlov, shahar, raqam, boshlaymiz, shakl, bank, kabinet)
-    // + (yuk_keldi, yuk_mos, studiya tekshir, studiya_tayyor, kartochka, qadoq, yetkazish, taymslot, topshirildi).
+    // + (yuk_keldi, yuk_mos, studiya tekshir, studiya_tayyor, kartochka, qadoq, yetkazish, taymslot, topshirildi)
+    // + (havola, signal, oy hisoboti, hisobot oyi, sotuv summasi, komissiya, deklaratsiya, yangi oy).
     const menejer = b.jurnal.filter((x) => (x as { rol: string }).rol === 'menejer');
-    expect(menejer.length).toBe(qadamlar.length + 17);
+    expect(menejer.length).toBe(qadamlar.length + 25);
   });
 
   it('tekshir: studiya qidiruvi hali tugamagan — xabar yoʻq, holat 9-qadam kutishida qoladi', async () => {

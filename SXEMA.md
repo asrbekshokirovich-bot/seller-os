@@ -121,6 +121,17 @@ Ssenariydagi "ochiq ish": `tur` (kutyapman/tolov/tekshirish), `sabab`,
 `muddat` (NULL = noma'lum), `holat` (ochiq/yopiq), `props`. Bir xil ochiq
 ish ikki marta yozilmaydi (`so_ochiq_ish_yoz`). Eslatma — alohida bosqich.
 
+### `sotuvchi_tovar` (0061)
+11-qadamda sotuvchi bergan OʻZ Uzum kartochkalari: `(user_id, external_id)`,
+`added_at`. `so_sotuv_kuzat(p_token, p_external_ids)` shu yerga va
+`tracked_product` ga yozadi (turkum boʻsh — 2-qadam nomzodlari oʻzgarmaydi;
+sessiyaga 20 tagacha). `so_sotuv_holati(p_external_ids, p_kun)` — tovarlar
+kunlik tarixi (`product_daily` + `sales_estimates`: narx, zaxira, sharh,
+reyting, sotildi, daromad); oʻlchanmagan tovar `topildi:false` — bu "sotuv
+yoʻq" emas. 12-qadam faktlari (0060): `soliq.agent`,
+`soliq.aylanma.hisobot_davri`, `soliq.aylanma.hisobot_kun`,
+`soliq.portal.url`, `uzum.hisobot.komissioner_kun`.
+
 ## 2. Kunlik tarix
 
 ### `product_observation` — xom o'lchov

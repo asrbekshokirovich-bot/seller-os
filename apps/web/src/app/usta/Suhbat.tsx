@@ -22,12 +22,12 @@
  * emas, sabab yoziladi. Tuzoq bayrogʻi yashirilmaydi. Yetishmagan
  * qism (`yetishmaydi`) koʻrsatiladi.
  *
- * YON PANELDA 12 QADAM. Qurilmaganlari (bugun 11–12) "tez orada" —
- * obunachi yoʻl qayerda tugaganini va nima kelishini biladi.
+ * YON PANELDA 12 QADAM — hammasi qurilgan (2026-09-30). Yoʻl 11 ↔ 12
+ * oyma-oy aylanadi; qurilmagan qadam paydo boʻlsa "tez orada" deb chiqadi.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { oyNomi, REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son, yosh } from '@/lib/bazamiz';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
 import { saqlanganTil, tarjima, tilniQoy, tilniSaqla, type Til, type Tr } from '@/lib/til';
@@ -460,9 +460,17 @@ function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRej
                           ? <StudiyaKartasi n={n as unknown as StudiyaQ} tr={tr} />
                           : x.savolId === 'yuklash'
                             ? <YuklashKartasi n={n as unknown as YuklashQ} tr={tr} />
-                            : x.savolId === 'qabul_yakun' || x.savolId === 'studiya_yakun' || x.savolId === 'yuklash_yakun'
-                              ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
-                              : null}
+                            : x.savolId === 'sotuv'
+                              ? <SotuvKartasi n={n as unknown as SotuvQ} tr={tr} />
+                              : x.savolId === 'hisobot'
+                                ? <HisobotKartasi n={n as unknown as HisobotQ} tr={tr} />
+                                : x.savolId === 'hisobot_hisob'
+                                  ? <HisobotHisobKartasi n={n as unknown as HisobotHisobQ} tr={tr} />
+                                  : x.savolId === 'hisobot_yakun'
+                                    ? <HisobotYakunKartasi n={n as unknown as HisobotYakunQ} tr={tr} />
+                                    : x.savolId === 'qabul_yakun' || x.savolId === 'studiya_yakun' || x.savolId === 'yuklash_yakun'
+                                      ? <p className={u.kichikIzoh}>{typeof n.izoh === 'string' ? n.izoh : null}</p>
+                                      : null}
     </div>
   );
 }
@@ -1085,6 +1093,9 @@ function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
                 })}
               </div>
             )}
+            {x.suratlar.some((y) => y.manba === '1688-galereya') && (
+              <p className={u.kichikIzoh}>{tr('Galereyada taklifning boshqa rang va variantlari ham boʻladi — faqat siz buyurtma qilgan rang va variant suratini tanlang.', 'В галерее бывают и другие цвета и варианты — выбирайте только фото того цвета и варианта, который вы заказали.')}</p>
+            )}
             {x.suratlar.some((y) => y.manba === '1688-oxshash') && (
               <p className={u.kichikIzoh}>{tr('«Oʻxshash taklif» — boshqa 1688 sotuvchisining surati: tovar aynan siz olganidek ekanini tekshiring.', '«Похожий вариант» — фото другого продавца 1688: проверьте, что товар точно такой же.')}</p>
             )}
@@ -1198,6 +1209,185 @@ function YuklashKartasi({ n, tr }: { n: YuklashQ; tr: Tr }) {
         </div>
         <Manba manba={f.manba} olchandi={f.olchandi} tr={tr} />
       </div>
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 11-qadam: sotuv */
+
+interface OzHolatQ {
+  holat: 'olchandi' | 'kutilmoqda'; sana: string | null; bugunSotildi: number | null; tezlik: number | null; tezlikKun: number;
+  zaxira: number | null; zaxiraKun: number | null; zaxiraUlush: number | null; narx: number | null; sharh: number | null;
+  reyting: number | null; yangiSharh: number; oyDona: number | null; oySom: number | null; olchovKun: number;
+}
+interface RaqobatchiQ { narx: number | null; oldingiNarx: number | null; tushdiFoiz: number | null; sana: string | null }
+interface SotuvQ {
+  olchov_yoq?: boolean; sabab?: string; sana?: string; oy?: string; partiya?: number;
+  qatorlar?: Array<{ productId: number; title: string; miqdor: number | null; ozId: number | null; partiya?: number; oz: OzHolatQ | null; raqobatchi: RaqobatchiQ | null }>;
+  signallar?: Array<{ id: string; tur: 'zaxira' | 'narx' | 'sharh'; productId: number }>;
+  kuzatuvXato?: string | null;
+  jami?: { bugunDona: number | null; oyDona: number | null; oySom: number | null };
+  izoh?: string;
+}
+
+const somQ = (x: number | null | undefined, tr: Tr) => (x === null || x === undefined ? '—' : `${raqam(x)} ${tr('soʻm', 'сум')}`);
+
+/**
+ * 11-qadam kartasi: har tovar — oʻz kartochkasi (oʻlchov) va raqobatchi
+ * narxi. Hamma sotuv raqami taxmin (zaxira kamayishidan) va shunday yoziladi.
+ */
+function SotuvKartasi({ n, tr }: { n: SotuvQ; tr: Tr }) {
+  const q = n.qatorlar ?? [];
+  const j = n.jami;
+  return (
+    <div className={u.kartalar}>
+      {n.kuzatuvXato && <p className={u.ogohlik}>{tr('Kuzatuvga qoʻshib boʻlmadi:', 'Не удалось добавить в отслеживание:')} {n.kuzatuvXato}</p>}
+      {q.map((x) => {
+        const o = x.oz;
+        const [sinf, teg] = x.ozId === null ? [u.tegOgoh, tr('havola yoʻq', 'нет ссылки')]
+          : o?.holat === 'olchandi' ? [u.tegYaxshi, tr('oʻlchanmoqda', 'измеряется')]
+            : [u.tegNeytral, tr('oʻlchov kutilmoqda', 'ждём замер')];
+        const r = x.raqobatchi;
+        return (
+          <div key={x.productId} className={u.karta}>
+            <div className={u.kartaBoshi}>
+              <div className={u.kartaNomBlok}>
+                <div className={u.kartaNomi}>{x.title}</div>
+                {x.ozId !== null && <div className={u.kichikIzoh}><a href={`https://uzum.uz/uz/product/${x.ozId}`} target="_blank" rel="noopener noreferrer">{tr('Oʻz kartochkangiz', 'Ваша карточка')}</a>{o?.sana ? ` · ${tr('oxirgi oʻlchov', 'последний замер')} ${o.sana}` : ''}{x.partiya && x.partiya > 1 ? ` · ${x.partiya}-${tr('partiya', 'партия')}` : ''}</div>}
+              </div>
+              <span className={`${u.teg} ${sinf}`}>{teg}</span>
+            </div>
+            {o && o.holat === 'olchandi' && (
+              <div className={u.statlar}>
+                <Stat nom={tr('Bugun sotildi', 'Продано сегодня')} q={o.bugunSotildi === null ? '—' : `${o.bugunSotildi} ${tr('dona', 'шт')}`} izoh={tr('zaxira kamayishidan', 'по снижению остатка')} />
+                <Stat nom={tr('Tezlik', 'Скорость')} q={o.tezlik === null ? '—' : `${o.tezlik} ${tr('dona/kun', 'шт/день')}`} izoh={o.tezlikKun ? tr(`oxirgi ${o.tezlikKun} kun`, `за ${o.tezlikKun} дн`) : undefined} />
+                <Stat nom={tr('Zaxira', 'Остаток')} q={o.zaxira === null ? '—' : `${o.zaxira} ${tr('dona', 'шт')}`} izoh={o.zaxiraKun !== null ? tr(`${o.zaxiraKun} kunga yetadi`, `хватит на ${o.zaxiraKun} дн`) : undefined} />
+                <Stat nom={tr('Narxingiz', 'Ваша цена')} q={somQ(o.narx, tr)} />
+                <Stat nom={tr('Sharhlar', 'Отзывы')} q={o.sharh === null ? '—' : String(o.sharh)} izoh={o.yangiSharh ? tr(`+${o.yangiSharh} yangi`, `+${o.yangiSharh} новых`) : (o.reyting !== null ? `★ ${o.reyting}` : undefined)} />
+                <Stat nom={tr('Shu oy', 'За месяц')} q={o.oyDona === null ? '—' : `${o.oyDona} ${tr('dona', 'шт')}`} izoh={o.oySom !== null ? `≈ ${somQ(o.oySom, tr)}` : undefined} />
+              </div>
+            )}
+            {x.ozId !== null && o?.holat !== 'olchandi' && (
+              <p className={u.kichikIzoh}>{tr('Kuzatuvga qoʻshildi. Skreyper kuniga 3 marta oʻlchaydi (09:00, 17:00, 01:00); sotuv raqami ikki oʻlchovdan keyin chiqadi.', 'Добавлено в отслеживание. Замер 3 раза в день (09:00, 17:00, 01:00); продажи — после двух замеров.')}</p>
+            )}
+            {r && r.narx !== null && (
+              <p className={u.kichikIzoh}>
+                {tr('Raqobatchi narxi', 'Цена конкурента')}: {somQ(r.narx, tr)}
+                {r.tushdiFoiz !== null && r.oldingiNarx !== null ? ` (${tr('oldin', 'было')} ${raqam(r.oldingiNarx)}, −${r.tushdiFoiz} %)` : ''}
+                {r.sana ? ` · ${r.sana}` : ''}
+              </p>
+            )}
+          </div>
+        );
+      })}
+      {j && (j.bugunDona !== null || j.oyDona !== null) && (
+        <div className={u.karta}>
+          <div className={u.statlar}>
+            <Stat nom={tr('Bugun jami', 'Сегодня всего')} q={j.bugunDona === null ? '—' : `${j.bugunDona} ${tr('dona', 'шт')}`} />
+            <Stat nom={tr('Shu oy jami', 'За месяц всего')} q={j.oyDona === null ? '—' : `${j.oyDona} ${tr('dona', 'шт')}`} izoh={j.oySom !== null ? `≈ ${somQ(j.oySom, tr)}` : undefined} />
+          </div>
+          <p className={u.kichikIzoh}>{tr('Taxmin: Uzum buyurtma sonini bermaydi, sotuv zaxira kamayishidan hisoblanadi. Aniq raqam — kabinetdagi komissioner hisobotida.', 'Оценка: Uzum не отдаёт число заказов, продажи считаются по снижению остатка. Точные цифры — в отчёте комиссионера в кабинете.')}</p>
+        </div>
+      )}
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ 12-qadam: hisobot */
+
+interface HisobotFaktlarQ {
+  soliq: { aylanmaFoiz: number | null; ijtimoiyOySom: number | null; tolovKuni: number | null; manba: string | null; olchandi: string | null };
+  agent: string | null; aylanmaDavri: string | null; aylanmaKun: number | null; portalUrl: string | null; komissionerKun: number | null; yetishmaydi: string[];
+}
+interface HisobotQ {
+  olchov_yoq?: boolean; sabab?: string; oy?: string; tugagan?: boolean; faktlar?: HisobotFaktlarQ;
+  olchovSotuv?: number | null; olchovDona?: number | null;
+  qatorlar?: Array<{ productId: number; title: string; oyDona: number | null; oySom: number | null }>;
+  izoh?: string;
+}
+
+function HisobotKartasi({ n, tr }: { n: HisobotQ; tr: Tr }) {
+  const q = n.qatorlar ?? [];
+  const f = n.faktlar;
+  return (
+    <div className={u.kartalar}>
+      {f && f.yetishmaydi.length > 0 && <p className={u.ogohlik}>{tr('Faktda yoʻq:', 'Нет в фактах:')} {f.yetishmaydi.join(', ')}</p>}
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}>
+          <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Oy hisoboti', 'Отчёт за месяц')} · {n.oy ? oyNomi(n.oy) : '—'}</div></div>
+          {n.tugagan === false && <span className={`${u.teg} ${u.tegNeytral}`}>{tr('hozirgacha', 'на сегодня')}</span>}
+        </div>
+        {q.map((x) => (
+          <div key={x.productId} className={u.statlar}>
+            <Stat nom={x.title} q={x.oyDona === null ? '—' : `${x.oyDona} ${tr('dona', 'шт')}`} izoh={x.oySom !== null ? `≈ ${somQ(x.oySom, tr)}` : tr('oʻlchov yoʻq', 'нет замера')} />
+          </div>
+        ))}
+        <div className={u.statlar}>
+          <Stat nom={tr('Oʻlchovimiz (taxmin)', 'Наш замер (оценка)')} q={somQ(n.olchovSotuv, tr)} izoh={n.olchovDona !== null && n.olchovDona !== undefined ? `${n.olchovDona} ${tr('dona', 'шт')}` : undefined} />
+          <Stat nom={tr('Komissioner hisoboti', 'Отчёт комиссионера')} q={f?.komissionerKun !== null && f?.komissionerKun !== undefined ? tr(`keyingi oyning ${f.komissionerKun}-sanasigacha`, `до ${f.komissionerKun} числа след. месяца`) : '—'} izoh={tr('aniq summa shu yerda', 'точная сумма там')} />
+        </div>
+      </div>
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
+    </div>
+  );
+}
+
+interface HisobotHisobQ {
+  oy?: string; tugagan?: boolean; sotuvSom?: number | null; sotuvManbasi?: 'kabinet' | 'olchov' | null; komissiyaSom?: number | null; sofSom?: number | null;
+  soliq?: { ijtimoiySom: number | null; aylanmaSom: number | null; jamiSom: number | null };
+  ijtimoiyMuddat?: string | null; komissionerSana?: string | null; yetishmaydi?: string[];
+  faktlar?: HisobotFaktlarQ; qadamlar?: string[]; izoh?: string;
+}
+
+function HisobotHisobKartasi({ n, tr }: { n: HisobotHisobQ; tr: Tr }) {
+  const s = n.soliq;
+  const f = n.faktlar;
+  return (
+    <div className={u.kartalar}>
+      <div className={u.karta}>
+        <div className={u.kartaBoshi}>
+          <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Oy yakuni', 'Итоги месяца')} · {n.oy ? oyNomi(n.oy) : '—'}</div></div>
+          {n.tugagan === false && <span className={`${u.teg} ${u.tegNeytral}`}>{tr('hozirgacha', 'на сегодня')}</span>}
+        </div>
+        <div className={u.statlar}>
+          <Stat nom={tr('Sotuv', 'Продажи')} q={somQ(n.sotuvSom, tr)} izoh={n.sotuvManbasi === 'kabinet' ? tr('kabinet hisobotidan', 'из отчёта кабинета') : n.sotuvManbasi === 'olchov' ? tr('taxmin, oʻlchovdan', 'оценка по замеру') : undefined} />
+          <Stat nom={tr('Komissiya', 'Комиссия')} q={n.komissiyaSom === null || n.komissiyaSom === undefined ? tr('yozilmagan', 'не указана') : somQ(n.komissiyaSom, tr)} />
+          <Stat nom={tr('Sof tushum', 'Чистая выручка')} q={n.sofSom === null || n.sofSom === undefined ? '—' : somQ(n.sofSom, tr)} />
+          <Stat nom={tr('Aylanma soligʻi', 'Налог с оборота')} q={somQ(s?.aylanmaSom, tr)} izoh={f?.soliq.aylanmaFoiz !== null && f?.soliq.aylanmaFoiz !== undefined ? `${f.soliq.aylanmaFoiz} %` : undefined} />
+          <Stat nom={tr('Ijtimoiy soliq', 'Социальный налог')} q={somQ(s?.ijtimoiySom, tr)} izoh={n.ijtimoiyMuddat ? tr(`${n.ijtimoiyMuddat} gacha`, `до ${n.ijtimoiyMuddat}`) : undefined} />
+        </div>
+        {f?.agent && <p className={u.ogohlik}>{tr('Soliq agenti:', 'Налоговый агент:')} {f.agent}. {tr('Komissioner hisobotida ushlab qolinganini tekshiring.', 'Проверьте удержание в отчёте комиссионера.')}</p>}
+      </div>
+      {(n.qadamlar ?? []).length > 0 && (
+        <div className={u.karta}>
+          <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Deklaratsiya qadamlari', 'Шаги декларации')}</div></div></div>
+          <ol className={u.kichikIzoh}>{(n.qadamlar ?? []).map((q) => <li key={q}>{q}</li>)}</ol>
+          <div className={u.chiplar}>
+            {f?.portalUrl && <a className={`${u.chip} ${u.chipYengil}`} href={f.portalUrl} target="_blank" rel="noopener noreferrer">{tr('Soliq portali', 'Налоговый портал')}</a>}
+            <a className={`${u.chip} ${u.chipYengil}`} href="https://seller.uzum.uz" target="_blank" rel="noopener noreferrer">{tr('Uzum kabineti', 'Кабинет Uzum')}</a>
+          </div>
+          {f?.soliq.manba && <Manba manba={f.soliq.manba} olchandi={f.soliq.olchandi} tr={tr} />}
+        </div>
+      )}
+      {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
+    </div>
+  );
+}
+
+interface HisobotYakunQ { reja?: string[]; izoh?: string }
+
+function HisobotYakunKartasi({ n, tr }: { n: HisobotYakunQ; tr: Tr }) {
+  const r = n.reja ?? [];
+  return (
+    <div className={u.kartalar}>
+      {r.length > 0 && (
+        <div className={u.karta}>
+          <div className={u.kartaBoshi}><div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr('Keyingi oy rejasi', 'План на следующий месяц')}</div></div></div>
+          <ul className={u.kichikIzoh}>{r.map((x) => <li key={x}>{x}</li>)}</ul>
+        </div>
+      )}
       {n.izoh && <p className={u.kichikIzoh}>{n.izoh}</p>}
     </div>
   );
