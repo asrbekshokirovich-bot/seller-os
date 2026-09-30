@@ -111,9 +111,10 @@ max MB, tovar ulushi (%), `qoidalar` (jsonb matn roʻyxati), fotostudiya,
 qoʻllanma URL; `uzum.kartochka.*` — `qoidalar` (jsonb), qoʻllanma URL.
 Manba: Uzum qoʻllanmasi 5-bob (5.1, 5.7, 5.9, VGT), 2.12, 7-bob.
 
-`xitoy_kesh` (0046) 9-qadamda Google Lens natijalarini ham saqlaydi:
-kalit `lens:<asl rasm manzili>`, `manba = 'lens'`, 72 soat — 1688
-natijalari bilan aralashmaydi.
+`xitoy_kesh` (0046) 9-qadamda tanlangan 1688 taklifining galereyasini ham
+saqlaydi: kalit `1688-tafsilot:<offerId>`, `manba = '1688-tafsilot'`,
+`natijalar = {rasmlar, video, sifat}`, 72 soat — rasm qidiruvi natijalari
+bilan aralashmaydi.
 
 ### `ochiq_ish` (0056)
 Ssenariydagi "ochiq ish": `tur` (kutyapman/tolov/tekshirish), `sabab`,

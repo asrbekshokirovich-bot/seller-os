@@ -5,19 +5,30 @@
  *   - fonni Cloudflare Images (`segment=foreground`, BiRefNet) olib tashlaydi;
  *   - "hamma rasm kesilishi shart emas" — foni allaqachon oq surat faqat
  *     3:4 ga keltiriladi, kesilmaydi (Worker oʻzi aniqlaydi);
- *   - manba: 1688 (tanlangan taklif + oʻxshash takliflar) VA internet
- *     (Google Lens teskari qidiruvi) — "iloji boricha studiyaga ishi tushmasin".
+ *   - "iloji boricha studiyaga ishi tushmasin" — sotuvchi suratga olmasin.
  *
- * Bu modul: surat talablari faktlari (`uzum.surat.*`, 0059), nomzodlarni
- * yigʻish va saralash, Google Lens (Apify) soʻrovi va javobini oʻqish,
- * Worker manzilini HMAC bilan imzolash. Rasmga tegmaydi — piksel ishi
- * Worker da (`apps/studiya-worker`).
+ * MANBA — SOTUVCHI OLADIGAN TOVARNING OʻZ SURATLARI (2026-09-30).
+ * Tanlangan 1688 taklifining toʻliq tafsiloti (`offerIds` rejimi) uning
+ * GALEREYASINI beradi — aynan shu tovar, turli burchakdan. Yetmasa —
+ * oʻxshash 1688 takliflarining asosiy suratlari.
+ *
+ * NEGA INTERNET (Google Lens) EMAS. Jonli sinov (2026-09-30, ikki sumka):
+ * "oʻxshash suratlar" (`visual_matches`) BOSHQA tovarlarni berdi —
+ * Jacquemus, Louis Vuitton, Tod's, Coach sumkalari, hatto qizil gilamdagi
+ * aktrisa surati. Bunday surat kartochkada chalgʻituvchi (Uzum 5.7) va
+ * brend/mualliflik huquqini buzadi. "Aynan bir xil surat" (`exact_matches`)
+ * esa toʻliq suratni umuman bermaydi (aktor hujjati: `image` — null).
+ *
+ * Bu modul: surat talablari faktlari (`uzum.surat.*`, 0059), taklif
+ * tafsiloti soʻrovi va javobini oʻqish, nomzodlarni saralash, Worker
+ * manzilini HMAC bilan imzolash. Rasmga tegmaydi — piksel ishi Worker da
+ * (`apps/studiya-worker`).
  *
  * QOIDALAR §4: fakt yoʻq — `null` va `yetishmaydi`; taxmin yoʻq.
  */
 
 import { faktMatn, faktSon, type Faktlar } from './fakt.ts';
-import { APIFY_MANZIL, type ProvayderSorovi } from './xitoy.ts';
+import { APIFY_AKTOR, APIFY_MANZIL, type ProvayderSorovi } from './xitoy.ts';
 
 // ==================================================================== surat talablari (faktlar)
 
@@ -96,13 +107,18 @@ export function chiqishTalabgaMosmi(t: SuratTalablari): boolean | null {
 
 // ==================================================================== nomzodlar
 
-export type SuratManbasi = '1688-tanlov' | '1688-oxshash' | 'internet';
+/**
+ * `1688-tanlov` — siz tanlagan taklifning asosiy surati; `1688-galereya` —
+ * oʻsha taklifning qolgan suratlari (aynan shu tovar); `1688-oxshash` —
+ * boshqa 1688 sotuvchisining oʻxshash taklifi (tovar bir xilligini tekshiring).
+ */
+export type SuratManbasi = '1688-tanlov' | '1688-galereya' | '1688-oxshash';
 
 export interface SuratNomzodi {
   manba: SuratManbasi;
   /** Asl rasm manzili (toʻliq oʻlcham). */
   asl: string;
-  /** Qayerdan: "1688" yoki sayt nomi (internet). */
+  /** Qayerdan: bugun doim "1688". */
   sayt: string | null;
   eni: number | null;
   boyi: number | null;
@@ -112,7 +128,7 @@ export interface SuratNomzodi {
 /**
  * Surat olinmaydigan saytlar. `uzum.uz` — Uzum 2.12: boshqa Uzum doʻkoni
  * suv belgisi boʻlgan surat shikoyatda HUJJATSIZ bloklanadi; bundan
- * tashqari bu raqobatchining ishi.
+ * tashqari bu raqobatchining ishi. Manbalar bugun faqat 1688 — bu himoya.
  */
 export const TAQIQLANGAN_SAYTLAR: readonly string[] = ['uzum.uz'];
 
@@ -135,8 +151,9 @@ export function taqiqlanganmi(url: string | null | undefined): boolean {
 function httpManzil(x: unknown): string | null {
   if (typeof x !== 'string') return null;
   const t = x.trim();
-  if (t.length > 2048 || !/^https?:\/\/\S+$/i.test(t)) return null;
-  return t.startsWith('//') ? `https:${t}` : t;
+  const toliq = t.startsWith('//') ? `https:${t}` : t;
+  if (toliq.length > 2048 || !/^https?:\/\/\S+$/i.test(toliq)) return null;
+  return toliq;
 }
 
 /**
@@ -151,83 +168,111 @@ export function aslRasmManzili(url: string): string {
     .replace(/_sum(\.(?:jpe?g|png|webp))$/i, '$1');
 }
 
-function son(x: unknown): number | null {
-  if (typeof x === 'number') return Number.isFinite(x) && x > 0 ? x : null;
-  if (typeof x === 'string' && x.trim() !== '') {
-    const n = Number(x);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  }
-  return null;
+/**
+ * Takrorni topish kaliti. Bitta 1688 surati turli yoʻl bilan keladi
+ * (`…/img/ibank/O1CN01…jpg` va `…/O1CN01…jpg`) — alicdn da fayl nomi
+ * yagona, shuning uchun kalit — fayl nomi. Boshqa saytda — toʻliq manzil.
+ */
+export function rasmKaliti(url: string): string {
+  const asl = aslRasmManzili(url);
+  if (!/alicdn\.com\//i.test(asl)) return asl;
+  const nom = asl.split(/[?#]/)[0]!.split('/').pop();
+  return nom ? `alicdn:${nom.toLowerCase()}` : asl;
 }
 
-// ==================================================================== Google Lens (Apify)
-
-/** Google Lens teskari qidiruvi — Apify aktori (oʻlchandi 2026-09-29, build 0.0.73). */
-export const LENS_AKTOR = 'johnvc~google-lens-api';
-/** Bitta rasmga shuncha oʻxshash natija. */
-export const LENS_NATIJA_MAX = 20;
-/** Yurish uchun xarajat shifti: $0.0003 × 20 + dataset + start ≈ $0.007. */
-export const LENS_BYUDJET_USD = 0.02;
-/** Internet suratining kichik tomoni shundan kam boʻlsa olinmaydi (1200 × 1600 ga choʻzilsa xira boʻladi). */
-export const LENS_MIN_OLCHAM = 600;
+// ==================================================================== 1688 taklif tafsiloti (galereya)
 
 /**
- * Lens natijalari `selleros.xitoy_kesh` da saqlanadi (72 soat) — kalit
- * `lens:` bilan boshlanadi, 1688 natijalari bilan aralashmaydi.
+ * Taklif tafsiloti — `crawleast~1688-image-search-scraper` ning `offerIds`
+ * rejimi (5-qadam aktori): rasm qidiruvisiz, maʼlum taklif raqamlari
+ * boʻyicha toʻliq tafsilot; yurishda 400 tagacha. Narx — yetkazilgan har
+ * tafsilot $0.003, yetkazilmagani bepul (aktor README va dataset sxemasi,
+ * build 0.3.30, oʻlchandi 2026-09-30). Aktor kiritmasida `maxTotalChargeUsd` ≥ 0.04.
  */
-export function lensKeshKaliti(rasmUrl: string): string {
-  return `lens:${aslRasmManzili(rasmUrl)}`;
+export const TAFSILOT_NARX_USD = 0.003;
+export const TAFSILOT_BYUDJET_MIN_USD = 0.04;
+/** Bitta yurishda koʻpi bilan shuncha taklif (xarajat shifti; suhbatda tovar kam boʻladi). */
+export const TAFSILOT_YURISH_MAX = 20;
+/** Bitta taklifdan olinadigan galereya suratlari chegarasi. */
+export const GALEREYA_MAX = 12;
+
+export function tafsilotByudjetiUsd(soni: number): number {
+  const n = Math.max(0, Math.trunc(soni));
+  return Math.max(TAFSILOT_BYUDJET_MIN_USD, Math.round((0.01 + TAFSILOT_NARX_USD * n) * 1000) / 1000);
 }
 
-export function lensBoshlashSorovi(kalit: string, rasmUrl: string): ProvayderSorovi {
+export function tafsilotSorovi(kalit: string, offerIds: string[]): ProvayderSorovi {
+  const ids = [...new Set(offerIds.map((x) => String(x).trim()).filter((x) => /^\d{5,20}$/.test(x)))].slice(0, TAFSILOT_YURISH_MAX);
   return {
-    url: `${APIFY_MANZIL}/acts/${LENS_AKTOR}/runs?maxTotalChargeUsd=${LENS_BYUDJET_USD}&timeout=180`,
+    url: `${APIFY_MANZIL}/acts/${APIFY_AKTOR}/runs?timeout=300`,
     init: {
       method: 'POST',
       headers: { Authorization: `Bearer ${kalit}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url: rasmUrl, search_type: 'visual_matches', max_results: LENS_NATIJA_MAX }),
+      body: JSON.stringify({ offerIds: ids, maxTotalChargeUsd: tafsilotByudjetiUsd(ids.length) }),
     },
   };
 }
 
-export interface LensOqish {
-  nomzodlar: SuratNomzodi[];
-  /** Olinmagan qatorlar: manzilsiz, kichik, taqiqlangan saytdan yoki takror. */
-  tashlandi: number;
-  /** Aktor `resultType: "error"` qatori berdi. */
+/** 72 soatlik kesh (`selleros.xitoy_kesh`) kaliti — 1688 qidiruvi natijalari bilan aralashmaydi. */
+export function tafsilotKeshKaliti(offerId: string): string {
+  return `1688-tafsilot:${offerId}`;
+}
+
+export interface TaklifTafsiloti {
+  offerId: string;
+  /** Taklif galereyasi — toʻliq oʻlcham, takrorsiz, `GALEREYA_MAX` gacha. */
+  rasmlar: string[];
+  /** Taklif videosi (boʻlsa). */
+  video: string | null;
+  /** Aktor: `full` / `partial` / `minimal`. */
+  sifat: 'full' | 'partial' | 'minimal' | null;
+}
+
+export interface TafsilotOqish {
+  tafsilotlar: TaklifTafsiloti[];
   xato: string | null;
 }
 
-/**
- * Lens dataset qatorlari → nomzodlar. Qator: `{position, title, source, url,
- * thumbnail, image, imageWidth, imageHeight}`; xato — `{resultType:"error", …}`.
- * Natijasiz qidiruv — boʻsh massiv (xato emas).
- */
-export function lensNatijalariniOqi(json: unknown): LensOqish {
-  const r: LensOqish = { nomzodlar: [], tashlandi: 0, xato: null };
-  if (!Array.isArray(json)) return { ...r, xato: 'provayder javobi roʻyxat emas' };
+function obyekt(x: unknown): Record<string, unknown> {
+  return x !== null && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : {};
+}
+
+/** Galereya roʻyxati: faqat http(s), toʻliq oʻlcham, takrorsiz, Uzum saytidan emas. */
+export function galereyaRasmlari(xom: unknown, max = GALEREYA_MAX): string[] {
+  if (!Array.isArray(xom)) return [];
+  const natija: string[] = [];
   const korilgan = new Set<string>();
-  for (const x of json) {
-    const q = x !== null && typeof x === 'object' ? (x as Record<string, unknown>) : {};
-    if (q.resultType === 'error') {
-      const m = typeof q.message === 'string' ? q.message : typeof q.error === 'string' ? q.error : 'nomaʼlum xato';
-      r.xato = r.xato ?? m.slice(0, 200);
-      continue;
-    }
-    const image = httpManzil(q.image);
-    const sahifa = httpManzil(q.url);
-    if (image === null || taqiqlanganmi(image) || taqiqlanganmi(sahifa)) { r.tashlandi += 1; continue; }
-    const eni = son(q.imageWidth);
-    const boyi = son(q.imageHeight);
-    if (eni !== null && boyi !== null && Math.min(eni, boyi) < LENS_MIN_OLCHAM) { r.tashlandi += 1; continue; }
-    const asl = aslRasmManzili(image);
-    if (korilgan.has(asl)) { r.tashlandi += 1; continue; }
-    korilgan.add(asl);
-    const source = typeof q.source === 'string' && q.source.trim() ? q.source.trim().slice(0, 80) : null;
-    const nom = typeof q.title === 'string' && q.title.trim() ? q.title.trim().slice(0, 200) : null;
-    r.nomzodlar.push({ manba: 'internet', asl, sayt: source ?? saytNomi(sahifa ?? image), eni, boyi, nom });
+  for (const x of xom) {
+    const u = httpManzil(x);
+    if (u === null || taqiqlanganmi(u)) continue;
+    const asl = aslRasmManzili(u);
+    const k = rasmKaliti(asl);
+    if (korilgan.has(k)) continue;
+    korilgan.add(k);
+    natija.push(asl);
+    if (natija.length >= max) break;
   }
-  return r;
+  return natija;
+}
+
+/**
+ * Dataset: bitta `{type:"offerIdsResult", requested, delivered, products:[…]}`
+ * qatori; har `products[]` — toʻliq tafsilot (`offerId`, `images`,
+ * `videoUrl`, `dataQuality`, …). Bir nechta qator boʻlsa — oxirgisi.
+ */
+export function tafsilotlarniOqi(json: unknown): TafsilotOqish {
+  if (!Array.isArray(json)) return { tafsilotlar: [], xato: 'provayder javobi roʻyxat emas' };
+  const qator = [...json].reverse().map(obyekt).find((q) => q.type === 'offerIdsResult');
+  if (!qator) return { tafsilotlar: [], xato: 'provayder tafsilot qatorini bermadi' };
+  const tafsilotlar: TaklifTafsiloti[] = [];
+  for (const p of Array.isArray(qator.products) ? qator.products : []) {
+    const d = obyekt(p);
+    const id = typeof d.offerId === 'string' || typeof d.offerId === 'number' ? String(d.offerId) : null;
+    if (id === null) continue;
+    const sifat = d.dataQuality === 'full' || d.dataQuality === 'partial' || d.dataQuality === 'minimal' ? d.dataQuality : null;
+    tafsilotlar.push({ offerId: id, rasmlar: galereyaRasmlari(d.images), video: httpManzil(d.videoUrl), sifat });
+  }
+  return { tafsilotlar, xato: null };
 }
 
 // ==================================================================== saralash
@@ -241,32 +286,28 @@ export interface Taklif1688 {
 }
 
 /**
- * Nomzodlar tartibi: tanlangan 1688 taklifi (sotuvchi aynan shuni oladi) →
- * internetdan 4 tagacha → oʻxshash 1688 takliflaridan 3 tagacha → qolgan
- * joy internet, keyin 1688 bilan toʻldiriladi. Takror manzil olinmaydi.
+ * Nomzodlar tartibi: tanlangan taklifning asosiy surati → oʻsha taklif
+ * galereyasi (aynan shu tovar) → joy qolsa oʻxshash 1688 takliflari.
+ * Takror (turli manzilli bir xil fayl) va Uzum surati olinmaydi.
  */
 export function studiyaNomzodlari(
-  q: { tanlov: Taklif1688 | null; oxshash: Taklif1688[]; internet: SuratNomzodi[] },
+  q: { tanlov: Taklif1688 | null; galereya: string[]; oxshash: Taklif1688[] },
   max = STUDIYA_NOMZOD_MAX,
 ): SuratNomzodi[] {
   const natija: SuratNomzodi[] = [];
   const korilgan = new Set<string>();
-  const qosh = (n: SuratNomzodi | null): void => {
-    if (n === null || natija.length >= max) return;
-    const kalit = aslRasmManzili(n.asl);
-    if (korilgan.has(kalit) || taqiqlanganmi(kalit)) return;
-    korilgan.add(kalit);
-    natija.push({ ...n, asl: kalit });
+  const qosh = (manba: SuratManbasi, url: unknown, nom: string | null): void => {
+    const u = httpManzil(url);
+    if (u === null || natija.length >= max || taqiqlanganmi(u)) return;
+    const asl = aslRasmManzili(u);
+    const k = rasmKaliti(asl);
+    if (korilgan.has(k)) return;
+    korilgan.add(k);
+    natija.push({ manba, asl, sayt: '1688', eni: null, boyi: null, nom });
   };
-  const bir1688 = (t: Taklif1688, manba: SuratManbasi): SuratNomzodi | null => {
-    const u = httpManzil(t.rasmUrl);
-    return u === null ? null : { manba, asl: u, sayt: '1688', eni: null, boyi: null, nom: t.title };
-  };
-  if (q.tanlov) qosh(bir1688(q.tanlov, '1688-tanlov'));
-  q.internet.slice(0, 4).forEach(qosh);
-  q.oxshash.slice(0, 3).forEach((t) => qosh(bir1688(t, '1688-oxshash')));
-  q.internet.slice(4).forEach(qosh);
-  q.oxshash.slice(3).forEach((t) => qosh(bir1688(t, '1688-oxshash')));
+  if (q.tanlov) qosh('1688-tanlov', q.tanlov.rasmUrl, q.tanlov.title);
+  for (const r of q.galereya) qosh('1688-galereya', r, q.tanlov?.title ?? null);
+  for (const t of q.oxshash) qosh('1688-oxshash', t.rasmUrl, t.title);
   return natija;
 }
 

@@ -43,15 +43,15 @@ import {
   qabulFaktlari,
   QABUL_KALITLARI,
   qadoqTavsiyasi,
-  aslRasmManzili,
   apifyRunniOqi,
-  lensBoshlashSorovi,
-  lensKeshKaliti,
-  lensNatijalariniOqi,
   runHolatiSorovi,
   runNatijasiSorovi,
   studiyaManzili,
   studiyaNomzodlari,
+  tafsilotKeshKaliti,
+  tafsilotlarniOqi,
+  tafsilotSorovi,
+  TAFSILOT_YURISH_MAX,
   SURAT_KALITLARI,
   suratTalablari,
   chiqishTalabgaMosmi,
@@ -88,7 +88,7 @@ import {
   type StudiyaNatijasi,
   type StudiyaQatori,
   type StudiyaSurati,
-  type SuratNomzodi,
+  type StudiyaTayyor,
   type YuklashNatijasi,
   type QabulYakunNatijasi,
   type XitoyLimitJavobi,
@@ -131,7 +131,7 @@ async function kargoFaktlari(rpc: Rpc, f: typeof fetch | null) {
 /** Bir turnda (bitta yurishda) ko'pi bilan shuncha rasm — Edge/Vercel vaqti va xarajat uchun. */
 const BIR_TURNDA_MAX = 5;
 
-/** 9-qadam: internet (Lens) yurishlarini shundan uzoq kutilmaydi. */
+/** 9-qadam: 1688 galereya yurishini shundan uzoq kutilmaydi. */
 const STUDIYA_KUTISH_MAX_MS = 5 * 60_000;
 
 type OchiqIsh = { savolId: string; tur: 'kutyapman' | 'tekshirish'; sabab: string; muddat: string | null };
@@ -662,21 +662,23 @@ export function suhbatKodHarakatlari(
     },
 
     /**
-     * 9-qadam — STUDIYA. Har tovar uchun suratlar: tanlangan 1688 taklifi,
-     * internet (Google Lens — tanlangan rasm boʻyicha teskari qidiruv, Uzum
-     * saytidan olinmaydi) va oʻxshash 1688 takliflari. Har surat uchun
-     * imzolangan Cloudflare Worker manzili — u oq fonni oʻzi aniqlaydi.
-     * ASINXRON: Lens yurishi 20–60 s; `kutilmoqda` + `tekshir` (5-qadamdagidek).
+     * 9-qadam — STUDIYA. Har tovar uchun suratlar: siz tanlagan 1688
+     * taklifining oʻz galereyasi (aynan shu tovar; `offerIds` rejimi) va joy
+     * qolsa oʻxshash 1688 takliflari. Internetdagi "oʻxshash" suratlar
+     * OLINMAYDI — jonli sinovda (2026-09-30) boshqa tovar va brendlar chiqdi
+     * (`packages/shared/src/studiya.ts`). Har surat uchun imzolangan
+     * Cloudflare Worker manzili — u oq fonni oʻzi aniqlaydi.
+     * ASINXRON: bitta yurish (hamma taklif) 20–60 s; `kutilmoqda` + `tekshir`.
      */
     async studiya(holat: YolHolati): Promise<StudiyaNatijasi> {
-      const IZOH = 'Studiya: suratlar 1688 dan (tanlangan va oʻxshash takliflar) va internetdan (Google Lens; Uzum saytidan olinmaydi — Uzum 2.12). Har biri Cloudflare da oq fonga oʻtkaziladi: foni oq boʻlsa faqat 3:4 ga moslanadi, boʻlmasa fon olib tashlanadi; tovarning oʻzi oʻzgartirilmaydi. Tizim suratni Uzumga yuklamaydi.';
+      const IZOH = 'Studiya: suratlar siz tanlagan 1688 taklifining oʻz galereyasidan (aynan shu tovar), yetmasa oʻxshash 1688 takliflaridan. Internetdagi "oʻxshash" suratlar olinmaydi — ular boshqa tovar yoki brend boʻlib chiqdi. Har biri Cloudflare da oq fonga oʻtkaziladi: foni oq boʻlsa faqat 3:4 ga moslanadi, boʻlmasa fon olib tashlanadi; tovarning oʻzi oʻzgartirilmaydi. Tizim suratni Uzumga yuklamaydi.';
       const eski = holat.natijalar.studiya as StudiyaNatijasi | undefined;
       const bn = holat.natijalar.buyurtma as BuyurtmaNatijasi | undefined;
       const xn = holat.natijalar.xitoy as XitoyNatijasi | undefined;
       const tovarlar = (bn?.qatorlar ?? []).filter((q) => q.holat === 'tayyor' && q.sourceId !== null).map((q) => {
         const takliflar = xn?.qatorlar?.find((x) => x.productId === q.productId)?.takliflar ?? [];
         const tanlov = takliflar.find((t) => String(t.sourceId) === String(q.sourceId)) ?? null;
-        return { productId: q.productId, title: q.title, tanlov, oxshash: takliflar.filter((t) => t !== tanlov) };
+        return { productId: q.productId, title: q.title, offerId: String(q.sourceId), tanlov, oxshash: takliflar.filter((t) => t !== tanlov) };
       });
       const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...SURAT_KALITLARI] });
       const talablar = xom === null ? null : suratTalablari(faktlarniOqi(xom));
@@ -686,16 +688,17 @@ export function suhbatKodHarakatlari(
       const imzoKaliti = xitoy?.studiya?.kalit ?? null;
       const sozlangan = asos !== null && asos !== '' && imzoKaliti !== null && imzoKaliti !== '';
       const hozir = xitoy?.hozir ?? (() => new Date());
-      type Tayyor = StudiyaKutish['tayyor'][number];
+      const tayyorlash = (productId: number, galereya: StudiyaTayyor['galereya'], sabab: string | null, rasmlar: string[] = [], video: string | null = null): StudiyaTayyor =>
+        ({ productId, galereya, sabab, rasmlar, video });
 
-      const yakunla = async (tayyor: Tayyor[]): Promise<StudiyaNatijasi> => {
+      const yakunla = async (tayyor: StudiyaTayyor[]): Promise<StudiyaNatijasi> => {
         const qatorlar: StudiyaQatori[] = [];
         for (const t of tovarlar) {
-          const i = tayyor.find((x) => x.productId === t.productId);
+          const g = tayyor.find((x) => x.productId === t.productId);
           const nomzodlar = studiyaNomzodlari({
             tanlov: t.tanlov ? { rasmUrl: t.tanlov.rasmUrl, title: t.tanlov.title } : null,
+            galereya: g?.rasmlar ?? [],
             oxshash: t.oxshash.map((o) => ({ rasmUrl: o.rasmUrl, title: o.title })),
-            internet: i?.nomzodlar ?? [],
           });
           const suratlar: StudiyaSurati[] = [];
           for (const n of nomzodlar) {
@@ -703,7 +706,7 @@ export function suhbatKodHarakatlari(
           }
           qatorlar.push({
             productId: t.productId, title: t.title, suratlar,
-            internet: i?.internet ?? 'qidirilmadi', internetSabab: i?.sabab ?? null, tashlandi: i?.tashlandi ?? 0,
+            galereya: g?.galereya ?? 'olinmadi', galereyaSabab: g ? g.sabab : 'galereya soʻralmadi', video: g?.video ?? null,
           });
         }
         const bosh = qatorlar.length === 0;
@@ -714,94 +717,80 @@ export function suhbatKodHarakatlari(
         };
       };
 
-      // ---- tekshirish: Lens yurishlari tugadimi
-      if (eski?.kutilmoqda) {
+      // ---- tekshirish: galereya yurishi tugadimi (eski shakldagi kutish — qayta boshlanadi)
+      if (eski?.kutilmoqda && Array.isArray(eski.kutilmoqda.kutilgan)) {
         const k = eski.kutilmoqda;
-        const kalit = xitoy?.kalit ?? null;
-        const tayyor: Tayyor[] = [...k.tayyor];
-        if (kalit === null || xitoy === null) {
-          for (const r of k.runlar) tayyor.push({ productId: r.productId, internet: 'xato', sabab: 'provayder kaliti yoʻq', nomzodlar: [], tashlandi: 0 });
+        const tayyor: StudiyaTayyor[] = [...k.tayyor];
+        const hammasi = (galereya: StudiyaTayyor['galereya'], sabab: string) => {
+          for (const x of k.kutilgan) tayyor.push(tayyorlash(x.productId, galereya, sabab));
           return yakunla(tayyor);
-        }
+        };
+        const kalit = xitoy?.kalit ?? null;
+        if (kalit === null || xitoy === null) return hammasi('olinmadi', 'provayder kaliti yoʻq');
         const eskirdi = hozir().getTime() - new Date(k.boshlandi).getTime() > STUDIYA_KUTISH_MAX_MS;
-        const qolgan: StudiyaKutish['runlar'] = [];
         const f = xitoy.fetch;
         /** Provayder JSON javobi; tarmoq yoki JSON xatosi — `null`. */
         const jsonOl = async (so: ReturnType<typeof runHolatiSorovi>): Promise<unknown> => {
           try { return await (await f(so.url, so.init)).json(); } catch { return null; }
         };
         /** Vaqtinchalik xato: yurish Apify da davom etadi — 3 martagacha yana kutamiz, keyin rostini aytamiz. */
-        const qayta = (run: StudiyaKutish['runlar'][number], sabab: string): void => {
-          const urinish = (run.urinish ?? 0) + 1;
-          if (urinish <= TEKSHIRUV_URINISH_MAX && !eskirdi) qolgan.push({ ...run, urinish });
-          else tayyor.push({ productId: run.productId, internet: 'xato', sabab, nomzodlar: [], tashlandi: 0 });
+        const qayta = (sabab: string): Promise<StudiyaNatijasi> | StudiyaNatijasi => {
+          const urinish = (k.urinish ?? 0) + 1;
+          if (urinish <= TEKSHIRUV_URINISH_MAX && !eskirdi) return { ...eski, kutilmoqda: { ...k, urinish } };
+          return hammasi('xato', sabab);
         };
-        for (const run of k.runlar) {
-          const hj = await jsonOl(runHolatiSorovi(kalit, run.runId));
-          const o = hj === null ? null : apifyRunniOqi(hj);
-          if (o === null || !o.ok) { qayta(run, o ? o.sabab : 'provayder javob bermadi'); continue; }
-          if (o.holat === 'READY' || o.holat === 'RUNNING') {
-            if (eskirdi) tayyor.push({ productId: run.productId, internet: 'xato', sabab: 'internet qidiruvi 5 daqiqada tugamadi', nomzodlar: [], tashlandi: 0 });
-            else qolgan.push(run);
-            continue;
-          }
-          if (o.holat !== 'SUCCEEDED') {
-            tayyor.push({ productId: run.productId, internet: 'xato', sabab: `internet qidiruvi yakunlanmadi (${o.holat})`, nomzodlar: [], tashlandi: 0 });
-            continue;
-          }
-          const ds = await jsonOl(runNatijasiSorovi(kalit, run.runId));
-          if (ds === null) { qayta(run, 'provayder natijani bermadi'); continue; }
-          const l = lensNatijalariniOqi(ds);
-          if (l.xato && l.nomzodlar.length === 0) {
-            tayyor.push({ productId: run.productId, internet: 'xato', sabab: l.xato, nomzodlar: [], tashlandi: l.tashlandi });
-            continue;
-          }
-          await rpc('so_xitoy_kesh_yoz', { p_rasm_hash: lensKeshKaliti(run.rasmUrl), p_natijalar: l.nomzodlar, p_manba: 'lens' });
-          tayyor.push({ productId: run.productId, internet: 'qidirildi', sabab: null, nomzodlar: l.nomzodlar, tashlandi: l.tashlandi });
+        const hj = await jsonOl(runHolatiSorovi(kalit, k.runId));
+        const o = hj === null ? null : apifyRunniOqi(hj);
+        if (o === null || !o.ok) return qayta(o ? o.sabab : 'provayder javob bermadi');
+        if (o.holat === 'READY' || o.holat === 'RUNNING') {
+          return eskirdi ? hammasi('xato', 'galereya 5 daqiqada olinmadi') : eski;
         }
-        if (qolgan.length) return { ...eski, kutilmoqda: { ...k, runlar: qolgan, tayyor } };
+        if (o.holat !== 'SUCCEEDED') return hammasi('xato', `galereya yurishi yakunlanmadi (${o.holat})`);
+        const ds = await jsonOl(runNatijasiSorovi(kalit, k.runId));
+        if (ds === null) return qayta('provayder natijani bermadi');
+        const t = tafsilotlarniOqi(ds);
+        if (t.xato) return hammasi('xato', t.xato);
+        for (const x of k.kutilgan) {
+          const d = t.tafsilotlar.find((y) => y.offerId === x.offerId);
+          if (!d) { tayyor.push(tayyorlash(x.productId, 'olinmadi', 'provayder bu taklif tafsilotini bermadi')); continue; }
+          // Galereya boʻsh boʻlsa ham bu javob — keshga yoziladi (qayta pul ketmasin).
+          await rpc('so_xitoy_kesh_yoz', { p_rasm_hash: tafsilotKeshKaliti(x.offerId), p_natijalar: { rasmlar: d.rasmlar, video: d.video, sifat: d.sifat }, p_manba: '1688-tafsilot' });
+          tayyor.push(tayyorlash(x.productId, 'olindi', d.rasmlar.length ? null : 'taklif sahifasida qoʻshimcha surat yoʻq', d.rasmlar, d.video));
+        }
         return yakunla(tayyor);
       }
 
-      // ---- boshlash: kesh, kalit, bir turnda chegarasi
-      const tayyor: Tayyor[] = [];
-      const runlar: StudiyaKutish['runlar'] = [];
+      // ---- boshlash: kesh → kalit → bitta yurish (hamma taklif)
+      const tayyor: StudiyaTayyor[] = [];
+      const kutilgan: StudiyaKutish['kutilgan'] = [];
       for (const t of tovarlar) {
-        const rasm = t.tanlov?.rasmUrl ? aslRasmManzili(t.tanlov.rasmUrl) : null;
-        if (rasm === null) {
-          tayyor.push({ productId: t.productId, internet: 'qidirilmadi', sabab: 'tanlangan taklifning rasmi yoʻq', nomzodlar: [], tashlandi: 0 });
+        const kesh = await rpc<{ topildi: boolean; natijalar?: unknown }>('so_xitoy_kesh_ol', { p_rasm_hash: tafsilotKeshKaliti(t.offerId) });
+        const n = kesh?.topildi ? (kesh.natijalar as { rasmlar?: unknown; video?: unknown } | null) : null;
+        if (n && Array.isArray(n.rasmlar)) {
+          const rasmlar = n.rasmlar.filter((r): r is string => typeof r === 'string');
+          tayyor.push(tayyorlash(t.productId, 'keshdan', rasmlar.length ? null : 'taklif sahifasida qoʻshimcha surat yoʻq', rasmlar, typeof n.video === 'string' ? n.video : null));
           continue;
         }
-        const kesh = await rpc<{ topildi: boolean; natijalar?: unknown }>('so_xitoy_kesh_ol', { p_rasm_hash: lensKeshKaliti(rasm) });
-        if (kesh?.topildi && Array.isArray(kesh.natijalar)) {
-          const nomzodlar = (kesh.natijalar as SuratNomzodi[]).filter((n) => n !== null && typeof n === 'object' && typeof n.asl === 'string');
-          tayyor.push({ productId: t.productId, internet: 'keshdan', sabab: null, nomzodlar, tashlandi: 0 });
+        if (xitoy === null || !xitoy.kalit) { tayyor.push(tayyorlash(t.productId, 'olinmadi', 'provayder kaliti yoʻq')); continue; }
+        if (kutilgan.length >= TAFSILOT_YURISH_MAX) {
+          tayyor.push(tayyorlash(t.productId, 'olinmadi', `bir yurishda ${TAFSILOT_YURISH_MAX} tagacha taklif — «Qayta qidir» bilan davom etadi`));
           continue;
         }
-        if (xitoy === null || !xitoy.kalit) {
-          tayyor.push({ productId: t.productId, internet: 'qidirilmadi', sabab: 'provayder kaliti yoʻq', nomzodlar: [], tashlandi: 0 });
-          continue;
-        }
-        if (runlar.length >= BIR_TURNDA_MAX) {
-          tayyor.push({ productId: t.productId, internet: 'qidirilmadi', sabab: `bir turnda ${BIR_TURNDA_MAX} tagacha — «Qayta qidir» bilan davom etadi`, nomzodlar: [], tashlandi: 0 });
-          continue;
-        }
-        try {
-          const so = lensBoshlashSorovi(xitoy.kalit, rasm);
-          const o = apifyRunniOqi(await (await xitoy.fetch(so.url, so.init)).json());
-          if (!o.ok) {
-            tayyor.push({ productId: t.productId, internet: 'xato', sabab: o.sabab, nomzodlar: [], tashlandi: 0 });
-            continue;
-          }
-          runlar.push({ productId: t.productId, runId: o.runId, rasmUrl: rasm });
-        } catch {
-          tayyor.push({ productId: t.productId, internet: 'xato', sabab: 'provayderga ulanib boʻlmadi', nomzodlar: [], tashlandi: 0 });
-        }
+        kutilgan.push({ productId: t.productId, offerId: t.offerId });
       }
-      if (runlar.length) {
-        return { olchov_yoq: false, qatorlar: [], talablar, sozlangan, chiqishMos, kutilmoqda: { boshlandi: hozir().toISOString(), runlar, tayyor }, izoh: IZOH };
+      if (kutilgan.length === 0 || xitoy === null || !xitoy.kalit) return yakunla(tayyor);
+      try {
+        const so = tafsilotSorovi(xitoy.kalit, kutilgan.map((x) => x.offerId));
+        const o = apifyRunniOqi(await (await xitoy.fetch(so.url, so.init)).json());
+        if (!o.ok) {
+          for (const x of kutilgan) tayyor.push(tayyorlash(x.productId, 'xato', o.sabab));
+          return yakunla(tayyor);
+        }
+        return { olchov_yoq: false, qatorlar: [], talablar, sozlangan, chiqishMos, kutilmoqda: { boshlandi: hozir().toISOString(), runId: o.runId, kutilgan, tayyor }, izoh: IZOH };
+      } catch {
+        for (const x of kutilgan) tayyor.push(tayyorlash(x.productId, 'xato', 'provayderga ulanib boʻlmadi'));
+        return yakunla(tayyor);
       }
-      return yakunla(tayyor);
     },
 
     /**

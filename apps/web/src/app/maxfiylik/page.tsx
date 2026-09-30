@@ -187,9 +187,10 @@ export default function Maxfiylik() {
             <strong>Vercel</strong> — sayt shu yerda joylashgan.
           </li>
           <li>
-            <strong>Apify</strong> — 5-qadamda (1688 qidiruvi) va 9-qadamda
-            (internetdan oʻxshash surat, Google Lens) tovar <strong>rasmi</strong>{' '}
-            yuboriladi. Javoblaringiz va sessiya kaliti yuborilmaydi.
+            <strong>Apify</strong> — 5-qadamda tovar <strong>rasmi</strong>{' '}
+            (1688 qidiruvi), 9-qadamda tanlangan 1688 taklifining raqami (uning
+            suratlarini olish uchun) yuboriladi. Javoblaringiz va sessiya kaliti
+            yuborilmaydi.
           </li>
           <li>
             <strong>Cloudflare</strong> — 9-qadamda tovar suratini oq fonga

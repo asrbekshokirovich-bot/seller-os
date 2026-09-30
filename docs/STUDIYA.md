@@ -7,17 +7,30 @@ suratlari orqa foni oq rangda, Uzumga moslab qilib bersin"*. Qarorlar:
 |---|---|
 | Fonni kim olib tashlaydi | **Cloudflare** (hozircha) — Images binding, `segment=foreground` |
 | Hamma surat kesiladimi | **Yoʻq** — foni allaqachon oq surat kesilmaydi, faqat 3:4 ga moslanadi |
-| Suratlar qayerdan | **1688 + internet** — "iloji boricha studiyaga ishi tushmasin" |
+| Suratlar qayerdan | "1688 + internet", "iloji boricha studiyaga ishi tushmasin" → bugun **tanlangan 1688 taklifining galereyasi** (pastda: nega internet emas) |
 | 8/10 tartibi | **Tuzatildi** — yetkazma faqat kartochkadan keyin (Uzum jarayoni) |
+
+### Nega internet (Google Lens) emas — jonli sinov 2026-09-30
+
+Birinchi versiya tanlangan 1688 rasmi bilan Google Lens `visual_matches`
+qidirardi (Apify `johnvc~google-lens-api`). Ikki sumka uchun 17 va 14 ta
+natija keldi — koʻpi **boshqa tovar**: Jacquemus, Louis Vuitton, Tod's,
+Coach, Dooney & Bourke sumkalari, DHgate "designer" nusxalari, qizil
+gilamdagi aktrisa surati. Bunday surat kartochkada chalgʻituvchi (Uzum
+5.7) va brend/mualliflik huquqini buzadi. `exact_matches` esa toʻliq
+suratni bermaydi (aktor hujjati: `image` — null). Shuning uchun manba —
+sotuvchi AYNAN oladigan tovarning oʻz suratlari: 1688 taklif galereyasi.
 
 ## Oqim
 
 ```
 8. Qabul (yuk keldi, sanaldi)
-   └─ kod `studiya`  ──►  Apify: Google Lens (tanlangan 1688 rasmi bilan)   ─┐  asinxron,
-                          kesh `selleros.xitoy_kesh`, kalit `lens:<url>`     │  20–60 s,
-      ◄── `tekshir` (har 8 s) ─────────────────────────────────────────────┘  `kutish`
-   nomzodlar: 1688 tanlovi → internet (4) → oʻxshash 1688 (3) → qolgani, 8 tagacha
+   └─ kod `studiya`  ──►  Apify `crawleast~1688-image-search-scraper`, `offerIds` ─┐  asinxron,
+                          (hamma tanlangan taklif BITTA yurishda) → `images`       │  20–60 s,
+                          kesh `selleros.xitoy_kesh`, kalit `1688-tafsilot:<id>`    │  `kutish`
+      ◄── `tekshir` (har 8 s) ──────────────────────────────────────────────────┘
+   nomzodlar: tanlangan taklif surati → uning galereyasi → oʻxshash takliflar, 8 tagacha
+   (bir xil fayl turli manzil bilan kelsa — bitta; `rasmKaliti`)
    har biriga imzolangan manzil:  STUDIYA_URL/?r=auto&src=<asl>&s=<HMAC>
 9. savol «Yetarlimi?» — Yetarli / Yetmadi (oʻzim suratga olaman) / Qayta qidir / Keyinroq
    └─ kod `studiya_yakun` → ochiq ish ("yetmadi", "keyin")
@@ -64,11 +77,14 @@ Bitta surat `auto` da **2** oʻzgartirish (zond + natija). Bir tovar — 8
 tagacha surat → ~16. Free: taxminan **300 tovar / oy**. Limit tugasa
 surat kartada "Studiya bu suratni ololmadi" deb chiqadi (jim oʻlim yoʻq).
 
-**Google Lens (Apify, `johnvc~google-lens-api`)** — bitta yurish 20
-natija, xarajat shifti `maxTotalChargeUsd=0.02`. Alohida kunlik limit
-yoʻq: Lens faqat 5-qadamda 1688 taklifi tanlangan tovar uchun va 72
-soatlik kesh bilan ishlaydi, 1688 qidiruvi esa kunlik limitli (0055).
-«Qayta qidir» 72 soat ichida keshdan oladi — qayta pul ketmaydi.
+**1688 taklif tafsiloti (Apify, `offerIds` rejimi)** — yetkazilgan har
+tafsilot **$0.003**, yetkazilmagani bepul; bitta yurish 20 tagacha taklif,
+aktor kiritmasida xarajat shifti `maxTotalChargeUsd` ≥ 0.04 (aktor README,
+build 0.3.30, 2026-09-30). Alohida kunlik limit yoʻq: tafsilot faqat
+5-qadamda tanlangan taklif uchun va 72 soatlik kesh bilan soʻraladi, 1688
+qidiruvi esa kunlik limitli (0055). «Qayta qidir» 72 soat ichida keshdan
+oladi — qayta pul ketmaydi. Tafsilotda video (`videoUrl`) boʻlsa kartada
+havola chiqadi.
 
 ## Joylash (bir marta)
 
@@ -105,5 +121,6 @@ yangi oynada ochib, javob sarlavhalarini koʻring — `X-Studiya-Rejim`
   oʻzbek/rus matnga ruxsat beradi; sotuvchi tanlashda koʻradi.
 - Sotuvchi **oʻz suratini** yuklab studiyadan oʻtkaza olmaydi ("Yetmadi"
   — ochiq ish).
-- Internet suratining **mualliflik huquqi** tekshirilmaydi; Uzum saytidan
+- **Oʻxshash taklif** surati boshqa 1688 sotuvchisiniki — kartada
+  "tovar aynan bir xilligini tekshiring" deb yoziladi. Uzum saytidan
   surat olinmaydi (2.12 — boshqa doʻkon suv belgisi hujjatsiz bloklanadi).

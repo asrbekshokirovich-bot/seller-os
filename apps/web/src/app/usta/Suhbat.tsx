@@ -199,7 +199,7 @@ export default function Suhbat() {
 
   const javobBer = (savolId: string, javob: unknown) => void yubor({ savolId, javob });
 
-  // 5-qadam (1688, 30–90 s) va 9-qadam (internet suratlari, 20–60 s):
+  // 5-qadam (1688, 30–90 s) va 9-qadam (1688 taklif galereyasi, 20–60 s):
   // `kutish` holatida har 8 s da `{tekshir: true}` yuboriladi; tugagach
   // javobda xabarlar keladi. Qaysi ish kutilayotganini server biladi.
   const kutishBormi = keyingi?.tur === 'kutish';
@@ -944,12 +944,14 @@ interface SuratTalablariQ {
   kartochkaQoidalari: string[]; kartochkaQollanmaUrl: string | null; manba: string | null; olchandi: string | null; yetishmaydi: string[];
 }
 interface StudiyaSuratiQ {
-  manba: '1688-tanlov' | '1688-oxshash' | 'internet'; asl: string; sayt: string | null;
+  /** Eski (Lens davri, 2026-09-29) suhbatlarda `internet` ham uchraydi. */
+  manba: '1688-tanlov' | '1688-galereya' | '1688-oxshash' | 'internet'; asl: string; sayt: string | null;
   eni: number | null; boyi: number | null; nom: string | null; url: string | null;
 }
 interface StudiyaQatoriQ {
   productId: number; title: string; suratlar: StudiyaSuratiQ[];
-  internet: 'qidirildi' | 'keshdan' | 'qidirilmadi' | 'xato'; internetSabab: string | null; tashlandi: number;
+  /** Eski suhbatlarda yoʻq boʻlishi mumkin — teg chiqmaydi. */
+  galereya?: 'olindi' | 'keshdan' | 'olinmadi' | 'xato'; galereyaSabab?: string | null; video?: string | null;
 }
 interface StudiyaQ {
   olchov_yoq?: boolean; sabab?: string; qatorlar?: StudiyaQatoriQ[]; talablar?: SuratTalablariQ | null;
@@ -977,8 +979,9 @@ function talabQatori(t: SuratTalablariQ | null | undefined, tr: Tr): string {
 }
 
 /**
- * 9-qadam kartasi: har tovar uchun suratlar (1688 tanlovi, internet,
- * oʻxshash 1688) — studiya ulangan boʻlsa oq fonli 1200×1600 koʻrinishda.
+ * 9-qadam kartasi: har tovar uchun suratlar (siz tanlagan 1688 taklifi va
+ * uning galereyasi, joy qolsa oʻxshash takliflar) — studiya ulangan boʻlsa
+ * oq fonli 1200×1600 koʻrinishda.
  * Belgilangan suratlar bitta faylga (bitta — JPEG, bir nechta — ZIP)
  * yuklanadi. Tizim suratni Uzumga YUKLAMAYDI — kartochkaga siz qoʻyasiz.
  * Studiya tayyorlay olmagan surat (manba yopiq va h.k.) belgilanmaydi.
@@ -995,11 +998,16 @@ function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
   const belgilangan = tanlangan.filter((k) => mumkin.includes(k));
   const almashtir = (k: string) => setTanlangan((e) => (e.includes(k) ? e.filter((x) => x !== k) : [...e, k]));
   const manbaNomi = (s: StudiyaSuratiQ) =>
-    s.manba === '1688-tanlov' ? tr('1688 · tanlangan', '1688 · выбранный') : s.manba === '1688-oxshash' ? tr('1688 · oʻxshash', '1688 · похожий') : (s.sayt ?? tr('internet', 'интернет'));
-  const internetTegi = (x: StudiyaQatoriQ) =>
-    x.internet === 'qidirildi' ? [u.tegYaxshi, tr('internetdan qidirildi', 'искали в интернете')]
-      : x.internet === 'keshdan' ? [u.tegNeytral, tr('internet (keshdan)', 'интернет (из кэша)')]
-        : [u.tegOgoh, x.internet === 'xato' ? tr('internet: xato', 'интернет: ошибка') : tr('internet: qidirilmadi', 'интернет: не искали')];
+    s.manba === '1688-tanlov' ? tr('tanlangan taklif', 'выбранный вариант')
+      : s.manba === '1688-galereya' ? tr('taklif galereyasi', 'галерея варианта')
+        : s.manba === '1688-oxshash' ? tr('oʻxshash taklif', 'похожий вариант')
+          : (s.sayt ?? '—');
+  const galereyaTegi = (x: StudiyaQatoriQ): [string | undefined, string] | null =>
+    x.galereya === 'olindi' ? [u.tegYaxshi, tr('1688 galereyasi', 'галерея 1688')]
+      : x.galereya === 'keshdan' ? [u.tegNeytral, tr('1688 galereyasi (keshdan)', 'галерея 1688 (из кэша)')]
+        : x.galereya === 'olinmadi' ? [u.tegOgoh, tr('galereya olinmadi', 'галерея не получена')]
+          : x.galereya === 'xato' ? [u.tegOgoh, tr('galereya: xato', 'галерея: ошибка')]
+            : null;
 
   async function yuklab() {
     const royxat = q.flatMap((x) => x.suratlar.flatMap((s, i) => (
@@ -1038,14 +1046,14 @@ function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
         <p className={u.ogohlik}>{tr(`Diqqat: studiya chiqishi (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) Uzumning hozirgi talabiga mos emas — nazoratchiga yozildi.`, `Внимание: размер студии (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) не соответствует текущему требованию Uzum — передано контролёру.`)} {talabQatori(n.talablar, tr)}</p>
       )}
       {q.map((x) => {
-        const [sinf, teg] = internetTegi(x);
+        const teg = galereyaTegi(x);
         return (
           <div key={x.productId} className={u.karta}>
             <div className={u.kartaBoshi}>
               <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{x.title}</div></div>
-              <span className={`${u.teg} ${sinf}`}>{teg}</span>
+              {teg && <span className={`${u.teg} ${teg[0]}`}>{teg[1]}</span>}
             </div>
-            {x.internetSabab && <p className={u.ogohlik}>{x.internetSabab}</p>}
+            {x.galereyaSabab && <p className={u.ogohlik}>{x.galereyaSabab}</p>}
             {x.suratlar.length === 0 ? (
               <p className={u.kichikIzoh}>{tr('Surat topilmadi — oʻzingiz suratga oling (oq yoki och bir xil fon, tovar kadrning yarmidan koʻpi).', 'Фото не найдено — снимите сами (белый или светлый однотонный фон, товар больше половины кадра).')}</p>
             ) : (
@@ -1077,7 +1085,15 @@ function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
                 })}
               </div>
             )}
-            {x.tashlandi > 0 && <p className={u.kichikIzoh}>{tr(`Internetdan ${x.tashlandi} ta surat olinmadi: kichik, Uzum saytidan yoki takror.`, `Из интернета не взято фото: ${x.tashlandi} (маленькие, с сайта Uzum или повторы).`)}</p>}
+            {x.suratlar.some((y) => y.manba === '1688-oxshash') && (
+              <p className={u.kichikIzoh}>{tr('«Oʻxshash taklif» — boshqa 1688 sotuvchisining surati: tovar aynan siz olganidek ekanini tekshiring.', '«Похожий вариант» — фото другого продавца 1688: проверьте, что товар точно такой же.')}</p>
+            )}
+            {x.video && /^https?:\/\//i.test(x.video) && (
+              <p className={u.kichikIzoh}>
+                <a href={x.video} target="_blank" rel="noopener noreferrer">{tr('Taklif videosi (1688)', 'Видео варианта (1688)')}</a>
+                {' '}{tr('— Uzum MP4 video qabul qiladi; xitoycha yozuv yoki ovoz boʻlsa ishlatmang.', '— Uzum принимает MP4; с китайским текстом или голосом не используйте.')}
+              </p>
+            )}
           </div>
         );
       })}

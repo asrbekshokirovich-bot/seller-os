@@ -111,16 +111,16 @@ const SURAT_SEED = {
   'uzum.kartochka.qoidalar': FS(['Nom va tavsif ikki tilda', 'VGT oʻlchanadi', 'Stop-soʻzlar yoʻq']),
 };
 const TALABLAR = suratTalablari(faktlarniOqi(SURAT_SEED));
-const SURAT = (manba: '1688-tanlov' | '1688-oxshash' | 'internet', n: number) => ({
-  manba, asl: `https://cdn.example/${n}.jpg`, sayt: manba === 'internet' ? 'amazon.com' : '1688', eni: null, boyi: null, nom: null,
+const SURAT = (manba: '1688-tanlov' | '1688-galereya' | '1688-oxshash', n: number) => ({
+  manba, asl: `https://cbu01.alicdn.com/${n}.jpg`, sayt: '1688', eni: null, boyi: null, nom: null,
   url: `https://studiya.example/?r=auto&src=${n}&s=x`,
 });
 const STUDIYA = {
   olchov_yoq: false, talablar: TALABLAR, sozlangan: true, chiqishMos: true, kutilmoqda: null, izoh: 'studiya',
-  qatorlar: [{ productId: 100, title: 'Quloqchin A', internet: 'qidirildi' as const, internetSabab: null, tashlandi: 2,
-    suratlar: [SURAT('1688-tanlov', 1), SURAT('internet', 2), SURAT('internet', 3), SURAT('1688-oxshash', 4)] }],
+  qatorlar: [{ productId: 100, title: 'Quloqchin A', galereya: 'olindi' as const, galereyaSabab: null, video: null,
+    suratlar: [SURAT('1688-tanlov', 1), SURAT('1688-galereya', 2), SURAT('1688-galereya', 3), SURAT('1688-oxshash', 4)] }],
 };
-const STUDIYA_KUTISH = { ...STUDIYA, qatorlar: [], kutilmoqda: { boshlandi: '2026-09-29T09:00:00.000Z', runlar: [{ productId: 100, runId: 'L1', rasmUrl: 'https://cdn.example/1.jpg' }], tayyor: [] } };
+const STUDIYA_KUTISH = { ...STUDIYA, qatorlar: [], kutilmoqda: { boshlandi: '2026-09-29T09:00:00.000Z', runId: 'T1', kutilgan: [{ productId: 100, offerId: '983093623752' }], tayyor: [] } };
 const STUDIYA_YAKUN = { olchov_yoq: false, yozildi: [], izoh: 'studiya yakun' };
 const YUKLASH = {
   olchov_yoq: false, faktlar: qabulFaktlari(faktlarniOqi(QABUL_SEED)), talablar: TALABLAR,
@@ -801,13 +801,13 @@ function studiyaBoshi(): YolHolati {
 }
 
 describe('9-qadam — Studiya (oq fonli suratlar)', () => {
-  it('kod studiya → (internet qidiruvi) kutish → studiya_tayyor → kod studiya_yakun → 10-qadam yuklash kodi', () => {
+  it('kod studiya → (1688 galereyasi) kutish → studiya_tayyor → kod studiya_yakun → 10-qadam yuklash kodi', () => {
     let h = studiyaBoshi();
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'studiya', qadam: 9 });
     const kutish = natijaniYoz(h, 'studiya', STUDIYA_KUTISH);
     const kk = keyingi(kutish);
     expect(kk).toMatchObject({ tur: 'kutish', qadam: 9, boshlandi: '2026-09-29T09:00:00.000Z' });
-    if (kk.tur === 'kutish') expect(kk.matn).toMatch(/Internetdan oʻxshash suratlar qidirilmoqda \(1 ta tovar\)/);
+    if (kk.tur === 'kutish') expect(kk.matn).toMatch(/^1688 dan tovar suratlari olinmoqda \(1 ta tovar\)/);
     expect(kutilayotganHarakat(kutish)).toBe('studiya');
     h = natijaniYoz(h, 'studiya', STUDIYA);
     expect(kutilayotganHarakat(h)).toBeNull();
@@ -849,9 +849,9 @@ describe('9-qadam — Studiya (oq fonli suratlar)', () => {
   });
 
   it('tushuntir(studiya): manbalar soni, oq fon qoidasi, qidirilmagan sabab, Uzum talabi faktdan', () => {
-    expect(tushuntir('studiya', STUDIYA)).toBe('Studiya: 1 ta tovar uchun 4 ta surat (2 tasi 1688 dan, 2 tasi internetdan). Har biri 1200×1600 (3:4), oq fonda: foni oq boʻlsa faqat moslanadi, boʻlmasa fon olib tashlanadi — tovarning oʻzi oʻzgarmaydi. Uzum talabi: kamida 750×1000, vertikal 3:4, 5 MB gacha. Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.');
-    const qidirilmadi = { ...STUDIYA, sozlangan: false, talablar: null, qatorlar: [{ ...STUDIYA.qatorlar[0]!, internet: 'qidirilmadi' as const, internetSabab: 'provayder kaliti yoʻq', suratlar: [SURAT('1688-tanlov', 1)] }] };
-    expect(tushuntir('studiya', qidirilmadi)).toBe('Studiya: 1 ta tovar uchun 1 ta surat (1 tasi 1688 dan, 0 tasi internetdan). Studiya xizmati hali ulanmagan — suratlar asl holida, fon oqlanmagan. 1 ta tovarda internet qidiruvi boʻlmadi: provayder kaliti yoʻq. Uzum surat talablari faktda yoʻq. Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.');
+    expect(tushuntir('studiya', STUDIYA)).toBe('Studiya: 1 ta tovar uchun 4 ta surat (3 tasi siz tanlagan taklifdan, 1 tasi oʻxshash takliflardan). Har biri 1200×1600 (3:4), oq fonda: foni oq boʻlsa faqat moslanadi, boʻlmasa fon olib tashlanadi — tovarning oʻzi oʻzgarmaydi. Oʻxshash taklif surati boshqa sotuvchiniki — tovar aynan bir xilligini tekshiring. Uzum talabi: kamida 750×1000, vertikal 3:4, 5 MB gacha. Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.');
+    const olinmadi = { ...STUDIYA, sozlangan: false, talablar: null, qatorlar: [{ ...STUDIYA.qatorlar[0]!, galereya: 'olinmadi' as const, galereyaSabab: 'provayder kaliti yoʻq', suratlar: [SURAT('1688-tanlov', 1)] }] };
+    expect(tushuntir('studiya', olinmadi)).toBe('Studiya: 1 ta tovar uchun 1 ta surat (1 tasi siz tanlagan taklifdan, 0 tasi oʻxshash takliflardan). Studiya xizmati hali ulanmagan — suratlar asl holida, fon oqlanmagan. 1 ta tovarda taklif galereyasi olinmadi: provayder kaliti yoʻq. Uzum surat talablari faktda yoʻq. Xitoycha yozuvli yoki boshqa doʻkon belgisi bor suratni tanlamang.');
     expect(tushuntir('studiya', { ...STUDIYA, chiqishMos: false })).toMatch(/5 MB gacha\. DIQQAT: studiya chiqishi \(1200×1600\) bu talabga mos emas — nazoratchiga yozildi\. Xitoycha/);
     expect(tushuntir('studiya', { ...STUDIYA, olchov_yoq: true, sabab: 'buyurtma varaqasida 1688 taklifi tanlangan tovar yoʻq' })).toBe('Studiya suratlarini tayyorlay olmadim: buyurtma varaqasida 1688 taklifi tanlangan tovar yoʻq.');
     expect(tushuntir('studiya_yakun', { ...STUDIYA_YAKUN, yozildi: [{ tur: 'kutyapman', sabab: 'studiya: oʻz suratlari (yetmadi)', muddat: null, id: 3, yangi: true }] }))
