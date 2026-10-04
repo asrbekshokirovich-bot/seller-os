@@ -19,7 +19,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  /* Tor ekranda matn qisqaradi — mavzu tugmasi ostiga tushmaydi. */
+  min-width: 0;
 }
+
+.tepaChap > div { min-width: 0; }
 
 .orqaga {
   flex: none;
@@ -83,13 +87,30 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  /* Belgi balandligi: shrift kichrayganda ham belgisiz karta sarlavhasi past qolmaydi (narx qatori teng). */
+  min-height: 26px;
+}
+
+/*
+ * Ruscha nomlar uzun ("Бесплатный" + "текущий" — 247 px, karta ichi 134–240 px;
+ * 2026-10-04 oʻlchov): belgi nom ostida. Ikkinchi qator hamma kartada band
+ * (belgisi yoʻq "Бизнес" da ham) — narx qatorlari kartalar boʻylab teng turadi.
+ */
+[data-til='ru'] .rejaBosh {
+  display: grid;
+  grid-template-rows: auto 26px;
+  justify-items: start;
+  align-items: center;
+  row-gap: 8px;
 }
 
 .rejaNomi {
   font-family: var(--unbounded);
-  font-size: 22px;
+  /* Tor kartada kichrayadi (karta eni, cqi) — uzun nom kartadan chiqmaydi; 1440 da 22 px. */
+  font-size: min(22px, 13cqi);
   font-weight: 600;
   letter-spacing: -0.035em;
+  white-space: nowrap;
 }
 
 .teg {
@@ -453,4 +474,21 @@
   /* Telefonda toʻlov bloki yana bitta ustun va kartalardan keyin (oddiy tartib). */
   .tolov { order: 0; grid-template-columns: minmax(0, 1fr); row-gap: 0; }
   .usulYorliq { margin-top: 22px; }
+}
+
+/*
+ * Telefonda sarlavha toʻliq: "Profilim · Obuna" yashirin, sarlavha koʻpi bilan
+ * 2 qator. Ilgari 320 px da 3–4 qatorga boʻlinib, 64 px panel tepasidan kesilardi
+ * (ruscha "Смена подписки", 2026-10-04).
+ */
+@media (max-width: 480px) {
+  .meta { display: none; }
+  .sarlavha {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.2;
+  }
 }

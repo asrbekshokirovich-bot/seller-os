@@ -280,6 +280,8 @@
 .kattaQator {
   margin-top: 10px;
   display: flex;
+  /* Juda tor kartada birlik ("mln") raqam ostiga tushadi — kartadan chiqmaydi. */
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 6px;
 }
@@ -471,6 +473,8 @@
 
 .bolimBosh {
   display: flex;
+  /* Tor ekranda (ruscha "Пять станций" + "Станция 1 / 5") boshqaruv keyingi qatorga oʻtadi. */
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
@@ -488,6 +492,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-left: auto;
 }
 
 .bolimMeta {
@@ -592,7 +597,8 @@
 }
 
 .bekat {
-  height: 260px;
+  /* Tor ekranda (ruscha) matn koʻproq qatorga tushadi — karta oʻsadi, matn chiqmaydi. */
+  min-height: 260px;
   border: 0;
   padding: 24px;
   border-radius: 22px;
@@ -763,9 +769,10 @@
 
 @media (max-width: 980px) {
   .sahifa { --chet: 20px; }
-  .hero { grid-template-columns: 1fr; padding-top: 48px; padding-bottom: 64px; }
+  /* minmax(0, …): ichidagi eng keng boʻlinmas qator ustunni ekrandan kengaytirmasin. */
+  .hero { grid-template-columns: minmax(0, 1fr); padding-top: 48px; padding-bottom: 64px; }
   .h1 { font-size: 40px; }
-  .lenta { grid-template-columns: 1fr; }
+  .lenta { grid-template-columns: minmax(0, 1fr); }
   .bekatXira { opacity: 1; }
   .cta { flex-direction: column; align-items: flex-start; padding: 36px 28px; }
   .ctaSarlavha, .h2 { font-size: 30px; }
@@ -775,9 +782,10 @@
   .navHavola { display: none; }
   .navOng { gap: 8px; }
   .sahifa .ustaga { height: 40px; padding: 0 14px; font-size: 13px; }
-  .h1 { font-size: 32px; }
+  /* Eng uzun soʻz ("doʻkoningizgacha", 32 px da 323 px) 320–360 px ekranga sigʻsin. */
+  .h1 { font-size: clamp(24px, calc(9.6vw - 4px), 32px); }
   .oqim { padding: 18px; }
-  .oqimQator { grid-template-columns: 1fr 1fr; }
+  .oqimQator { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .yol { grid-column: 1 / -1; order: 3; }
   .trekChiziq { margin: 0 4px; }
   .trekNom { font-size: 12px; }
@@ -786,4 +794,27 @@
 
 @media (max-width: 420px) {
   .logoMatn { display: none; }
+}
+
+/*
+ * Ruscha "Перейти к Мастеру" uzunroq — 421–445 px da navni toshirardi
+ * (2026-10-04 oʻlchov): ruschada logotip matni 480 px dan torda yashirin.
+ * `data-til` — server chizgan til (sahifa ildizida).
+ */
+@media (max-width: 480px) {
+  [data-til='ru'] .logoMatn { display: none; }
+}
+
+/*
+ * Pul oqimi kartasidagi ikki karta: 380 px dan torda yonma-yon sigʻmaydi
+ * ("10,9 mln" 30 px — 360 px da karta ustundan 9 px, 320 px da sahifadan
+ * chiqardi). Ustma-ust — raqam bir qatorda, katta.
+ */
+@media (max-width: 380px) {
+  .oqimQator { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 360 px va torroq: navdagi tugma ixchamroq (320 px ruschada belgi bilan tegib turardi). */
+@media (max-width: 360px) {
+  .sahifa .ustaga { padding: 0 12px; font-size: 12.5px; }
 }

@@ -1530,14 +1530,6 @@ function ustunlar(s: Savol): number {
 }
 
 /**
- * Ustunlar soni ekranga moslanadi: dizayndagi son (`ustunlar`) sigʻsa — shu,
- * sigʻmasa bittadan kamayadi (telefon, planshet, kengaytma paneli, tor oyna).
- * Taxmin emas — brauzerda oʻlchanadi: biror tugmaning matni tugmadan chiqsa
- * (`scrollWidth > clientWidth`), ustun kam. Shrift, til va klaviatura
- * belgisi oʻz-oʻzidan hisobga olinadi. Oʻlchash chizishdan oldin
- * (`useLayoutEffect`), shuning uchun buzilgan holat ekranda koʻrinmaydi.
- */
-/**
  * Tugma sigʻadimi: tugmaning oʻzi toshmagan va matn oxiri yonidagi 1–9
  * belgisidan (yoʻq boʻlsa — tugmaning ichki chetidan) oʻtmagan. Matn tugma
  * ichida qolib, belgi ustiga chiqsa ham — sigʻmagan.
@@ -1554,6 +1546,14 @@ function sigadi(b: HTMLElement): boolean {
   return oxiri <= chegara + 0.5;
 }
 
+/**
+ * Ustunlar soni ekranga moslanadi: dizayndagi son (`ustunlar`) sigʻsa — shu,
+ * sigʻmasa bittadan kamayadi (telefon, planshet, kengaytma paneli, tor oyna).
+ * Taxmin emas — brauzerda oʻlchanadi: biror tugmaning matni tugmadan chiqsa
+ * (`scrollWidth > clientWidth`), ustun kam. Shrift, til va klaviatura
+ * belgisi oʻz-oʻzidan hisobga olinadi. Oʻlchash chizishdan oldin
+ * (`useLayoutEffect`), shuning uchun buzilgan holat ekranda koʻrinmaydi.
+ */
 function useUstun(ref: RefObject<HTMLDivElement | null>, eng: number, kalit: string): number {
   const [n, setN] = useState(eng);
   useLayoutEffect(() => {
@@ -1578,9 +1578,11 @@ function useUstun(ref: RefObject<HTMLDivElement | null>, eng: number, kalit: str
     olcha();
     const ro = new ResizeObserver(olcha);
     ro.observe(el);
-    // Shrift kech yuklansa matn kengligi oʻzgaradi — qayta oʻlchash.
-    void document.fonts?.ready.then(() => { oxirgiEn = -1; olcha(); });
-    return () => ro.disconnect();
+    // Shrift kech yuklansa matn kengligi oʻzgaradi — qayta oʻlchash (savol
+    // almashib ketgan boʻlsa — yoʻq: eski elementni oʻlchamaymiz).
+    let tirik = true;
+    void document.fonts?.ready.then(() => { if (!tirik) return; oxirgiEn = -1; olcha(); });
+    return () => { tirik = false; ro.disconnect(); };
   }, [ref, eng, kalit]);
   return n;
 }
