@@ -6,7 +6,8 @@
  */
 
 import type { Metadata, Viewport } from 'next';
-import { bazamizniOl } from '@/lib/bazamizOl';
+import { after } from 'next/server';
+import { bazamizniKutibOl } from '@/lib/bazamizOl';
 import { serverTili } from '@/lib/til-server';
 import Kirish from './Kirish';
 
@@ -22,6 +23,7 @@ export const viewport: Viewport = {
 };
 
 export default async function Page() {
-  const o = await bazamizniOl(Date.now());
+  // Baza sekin boʻlsa sahifa 4 s dan ortiq kutmaydi (`bazamizniKutibOl`).
+  const o = await bazamizniKutibOl(Date.now(), 4000, (sorov) => after(() => sorov));
   return <Kirish tovar={o && typeof o.qiymat.tovar === 'number' ? o.qiymat.tovar : null} til={await serverTili()} />;
 }

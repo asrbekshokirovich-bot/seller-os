@@ -73,8 +73,8 @@ export function holatMatni(o: Olchov | null, hozir: number, til: Til = 'uz'): st
   const tr = tarjima(til);
   if (o === null) {
     return tr(
-      'Raqamlar hozir olinmadi — bazaga ulanib boʻlmadi. Eski raqam koʻrsatilmaydi.',
-      'Цифры сейчас не получены — база недоступна. Старые цифры не показываем.',
+      'Raqamlar hozir olinmadi — baza oʻz vaqtida javob bermadi. Eski raqam koʻrsatilmaydi.',
+      'Цифры сейчас не получены — база не ответила вовремя. Старые цифры не показываем.',
     );
   }
   const qari = hozir - o.vaqt;
@@ -89,8 +89,8 @@ export function holatMatni(o: Olchov | null, hozir: number, til: Til = 'uz'): st
   const sana = o.qiymat.olchandi ? ` (${o.qiymat.olchandi})` : '';
   return tr(
     `Bu raqamlar ${yosh(qari)} oʻlchangan${sana}. `
-      + 'Bazaga hozir ulanib boʻlmadi, shuning uchun yangilanmadi.',
+      + 'Baza hozir oʻz vaqtida javob bermadi, shuning uchun yangilanmadi.',
     `Эти цифры измерены ${yosh(qari, 'ru')}${sana}. `
-      + 'База сейчас недоступна, поэтому они не обновлены.',
+      + 'База сейчас не ответила вовремя, поэтому они не обновлены.',
   );
 }

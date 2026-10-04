@@ -7,6 +7,14 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-10-04] **`/bazamiz` har chaqiruvda 3 mln qatorni sanaydi (~3–5 s).**
+Bosh sahifa va Kirish uni kutardi: sovuq holatda sahifa 20–30 s oq turgan
+(2026-10-04 oʻlchov). Web endi 4 s dan ortiq kutmaydi (`bazamizniKutibOl`),
+lekin sovuq Vercel nusxasidagi birinchi tashrifchi raqam oʻrniga chiziqcha
+koʻrishi mumkin. Toʻgʻri yechim — Edge tomonda: skreyper tugaganda sonlarni
+bitta qatorga yozish va `/bazamiz` faqat oʻshani oʻqishi. Keyinroq: Edge
+deploy hozir ishlamayapti (2026-10-04) va bu backend oʻzgarishi.
+
 — [agent, 2026-09-30] **11-qadam kunlik xabari — "tortish", "itarish" emas.**
 Ssenariy "Menejer, har kuni: Bugun … dona" deydi. Hozir raqam sotuvchi chatni
 ochib «Yangilash» ni bosganda chiqadi; oʻzi yozmaydi. Kerak: cron (kuniga

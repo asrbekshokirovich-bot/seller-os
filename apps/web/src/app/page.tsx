@@ -15,8 +15,9 @@
  */
 
 import type { Metadata, Viewport } from 'next';
+import { after } from 'next/server';
 import { holatMatni } from '@/lib/bazamiz';
-import { bazamizniOl } from '@/lib/bazamizOl';
+import { bazamizniKutibOl } from '@/lib/bazamizOl';
 import { serverTili } from '@/lib/til-server';
 import BoshSahifa from './BoshSahifa';
 
@@ -39,7 +40,8 @@ export const viewport: Viewport = {
 
 export default async function Page() {
   const hozir = Date.now();
-  const o = await bazamizniOl(hozir);
+  // Baza sekin boʻlsa sahifa 4 s dan ortiq kutmaydi (`bazamizniKutibOl`).
+  const o = await bazamizniKutibOl(hozir, 4000, (sorov) => after(() => sorov));
   return (
     <BoshSahifa
       tovar={o && typeof o.qiymat.tovar === 'number' ? o.qiymat.tovar : null}
