@@ -171,6 +171,28 @@ farq 0,3–2 % piksel; qolgani — jonli maʼlumot (son, sana) va apostrof.
 | Payme / Click bilan toʻlash | Tugma oʻchiq, sababi yozilgan | Toʻlov ulanmagan |
 | Qadam soni va baza raqamlari | Jonli (bazadan) | Raqam toʻqilmaydi |
 | 6-qadamda savol pufagi yoʻq | Savol pufagi bor | Suhbat oqimi — savol matni koʻrinishi kerak |
+| Obuna narxi «99 / 000» ikki qatorda (w9) | Raqam bitta qatorda, tor kartada «soʻm / oy» ostida | Narx boʻlinmasin (nazoratchi roʻyxati 2026-10-01, 12-band) |
+| Profilim sarlavhasi oyna bilan birga aylanadi | Sarlavha joyida, faqat ichi aylanadi | Past ekranda yopish tugmasi koʻrinib tursin; 1440 da piksel farqi 0 |
+
+## Til va sahifa turi (2026-10-04)
+
+Dizayn faqat 1440 px va oʻzbekcha. Telefon va rus tili uchun qarorlar:
+
+- **/usta statik, ikki nusxa.** `usta/page.tsx` — oʻzbekcha, `usta/ru/page.tsx` —
+  ruscha; `so_til=ru` cookie bilan kelgan soʻrovni `next.config.mjs` dagi
+  `beforeFiles` rewrite CDN da ruschasiga buradi. Cookie ni sahifada oʻqish
+  uni dinamik qilardi: Vercel funksiyasi iad1 da, Oʻzbekistondan har ochilish
+  ~1 s+ (statik ~0,5 s; 2026-10-01 oʻlchov).
+- **404 ikki tilli va statik** (`Ikki`, CSS `<html lang>` boʻyicha). Ildiz 404
+  cookie oʻqisa hamma sahifa dinamik boʻlib qolardi.
+- **Bosh sahifa va Kirish** tilni cookie dan oladi (ular boshqa sababdan
+  allaqachon dinamik).
+- **Head skripti** (`lib/mavzu-skript.ts`) chizishdan oldin `data-mavzu` va
+  `lang` ni qoʻyadi, ruscha uchun kirill shriftlarini oldindan yuklaydi; server
+  chizgan til (`data-til`) bilan farq qilsa, sahifa gidratsiyagacha yashirin —
+  notoʻgʻri tildagi matn koʻrinmaydi.
+- **Server matnlari** (savollar, AI xabarlari) hozircha faqat oʻzbekcha —
+  tarjima backend ishi (BACKLOG); interfeys va qadam nomlari ruscha.
 
 ## Oldingi dizayndan (2026-09-24) chetga chiqilgan joylar
 
