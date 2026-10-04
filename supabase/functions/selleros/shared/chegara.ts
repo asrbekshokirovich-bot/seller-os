@@ -18,6 +18,8 @@
  * qaytmaydi: u eng katta chegirma va usiz raqam yolg'on bo'lardi.
  */
 
+import { minglik } from './fakt.ts';
+
 export interface ChegaraKirishi {
   sotuvNarxiSom: number | null;
   marjaFoizi: number | null;
@@ -54,9 +56,9 @@ export function chegaraNarxi(k: ChegaraKirishi): ChegaraNatijasi {
 
   const chegara = Math.max(0, Math.round(sotuv * (1 - marja / 100) - komissiya - logistika - kargo));
   const hisob =
-    `${sotuv} soʻm × (1 − ${marja}%) − komissiya ${komissiya}` +
-    (k.uzumLogistikaSom !== null ? ` − logistika ${logistika}` : '') +
-    (k.kargoSom !== null ? ` − kargo ${kargo}` : '') +
-    ` = ${chegara} soʻm`;
+    `${minglik(sotuv)} soʻm × (1 − ${marja}%) − komissiya ${minglik(komissiya)}` +
+    (k.uzumLogistikaSom !== null ? ` − logistika ${minglik(logistika)}` : '') +
+    (k.kargoSom !== null ? ` − kargo ${minglik(kargo)}` : '') +
+    ` = ${minglik(chegara)} soʻm`;
   return { chegaraSom: chegara, yetishmaydi, hisob };
 }

@@ -75,8 +75,8 @@ describe('deklaratsiyaQadamlari', () => {
     expect(q).toHaveLength(5);
     expect(q[0]).toMatch(/2026-yil sentyabr uchun komissioner hisobotini .*2026-10-19 gacha/);
     expect(q[1]).toMatch(/^https:\/\/my3\.soliq\.uz ga E-imzo/);
-    expect(q[2]).toMatch(/Ijtimoiy soliq: 440000 soʻm — 2026-10-15 gacha/);
-    expect(q[3]).toMatch(/^Aylanma soligʻi \(1 %\): 50000 soʻm\. Toʻlov tashkiloti .* topshirasiz \(chorakdan keyingi oyning 15-sanasigacha — tasdiqlanishi kerak\)\.$/);
+    expect(q[2]).toMatch(/Ijtimoiy soliq: 440 000 soʻm — 2026-10-15 gacha/);
+    expect(q[3]).toMatch(/^Aylanma soligʻi \(1 %\): 50 000 soʻm\. Toʻlov tashkiloti .* topshirasiz \(chorakdan keyingi oyning 15-sanasigacha — tasdiqlanishi kerak\)\.$/);
     const bosh = deklaratsiyaQadamlari(oyHisobi({ oy: '2026-09', kabinetSotuv: null, olchovSotuv: null, komissiya: null, f: hisobotFaktlari({}) }), hisobotFaktlari({}));
     expect(bosh[1]).toMatch(/manzil faktda yoʻq/);
     expect(bosh[2]).toMatch(/miqdor faktda yoʻq — muddat faktda yoʻq/);

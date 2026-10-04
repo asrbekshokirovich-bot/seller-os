@@ -28,6 +28,12 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Ichki aylanuvchi maydonlar (yon panel, Profilim, Obuna, variantlar): ingichka, mavzu rangida — kulrang tizim chizigʻi emas. */
+.ilova * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--chiziq) transparent;
+}
+
 /* `:where` — ahamiyati eng past: tugma klasslari (rang, fon) har doim ustun. */
 :where(.ilova) button,
 :where(.ilova) input {
@@ -59,6 +65,11 @@
   padding: 20px 16px;
   overflow-y: auto;
 }
+
+/* Hech biri siqilmaydi: past ekranda «Boshidan boshlash» 48 px qoladi (22 px ga siqilardi). */
+.yon > * { flex-shrink: 0; }
+
+.qadamlar { min-height: 0; }
 
 .belgi {
   display: flex;
@@ -252,6 +263,27 @@
 
 .soya { display: none; }
 
+/*
+ * Past ekran (1536×732 125 %, 1366×768, 1920×1080 150 %): qadamlar ixchamroq,
+ * sigʻmasa — faqat qadamlar roʻyxati aylanadi; logotip, «Boshidan boshlash»
+ * va «Profilim» doim koʻrinadi. (Yuqoridagi asosiy qoidalardan KEYIN turishi shart.)
+ */
+@media (max-height: 760px) {
+  .yangiSuhbat { margin-top: 14px; }
+  .yorliq { margin: 16px 10px 6px; }
+  .qadamQator { height: 34px; }
+  .qadamlar {
+    flex-shrink: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--chiziq) transparent;
+    /* Joriy qadam soyasi aylanuvchi chetda kesilmasin. */
+    margin: 0 -16px -12px;
+    padding: 0 16px 12px;
+  }
+}
+
 /* ---------------------------------------------------------- asosiy ustun */
 
 .asosiy {
@@ -288,12 +320,17 @@
   box-shadow: 0 0 0 5px var(--acc10);
 }
 
+/* Tor ekranda sarlavha qisqaradi (…), mavzu tugmasi ostiga kirmaydi. */
+.sarlavhaBlok { min-width: 0; }
+
 .sarlavha {
   font-family: var(--unbounded);
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.03em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sarlavhaMeta {
@@ -380,11 +417,19 @@
   justify-content: center;
   /* `flex-start`: ichki ustun oʻz balandligida — pastki 20 px chekka aylantirishda ham qoladi. */
   align-items: flex-start;
-  /* Dizaynda aylantirish chizigʻi yoʻq — ustun markazda qoladi (sichqoncha va barmoq bilan aylanadi). */
-  scrollbar-width: none;
+  /*
+   * Dizaynda aylantirish chizigʻi koʻrinmaydi, lekin tepada eski xabarlar
+   * borligi bilinishi kerak: ingichka chiziq sichqoncha suhbat ustida
+   * boʻlganda chiqadi. Joy ikki chetda teng ajratilgan — ustun markazdan
+   * siljimaydi (dizayn bilan bir xil).
+   */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable both-edges;
 }
 
-.oqim::-webkit-scrollbar { display: none; }
+.oqim:hover,
+.oqim:focus-within { scrollbar-color: var(--chiziq) transparent; }
 
 .ichi {
   width: 820px;
@@ -1014,6 +1059,8 @@
 .savolSarlavha {
   font-size: 15px;
   font-weight: 700;
+  /* Uzun soʻz (tayyorlaymizmi?) tor kartada qoʻshni tugma ustiga chiqmasin. */
+  overflow-wrap: anywhere;
 }
 
 .savolIzoh {
@@ -1113,13 +1160,18 @@
   justify-content: center;
 }
 
+/* Teginish ekranida (telefon, planshet) klaviatura yoʻq — 1–9 belgisi joyni matnga beradi. */
+@media (hover: none) {
+  .klavish { display: none; }
+}
+
 .variantBoshqa {
   grid-column: span 2;
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 44px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 10px 14px;
   border: 0;
   border-radius: 14px;
   background: transparent;
@@ -1131,6 +1183,9 @@
 }
 
 .variantBoshqa > span { display: inline-flex; }
+
+/* Bitta ustunga tushganda «Boshqa …» qatori ham bitta ustun (span 2 yangi ustun ochmasin). */
+.variantlar[data-ustun='1'] .variantBoshqa { grid-column: 1 / -1; }
 
 .variantYakun {
   margin-top: 12px;
@@ -1205,6 +1260,25 @@
 
 .ilova .otkazish { color: var(--xira); }
 
+/* Ixcham ekranda savol kartasi tepasidagi «Oʻtkazib yuborish» (pastdagi qator oʻrniga). Odatda yashirin. */
+.otkazishBosh {
+  display: none;
+  flex: none;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--chip);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ilova .otkazishBosh { color: var(--xira); }
+
+.yuborMatn { display: inline; }
+
 /* Tovar tanlovi yakuni (w5): «Yuqoridagi kartalardan tanlang» + davom. */
 .tanlovQator {
   display: flex;
@@ -1262,7 +1336,14 @@
   width: 860px;
   max-width: 100%;
   max-height: 100%;
-  overflow-y: auto;
+  /*
+   * Sarlavha (yopish tugmasi bilan) joyida turadi, faqat ichi aylanadi.
+   * Sticky sarlavhaga fon kerak boʻlardi — u esa matn silliqlanishini va
+   * burchaklarni dizayndan oʻzgartirardi (2026-10-01, piksel taqqos).
+   */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--bg);
   border-radius: 28px;
   box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.5);
@@ -1274,6 +1355,7 @@
   align-items: flex-start;
   padding: 28px 32px 22px;
   border-bottom: 1px solid var(--chiziq);
+  flex: none;
 }
 
 .panelSarlavha {
@@ -1304,10 +1386,18 @@
 }
 
 .panelIchi {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 24px 32px 28px;
   display: flex;
   flex-direction: column;
   gap: 22px;
+}
+
+/* Aylanganda bloklar (1 px chiziqlar ham) siqilmaydi. */
+.panelIchi > * {
+  flex-shrink: 0;
 }
 
 .panelChiziq {
@@ -1516,13 +1606,40 @@
   white-space: nowrap;
 }
 
+/*
+ * Past ekranda «Profilim» ixchamroq (701 → ~580 px): 1536×732 va 1366×768 da
+ * butunlay sigʻadi, undan pastda ichidan aylanadi (sarlavha yopishib turadi).
+ */
+@media (max-height: 760px) {
+  .panelBosh { padding: 18px 28px 14px; }
+  .panelSarlavha { font-size: 20px; }
+  .panelMeta { margin-top: 4px; font-size: 13px; }
+  .yopish { width: 40px; height: 40px; }
+  .panelIchi { padding: 16px 28px 20px; gap: 14px; }
+  .hisob { margin-top: 10px; }
+  .hisobAvatar { width: 40px; height: 40px; }
+  .rejalar { margin-top: 10px; }
+  .reja { padding: 14px 16px; }
+  .rejaNarx { margin-top: 10px; }
+  .rejaQadam { margin-top: 6px; }
+  .tolovIzoh { margin-top: 10px; }
+  .sozlamalar { gap: 10px; }
+  .segment button { height: 34px; }
+  .boshdanTugma { height: 40px; }
+}
+
 /* ---------------------------------------------------------- tor ekran (telefon, kengaytma yon paneli) */
 
 @media (max-width: 1100px) {
   .jarayon { display: none; }
 }
 
-@media (max-width: 760px) {
+/*
+ * Planshet va tor oyna (1023 px gacha): yon panel ☰ ortiga yashiriladi —
+ * aks holda 300 px panel suhbatni 468 px ga siqadi (iPad 768) va sarlavha
+ * mavzu tugmasi ostida qoladi.
+ */
+@media (max-width: 1023px) {
   .yon { display: none; }
 
   .menyuOchiq .yon {
@@ -1544,7 +1661,9 @@
   }
 
   .burger { display: inline-flex; }
+}
 
+@media (max-width: 760px) {
   .tepa {
     height: 64px;
     padding: 0 14px;
@@ -1568,9 +1687,6 @@
   .katalog { grid-template-columns: 1fr; }
   .statlar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-  .variantlar { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  .variantBoshqa { grid-column: 1 / -1; }
-
   .panelFon { padding: 0; align-items: flex-end; }
   .panel { border-radius: 24px 24px 0 0; max-height: 92%; }
   .panelBosh { padding: 22px 20px 16px; }
@@ -1578,4 +1694,57 @@
   .rejalar { grid-template-columns: 1fr; }
   .hisob { flex-wrap: wrap; }
   .sozlama { flex-wrap: wrap; }
+}
+
+/*
+ * Ixcham pastki panel — telefon va past oyna (1366×768, 1920×1080 150 %).
+ * Dizayn 1440×900 uchun; bu yerda suhbatga joy qoldiriladi: izoh qatori va
+ * «N variant» yashirinadi, «Oʻtkazib yuborish» savol kartasining tepasiga
+ * chiqadi, variantlar koʻp boʻlsa — kartaning ichida aylanadi.
+ */
+@media (max-width: 760px), (max-height: 700px) {
+  .past_ { padding: 10px 0 12px; }
+  .pastIchi { gap: 10px; }
+  .pastIzoh { display: none; }
+
+  .savolKarta { padding: 12px; border-radius: 18px; }
+  .savolBosh { gap: 10px; margin-bottom: 10px; }
+  .savolIkon { width: 32px; height: 32px; border-radius: 10px; }
+  .savolIzoh, .savolSon { display: none; }
+  .otkazishBosh { display: inline-flex; }
+  .savolKarta ~ .otkazish { display: none; }
+
+  .variantlar {
+    /* 3,5 qator: pastda yarim koʻrinib turgan qator roʻyxat davom etishini bildiradi. */
+    max-height: 186px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Fokus halqasi aylanuvchi chetda kesilmasin. */
+    padding: 4px;
+    margin: -4px;
+  }
+
+  .variant { height: 44px; padding: 0 12px; gap: 8px; }
+  /* Uzun matnli variant oʻraladi — balandlik matnga qarab (44 px emas). */
+  .variantUzun { height: auto; min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+  .variantRaqam { height: 46px; }
+  .variantRaqam .variantNomi { font-size: 14px; }
+  .variantBoshqa { padding: 8px 12px; }
+
+  .kiritish { padding: 4px 4px 4px 18px; }
+  /* 16 px: iPhone yozish maydoniga bosilganda sahifani kattalashtirmaydi. */
+  .kiritish input { height: 44px; font-size: 16px; }
+  .yubor { height: 44px; padding: 0 18px; }
+  .otkazish { height: 40px; }
+}
+
+/* Juda tor ekran: «Yuborish» faqat oʻq — yozish maydoni kengayadi, maslahat matni kesilmaydi. */
+@media (max-width: 480px) {
+  .yuborMatn { display: none; }
+  .yubor { width: 44px; padding: 0; }
+}
+
+/* Kengaytma paneli (320 px) va kichik telefon: savol belgisi joyini sarlavhaga beradi. */
+@media (max-width: 400px) {
+  .savolIkon { display: none; }
 }

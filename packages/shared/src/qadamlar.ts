@@ -11,6 +11,7 @@
 
 import { kirish, mavsum, profil, raqobat, talab, type KirishTalabi } from './qismlar.js';
 import { score, type Parts, type Score } from './formula.js';
+import { minglik } from './fakt.js';
 import { THRESHOLDS } from './thresholds.js';
 import type { Flag } from './traps.js';
 import type { TovarToliq } from './filtrlar/turlar.js';
@@ -245,9 +246,9 @@ export function miqdor(
   return {
     dona,
     hisob:
-      `oyiga ~${Math.round(oylikSotuv)} dona sotiladi · ` +
-      `yangi sotuvchi odatda ~${ulushFoiz}% oladi → oyiga ~${Math.round(bizniki)} dona · ` +
-      `${zaxiraKun} kunlik zaxira = ${dona} dona`,
+      `oyiga ~${minglik(Math.round(oylikSotuv))} dona sotiladi · ` +
+      `yangi sotuvchi odatda ~${ulushFoiz}% oladi → oyiga ~${minglik(Math.round(bizniki))} dona · ` +
+      `${zaxiraKun} kunlik zaxira = ${minglik(dona)} dona`,
   };
 }
 

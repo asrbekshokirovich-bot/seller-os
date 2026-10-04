@@ -26,12 +26,13 @@
  * oyma-oy aylanadi; qurilmagan qadam paydo boʻlsa "tez orada" deb chiqadi.
  */
 
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { oyNomi, REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
-import { saqlanganTil, tarjima, tilniQoy, tilniSaqla, type Til, type Tr } from '@/lib/til';
+import { saqlanganTil, tarjima, type Til, type Tr } from '@/lib/til';
+import { useTil } from '@/lib/useTil';
 import { faylBolagi, zipYasa } from '@/lib/zip';
 import { Ikon, type IkonNomi } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
@@ -90,7 +91,7 @@ interface SuhbatJavobi {
 
 /* ------------------------------------------------------ sahifa */
 
-export default function Suhbat() {
+export default function Suhbat({ til: boshTil }: { til: Til }) {
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [keyingi, setKeyingi] = useState<Keyingi | null>(null);
   const [qadam, setQadam] = useState(1);
@@ -102,7 +103,7 @@ export default function Suhbat() {
   const [tanlangan, setTanlangan] = useState<Array<string | number>>([]);
 
   const [mavzu, mavzuniTanla] = useMavzu();
-  const [til, setTil] = useState<Til>('uz');
+  const [til, tilniTanla] = useTil(boshTil);
   const [menyu, setMenyu] = useState(false);
   const [profilOchiq, setProfilOchiq] = useState(false);
   const [obunaOchiq, setObunaOchiq] = useState(false);
@@ -145,11 +146,6 @@ export default function Suhbat() {
   }, [qabul]);
 
   useEffect(() => { void yukla(); }, [yukla]);
-
-  useEffect(() => {
-    const t = saqlanganTil();
-    if (t) { setTil(t); tilniQoy(t); }
-  }, []);
 
   useEffect(() => {
     function tugma(e: KeyboardEvent) {
@@ -206,7 +202,6 @@ export default function Suhbat() {
   }, [kutishBormi]);
   const boshdan = () => void yubor({ boshdan: true });
 
-  function tilniTanla(t: Til) { setTil(t); tilniSaqla(t); }
 
   const savol = keyingi?.tur === 'savol' ? keyingi.savol : null;
   // Oxirgi tovar katalogi — joriy savol "tovarlar" bo'lsa aynan u bosiladi.
@@ -227,7 +222,8 @@ export default function Suhbat() {
   const tezOradaKorsat = tezOrada !== null && !(oxirgi?.rol === 'menejer' && oxirgi.matn === tezOrada.matn);
 
   const qadamlarSoni = SUHBAT_QADAMLARI.length;
-  const qadamNomi = SUHBAT_QADAMLARI.find((q) => q.n === qadam)?.nom ?? '';
+  const joriyQadam = SUHBAT_QADAMLARI.find((q) => q.n === qadam);
+  const qadamNomi = joriyQadam ? tr(joriyQadam.nom, joriyQadam.ru) : '';
   const foiz = Math.round((Math.min(qadam, qadamlarSoni) / qadamlarSoni) * 100);
 
   const yonPanel = (
@@ -243,7 +239,7 @@ export default function Suhbat() {
         <span className={u.xiraIkon}><Ikon nom="qaytadan" o={17} /></span>
       </button>
 
-      <nav aria-label={tr('Qadamlar', 'Шаги')}>
+      <nav className={u.qadamlar} aria-label={tr('Qadamlar', 'Шаги')}>
         <div className={u.yorliq}>{tr(`Yoʻl · ${qadamlarSoni} qadam`, `Путь · ${qadamlarSoni} шагов`)}</div>
         <ol className={u.qadamRoyxat}>
           {SUHBAT_QADAMLARI.map((q) => {
@@ -255,7 +251,7 @@ export default function Suhbat() {
                 aria-current={q.n === qadam ? 'step' : undefined}
               >
                 <span className={u.qadamRaqam} aria-hidden="true">{otildi ? <Ikon nom="belgi" o={13} q={3} /> : q.n}</span>
-                <span className={u.qadamNomi}>{q.nom}</span>
+                <span className={u.qadamNomi}>{tr(q.nom, q.ru)}</span>
                 {!q.qurilgan && <span className={u.tezTeg}>{tr('tez orada', 'скоро')}</span>}
               </li>
             );
@@ -274,7 +270,7 @@ export default function Suhbat() {
   );
 
   return (
-    <div className={`zs-mavzu ${u.ilova} ${menyu ? u.menyuOchiq : ''}`} data-mavzu={mavzu}>
+    <div className={`zs-mavzu ${u.ilova} ${menyu ? u.menyuOchiq : ''}`} data-til={til}>
       <aside className={u.yon} aria-label={tr('Yon panel', 'Боковая панель')}>{yonPanel}</aside>
       {menyu && (
         <button type="button" className={u.soya} aria-label={tr('Menyuni yopish', 'Закрыть меню')} onClick={() => setMenyu(false)} />
@@ -290,7 +286,7 @@ export default function Suhbat() {
               <Ikon nom="menyu" o={18} />
             </button>
             <span className={u.tirik} aria-hidden="true" />
-            <div>
+            <div className={u.sarlavhaBlok}>
               <div className={u.sarlavha}>{qadamNomi}</div>
               <div className={u.sarlavhaMeta}>
                 {tr(`${qadam}-qadam · ${qadamlarSoni} dan`, `Шаг ${qadam} из ${qadamlarSoni}`)}
@@ -1533,6 +1529,64 @@ function ustunlar(s: Savol): number {
   return eng > 14 ? 3 : 5;
 }
 
+/**
+ * Tugma sigʻadimi: tugmaning oʻzi toshmagan va matn oxiri yonidagi 1–9
+ * belgisidan (yoʻq boʻlsa — tugmaning ichki chetidan) oʻtmagan. Matn tugma
+ * ichida qolib, belgi ustiga chiqsa ham — sigʻmagan.
+ */
+function sigadi(b: HTMLElement): boolean {
+  if (b.scrollWidth > b.clientWidth + 1) return false;
+  const nomi = b.querySelector<HTMLElement>(`.${u.variantNomi}`);
+  if (!nomi) return true;
+  const oxiri = nomi.getBoundingClientRect().left + nomi.scrollWidth;
+  const belgi = nomi.nextElementSibling as HTMLElement | null;
+  const chegara = belgi && getComputedStyle(belgi).display !== 'none'
+    ? belgi.getBoundingClientRect().left
+    : b.getBoundingClientRect().right - parseFloat(getComputedStyle(b).paddingRight);
+  return oxiri <= chegara + 0.5;
+}
+
+/**
+ * Ustunlar soni ekranga moslanadi: dizayndagi son (`ustunlar`) sigʻsa — shu,
+ * sigʻmasa bittadan kamayadi (telefon, planshet, kengaytma paneli, tor oyna).
+ * Taxmin emas — brauzerda oʻlchanadi: biror tugmaning matni tugmadan chiqsa
+ * (`scrollWidth > clientWidth`), ustun kam. Shrift, til va klaviatura
+ * belgisi oʻz-oʻzidan hisobga olinadi. Oʻlchash chizishdan oldin
+ * (`useLayoutEffect`), shuning uchun buzilgan holat ekranda koʻrinmaydi.
+ */
+function useUstun(ref: RefObject<HTMLDivElement | null>, eng: number, kalit: string): number {
+  const [n, setN] = useState(eng);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let oxirgiEn = -1;
+    const qoy = (k: number) => {
+      el.dataset.ustun = String(k);
+      el.style.gridTemplateColumns = `repeat(${k}, minmax(0, 1fr))`;
+    };
+    const olcha = () => {
+      if (el.clientWidth === oxirgiEn) return;
+      oxirgiEn = el.clientWidth;
+      let k = eng;
+      for (; k > 1; k--) {
+        qoy(k);
+        if (Array.from(el.querySelectorAll('button')).every(sigadi)) break;
+      }
+      qoy(k);
+      setN(k);
+    };
+    olcha();
+    const ro = new ResizeObserver(olcha);
+    ro.observe(el);
+    // Shrift kech yuklansa matn kengligi oʻzgaradi — qayta oʻlchash (savol
+    // almashib ketgan boʻlsa — yoʻq: eski elementni oʻlchamaymiz).
+    let tirik = true;
+    void document.fonts?.ready.then(() => { if (!tirik) return; oxirgiEn = -1; olcha(); });
+    return () => { tirik = false; ro.disconnect(); };
+  }, [ref, eng, kalit]);
+  return n;
+}
+
 function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, matn, setMatn, javobBer, boshdan, tr }: {
   savol: Savol | null;
   tezOrada: boolean;
@@ -1547,6 +1601,12 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
   tr: Tr;
 }) {
   const kiritish = useRef<HTMLInputElement>(null);
+  const variantlarRef = useRef<HTMLDivElement>(null);
+  const ustun = useUstun(
+    variantlarRef,
+    savol ? ustunlar(savol) : 1,
+    savol ? `${savol.id}|${savol.variantlar.map((v) => v.nom).join('|')}|${tr('uz', 'ru')}` : '',
+  );
 
   // Klaviatura: 1–9 — variant raqami (dizayndagi kichik belgilar). Yozish
   // maydonida emas va koʻp tanlovli savolda emas.
@@ -1571,7 +1631,7 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
     return (
       <div className={u.kiritish} aria-disabled="true">
         <input type="text" readOnly tabIndex={-1} aria-label={tr('Javob', 'Ответ')} placeholder={tr('Oʻzim yozaman', 'Свой ответ')} />
-        <button type="button" className={u.yubor} tabIndex={-1} aria-disabled="true">{tr('Yuborish', 'Отправить')}<Ikon nom="ong" o={18} /></button>
+        <button type="button" className={u.yubor} tabIndex={-1} aria-disabled="true" aria-label={tr('Yuborish', 'Отправить')}><span className={u.yuborMatn}>{tr('Yuborish', 'Отправить')}</span><Ikon nom="ong" o={18} /></button>
       </div>
     );
   }
@@ -1585,9 +1645,11 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
     );
   }
 
-  const otkaz = savol.otkazishMumkin
-    ? <button type="button" className={u.otkazish} onClick={() => javobBer(savol.id, null)} disabled={band}>{tr('Oʻtkazib yuborish', 'Пропустить')}</button>
-    : null;
+  // Ixcham ekranda (telefon, past oyna) «Oʻtkazib yuborish» savol kartasining tepasiga chiqadi — pastdagi alohida qator joyi suhbatga qoladi.
+  const otkazTugma = (klass: string | undefined) => (savol.otkazishMumkin
+    ? <button type="button" className={klass} onClick={() => javobBer(savol.id, null)} disabled={band}>{tr('Oʻtkazib yuborish', 'Пропустить')}</button>
+    : null);
+  const otkaz = otkazTugma(u.otkazish);
 
   const davom = (
     <button type="button" className={u.davom} onClick={() => javobBer(savol.id, tanlangan)} disabled={band || tanlangan.length === 0}>
@@ -1612,8 +1674,7 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
   const bosh = savolBoshi(savol, tr);
   const kop = savol.turi === 'kopTanlov';
   const raqamli = savol.turi === 'son';
-  const ustun = ustunlar(savol);
-  const uzun = ustun <= 2 && !raqamli;
+  const uzun = ustunlar(savol) <= 2 && !raqamli;
   const erkinYubor = () => {
     const t = matn.trim();
     if (t === '') return;
@@ -1631,8 +1692,9 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
               <div className={u.savolIzoh}>{bosh.izoh}</div>
             </div>
             <span className={u.savolSon}>{bosh.son}</span>
+            {otkazTugma(u.otkazishBosh)}
           </div>
-          <div className={u.variantlar} style={{ gridTemplateColumns: `repeat(${ustun}, minmax(0, 1fr))` }}>
+          <div ref={variantlarRef} className={u.variantlar} data-ustun={ustun} style={{ gridTemplateColumns: `repeat(${ustun}, minmax(0, 1fr))` }}>
             {savol.variantlar.map((v, i) => {
               const bor = kop && tanlangan.some((x) => String(x) === String(v.qiymat));
               return (
@@ -1676,8 +1738,8 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
             onChange={(e) => setMatn(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') erkinYubor(); }}
           />
-          <button type="button" className={u.yubor} onClick={erkinYubor} disabled={band}>
-            {tr('Yuborish', 'Отправить')}<Ikon nom="ong" o={18} />
+          <button type="button" className={u.yubor} onClick={erkinYubor} disabled={band} aria-label={tr('Yuborish', 'Отправить')}>
+            <span className={u.yuborMatn}>{tr('Yuborish', 'Отправить')}</span><Ikon nom="ong" o={18} />
           </button>
         </div>
       )}

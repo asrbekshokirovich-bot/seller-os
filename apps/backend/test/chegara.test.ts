@@ -15,7 +15,7 @@ describe('chegaraNarxi', () => {
     // 100000*0.7 = 70000 − 10000 − 5250 − 4000 = 50750
     expect(n.chegaraSom).toBe(50_750);
     expect(n.yetishmaydi).toEqual([]);
-    expect(n.hisob).toMatch(/= 50750 soʻm/);
+    expect(n.hisob).toMatch(/= 50 750 soʻm/);
   });
 
   it('kargo yo\'q — hisoblanadi, lekin YETISHMAYDI da turadi', () => {

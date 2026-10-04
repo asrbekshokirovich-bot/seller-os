@@ -1,8 +1,8 @@
-# Privacy Policy — Seller OS: Xitoydan top
+# Privacy Policy — ZumSavdo: Xitoydan top
 
-**Last updated: 29 September 2026** (version 0.2.0 of the extension)
+**Last updated: 1 October 2026** (version 0.2.2 of the extension)
 
-This policy describes what the Chrome extension **"Seller OS — Xitoydan top"**
+This policy describes what the Chrome extension **"ZumSavdo — Xitoydan top"**
 does with data. It is written to match the extension's source code exactly;
 the code is public at
 <https://github.com/asrbekshokirovich-bot/seller-os/tree/main/apps/extension>.
@@ -18,7 +18,7 @@ Two things:
    products on the Chinese wholesale marketplace 1688 and shows the results
    on the same page.
 2. Clicking the extension icon opens a Chrome side panel that shows the
-   **Seller OS chat** — our own website (`/usta` page) loaded in a frame.
+   **ZumSavdo chat** — our own website (`/usta` page) loaded in a frame.
    Everything you type there goes to our server exactly as it would if you
    opened the website in a tab; the website's own privacy terms apply. The
    panel uses the same anonymous session token as the button (see below),
@@ -114,11 +114,11 @@ asrbekshokirovich@gmail.com
 ---
 ---
 
-# Maxfiylik siyosati — Seller OS: Xitoydan top
+# Maxfiylik siyosati — ZumSavdo: Xitoydan top
 
-**Oxirgi yangilanish: 2026-yil 10-sentabr**
+**Oxirgi yangilanish: 2026-yil 1-oktabr** (kengaytma 0.2.2)
 
-Bu hujjat **"Seller OS — Xitoydan top"** Chrome kengaytmasi maʼlumot bilan
+Bu hujjat **"ZumSavdo — Xitoydan top"** Chrome kengaytmasi maʼlumot bilan
 nima qilishini tushuntiradi. Matn kodning oʻziga qarab yozilgan; kod ochiq:
 <https://github.com/asrbekshokirovich-bot/seller-os/tree/main/apps/extension>
 
@@ -130,7 +130,7 @@ Ikki narsa:
    Uni bosganingizda 1688 ulgurji bozoridan oʻxshash tovarlar qidiriladi va
    natija oʻsha sahifada koʻrsatiladi.
 2. Kengaytma belgisini bossangiz Chrome yon paneli ochiladi va unda
-   **Seller OS chati** — oʻz saytimizning `/usta` sahifasi — ramkada
+   **ZumSavdo chati** — oʻz saytimizning `/usta` sahifasi — ramkada
    koʻrsatiladi. U yerga yozganingiz saytni oddiy ochgandagidek
    serverimizga boradi; saytning oʻz maxfiylik shartlari amal qiladi. Panel
    tugma bilan bir xil anonim seans tokenidan foydalanadi (quyida), kunlik

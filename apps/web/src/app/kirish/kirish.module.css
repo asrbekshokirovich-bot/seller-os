@@ -386,5 +386,19 @@
   .raqamlar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .raqamSon { font-size: 17px; }
   .ong { flex-direction: column; padding: 8px 20px 40px; }
-  .mavzu { position: static; align-self: flex-end; margin-bottom: 20px; }
+  /* Mavzu tugmasi «Kirish» sarlavhasi qatorida, oʻngda (alohida boʻsh qator emas). */
+  .mavzu { top: 8px; right: 20px; }
+}
+
+/*
+ * Telefon: uchta raqam bir qatorga sigʻmaydi («3 020 056» ikkiga
+ * boʻlinar, «kuzatilmoqda» kartadan chiqardi) — birinchisi butun qator,
+ * qolgan ikkitasi ostida yonma-yon.
+ */
+@media (max-width: 480px) {
+  .raqamlar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .raqamKarta:first-child { grid-column: 1 / -1; }
+  .raqamKarta { padding: 14px; }
+  .raqamSon { font-size: 20px; white-space: nowrap; }
+  .raqamNom { overflow-wrap: anywhere; }
 }

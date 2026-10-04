@@ -19,7 +19,7 @@
  * hisobotida ushlab qolinganini tekshiring" deydi. Bu soliq maslahati emas.
  */
 
-import { faktMatn, faktSon, type Faktlar } from './fakt.js';
+import { faktMatn, faktSon, minglik, type Faktlar } from './fakt.js';
 import { oylikSoliq, rasmiyFaktlari, type OylikSoliq, type SoliqFakti } from './rasmiy.js';
 
 export const HISOBOT_KALITLARI = [
@@ -168,8 +168,8 @@ export function deklaratsiyaQadamlari(h: OyHisobi, f: HisobotFaktlar): string[] 
   return [
     `Uzum kabinetidan ${oyNomi(h.oy)} uchun komissioner hisobotini yuklab oling${h.komissionerSana ? ` (${h.komissionerSana} gacha tayyor boʻladi)` : ''} — soliq hisobotining asos hujjati.`,
     `${f.portalUrl ?? 'Soliq portali (manzil faktda yoʻq)'} ga E-imzo (ERI) bilan kiring.`,
-    `Ijtimoiy soliq: ${s.ijtimoiySom !== null ? `${s.ijtimoiySom} soʻm` : 'miqdor faktda yoʻq'} — ${h.ijtimoiyMuddat ?? 'muddat faktda yoʻq'} gacha toʻlang, sotuv boʻlmasa ham.`,
-    `Aylanma soligʻi (${f.soliq.aylanmaFoiz ?? '?'} %): ${s.aylanmaSom !== null ? `${s.aylanmaSom} soʻm` : 'hisoblanmadi'}.${agent} Komissioner hisobotida ushlab qolinganini tekshiring; ushlanmagan boʻlsa hisob-kitobni oʻzingiz topshirasiz${oziTopshirsa}.`,
+    `Ijtimoiy soliq: ${s.ijtimoiySom !== null ? `${minglik(s.ijtimoiySom)} soʻm` : 'miqdor faktda yoʻq'} — ${h.ijtimoiyMuddat ?? 'muddat faktda yoʻq'} gacha toʻlang, sotuv boʻlmasa ham.`,
+    `Aylanma soligʻi (${f.soliq.aylanmaFoiz ?? '?'} %): ${s.aylanmaSom !== null ? `${minglik(s.aylanmaSom)} soʻm` : 'hisoblanmadi'}.${agent} Komissioner hisobotida ushlab qolinganini tekshiring; ushlanmagan boʻlsa hisob-kitobni oʻzingiz topshirasiz${oziTopshirsa}.`,
     'Toʻlov kvitansiyasi va hisobotni saqlang — keyingi oy solishtiramiz.',
   ];
 }

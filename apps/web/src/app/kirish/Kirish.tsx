@@ -18,7 +18,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { son } from '@/lib/bazamiz';
 import { useMavzu } from '@/lib/mavzu';
-import { saqlanganTil, tarjima, tilniQoy, type Til } from '@/lib/til';
+import { tarjima, type Til } from '@/lib/til';
+import { useTil } from '@/lib/useTil';
 import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import k from './kirish.module.css';
@@ -33,9 +34,9 @@ function raqamKorinishi(raqamlar: string): string {
   return `+998 ${qism.join(' ')}`.trimEnd();
 }
 
-export default function Kirish({ tovar }: { tovar: number | null }) {
+export default function Kirish({ tovar, til: boshTil }: { tovar: number | null; til: Til }) {
   const [mavzu, mavzuniTanla] = useMavzu();
-  const [til, setTil] = useState<Til>('uz');
+  const [til] = useTil(boshTil);
   const tr = tarjima(til);
   const [raqam, setRaqam] = useState('');
   const [bosqich, setBosqich] = useState<'raqam' | 'kod'>('raqam');
@@ -43,11 +44,13 @@ export default function Kirish({ tovar }: { tovar: number | null }) {
   const [kod, setKod] = useState('');
   const [hash, setHash] = useState('');
   const kodMaydon = useRef<HTMLInputElement>(null);
+  const raqamMaydon = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const t = saqlanganTil();
-    if (t) { setTil(t); tilniQoy(t); }
     setHash(window.location.hash);
+    // Avtomatik fokus faqat sichqonchali qurilmada: telefonda u sahifani
+    // pastga aylantirib (logotip, sarlavha koʻrinmay qolardi) klaviaturani ochib yuborardi.
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) raqamMaydon.current?.focus({ preventScroll: true });
   }, []);
 
   const toliq = raqam.length === 9;
@@ -64,7 +67,7 @@ export default function Kirish({ tovar }: { tovar: number | null }) {
   }
 
   return (
-    <div className={`zs-mavzu ${k.sahifa}`} data-mavzu={mavzu}>
+    <div className={`zs-mavzu ${k.sahifa}`} data-til={til}>
       <aside className={k.panel}>
         <a className={k.belgi} href="/">
           <span className={k.nishon} aria-hidden="true">Z</span>
@@ -106,11 +109,11 @@ export default function Kirish({ tovar }: { tovar: number | null }) {
               <span className={k.maydonIchi}>
                 <span className={k.maydonNom}>{tr('Telefon raqam', 'Номер телефона')}</span>
                 <input
+                  ref={raqamMaydon}
                   className={k.maydonQiymat}
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"
-                  autoFocus
                   placeholder="+998 90 123 45 67"
                   value={raqam ? raqamKorinishi(raqam) : ''}
                   onChange={(e) => {

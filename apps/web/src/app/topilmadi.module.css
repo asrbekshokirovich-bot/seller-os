@@ -1,0 +1,87 @@
+/* 404 — sayt mavzusida, bosh sahifa uslubida. */
+
+.sahifa {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--matn);
+  font-family: var(--onest);
+  -webkit-font-smoothing: antialiased;
+}
+
+.sahifa :focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.ichi {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 64px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.son {
+  font-family: var(--unbounded);
+  font-size: clamp(72px, 16vw, 128px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: var(--acc);
+}
+
+.sarlavha {
+  margin: 20px 0 0;
+  font-family: var(--unbounded);
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.izoh {
+  margin: 14px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--xira);
+}
+
+.tugmalar {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sahifa .asosiy,
+.sahifa .ikkinchi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  padding: 0 24px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sahifa .asosiy {
+  background: var(--acc);
+  color: #fff;
+}
+
+.sahifa .ikkinchi {
+  background: var(--kart);
+  box-shadow: var(--soya);
+  color: var(--matn);
+}
+
+.sahifa .asosiy:hover { color: #fff; opacity: 0.92; }
+.sahifa .ikkinchi:hover { color: var(--matn); }

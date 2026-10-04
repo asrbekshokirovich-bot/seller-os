@@ -1,4 +1,4 @@
-# Chrome kengaytmasi — «Seller OS — Xitoydan top»
+# Chrome kengaytmasi — «ZumSavdo — Xitoydan top»
 
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
@@ -9,6 +9,22 @@ CHAT + Uzum sahifasidagi tugma, 0.1.3 tuzatishlari bilan; sayt manzili
 `zumsavdo.vercel.app`, `sidePanel` ruxsati asoslandi, remote code — yoʻq,
 data usage — faqat "Website content"). Developer Dashboard kengaytmalar
 bilan boshqarilmaydi — yuklashni har doim nazoratchi qiladi.
+
+## 2026-10-01 — 0.2.2: terrakota dizayn (yuklash nazoratchida)
+
+0.2.1 (2026-09-30) dizaynni oʻzgartirgan, doʻkonga hali yuklanmagan edi —
+0.2.2 uning oʻrnini egallaydi:
+
+- Nom «ZumSavdo — Xitoydan top», belgilar 16/32/48/128 — terrakota «Z»
+  (`gen-icons.mjs`, sayt favicon bilan bir xil koʻpburchak).
+- Uzum sahifasidagi «Xitoydan top» tugmasi Uzum tugmalari shaklida: 56 px,
+  12 px burchak, soyasiz, oraliq 12 px (Uzum sahifasidan oʻlchangan).
+- Yon panel (`/usta`) saytning oʻzi — 320–400 px kenglikdagi tuzatishlar
+  saytda (javob tugmalari ustunlari, ixcham pastki panel, ingichka chiziqlar).
+- Doʻkon rasmlari yangi: `promo-440x280.png`, `marquee-1400x560.png`,
+  `screenshot-1280x800.png` — toʻqilgan narx/baho yoʻq, yon panelda saytning
+  haqiqiy Usta oynasi.
+- `PRIVACY.md` — nom va versiya (0.2.2); maʼlumot bilan ishlash oʻzgarmadi.
 
 ## 2026-09-29 — 0.2.0: yon panel, faqat chat
 

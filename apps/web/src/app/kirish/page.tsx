@@ -7,6 +7,7 @@
 
 import type { Metadata, Viewport } from 'next';
 import { bazamizniOl } from '@/lib/bazamizOl';
+import { serverTili } from '@/lib/til-server';
 import Kirish from './Kirish';
 
 export const dynamic = 'force-dynamic';
@@ -22,5 +23,5 @@ export const viewport: Viewport = {
 
 export default async function Page() {
   const o = await bazamizniOl(Date.now());
-  return <Kirish tovar={o && typeof o.qiymat.tovar === 'number' ? o.qiymat.tovar : null} />;
+  return <Kirish tovar={o && typeof o.qiymat.tovar === 'number' ? o.qiymat.tovar : null} til={await serverTili()} />;
 }
