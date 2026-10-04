@@ -14,22 +14,8 @@
  */
 
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { SahifaTepa } from '../SahifaTepa';
 import u from './maxfiylik.module.css';
-
-const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '600', '700'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400'],
-  variable: '--font-mono',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'ZumSavdo — Maxfiylik',
@@ -41,14 +27,9 @@ const YANGILANDI = '2026-09-30';
 
 export default function Maxfiylik() {
   return (
-    <div className={`${u.sahifa} ${inter.variable} ${mono.variable}`}>
-      <header className={u.tepa}>
-        <div className={u.tepaIchi}>
-          <a className={u.nishon} href="/" aria-label="Bosh sahifa">Z</a>
-          <a className={u.nom} href="/">ZumSavdo</a>
-          <a className={u.orqaga} href="/">Bosh sahifa</a>
-        </div>
-      </header>
+    // Matn faqat oʻzbekcha (huquqiy tavsif) — `lang` shunga mos; ranglar va shrift — sayt mavzusidan.
+    <div className={`zs-mavzu ${u.sahifa}`} lang="uz">
+      <SahifaTepa til="uz" havola={{ href: '/', uz: 'Bosh sahifa', ru: 'Главная' }} />
 
       <main className={u.ichi}>
         <h1>Maxfiylik</h1>

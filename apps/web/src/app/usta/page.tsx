@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Usta — `/usta`.
  *
@@ -10,10 +8,16 @@
  *
  * Nega alohida fayl: `Suhbat.tsx` sof mijoz komponenti; bu yerda
  * faqat marshrut turadi.
+ *
+ * STATIK, ikki nusxa: bu — oʻzbekcha, `ru/page.tsx` — ruscha. `so_til=ru`
+ * cookie bilan kelgan soʻrovni `next.config.mjs` dagi rewrite CDN da
+ * ruschasiga buradi — sahifa darhol tanlangan tilda chiziladi. Cookie ni
+ * shu yerda oʻqish sahifani dinamik qilib, har ochilishni AQSh dagi
+ * funksiyaga yuborardi (2026-10-01 oʻlchov: statik ~0.5 s, dinamik 1 s+).
  */
 
 import Suhbat from './Suhbat';
 
 export default function Usta() {
-  return <Suhbat />;
+  return <Suhbat til="uz" />;
 }

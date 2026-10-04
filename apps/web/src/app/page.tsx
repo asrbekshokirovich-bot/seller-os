@@ -17,6 +17,7 @@
 import type { Metadata, Viewport } from 'next';
 import { holatMatni } from '@/lib/bazamiz';
 import { bazamizniOl } from '@/lib/bazamizOl';
+import { serverTili } from '@/lib/til-server';
 import BoshSahifa from './BoshSahifa';
 
 /*
@@ -44,6 +45,7 @@ export default async function Page() {
       tovar={o && typeof o.qiymat.tovar === 'number' ? o.qiymat.tovar : null}
       holat={holatMatni(o, hozir)}
       holatRu={holatMatni(o, hozir, 'ru')}
+      til={await serverTili()}
     />
   );
 }

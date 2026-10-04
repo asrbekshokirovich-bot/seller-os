@@ -2,8 +2,8 @@
  * Usta uchun sarlavha va brauzer paneli rangi.
  *
  * Shriftlar ildiz layoutda (`../shriftlar.css`) — hamma sahifa uchun bitta.
- * Sahifaning oʻzi `'use client'`, metadata esa server tomonda —
- * shuning uchun alohida layout.
+ * Sahifa ikki statik nusxa (`page.tsx` — oʻzbekcha, `ru/page.tsx` —
+ * ruscha); ikkalasi uchun umumiy metadata shu yerda.
  */
 
 import type { Metadata, Viewport } from 'next';

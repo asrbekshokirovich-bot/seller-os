@@ -11,23 +11,26 @@
  */
 
 .panel {
-  --ground: #f4f6f8;
-  --surface: #ffffff;
-  --surface2: #eaeff3;
-  --ink: #14191f;
-  --ink2: #55606d;
-  --ink3: #7c8794;
-  --line: #dce3e9;
-  --lineStrong: #c3cdd6;
-  --accent: #1a3a6c;
-  --good: #1f6b4e;
-  --goodSoft: #e1f0e8;
-  --warn: #855511;
-  --warnSoft: #f6ebd9;
-  --bad: #973830;
-  --badSoft: #f7e5e3;
-  --none: #6e7a87;
-  --noneSoft: #e9eef2;
+  /* Panel tokenlari sayt mavzusidan (`globals.css`, `.zs-mavzu`) — yorugʻ va tungi. */
+  --ground: var(--bg);
+  --surface: var(--kart);
+  --surface2: var(--kart2);
+  --ink: var(--matn);
+  --ink2: var(--xira);
+  --ink3: var(--xira);
+  --line: var(--chiziq);
+  --lineStrong: var(--chiziq);
+  --accent: var(--acc);
+  --good: var(--ok);
+  --goodSoft: var(--okBg);
+  --warn: var(--ogoh);
+  --warnSoft: var(--ogohBg);
+  --bad: #e07a6f;
+  --badSoft: #e07a6f2e;
+  --none: var(--xira);
+  --noneSoft: var(--chip);
+  --font-plex: var(--onest);
+  --font-plex-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   background: var(--ground);
   color: var(--ink);
@@ -37,26 +40,10 @@
   line-height: 1.55;
 }
 
-@media (prefers-color-scheme: dark) {
-  .panel {
-    --ground: #0d1216;
-    --surface: #141b20;
-    --surface2: #1b232a;
-    --ink: #e6ecf0;
-    --ink2: #9daab5;
-    --ink3: #76838f;
-    --line: #242f38;
-    --lineStrong: #33414c;
-    --accent: #8ab4e8;
-    --good: #6fc79b;
-    --goodSoft: #112b21;
-    --warn: #d5a659;
-    --warnSoft: #2c2313;
-    --bad: #e08b82;
-    --badSoft: #2d1917;
-    --none: #7c8894;
-    --noneSoft: #1b232a;
-  }
+/* «Yomon» rangi sayt tokenlarida yoʻq — yorugʻ mavzuda toʻqroq (oʻqilishi uchun). */
+:global(html[data-mavzu='yorug']) .panel {
+  --bad: #b23a2e;
+  --badSoft: #b23a2e1a;
 }
 
 .wrap {
@@ -84,11 +71,11 @@
 }
 
 .head h1 {
-  font-family: var(--font-plex), sans-serif;
+  font-family: var(--unbounded), sans-serif;
   font-weight: 600;
   font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.4rem);
   line-height: 1.12;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.04em;
   text-wrap: balance;
   margin: 0.35rem 0 0;
 }
@@ -498,8 +485,8 @@
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--lineStrong);
-  border-radius: 3px;
-  padding: 0.6rem 0.7rem;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
 }
 .kirish input:focus-visible {
   outline: 2px solid var(--accent);
@@ -511,11 +498,12 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ground);
+  color: #fff;
   background: var(--accent);
   border: 0;
-  border-radius: 3px;
-  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  height: 48px;
+  padding: 0 1.25rem;
   cursor: pointer;
 }
 

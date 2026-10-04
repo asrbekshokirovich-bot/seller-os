@@ -380,7 +380,7 @@
   margin-top: 14px;
   background: var(--kart2);
   border-radius: 18px;
-  padding: 18px 20px;
+  padding: 18px 20px 15px;
 }
 
 .hisobQator { margin-bottom: 14px; }
@@ -415,8 +415,14 @@
 .barMatn { background: var(--matn); }
 .barAcc { background: var(--acc); }
 
+/*
+ * «37%» (Unbounded, `line-height: 1`) harf maydoni qatordan 3 px pastga
+ * chiqadi — shu 3 px qatorning oʻziga beriladi, `.hisob` ning pastki
+ * chekkasidan olinadi: joylashuv aynan oʻsha, qator endi toshmaydi.
+ */
 .foyda {
   padding-top: 14px;
+  padding-bottom: 3px;
   border-top: 1px solid var(--chiziq);
   display: flex;
   justify-content: space-between;

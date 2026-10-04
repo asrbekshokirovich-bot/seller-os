@@ -86,7 +86,7 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga }: {
                         <span className={bor ? o.belgiBor : o.belgiYoq}>
                           {bor ? <Ikon nom="belgi" o={12} q={3} /> : <Ikon nom="qulf" o={11} q={2.5} />}
                         </span>
-                        {q.nom}
+                        {tr(q.nom, q.ru)}
                       </li>
                     );
                   })}
@@ -103,6 +103,8 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga }: {
         </div>
 
         <aside className={o.tolov}>
+          {/* Ikki guruh: keng ekranda bitta ustun (dizayn), tor ekranda yonma-yon — toʻlov tugmasi pastga tushib ketmaydi. */}
+          <div className={o.tolovChap}>
           <div className={o.yorliq}>{tr('Toʻlov', 'Оплата')}</div>
           <div className={o.tolovReja}>
             <span className={o.tolovNomi}>{nomi(tanlangan)}</span>
@@ -118,6 +120,8 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga }: {
             <span>{tr('Jami', 'Итого')}</span>
             <span className={o.jamiQiymat}><span className={o.jamiSon}>{son(narx(tanlangan))}</span><span className={o.jamiBirlik}>{somB}</span></span>
           </div>
+          </div>
+          <div className={o.tolovOng}>
           <div className={`${o.yorliq} ${o.usulYorliq}`}>{tr('Toʻlov usuli', 'Способ оплаты')}</div>
           <div className={o.usullar}>
             {(['payme', 'click'] as const).map((x) => (
@@ -135,6 +139,7 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga }: {
           <button type="button" className={o.tolash} disabled>
             {usul === 'payme' ? tr('Payme orqali toʻlash', 'Оплатить через Payme') : tr('Click orqali toʻlash', 'Оплатить через Click')}
           </button>
+          </div>
         </aside>
       </div>
     </>

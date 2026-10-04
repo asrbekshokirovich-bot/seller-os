@@ -1,173 +1,137 @@
 /*
- * Hujjat sahifasi — dizayn qadogʻining rang va shriftlarida.
+ * Hujjat sahifasi — sayt dizayni (`dizayn/ZumSavdo-Veb.html`, terrakota)
+ * tokenlarida: yorugʻ va tungi mavzu, Onest matn, Unbounded sarlavha.
  *
- * Bu sahifa oʻqiladi, koʻzdan kechirilmaydi. Shuning uchun tor
- * ustun (65 belgi atrofida) va katta qatorlar orasi.
- *
- * Qorongʻi mavzu yoʻq — dizaynda u yoʻq, va oʻzim oʻylab topishim
- * kerak boʻlardi. Har rang shu yerda aniq yozilgan.
+ * Bu sahifa oʻqiladi, koʻzdan kechirilmaydi: tor ustun (65 belgi
+ * atrofida) va katta qatorlar orasi.
  */
 
 .sahifa {
-  --kok: #1a3a6c;
-  --siyoh: #0a1a34;
-  --past: #52627a;
-  --past2: #8e9cb0;
-  --chegara: #d9dfe8;
-  --toldirish: #eff2f5;
-  --fon: #f3f5f7;
-  --yashil: #d4e94c;
-
   min-height: 100vh;
-  background: var(--fon);
-  color: var(--siyoh);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--matn);
+  font-family: var(--onest);
   font-size: 16px;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
 
-.tepa {
-  background: #fff;
-  border-bottom: 1px solid var(--chegara);
-  padding: 0.75rem clamp(0.9rem, 2vw, 1.5rem);
-}
+.sahifa ::selection { background: var(--acc); color: #fff; }
 
-.tepaIchi {
-  max-width: 46rem;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+.sahifa :focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
 }
-
-.nishon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--kok);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 15px;
-  text-decoration: none;
-}
-
-.nom {
-  font-weight: 700;
-  color: var(--kok);
-  text-decoration: none;
-}
-
-.orqaga {
-  margin-left: auto;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--past);
-  text-decoration: none;
-  border: 1px solid var(--chegara);
-  border-radius: 8px;
-  padding: 7px 13px;
-  background: #fff;
-}
-.orqaga:hover { background: var(--toldirish); }
-.orqaga:focus-visible { outline: 2px solid var(--kok); outline-offset: 2px; }
 
 .ichi {
-  max-width: 42rem;
+  max-width: 44rem;
   margin: 0 auto;
-  padding: clamp(1.75rem, 4vw, 3.5rem) clamp(1rem, 3vw, 1.5rem) 5rem;
+  padding: clamp(28px, 5vw, 56px) 20px 80px;
 }
 
 .ichi h1 {
-  font-size: clamp(1.7rem, 1.3rem + 1.5vw, 2.2rem);
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
   margin: 0;
+  font-family: var(--unbounded);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
 }
 
 .sana {
-  color: var(--past2);
+  margin: 10px 0 0;
   font-size: 14px;
-  margin: 0.5rem 0 0;
+  color: var(--xira);
 }
 
 .ichi h2 {
-  font-size: 1.2rem;
-  line-height: 1.25;
-  margin: 2.5rem 0 0.75rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--chegara);
+  margin: 44px 0 12px;
+  padding-top: 28px;
+  border-top: 1px solid var(--chiziq);
+  font-family: var(--unbounded);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.03em;
 }
 
 .ichi p {
-  margin: 0 0 1rem;
+  margin: 0 0 16px;
   max-width: 62ch;
 }
 
 .ichi ul {
-  margin: 0 0 1rem;
-  padding-left: 1.2rem;
+  margin: 0 0 16px;
+  padding-left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 8px;
   max-width: 62ch;
 }
 
+.ichi li::marker { color: var(--acc); }
+
 .ichi code {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.87em;
-  background: var(--toldirish);
-  border-radius: 3px;
-  padding: 0.08em 0.35em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  background: var(--chip);
+  border-radius: 6px;
+  padding: 0.1em 0.4em;
 }
 
-.ichi strong { font-weight: 600; }
+.ichi strong { font-weight: 700; }
 
-/* Muhim jumla — yashil chiziq bilan. */
+/* Muhim jumla — terrakota chiziq bilan karta. */
 .urgu {
-  border-left: 3px solid var(--yashil);
-  background: #fff;
-  border-radius: 0 8px 8px 0;
-  padding: 0.9rem 1.1rem;
-  margin: 0 0 1rem;
+  margin: 28px 0 16px;
+  padding: 18px 22px;
+  background: var(--kart);
+  box-shadow: inset 3px 0 0 var(--acc), var(--soya);
+  border-radius: 18px;
 }
+
 .urgu p:last-child { margin-bottom: 0; }
 
-/* Ochiq savol — hal qilinmagani yashirilmaydi. */
+/* Ochiq savol — hal qilinmagani yashirilmaydi (ogohlantirish rangida). */
 .ochiq {
-  border: 1px solid var(--chegara);
-  border-left: 3px solid var(--past2);
-  background: #fff;
-  border-radius: 0 8px 8px 0;
-  padding: 0.9rem 1.1rem;
-  margin: 0 0 1rem;
-  color: var(--past);
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  background: var(--ogohBg);
+  border-radius: 18px;
   font-size: 15px;
 }
+
 .ochiq p:last-child { margin-bottom: 0; }
+
+.oralik {
+  overflow-x: auto;
+  margin: 0 0 20px;
+  background: var(--kart);
+  box-shadow: var(--soya);
+  border-radius: 18px;
+}
 
 .jadval {
   width: 100%;
   border-collapse: collapse;
   font-size: 15px;
-  margin: 0 0 1.25rem;
 }
+
 .jadval th,
 .jadval td {
   text-align: left;
   vertical-align: top;
-  padding: 0.5rem 0.6rem;
-  border-top: 1px solid var(--chegara);
-}
-.jadval th {
-  color: var(--past);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  padding: 12px 16px;
+  border-top: 1px solid var(--chiziq);
 }
 
-.oralik { overflow-x: auto; }
+.jadval thead th {
+  border-top: 0;
+  color: var(--xira);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}

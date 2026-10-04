@@ -72,6 +72,8 @@
   box-shadow: var(--soya);
   display: flex;
   flex-direction: column;
+  /* Narx shrifti karta eniga qarab (cqi) — tor kartada «99 000» ikkiga boʻlinmaydi. */
+  container-type: inline-size;
 }
 
 .rejaTanlangan { box-shadow: 0 0 0 2px var(--acc), var(--soya); }
@@ -105,7 +107,11 @@
 
 .tegNeytral { background: var(--chip); color: var(--xira); }
 
-/* Dizayndagidek: tor kartada raqam ham, birlik ham oʻz joyida oʻraladi (99 / 000). */
+/*
+ * Narx hech qachon boʻlinmaydi («99 / 000» dizayndagi xato edi): raqam bir
+ * qatorda, karta tor boʻlsa shrift kichrayadi; «soʻm / oy» sigʻmasa — butunligicha
+ * keyingi qatorga oʻtadi.
+ */
 .narx {
   margin-top: 20px;
   display: flex;
@@ -113,13 +119,19 @@
   gap: 6px;
 }
 
+/* Tor kartada «soʻm / oy» hamma kartada bir xil — raqam ostida (qatorlar kartalar boʻylab teng turadi). */
+@container (max-width: 300px) {
+  .narx { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
 .narxSon {
   font-family: var(--unbounded);
   font-weight: 600;
-  font-size: 36px;
+  font-size: min(36px, 19cqi);
   letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .narxAcc { color: var(--acc); }
@@ -127,6 +139,7 @@
 .narxBirlik {
   font-size: 14px;
   color: var(--xira);
+  white-space: nowrap;
 }
 
 .qadam {
@@ -220,6 +233,10 @@
   flex-direction: column;
   min-width: 0;
 }
+
+/* Keng ekranda guruhlar koʻrinmas (`contents`) — dizayndagi bitta ustun aynan saqlanadi. */
+.tolovChap,
+.tolovOng { display: contents; }
 
 .yorliq {
   font-size: 12px;
@@ -383,8 +400,47 @@
 
 .tolash:disabled { opacity: 0.5; }
 
+/*
+ * 1440 dan tor (1366, 1280): toʻlov ustuni 300 px, kartalar ichi ixchamroq —
+ * qadam nomlari bir qatorda qoladi.
+ */
+@media (max-width: 1439px) {
+  .ichi { grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; padding: 24px; }
+  .rejalar { gap: 12px; }
+  .reja { padding: 18px; }
+  .royxat li { gap: 8px; font-size: 13.5px; }
+  .belgiBor, .belgiYoq { width: 20px; height: 20px; }
+  .tolov { padding: 20px; }
+}
+
+/* Past ekran: vertikal oraliqlar qisqaradi — «Payme orqali toʻlash» birinchi ekranda koʻrinadi. */
+@media (max-height: 760px) {
+  .ichi { padding-top: 20px; padding-bottom: 20px; }
+  .narx { margin-top: 14px; }
+  .qadam { margin-top: 6px; }
+  .chiziq { margin: 14px 0; }
+  .royxat { gap: 8px; }
+  .tugma { height: 44px; margin-top: 16px; }
+  .tolovReja { margin-top: 12px; }
+  .qatorlar { margin-top: 12px; gap: 8px; }
+  .ajrat { margin: 12px 0; }
+  .usulYorliq { margin-top: 14px; }
+  .usul { height: 50px; }
+  .ogoh { margin-top: 12px; padding: 10px 12px; }
+  .tolash { height: 48px; margin-top: 10px; }
+}
+
+/*
+ * Bitta ustun (1200 dan tor): toʻlov bloki kartalar ostida, ichi ikki
+ * ustun — chapda hisob, oʻngda usul va tugma (balandligi ~2 baravar kam).
+ */
 @media (max-width: 1200px) {
   .ichi { grid-template-columns: 1fr; }
+  /* Tepada — tanlangan reja, usul va tugma birinchi ekranda; kartalar ostida. */
+  .tolov { order: -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 28px; }
+  .tolovChap,
+  .tolovOng { display: flex; flex-direction: column; min-width: 0; }
+  .usulYorliq { margin-top: 0; }
 }
 
 @media (max-width: 900px) {
@@ -394,4 +450,7 @@
 @media (max-width: 760px) {
   .tepa { height: 64px; padding: 0 14px; }
   .ichi { padding: 18px 14px; }
+  /* Telefonda toʻlov bloki yana bitta ustun va kartalardan keyin (oddiy tartib). */
+  .tolov { order: 0; grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+  .usulYorliq { margin-top: 22px; }
 }

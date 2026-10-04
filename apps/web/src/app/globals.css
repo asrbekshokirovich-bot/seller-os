@@ -133,7 +133,7 @@ details.izohli summary { cursor: pointer; color: var(--asosiy); font-size: .875r
   line-height: normal;
 }
 
-.zs-mavzu[data-mavzu='yorug'] {
+html[data-mavzu='yorug'] .zs-mavzu {
   --bg: #f4efe6;
   --yon: #faf6ef;
   --kart: #ffffff;
@@ -153,6 +153,36 @@ details.izohli summary { cursor: pointer; color: var(--asosiy); font-size: .875r
   --parda: rgba(31, 26, 20, 0.45);
   color-scheme: light;
 }
+
+/*
+ * Sahifaning eng orqa qatlami ham mavzuda: brauzerning aylantirish chizigʻi
+ * (`color-scheme`), iPhone'da chetdan tortilgandagi va yuklanish paytidagi
+ * fon. Ilgari bu yerda eski oq/koʻk rang turardi — tungi sahifa yonida oq
+ * chiziq chiqardi. Atributni `layout.tsx` dagi skript chizishdan oldin qoʻyadi.
+ */
+html {
+  color-scheme: dark;
+  background: #13100c;
+}
+
+html[data-mavzu='yorug'] {
+  color-scheme: light;
+  background: #f4efe6;
+}
+
+html body { background: transparent; }
+
+/*
+ * Sahifa server chizgan tilda (`data-til`), brauzer xotirasida esa boshqa til
+ * (head skripti `<html lang>` ga qoʻygan) — masalan cookie hali yoʻq. Gidratsiya
+ * tilni almashtirguncha sahifa yashirin: odam notoʻgʻri tildagi matnni koʻrmaydi.
+ */
+html[data-skript][lang='ru'] [data-til='uz'],
+html[data-skript][lang='uz'] [data-til='ru'] { visibility: hidden; }
+
+/* Statik sahifadagi ikki tilli matn (`Ikki`, 404): koʻrinadigani — <html lang> boʻyicha. */
+html[lang='ru'] .zs-uz,
+html:not([lang='ru']) .zs-ru { display: none; }
 
 /*
  * Yuqoridagi eski umumiy `button` / `main` uslublari (eski forma davridan)

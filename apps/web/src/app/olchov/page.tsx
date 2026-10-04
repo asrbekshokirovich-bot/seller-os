@@ -14,7 +14,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { Inter, JetBrains_Mono } from 'next/font/google';
 import type { Kpi, Reja } from '@selleros/shared';
 import { olib } from '@/lib/api';
 import { holat } from '@/lib/panel';
@@ -39,29 +38,11 @@ export const metadata: Metadata = {
 };
 
 /*
- * Shriftlar — dizayn qadogʻidagilar: Inter va JetBrains Mono.
- *
- * Ilgari bu yerda IBM Plex turardi. U notoʻgʻri edi: ZumSavdo va
- * SellerOS bitta mahsulot, yaʼni panel ham ilovaning dizayn
- * tizimida boʻlishi kerak (README, "ZumSavdo va SellerOS").
- *
- * Qurish paytida yuklab olinadi va oʻzimizdan beriladi — ish
- * vaqtida Google ga soʻrov ketmaydi.
+ * Panel sayt mavzusida (`.zs-mavzu`): ranglar va shrift (Onest) sayt
+ * tokenlaridan — yorugʻ/tungi tanlov bu yerda ham ishlaydi. Alohida Google
+ * shriftlari (Inter, JetBrains Mono) endi kerak emas.
  */
-const plex = Inter({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-plex',
-  display: 'swap',
-});
-const plexMono = JetBrains_Mono({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '700'],
-  variable: '--font-plex-mono',
-  display: 'swap',
-});
-
-const SHRIFTLAR = `${plex.variable} ${plexMono.variable}`;
+const MAVZU = 'zs-mavzu';
 
 /** `GET /kpi` javobi. */
 interface KpiJavobi {
@@ -138,7 +119,7 @@ export default async function OlchovSahifasi(
   ]);
 
   return (
-    <div className={`${u.panel} ${SHRIFTLAR}`}>
+    <div className={`${MAVZU} ${u.panel}`}>
       <div className={u.wrap}>
         <header className={u.head}>
           <p className={u.eyebrow}>Reja · 8-boʻlim · Birinchi kundan oʻlchanadigan raqamlar</p>
@@ -686,7 +667,7 @@ function Tarif({ t }: { t: TarifJavobi | null }) {
 
 function Sozlanmagan() {
   return (
-    <div className={`${u.panel} ${SHRIFTLAR}`}>
+    <div className={`${MAVZU} ${u.panel}`}>
       <div className={u.kirish}>
         <div className={u.xato}>
           <b>Panel yopiq: <code className={u.kod}>PANEL_KALITI</code> sozlanmagan.</b>
@@ -719,7 +700,7 @@ function Kirish({ xato }: { xato: boolean }) {
   }
 
   return (
-    <div className={`${u.panel} ${SHRIFTLAR}`}>
+    <div className={`${MAVZU} ${u.panel}`}>
       <div className={u.kirish}>
         <p className={u.eyebrow}>ZumSavdo · ichki panel</p>
         {xato && (

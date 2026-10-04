@@ -38,11 +38,29 @@ export function saqlanganTil(): Til | null {
   }
 }
 
-/** Tanlovni eslab qoladi va `<html lang>` ni moslaydi (ekran oʻquvchi uchun). */
+/**
+ * Tanlovni eslab qoladi va `<html lang>` ni moslaydi (ekran oʻquvchi uchun).
+ *
+ * Cookie ham: server sahifani DARHOL shu tilda chizadi (`serverTili`;
+ * Usta uchun — `next.config.mjs` dagi rewrite, statik ruscha nusxa) —
+ * aks holda rus tilini tanlagan odam har ochilishda avval oʻzbekcha
+ * matnni koʻrardi. `SameSite=None; Secure; Partitioned` — kengaytma yon
+ * panelidagi ramkada ham ishlaydi (oʻsha ramkaning oʻz boʻlimida).
+ */
 export function tilniSaqla(til: Til): void {
   try { localStorage.setItem(KALIT, til); } catch { /* saqlanmadi — bu xato emas */ }
+  tilCookiesi(til);
   tilniQoy(til);
 }
+
+export function tilCookiesi(til: Til): void {
+  try {
+    document.cookie = `${KALIT}=${til}; path=/; max-age=31536000; SameSite=None; Secure; Partitioned`;
+  } catch { /* cookie yozilmadi — keyingi ochilishda brauzer xotirasidan */ }
+}
+
+/** Cookie nomi — serverda oʻqish uchun (`til-server.ts`). */
+export const TIL_COOKIE = KALIT;
 
 export function tilniQoy(til: Til): void {
   document.documentElement.lang = til;

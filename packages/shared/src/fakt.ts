@@ -52,6 +52,16 @@ export function faktlarniOqi(json: unknown): Faktlar {
 }
 
 /** Son fakt. Matn koʻrinishidagi son ham qabul qilinadi; boʻsh — null. */
+/**
+ * Son matnda — minglik guruhlar bilan: 440000 → "440 000" (sayt
+ * kartalaridagi `son()` bilan bir xil koʻrinish; chatdagi gap va karta
+ * bir xil yozsin). Kasr qismi oʻzgarmaydi. LLM darvozasi (`tekshiruv.ts`)
+ * guruhlangan sonni bitta son deb oʻqiydi.
+ */
+export function minglik(n: number): string {
+  return String(n).replace(/^(-?\d+)/, (b) => b.replace(/\B(?=(\d{3})+(?!\d))/g, ' '));
+}
+
 export function faktSon(f: Faktlar, kalit: string): number | null {
   const q = f[kalit]?.qiymat;
   if (typeof q === 'number') return Number.isFinite(q) ? q : null;

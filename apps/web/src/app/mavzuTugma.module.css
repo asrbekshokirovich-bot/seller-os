@@ -22,7 +22,12 @@
   cursor: pointer;
 }
 
-.mavzuTugma button[aria-pressed='true'] {
+/*
+ * Bosilgan tugma `<html data-mavzu>` dan — React holatidan emas: sahifa
+ * ochilganda (JS yuklanguncha) ham toʻgʻri tugma bosilgan koʻrinadi.
+ */
+:global(html:not([data-mavzu='yorug'])) .oy,
+:global(html[data-mavzu='yorug']) .quyosh {
   background: var(--matn);
   color: var(--bg);
 }

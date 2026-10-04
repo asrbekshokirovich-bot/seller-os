@@ -21,7 +21,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { son } from '@/lib/bazamiz';
 import { useMavzu } from '@/lib/mavzu';
-import { saqlanganTil, tarjima, tilniQoy, type Til } from '@/lib/til';
+import { tarjima, type Til } from '@/lib/til';
+import { useTil } from '@/lib/useTil';
 import { Ikon } from './Ikon';
 import { MavzuTugma } from './MavzuTugma';
 import b from './bosh.module.css';
@@ -122,11 +123,11 @@ const SOF_TUSHUM = TUSHUM - UZUM;
 const FOYDA = SOF_TUSHUM - SARMOYA;
 const MARJA = (FOYDA / TUSHUM) * 100;
 
-export default function BoshSahifa({ tovar, holat, holatRu }: {
-  tovar: number | null; holat: string; holatRu: string;
+export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
+  tovar: number | null; holat: string; holatRu: string; til: Til;
 }) {
   const [mavzu, mavzuniTanla] = useMavzu();
-  const [til, setTil] = useState<Til>('uz');
+  const [til] = useTil(boshTil);
   const tr = tarjima(til);
   const mlnB = tr('mln', 'млн');
   const [i, setI] = useState(0);
@@ -137,8 +138,6 @@ export default function BoshSahifa({ tovar, holat, holatRu }: {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const t = saqlanganTil();
-    if (t) { setTil(t); tilniQoy(t); }
     const m = window.matchMedia('(prefers-reduced-motion: reduce)');
     setHarakatsiz(m.matches);
   }, []);
@@ -202,7 +201,7 @@ export default function BoshSahifa({ tovar, holat, holatRu }: {
     : ['Bir dona tovarning doʻkoningizgacha yoʻli — ', 'besh bekat', ', har birida raqam.'];
 
   return (
-    <div className={`zs-mavzu ${b.sahifa}`} data-mavzu={mavzu}>
+    <div className={`zs-mavzu ${b.sahifa}`} data-til={til}>
       <header className={b.nav}>
         <div className={b.navIchi}>
           <a className={b.logo} href="/">

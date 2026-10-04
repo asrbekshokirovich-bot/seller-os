@@ -463,7 +463,7 @@ describe('5-qadam — Xitoydan topish', () => {
     expect(k.savol.otkazishMumkin).toBe(true);
     expect(k.savol.matn).toMatch(/1688 dan 680 ta topildi, eng oʻxshash 2 tasi koʻrsatildi, 1 tasi chegara narxga sigʻadi \(chegara kargosiz hisoblangan — haqiqiysi pastroq\)/);
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['983093623752', '969462626480']);
-    expect(k.savol.variantlar[0]!.nom).toMatch(/¥27 ≈ 47587 soʻm · MOQ 1 · zavod · chegarada/);
+    expect(k.savol.variantlar[0]!.nom).toMatch(/¥27 ≈ 47 587 soʻm · MOQ 1 · zavod · chegarada/);
     expect(k.savol.variantlar[1]!.nom).toMatch(/chegaradan yuqori/);
     expect(javobniQabulQil(h, 'xitoy_tanlov:100', 'yoq-id').xato).not.toBeNull();
     h = javob(h, 'xitoy_tanlov:100', '983093623752');
@@ -554,7 +554,7 @@ describe('5-qadam — Xitoydan topish', () => {
     const m = tushuntir('xitoy', n);
     expect(m).toMatch(/^2 ta tovar uchun 1688 qidirildi \(1 tasi qidirilmadi: rasm yoʻq\): 1 tasida taklif bor \(2 ta koʻrsatildi, 1 tasi chegara narxga sigʻadi\), 1 tasida oʻxshash topilmadi\./);
     expect(m).toMatch(/1 tasi 72 soatlik keshdan/);
-    expect(m).toMatch(/1 yuan = 1762.49 soʻm \(25.09.2026\)/);
+    expect(m).toMatch(/1 yuan = 1 762.49 soʻm \(25.09.2026\)/);
     expect(m).not.toMatch(/kafolat/i);
   });
 
@@ -614,7 +614,7 @@ describe('6-qadam — Buyurtma va kargo (hamkor yoʻq)', () => {
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.id).toBe('kargo_yol');
-    expect(k.savol.matn).toMatch(/Avia — 12 kun, \$8\/kg \(≈ 101200 soʻm\/kg\)\. Quruqlik — 30 kun, \$3\/kg/);
+    expect(k.savol.matn).toMatch(/Avia — 12 kun, \$8\/kg \(≈ 101 200 soʻm\/kg\)\. Quruqlik — 30 kun, \$3\/kg/);
     expect(k.savol.matn).toMatch(/vaʼda emas/);
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['avia', 'quruqlik']);
     h = javob(h, 'kargo_yol', 'quruqlik');
@@ -630,7 +630,7 @@ describe('6-qadam — Buyurtma va kargo (hamkor yoʻq)', () => {
 
   it('tushuntir(buyurtma): sonlar natijadan, kargo yoʻqligi yashirilmaydi, "tizim buyurtma bermaydi"', () => {
     const m = tushuntir('buyurtma', BUYURTMA);
-    expect(m).toMatch(/1 ta tovar, 30 dona, jami ¥810 \(≈ 1427610 soʻm, CBU 25.09.2026\)/);
+    expect(m).toMatch(/1 ta tovar, 30 dona, jami ¥810 \(≈ 1 427 610 soʻm, CBU 25.09.2026\)/);
     expect(m).toMatch(/Kargo: kargo hamkori, kargo stavkasi kiritilmagan — kargo narxi hisobga kirmadi/);
     expect(m).toMatch(/tizim bermaydi/);
     expect(tushuntir('buyurtma', { ...BUYURTMA, olchov_yoq: true, sabab: '1688 taklifi tanlanmagan', qatorlar: [], jami: { ...BUYURTMA.jami, tayyor: 0 } })).toMatch(/yasay olmadim: 1688 taklifi tanlanmagan/);
@@ -669,8 +669,8 @@ describe('7-qadam — Rasmiylashtirish (hamma raqam faktdan)', () => {
     expect(k1.savol.qadam).toBe(7);
     expect(k1.savol.otkazishMumkin).toBe(true);
     // Raqamlar faktdan: 0,9 × 440 000 = 396 000; 1 × 440 000; 30 daqiqa.
-    expect(k1.savol.matn).toMatch(/onlayn https:\/\/new\.birdarcha\.uz\/ \(davlat boji 396000 soʻm\)/);
-    expect(k1.savol.matn).toMatch(/shaxsan \(440000 soʻm\), taxminan 30 daqiqa/);
+    expect(k1.savol.matn).toMatch(/onlayn https:\/\/new\.birdarcha\.uz\/ \(davlat boji 396 000 soʻm\)/);
+    expect(k1.savol.matn).toMatch(/shaxsan \(440 000 soʻm\), taxminan 30 daqiqa/);
     expect(k1.savol.variantlar.map((v) => v.qiymat)).toEqual(['ochdim', 'keyin', 'boshqacha']);
     h = javob(h, 'yatt_ochish', 'ochdim');
     const k2 = keyingi(h);
@@ -723,8 +723,8 @@ describe('7-qadam — Rasmiylashtirish (hamma raqam faktdan)', () => {
 
   it('tushuntir(rasmiy): raqamlar va manbalar natijadan; kabinet bor — qisqa; olchov_yoq — sabab', () => {
     const m = tushuntir('rasmiy', RASMIY);
-    expect(m).toMatch(/YATT \(onlayn 396000 soʻm, shaxsan 440000 soʻm\), biznes hisob raqami \(2 ta bank taqqoslandi\) va Uzum kabineti \(faollashtirish 2 kun\)/);
-    expect(m).toMatch(/ijtimoiy 440000 soʻm har oy \(sotuv boʻlmasa ham\), aylanmadan 1 % — partiyangiz \(2850000 soʻm\) sotilsa ≈ 28500 soʻm/);
+    expect(m).toMatch(/YATT \(onlayn 396 000 soʻm, shaxsan 440 000 soʻm\), biznes hisob raqami \(2 ta bank taqqoslandi\) va Uzum kabineti \(faollashtirish 2 kun\)/);
+    expect(m).toMatch(/ijtimoiy 440 000 soʻm har oy \(sotuv boʻlmasa ham\), aylanmadan 1 % — partiyangiz \(2 850 000 soʻm\) sotilsa ≈ 28 500 soʻm/);
     expect(m).toMatch(/Manba: PQ-247; soliq 50017 \(oʻlchandi 2026-09-28\)/);
     expect(m).toMatch(/maslahat emas/);
     expect(tushuntir('rasmiy', { ...RASMIY, kabinetBor: true })).toMatch(/^Rasmiylashtirish sizda bor — 1-qadamda Uzum kabineti bor dedingiz/);
@@ -772,7 +772,7 @@ describe('8-qadam — Qabul (Xitoydan kelgan yuk; hamma raqam faktdan)', () => {
     const k2 = keyingi(h);
     if (k2.tur !== 'savol') throw new Error(k2.tur);
     expect(k2.savol.id).toBe('yuk_mos');
-    expect(k2.savol.matn).toMatch(/varaqada 30 dona.*tafovut 2500 soʻm har birlik/);
+    expect(k2.savol.matn).toMatch(/varaqada 30 dona.*tafovut 2 500 soʻm har birlik/);
     h = javob(h, 'yuk_mos', 'mos');
     // Tartib tuzatildi: qadoq/yetkazma endi 10-qadamda — kartochkadan keyin.
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'qabul_yakun', qadam: 8 });
@@ -821,7 +821,7 @@ describe('8-qadam — Qabul (Xitoydan kelgan yuk; hamma raqam faktdan)', () => {
   });
 
   it('tushuntir(qabul / qabul_yakun): raqamlar natijadan, manba bilan', () => {
-    expect(tushuntir('qabul', QABUL)).toBe('Qabul roʻyxati tayyor: 1 ta tovar, 30 dona. Yuk kelganda sanang va koʻzdan kechiring: kam yoki nuqsonli boʻlsa agentga daʼvo uchun yozib qoʻyamiz. Nuqsonli tovarni Uzumga yubormang — omborda aniqlangan har muammo (brak, kam, ortiqcha, yorliqsiz) 2500 soʻm har birlik. Manba: seller.uzum.uz/manual 6.6 (2026-09-28).');
+    expect(tushuntir('qabul', QABUL)).toBe('Qabul roʻyxati tayyor: 1 ta tovar, 30 dona. Yuk kelganda sanang va koʻzdan kechiring: kam yoki nuqsonli boʻlsa agentga daʼvo uchun yozib qoʻyamiz. Nuqsonli tovarni Uzumga yubormang — omborda aniqlangan har muammo (brak, kam, ortiqcha, yorliqsiz) 2 500 soʻm har birlik. Manba: seller.uzum.uz/manual 6.6 (2026-09-28).');
     expect(tushuntir('qabul', { ...QABUL, olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' })).toMatch(/bera olmadim: fakt roʻyxati oʻqilmadi/);
     expect(tushuntir('qabul_yakun', QABUL_YAKUN)).toBe('Qabul boʻyicha ochiq ish yoʻq — hammasi tayyor.');
     const y = { ...QABUL_YAKUN, yozildi: [{ tur: 'tekshirish', sabab: 'qabul: yuk kam keldi — 3 ta', muddat: null, id: 1, yangi: true }] };
@@ -935,7 +935,7 @@ describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
     const k5 = keyingi(h);
     if (k5.tur !== 'savol') throw new Error(k5.tur);
     expect(k5.savol.id).toBe('topshirildi');
-    expect(k5.savol.matn).toMatch(/Qabul 7 kun gacha.*2500 soʻm har birlik/);
+    expect(k5.savol.matn).toMatch(/Qabul 7 kun gacha.*2 500 soʻm har birlik/);
     h = javob(h, 'topshirildi', 'topshirdim');
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yuklash_yakun', qadam: 10 });
     h = natijaniYoz(h, 'yuklash_yakun', YUKLASH_YAKUN);
@@ -968,7 +968,7 @@ describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
   });
 
   it('tushuntir(yuklash / yuklash_yakun)', () => {
-    expect(tushuntir('yuklash', YUKLASH)).toBe('Yuklash: 1 ta tovar, 30 dona. Avval kartochka (3 ta qoida), keyin qadoq (0 tasiga Uzum jadvalidan qoida), yorliq, yetkazma akti va taymslot. Ombor: Toshkent, Sergeli, Xonabod 2/2 (06:00–00:00); qabul 7 kun gacha, tafovut 2500 soʻm har birlik. Manba: seller.uzum.uz/manual 6.6 (2026-09-28).');
+    expect(tushuntir('yuklash', YUKLASH)).toBe('Yuklash: 1 ta tovar, 30 dona. Avval kartochka (3 ta qoida), keyin qadoq (0 tasiga Uzum jadvalidan qoida), yorliq, yetkazma akti va taymslot. Ombor: Toshkent, Sergeli, Xonabod 2/2 (06:00–00:00); qabul 7 kun gacha, tafovut 2 500 soʻm har birlik. Manba: seller.uzum.uz/manual 6.6 (2026-09-28).');
     expect(tushuntir('yuklash', { ...YUKLASH, olchov_yoq: true, sabab: 'yuklash faktlari kiritilmagan (0058/0059 qoʻllanmagan)' })).toMatch(/bera olmadim: yuklash faktlari kiritilmagan/);
     const y = { ...YUKLASH_YAKUN, yozildi: [
       { tur: 'tekshirish', sabab: 'yuklash: kabinet (kartochka) boshqacha', muddat: null, id: 1, yangi: true },
@@ -1012,7 +1012,7 @@ describe('11-qadam — Sotuv boshlandi (oʻz kartochka kuzatuvi, signallar)', ()
     h = javob(h, 'signal:zaxira:100:p1', 'yoq');
     const k2 = keyingi(h);
     if (k2.tur !== 'savol') throw new Error(k2.tur);
-    expect(k2.savol.matn).toBe('Raqobatchi («Quloqchin A») narxini 95000 soʻmga tushirdi (oldin 100000, −5 %), oʻlchangan 2026-09-30. Sizniki: 99000 soʻm. Tegmaymiz yoki tushiramiz?');
+    expect(k2.savol.matn).toBe('Raqobatchi («Quloqchin A») narxini 95 000 soʻmga tushirdi (oldin 100 000, −5 %), oʻlchangan 2026-09-30. Sizniki: 99 000 soʻm. Tegmaymiz yoki tushiramiz?');
     h = javob(h, k2.savol.id, 'tegmaymiz');
     const k3 = keyingi(h);
     if (k3.tur !== 'savol') throw new Error(k3.tur);
@@ -1122,7 +1122,7 @@ describe('11-qadam — Sotuv boshlandi (oʻz kartochka kuzatuvi, signallar)', ()
   });
 
   it('tushuntir(sotuv): oʻlchov manbasi va signallar soni; havola yoʻq; kuzatuv xatosi', () => {
-    expect(tushuntir('sotuv', SOTUV)).toBe('Sotuv (2026-09-30): Kuzatuvda: 1 ta kartochka (1 tasi yangi qoʻshildi). Bugun 3 dona, shu oy 26 dona, taxminan 2574000 soʻm — zaxira kamayishidan (Uzum buyurtma sonini bermaydi). Signallar: 3 ta.');
+    expect(tushuntir('sotuv', SOTUV)).toBe('Sotuv (2026-09-30): Kuzatuvda: 1 ta kartochka (1 tasi yangi qoʻshildi). Bugun 3 dona, shu oy 26 dona, taxminan 2 574 000 soʻm — zaxira kamayishidan (Uzum buyurtma sonini bermaydi). Signallar: 3 ta.');
     expect(tushuntir('sotuv', { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, ozId: null, oz: null }] })).toBe('Sotuv: kartochka havolasi yoʻq — oʻz sotuvingizni kuzata olmayman. Signal yoʻq.');
     expect(tushuntir('sotuv', { ...SOTUV_JIM, kuzatuv: null, kuzatuvXato: 'sessiya yoʻq', qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: { ...OZ, holat: 'kutilmoqda' as const } }] }))
       .toMatch(/Kuzatuvga qoʻshib boʻlmadi: sessiya yoʻq\. Hali oʻlchanmagan/);
@@ -1160,7 +1160,7 @@ describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
     h = natijaniYoz(h, 'hisobot_hisob', { ...taxmin, tugagan: false, faktlar: HISOBOT_F, qadamlar: [], izoh: 'hisob' });
     const k3 = keyingi(h);
     if (k3.tur !== 'savol') throw new Error(k3.tur);
-    expect(k3.savol.matn).toMatch(/^2026-yil sentyabr hali tugamagan — hozirgacha hisob\. Sotuv 2574000 soʻm \(taxmin\)/);
+    expect(k3.savol.matn).toMatch(/^2026-yil sentyabr hali tugamagan — hozirgacha hisob\. Sotuv 2 574 000 soʻm \(taxmin\)/);
     expect(tushuntir('hisobot', { ...HISOBOT, tugagan: false })).toMatch(/^Oy hisoboti \(2026-yil sentyabr, hozirgacha\): /);
   });
 
@@ -1194,7 +1194,7 @@ describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
     if (k1.tur !== 'savol') throw new Error(k1.tur);
     expect(k1.savol.id).toBe('oy_sotuv');
     expect(k1.savol.turi).toBe('son');
-    expect(k1.savol.matn).toBe('Oy hisoboti (2026-yil sentyabr). Oʻlchovimiz boʻyicha: 26 dona, taxminan 2574000 soʻm (zaxira kamayishidan). Aniq summa — Uzum kabinetidagi komissioner hisobotida (keyingi oyning 19-sanasigacha tayyor boʻladi). Hisobotdagi SOTUV summasini yozing — soliq xaridor toʻlagan toʻliq narxdan olinadi. Bilmasangiz — oʻtkazib yuboring, taxmin bilan hisoblayman.');
+    expect(k1.savol.matn).toBe('Oy hisoboti (2026-yil sentyabr). Oʻlchovimiz boʻyicha: 26 dona, taxminan 2 574 000 soʻm (zaxira kamayishidan). Aniq summa — Uzum kabinetidagi komissioner hisobotida (keyingi oyning 19-sanasigacha tayyor boʻladi). Hisobotdagi SOTUV summasini yozing — soliq xaridor toʻlagan toʻliq narxdan olinadi. Bilmasangiz — oʻtkazib yuboring, taxmin bilan hisoblayman.');
     h = javob(h, 'oy_sotuv', 2_600_000);
     h = javob(h, 'oy_komissiya', 400_000);
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'hisobot_hisob', qadam: 12 });
@@ -1202,7 +1202,7 @@ describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
     const k2 = keyingi(h);
     if (k2.tur !== 'savol') throw new Error(k2.tur);
     expect(k2.savol.id).toBe('deklaratsiya');
-    expect(k2.savol.matn).toBe('Oy tugadi (2026-yil sentyabr). Sotuv 2600000 soʻm, komissiya 400000 soʻm, sof 2200000 soʻm. Soliq: YATT uchun 1 % aylanmadan — 26000 soʻm; ijtimoiy soliq 440000 soʻm. Muddat 2026-10-15 gacha. Deklaratsiyani tayyorlaymizmi?');
+    expect(k2.savol.matn).toBe('Oy tugadi (2026-yil sentyabr). Sotuv 2 600 000 soʻm, komissiya 400 000 soʻm, sof 2 200 000 soʻm. Soliq: YATT uchun 1 % aylanmadan — 26 000 soʻm; ijtimoiy soliq 440 000 soʻm. Muddat 2026-10-15 gacha. Deklaratsiyani tayyorlaymizmi?');
     h = javob(h, 'deklaratsiya', 'tayyorlaymiz');
     const k3 = keyingi(h);
     if (k3.tur !== 'savol') throw new Error(k3.tur);
@@ -1234,14 +1234,14 @@ describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
     h = natijaniYoz(h, 'hisobot_hisob', { ...taxmin, tugagan: true, faktlar: HISOBOT_F, qadamlar: [], izoh: 'hisob' });
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
-    expect(k.savol.matn).toMatch(/^Oy tugadi \(2026-yil sentyabr\)\. Sotuv 2574000 soʻm \(taxmin\), komissiya yozilmagan, sof hisoblanmadi\. Soliq: YATT uchun 1 % aylanmadan — 25740 soʻm/);
+    expect(k.savol.matn).toMatch(/^Oy tugadi \(2026-yil sentyabr\)\. Sotuv 2 574 000 soʻm \(taxmin\), komissiya yozilmagan, sof hisoblanmadi\. Soliq: YATT uchun 1 % aylanmadan — 25 740 soʻm/);
     h = javob(h, 'deklaratsiya', 'keyin');
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'hisobot_yakun', qadam: 12 });
   });
 
   it('tushuntir(hisobot / hisobot_hisob / hisobot_yakun)', () => {
-    expect(tushuntir('hisobot', HISOBOT)).toBe('Oy hisoboti (2026-yil sentyabr): oʻlchovimiz boʻyicha 26 dona, taxminan 2574000 soʻm. Aniq raqamni Uzum komissioner hisobotidan olamiz.');
-    expect(tushuntir('hisobot_hisob', HISOBOT_HISOB)).toBe('Hisob: sotuv 2600000 soʻm, aylanma soligʻi 26000 soʻm, ijtimoiy soliq 440000 soʻm — jami 466000 soʻm. Soliq bazasi — xaridor toʻlagan toʻliq narx, komissiya chegirilmaydi. Bu soliq maslahati emas. Aylanma soligʻi: Javobgarlik soliq agentida — komissioner hisobotida ushlab qolinganini tekshiring.');
+    expect(tushuntir('hisobot', HISOBOT)).toBe('Oy hisoboti (2026-yil sentyabr): oʻlchovimiz boʻyicha 26 dona, taxminan 2 574 000 soʻm. Aniq raqamni Uzum komissioner hisobotidan olamiz.');
+    expect(tushuntir('hisobot_hisob', HISOBOT_HISOB)).toBe('Hisob: sotuv 2 600 000 soʻm, aylanma soligʻi 26 000 soʻm, ijtimoiy soliq 440 000 soʻm — jami 466 000 soʻm. Soliq bazasi — xaridor toʻlagan toʻliq narx, komissiya chegirilmaydi. Bu soliq maslahati emas. Aylanma soligʻi: Javobgarlik soliq agentida — komissioner hisobotida ushlab qolinganini tekshiring.');
     expect(tushuntir('hisobot_yakun', HISOBOT_YAKUN)).toBe('Hisobot boʻyicha ochiq ish yoʻq — hammasi tayyor. Keyingi oy rejasi: «Quloqchin A»: kuniga ~2.5 dona, zaxira 1 kunga yetadi.');
     const y = { ...HISOBOT_YAKUN, yozildi: [{ tur: 'tolov', sabab: 'ijtimoiy soliq (2026-09)', muddat: '2026-10-15', id: 1, yangi: true }] };
     expect(tushuntir('hisobot_yakun', y)).toMatch(/^Ochiq ishlar yozildi \(1\): ijtimoiy soliq \(2026-09\) \(2026-10-15 gacha\)\./);

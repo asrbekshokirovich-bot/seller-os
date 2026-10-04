@@ -1,0 +1,71 @@
+/* Hujjat sahifalari tepasi — `bosh.module.css` dagi nav bilan bir xil oʻlchamlar. */
+
+.tepa {
+  height: 76px;
+  border-bottom: 1px solid var(--chiziq);
+}
+
+.ichi {
+  height: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 8.3vw, 120px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tepa .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--matn);
+  font-family: var(--unbounded);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.nishon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  background: var(--acc);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--unbounded);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.ong {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tepa .tugma {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--matn);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tepa .tugma:hover { color: var(--bg); opacity: 0.9; }
+
+@media (max-width: 420px) {
+  .logoMatn { display: none; }
+  .tepa .tugma { height: 40px; padding: 0 14px; font-size: 13px; }
+}

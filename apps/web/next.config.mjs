@@ -38,6 +38,20 @@ const config = {
    * ham yoʻq.
    */
 
+  /*
+   * Ruscha Usta — CDN darajasida: `so_til=ru` cookie bilan kelgan `/usta`
+   * soʻrovi statik `/usta/ru` ga buriladi (manzil oʻzgarmaydi, funksiya
+   * chaqirilmaydi). `beforeFiles` — `/usta` sahifasi bor, `afterFiles`
+   * rewrite unga yetib bormasdi.
+   */
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: '/usta', has: [{ type: 'cookie', key: 'so_til', value: 'ru' }], destination: '/usta/ru' },
+      ],
+    };
+  },
+
   webpack(webpackConfig) {
     webpackConfig.resolve.extensionAlias = {
       ...webpackConfig.resolve.extensionAlias,

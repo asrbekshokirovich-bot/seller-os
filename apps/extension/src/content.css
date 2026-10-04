@@ -5,25 +5,28 @@
  */
 
 #selleros-xitoy-tugma {
-  /* Uzum "Savatga qoʻshish" ostida, oʻsha kenglikda. */
+  /*
+   * Uzum "Savatga qoʻshish" ostida, oʻsha kenglikda va Uzum tugmalari
+   * shaklida: 56 px balandlik, 12 px burchak, soyasiz, oraliq 12 px
+   * (Uzum sahifasidan oʻlchangan, 2026-10-01) — yonma-yon begona koʻrinmaydi.
+   */
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  height: 48px;
-  margin: 8px 0;
+  height: 56px;
+  margin: 12px 0 8px;
   padding: 0 20px;
   border: none;
-  border-radius: 999px;
+  border-radius: 12px;
   background: #d2552d;
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 10px 24px -12px #d2552d;
   transition: background 0.15s;
 }
 
