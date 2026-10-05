@@ -50,8 +50,10 @@ const ERKIN_KORSATMA =
 
 /** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). */
 async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: string): Promise<string | null> {
-  if (!s.kalit || !matn.trim()) return null;
-  const model = s.model || 'gemini-2.5-flash';
+  // Sirni nusxalashda qolgan boʻsh joy/yangi qator kalitni buzmasin.
+  const kalit = s.kalit?.trim();
+  if (!kalit || !matn.trim()) return null;
+  const model = s.model?.trim() || 'gemini-2.5-flash';
   const f = s.fetchFn ?? fetch;
   const nazorat = new AbortController();
   const t = setTimeout(() => nazorat.abort(), s.vaqtMs ?? 8_000);
@@ -60,7 +62,7 @@ async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: stri
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': s.kalit },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': kalit },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: korsatma }] },
           contents: [{ role: 'user', parts: [{ text: matn }] }],
@@ -72,7 +74,10 @@ async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: stri
       },
     );
     if (!r.ok) {
-      console.warn(`llm ${belgi}: HTTP ${r.status}`);
+      // Sababi logda (masalan "API key not valid", "model not found") — Gemini xato
+      // matnida kalit qaytmaydi; shunday boʻlsa ham 160 belgidan oshmaydi.
+      const x = (await r.json().catch(() => null)) as { error?: { status?: string; message?: string } } | null;
+      console.warn(`llm ${belgi}: HTTP ${r.status} ${x?.error?.status ?? ''} ${String(x?.error?.message ?? '').slice(0, 160)}`);
       return null;
     }
     const j = (await r.json()) as {

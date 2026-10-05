@@ -88,6 +88,24 @@ describe('erkin xabar', () => {
     expect(r.xabarlar[1]!.matn).toMatch(/variant/i);
   });
 
+  it('variant nomini yozsa ("ha", "yoʻq") — oʻsha variant tanlanadi', async () => {
+    const h = { ...boshlangichHolat(), javoblar: { byudjet: 10_000_000 } };
+    const b = soxtaBaza(h);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'ha' });
+    expect(r.xato).toBeUndefined();
+    expect(b.holat()!.javoblar['uzum_dokoni']).toBe('sotyapman');
+    const b2 = soxtaBaza(h);
+    await suhbatTurn(bogliq(b2), 'tok', { savolId: 'uzum_dokoni', matn: "Yo'q" });
+    expect(b2.holat()!.javoblar['uzum_dokoni']).toBe('yoq');
+  });
+
+  it('shablon sababi bosh harf va nuqta bilan ("Variantlardan birini tanlang.")', async () => {
+    const h = { ...boshlangichHolat(), javoblar: { byudjet: 10_000_000 } };
+    const b = soxtaBaza(h);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'xxx' });
+    expect(r.xabarlar[1]!.matn).toMatch(/^Variantlardan birini tanlang. Hozirgi savol/);
+  });
+
   it('ruscha yozsa — ruscha shablon', async () => {
     const b = soxtaBaza();
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: 'что это?' });
