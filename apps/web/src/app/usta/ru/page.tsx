@@ -8,6 +8,7 @@ import type { Metadata } from 'next';
 import Suhbat from '../Suhbat';
 
 export const metadata: Metadata = {
+  title: 'ZumSavdo — Мастер',
   description: 'Выберите по цифрам, что продавать на Uzum.',
 };
 

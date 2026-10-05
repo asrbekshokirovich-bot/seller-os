@@ -8,6 +8,7 @@
 import { useSyncExternalStore } from 'react';
 import { useMavzu } from '@/lib/mavzu';
 import { tarjima, type Til } from '@/lib/til';
+import { Havola } from './Havola';
 import { Ikki } from './Ikki';
 import { MavzuTugma } from './MavzuTugma';
 import s from './sahifaTepa.module.css';
@@ -30,13 +31,14 @@ export function SahifaTepa({ til, havola }: { til?: Til; havola: { href: string;
   return (
     <header className={s.tepa}>
       <div className={s.ichi}>
-        <a className={s.logo} href="/">
+        {/* Tor ekranda «ZumSavdo» yashiriladi — havola nomi aria-label da qoladi. */}
+        <Havola className={s.logo} href="/" aria-label="ZumSavdo">
           <span className={s.nishon} aria-hidden="true">Z</span>
           <span className={s.logoMatn}>ZumSavdo</span>
-        </a>
+        </Havola>
         <div className={s.ong}>
           <MavzuTugma mavzu={mavzu} tanla={mavzuniTanla} tr={tr} />
-          <a className={s.tugma} href={havola.href}>{til ? tr(havola.uz, havola.ru) : <Ikki uz={havola.uz} ru={havola.ru} />}</a>
+          <Havola className={s.tugma} href={havola.href}>{til ? tr(havola.uz, havola.ru) : <Ikki uz={havola.uz} ru={havola.ru} />}</Havola>
         </div>
       </div>
     </header>

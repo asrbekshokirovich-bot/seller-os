@@ -14,10 +14,11 @@
  * qachon toʻlmasdi. Kesh sotuv va Usta uchun bitta (`bazamizOl.ts`).
  */
 
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import { after } from 'next/server';
 import { holatMatni } from '@/lib/bazamiz';
 import { bazamizniKutibOl } from '@/lib/bazamizOl';
+import { tarjima } from '@/lib/til';
 import { serverTili } from '@/lib/til-server';
 import BoshSahifa from './BoshSahifa';
 
@@ -27,16 +28,22 @@ import BoshSahifa from './BoshSahifa';
  */
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'ZumSavdo — Uzumda nima sotishni raqamlar bilan tanlang',
-  description:
-    'Nisha tanlash va tannarx — Uzum bazasidan, 8 ta tuzoq-filtr bilan. '
-    + 'Xitoydan topish, buyurtma va yetkazish — tez orada.',
-};
-
-export const viewport: Viewport = {
-  themeColor: '#13100C',
-};
+/** Sarlavha va tavsif — sahifa tilida (`so_til` cookie; sahifa baribir dinamik). */
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = tarjima(await serverTili());
+  return {
+    title: tr(
+      'ZumSavdo — Uzumda nima sotishni raqamlar bilan tanlang',
+      'ZumSavdo — Выберите по цифрам, что продавать на Uzum',
+    ),
+    description: tr(
+      'Nisha tanlash va tannarx — Uzum bazasidan, 8 ta tuzoq-filtr bilan; Xitoydan (1688) topish — rasm boʻyicha. '
+        + 'Buyurtma va yetkazish — tez orada.',
+      'Выбор ниши и себестоимость — по базе Uzum, с 8 фильтрами-ловушками; поиск в Китае (1688) — по фото. '
+        + 'Заказ и доставка — скоро.',
+    ),
+  };
+}
 
 export default async function Page() {
   const hozir = Date.now();

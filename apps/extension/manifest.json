@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ZumSavdo — Xitoydan top",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "ZumSavdo chati yon panelda: Uzumda nima sotishni raqamlar bilan tanlang. Uzum.uz sahifasida \"Xitoydan top\" tugmasi.",
   "permissions": [
     "activeTab",

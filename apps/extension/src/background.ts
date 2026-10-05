@@ -8,6 +8,8 @@
 // Birinchi yozuvda soʻrov content script ichida edi va manifestda
 // `host_permissions` ham yoʻq edi — yaʼni ikki sababdan ishlamasdi.
 
+import { xatoMatni } from './matn';
+
 /** Supabase Edge Function. Fastify serveri hech qayerda ishlamaydi. */
 const BACKEND_URL = 'https://duequijnnzcngzzvjqst.supabase.co/functions/v1/selleros';
 
@@ -167,7 +169,11 @@ chrome.runtime.onMessage.addListener((xabar, _yuboruvchi, javobBer) => {
 
   xitoyQidir(Number(xabar.productId), typeof xabar.rasmUrl === 'string' ? xabar.rasmUrl : null)
     .then(javobBer)
-    .catch((e) => javobBer({ xato: String(e?.message ?? e) }));
+    .catch((e) => {
+      // Xom xato ("Failed to fetch") — faqat konsolga; tugmada oʻzbekcha matn.
+      console.warn('ZumSavdo: qidiruv soʻrovi yiqildi', e);
+      javobBer({ xato: xatoMatni(e) });
+    });
 
   // `true` — javob asinxron keladi. Busiz kanal darhol yopiladi va
   // content script hech qachon javob olmaydi.

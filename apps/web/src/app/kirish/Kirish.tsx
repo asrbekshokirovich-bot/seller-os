@@ -11,15 +11,17 @@
  * ekrani (w3) tayyor, lekin SMS yuborish ulanmaguncha unga oʻtilmaydi
  * (`SMS_ULANGAN`).
  *
- * Kengaytma rejimi: sessiya tokeni manzil hash'ida keladi — Ustaga
- * qaytishda hash saqlanadi, aks holda yangi (boʻsh) suhbat ochilardi.
+ * Kengaytma rejimi: sessiya tokeni manzil hash'ida keladi — Ustaga va bosh
+ * sahifaga havolalar uni olib yuradi (`Havola`), aks holda yangi (boʻsh)
+ * suhbat ochilardi.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { son } from '@/lib/bazamiz';
 import { useMavzu } from '@/lib/mavzu';
-import { tarjima, type Til } from '@/lib/til';
+import { ruShakl, tarjima, type Til } from '@/lib/til';
 import { useTil } from '@/lib/useTil';
+import { Havola } from '../Havola';
 import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import k from './kirish.module.css';
@@ -42,12 +44,10 @@ export default function Kirish({ tovar, til: boshTil }: { tovar: number | null; 
   const [bosqich, setBosqich] = useState<'raqam' | 'kod'>('raqam');
   const [xabar, setXabar] = useState<string | null>(null);
   const [kod, setKod] = useState('');
-  const [hash, setHash] = useState('');
   const kodMaydon = useRef<HTMLInputElement>(null);
   const raqamMaydon = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setHash(window.location.hash);
     // Avtomatik fokus faqat sichqonchali qurilmada: telefonda u sahifani
     // pastga aylantirib (logotip, sarlavha koʻrinmay qolardi) klaviaturani ochib yuborardi.
     if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) raqamMaydon.current?.focus({ preventScroll: true });
@@ -69,12 +69,12 @@ export default function Kirish({ tovar, til: boshTil }: { tovar: number | null; 
   return (
     <div className={`zs-mavzu ${k.sahifa}`} data-til={til}>
       <aside className={k.panel}>
-        <a className={k.belgi} href="/">
+        <Havola className={k.belgi} href="/">
           <span className={k.nishon} aria-hidden="true">Z</span>
           <span className={k.nom}>ZumSavdo</span>
-        </a>
+        </Havola>
         <div className={k.boshliq} />
-        <div className={k.shior}>{tr('Uzumʼda nima sotishni suhbatda topamiz.', 'Что продавать на Uzum — найдём в чате.')}</div>
+        <div className={k.shior}>{tr('Uzumda nima sotishni suhbatda topamiz.', 'Что продавать на Uzum — найдём в чате.')}</div>
         <p className={k.shiorMatn}>
           {tr(
             'Nisha tanlash, Xitoydan buyurtma, doʻkon ochish va nazorat — hammasi bitta suhbatda.',
@@ -84,7 +84,7 @@ export default function Kirish({ tovar, til: boshTil }: { tovar: number | null; 
         <div className={k.raqamlar}>
           <div className={k.raqamKarta}>
             <div><span className={k.raqamSon}>{tovar === null ? '—' : son(tovar)}</span></div>
-            <div className={k.raqamNom}>{tr('tovar kuzatilmoqda', 'товаров отслеживается')}</div>
+            <div className={k.raqamNom}>{tr('tovar kuzatilmoqda', `${ruShakl(tovar, ['товар', 'товара', 'товаров'])} отслеживается`)}</div>
           </div>
           <div className={k.raqamKarta}>
             <div><span className={k.raqamSon}>{tr('8 ta', '8')}</span></div>
@@ -133,15 +133,15 @@ export default function Kirish({ tovar, til: boshTil }: { tovar: number | null; 
             </div>
             {xabar && <p className={k.xabar} role="status">{xabar}</p>}
             <div className={k.yoki}><span />{tr('yoki', 'или')}<span /></div>
-            <a className={k.mehmon} href={`/usta${hash}`}>
+            <Havola className={k.mehmon} href="/usta">
               <span className={k.mehmonIkon}><Ikon nom="odam" o={20} /></span>
               <span className={k.mehmonMatn}>
                 <span className={k.mehmonNom}>{tr('Mehmon sifatida davom etish', 'Продолжить как гость')}</span>
                 <span className={k.mehmonIzoh}>{tr('Suhbat shu brauzerga bogʻlangan — boshqa qurilmada koʻrinmaydi.', 'Чат привязан к этому браузеру — на другом устройстве его не видно.')}</span>
               </span>
               <span className={k.mehmonOq}><Ikon nom="ong" o={18} /></span>
-            </a>
-            <div className={k.shartlar}>{tr('Kirish orqali foydalanish shartlariga rozilik bildirasiz', 'Входя, вы соглашаетесь с условиями использования')}</div>
+            </Havola>
+            {/* «Foydalanish shartlariga rozilik» qatori olib tashlandi: shartlar (oferta) hali yoʻq — HOLAT.md. */}
           </div>
         ) : (
           <div className={k.forma}>

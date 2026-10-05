@@ -13,12 +13,9 @@
  */
 
 import { useLayoutEffect, useState } from 'react';
-import { MAVZU_KALIT as KALIT } from './mavzu-skript';
+import { MAVZU_KALIT as KALIT, PANEL_RANGI } from './mavzu-skript';
 
 export type Mavzu = 'tungi' | 'yorug';
-
-/** Brauzer panelining rangi (telefon) — sahifa fonida. */
-const PANEL_RANGI: Record<Mavzu, string> = { tungi: '#13100C', yorug: '#F4EFE6' };
 
 function oqi(): Mavzu {
   try {

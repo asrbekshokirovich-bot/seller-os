@@ -173,6 +173,19 @@ farq 0,3–2 % piksel; qolgani — jonli maʼlumot (son, sana) va apostrof.
 | 6-qadamda savol pufagi yoʻq | Savol pufagi bor | Suhbat oqimi — savol matni koʻrinishi kerak |
 | Obuna narxi «99 / 000» ikki qatorda (w9) | Raqam bitta qatorda, tor kartada «soʻm / oy» ostida | Narx boʻlinmasin (nazoratchi roʻyxati 2026-10-01, 12-band) |
 | Profilim sarlavhasi oyna bilan birga aylanadi | Sarlavha joyida, faqat ichi aylanadi | Past ekranda yopish tugmasi koʻrinib tursin; 1440 da piksel farqi 0 |
+| CTA: «Uch savol — byudjet, qiziqish, tajriba» | «Ikki savol — byudjet va Uzumdagi doʻkoningiz» | Suhbat 1-qadamda aynan shu ikkitasini soʻraydi (`ssenariy.ts`); qiziqish va tajriba soʻralmaydi (2026-10-05) |
+| 2-bekat «Zavod topish»: «1688 va Taobao… Xitoy narxini oʻzingiz kiritasiz», «tez orada»; hero: «Xitoydan zavod… — tez orada» | «1688 dan rasm boʻyicha oʻxshash takliflar… chegara narx bilan solishtiriladi», «ishlaydi»; hero: «…1688 dan zavod topish bugun ishlaydi» | 5-qadam (1688 qidiruvi) qurilgan va jonli; Taobao yoʻq. 3–5-bekatlar (kengaytma savatni toʻldiradi, kargo/bojxona hisobi, kartochka matni) hali yoʻq — «tez orada» qoldi |
+| Kirish: «Kirish orqali foydalanish shartlariga rozilik bildirasiz» | Qator yoʻq | Shartlar (ommaviy oferta) hali chiqmagan — yoʻq hujjatga rozilik soʻralmaydi. Oferta chiqqach havolasi bilan qaytadi |
+| Kirish: «Uzum'da nima sotishni suhbatda topamiz.» | «Uzumda …» | Oʻzbek imlosi (qoʻshimcha toʻgʻridan-toʻgʻri); saytning qolgan joylarida ham «Uzumda» |
+| Pul oqimi: sarmoya «10,9 mln» | «11,0 mln» | 10 950 000 toʻgʻri yaxlitlandi (`lib/mln.ts`); aks holda kartada 20,9 − 10,9 ≠ 9,9 edi |
+| Kirish raqam kartalari 821–1100 px da bir qatorda | Telefondagidek: birinchisi butun qator, ikkitasi ostida | Tor chap panelda «3 020 064» ikkiga boʻlinardi («3 020» / «064») |
+
+**Sahifalar tuzatishi (2026-10-05), dizaynga tegmaydigan qismlari:** JS oʻchiq boʻlsa pul
+oqimi kartasi nol emas, oxirgi holatda chiqadi (`<noscript>` nusxa; JS yoqilgan odam uchun
+oʻzgarish yoʻq). Havola ulashilganda Open Graph kartasi chiqadi — rasm
+`src/app/opengraph-image.png` (manbasi `scripts/og-rasm.html`: hero, oʻzimizdagi shriftlar).
+Kengaytma yon panelida sahifalar orasidagi havolalar sessiya hash'ini olib yuradi
+(`lib/kengaytma.ts`, `Havola`). Rus tilida sarlavha va tavsif ruscha (`generateMetadata`).
 
 ## Til va sahifa turi (2026-10-04)
 

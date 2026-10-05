@@ -11,6 +11,7 @@
  */
 
 import type { Metadata } from 'next';
+import { Havola } from './Havola';
 import { Ikki } from './Ikki';
 import { SahifaTepa } from './SahifaTepa';
 import t from './topilmadi.module.css';
@@ -33,8 +34,8 @@ export default function SahifaTopilmadi() {
           />
         </p>
         <div className={t.tugmalar}>
-          <a className={t.asosiy} href="/usta"><Ikki uz="Ustaga oʻtish" ru="Перейти к Мастеру" /></a>
-          <a className={t.ikkinchi} href="/"><Ikki uz="Bosh sahifa" ru="Главная" /></a>
+          <Havola className={t.asosiy} href="/usta"><Ikki uz="Ustaga oʻtish" ru="Перейти к Мастеру" /></Havola>
+          <Havola className={t.ikkinchi} href="/"><Ikki uz="Bosh sahifa" ru="Главная" /></Havola>
         </div>
       </main>
     </div>

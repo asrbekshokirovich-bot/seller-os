@@ -1,12 +1,35 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { preload } from 'react-dom';
-import { MAVZU_SKRIPTI } from '@/lib/mavzu-skript';
+import { MAVZU_SKRIPTI, PANEL_RANGI } from '@/lib/mavzu-skript';
 import './shriftlar.css';
 import './globals.css';
 
+/*
+ * Havola boshqa joyda ulashilganda (Telegram, Facebook, X) koʻrinadigan
+ * karta. `og:title` / `og:description` har sahifaning oʻz sarlavha va
+ * tavsifidan olinadi (Next ularni `openGraph` da berilmasa sahifanikidan
+ * qoʻyadi); rasm — shu papkadagi `opengraph-image.png`. `metadataBase` —
+ * rasm manzili toʻliq URL boʻlishi uchun.
+ */
 export const metadata: Metadata = {
+  metadataBase: new URL('https://zumsavdo.vercel.app'),
   title: 'ZumSavdo — Usta',
   description: 'Uzumda nima sotishni raqamlar bilan tanlang.',
+  openGraph: {
+    type: 'website',
+    siteName: 'ZumSavdo',
+    locale: 'uz_UZ',
+    alternateLocale: ['ru_RU'],
+  },
+  twitter: { card: 'summary_large_image' },
+};
+
+/*
+ * Brauzer panelining rangi — hamma sahifa uchun (standart mavzu tungi).
+ * Yorugʻ mavzuda head skripti uni chizishdan oldin almashtiradi.
+ */
+export const viewport: Viewport = {
+  themeColor: PANEL_RANGI.tungi,
 };
 
 /*

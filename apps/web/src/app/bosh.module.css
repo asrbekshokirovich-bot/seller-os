@@ -203,6 +203,8 @@
   letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  /* «3 020 064» boʻlinmasin («3 020» / «064» — ikki son boʻlib oʻqilardi); joy tor boʻlsa yonidagi matn qatorga tushadi. */
+  white-space: nowrap;
 }
 
 .jonliMatn {
@@ -224,6 +226,12 @@
   box-shadow: var(--soya);
   padding: 28px;
 }
+
+/*
+ * JS oʻchiq (head skripti `data-skript` qoʻymagan): animatsiyali karta nol bilan
+ * qolardi — yashiriladi, oʻrnida `<noscript>` dagi oxirgi holat chiqadi.
+ */
+:global(html:not([data-skript])) .oqimJonli { display: none; }
 
 .oqimBosh {
   display: flex;

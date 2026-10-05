@@ -291,13 +291,6 @@
 
 .mehmonOq { color: var(--xira); }
 
-.shartlar {
-  margin-top: 26px;
-  font-size: 13px;
-  color: var(--xira);
-  text-align: center;
-}
-
 /* ---------------------------------------------------------- SMS kod (w3) */
 
 .orqaga {
@@ -375,6 +368,17 @@
 @media (max-width: 1100px) {
   .sahifa { grid-template-columns: minmax(0, 480px) minmax(0, 1fr); }
   .shior { font-size: 34px; }
+}
+
+/*
+ * 821–1100 px: chap panel 480 px gacha torayadi va uch karta bir qatorda
+ * «3 020 064» ni ikkiga boʻlardi («3 020» / «064»). Telefondagidek: birinchi
+ * karta butun qator, qolgan ikkitasi ostida.
+ */
+@media (min-width: 821px) and (max-width: 1100px) {
+  .raqamlar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .raqamKarta:first-child { grid-column: 1 / -1; }
+  .raqamSon { white-space: nowrap; }
 }
 
 @media (max-width: 820px) {
