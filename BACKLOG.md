@@ -7,6 +7,17 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-10-05] **`so_suhbat_yoz` holat versiyasini tekshirmaydi.**
+Bitta odamning ikki oynasi (yoki sayt + kengaytma) bir vaqtda yozsa, oxirgisi
+yutadi: ikkalasi bir xil holatni oʻqib, ikkalasi yozadi (masalan, 1688
+natijasi ikki marta). Bitta oynada endi poyga yoʻq — sahifa fon tekshiruvini
+bittadan yuboradi, «Boshidan boshlash» yoʻldagi tekshiruvni kutadi va eski
+javoblarni tashlaydi (chat auditi, 2026-10-05). Toʻliq yechim — migratsiya:
+`so_suhbat_oqi` `updated_at` ni qaytaradi, `so_suhbat_yoz` uni `p_versiya`
+bilan solishtiradi va farq boʻlsa yozmaydi (`xato: 'holat oʻzgardi'`), sahifa
+holatni qayta oʻqiydi. Keyinroq: jonli bazaga migratsiya — nazoratchi
+ruxsati bilan, alohida ish.
+
 — [agent, 2026-10-04] **`/bazamiz` har chaqiruvda 3 mln qatorni sanaydi (~3–5 s).**
 Bosh sahifa va Kirish uni kutardi: sovuq holatda sahifa 20–30 s oq turgan
 (2026-10-04 oʻlchov). Web endi 4 s dan ortiq kutmaydi (`bazamizniKutibOl`),

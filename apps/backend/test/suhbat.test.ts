@@ -429,12 +429,34 @@ describe('suhbatTurn', () => {
     expect(b.jurnal.length).toBe(0);
   });
 
-  it('boshdan: holat tozalanadi, jurnal QOLADI', async () => {
+  it('boshdan: holat tozalanadi, jurnal QOLADI — belgi va birinchi savol bilan', async () => {
     const b = soxtaBaza();
     await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 1 });
+    expect(b.jurnal.length).toBe(2);
     const r = await suhbatBoshdan(bogliq(b), 'tok');
     expect(r.xato).toBeUndefined();
+    expect(r.yozildi).toBe(true);
     expect(b.holat()).toEqual(boshlangichHolat());
-    expect(b.jurnal.length).toBe(2);
+    // Eski 2 xabar QOLDI, ustiga belgi (sahifa chiziq chizadi) va birinchi savol.
+    expect(b.jurnal.length).toBe(4);
+    expect(b.jurnal[2]).toMatchObject({ rol: 'kod', savolId: 'boshdan' });
+    expect(b.jurnal[3]).toMatchObject({ rol: 'menejer', savolId: 'byudjet' });
+    expect(r.xabarlar).toEqual(b.jurnal.slice(2));
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'byudjet' } });
+    expect(r.qadam).toBe(1);
+  });
+
+  it('boshdan: baza yozmasa — xato, xabar yoʻq (sahifa ekranni oʻzgartirmaydi)', async () => {
+    const b = soxtaBaza();
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 1 });
+    const oldin = b.holat();
+    const d = bogliq(b);
+    const r = await suhbatBoshdan({ ...d, rpc: async () => null }, 'tok');
+    expect(r.xato).toBe('baza javob bermadi');
+    expect(r.yozildi).toBe(false);
+    expect(r.xabarlar).toEqual([]);
+    expect(b.holat()).toBe(oldin);
+    const s = await suhbatBoshdan(d, 'eskirgan');
+    expect(s.xato).toBe('sessiya topilmadi');
   });
 });

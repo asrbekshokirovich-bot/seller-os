@@ -173,6 +173,10 @@ farq 0,3–2 % piksel; qolgani — jonli maʼlumot (son, sana) va apostrof.
 | 6-qadamda savol pufagi yoʻq | Savol pufagi bor | Suhbat oqimi — savol matni koʻrinishi kerak |
 | Obuna narxi «99 / 000» ikki qatorda (w9) | Raqam bitta qatorda, tor kartada «soʻm / oy» ostida | Narx boʻlinmasin (nazoratchi roʻyxati 2026-10-01, 12-band) |
 | Profilim sarlavhasi oyna bilan birga aylanadi | Sarlavha joyida, faqat ichi aylanadi | Past ekranda yopish tugmasi koʻrinib tursin; 1440 da piksel farqi 0 |
+| «Boshidan boshlash» bosilganda darhol boshlanadi | Kichik tasdiq oynasi (Profilim foni va burchaklari), nima oʻchishi yoziladi, fokus «Bekor qilish» da | Bitta bosish butun yoʻlni oʻchirardi (chat auditi, 2026-10-05) |
+| Boshidan boshlanganda suhbat tozalanadi | Tarix qoladi, «Yoʻl boshidan boshlandi» chizigʻi bilan ajratiladi | Profilimdagi «Tarix saqlanadi» rost boʻlsin; sahifa yangilanganda ham shunday koʻrinadi |
+| Sarlavhada doim «N-qadam · 12 dan» | Holat kelguncha «Yuklanmoqda…», kelmasa «Ulanib boʻlmadi» va pastda «Qayta urinish» | Yuklanmasdan «1-qadam» deyish yolgʻon edi; yagona tugma «Boshidan boshlash» yoʻlni oʻchirardi |
+| 1–9 raqam tugmalari hamma variantli savolda | Faqat raqamli savolda (kichik belgilar koʻringan joyda) | Belgisiz savolda "150" yozaman deb bosilgan "1" variantni yuborib yuborardi |
 
 ## Til va sahifa turi (2026-10-04)
 

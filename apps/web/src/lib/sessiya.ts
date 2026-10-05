@@ -49,7 +49,11 @@ export async function tokenYokiYangi(request?: Request): Promise<string | null> 
   const bor = await token();
   if (bor) return bor;
   if (!sozlanganmi()) return null;
+  return sessiyaOch();
+}
 
+/** Yangi sessiya ochib cookie ga yozadi. `null` — API javob bermadi. */
+async function sessiyaOch(): Promise<string | null> {
   try {
     const r = await fetch(`${API()}/sessiya`, {
       method: 'POST',
@@ -72,6 +76,25 @@ export async function tokenYokiYangi(request?: Request): Promise<string | null> 
   } catch {
     return null;
   }
+}
+
+/**
+ * Edge Function ga soʻrov — sessiya bilan. Cookie dagi token bazada yoʻq
+ * boʻlsa (baza tozalangan, sessiya oʻchirilgan) — BIR MARTA yangi sessiya
+ * ochib qaytadan soʻraydi. Aks holda odam "sessiya topilmadi" da abadiy
+ * qolardi: cookie bir yil yashaydi va oʻzi almashmaydi (audit, 2026-10-05).
+ * Kengaytma tokeni (sarlavha) almashtirilmaydi — uni kengaytma saqlaydi.
+ *
+ * `null` — sessiya ochilmadi (API sozlanmagan yoki javob bermadi).
+ */
+export async function apigaSessiya(request: Request, yol: string, init: RequestInit = {}): Promise<Response | null> {
+  const t = await tokenYokiYangi(request);
+  if (!t) return null;
+  const r = await apiga(yol, t, init);
+  if (r.status !== 401 || sorovTokeni(request)) return r;
+  if (!(await r.clone().text()).includes('sessiya topilmadi')) return r;
+  const yangi = await sessiyaOch();
+  return yangi ? apiga(yol, yangi, init) : r;
 }
 
 /** Edge Function ga soʻrov — sessiya sarlavhasi bilan. */
