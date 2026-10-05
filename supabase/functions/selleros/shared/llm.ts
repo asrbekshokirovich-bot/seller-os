@@ -34,9 +34,22 @@ const KORSATMA =
   'izohsiz. Jumla allaqachon yaxshi bo\'lsa — o\'zini qaytar.';
 
 /**
- * Jumlani qayta aytadi. `null` — ishlamadi, kod jumlasini ishlating.
+ * Erkin xabar: obunachi savolga javob oʻrniga boshqa narsa yozdi (savol,
+ * salom, notoʻgʻri javob). Javob `tekshiruv.ts` darvozasidan oʻtadi —
+ * oʻtmasa kod shabloni ketadi (`suhbat.ts`, `erkinJavob`).
  */
-export async function odamlashtir(s: LlmSozlama, matn: string): Promise<string | null> {
+const ERKIN_KORSATMA =
+  'Sen ZumSavdo menejerisan: odamga Uzumda birinchi partiyani sotishgacha boʻlgan yoʻlda ' +
+  'yordam berasan. Unga savol berilgan, u esa javob oʻrniga boshqa narsa yozdi (savol, salom, ' +
+  'shubha yoki notoʻgʻri javob). Qisqa (1–3 jumla), iliq va aniq javob ber, keyin joriy savolni ' +
+  'bir jumlada eslat. QOIDALAR: tovar, yoʻnalish, narx, miqdorni TAVSIYA QILMA — buni kod ' +
+  'hisoblaydi; matnda berilmagan raqam, foiz, summa yoki muddat YOZMA; kafolat, vaʼda, bashorat ' +
+  'yozma; bilmasang yoki mavzudan tashqari boʻlsa — ochiq ayt; "AI", "model", "tizim" soʻzlarini ' +
+  'ishlatma; odam qaysi tilda yozgan boʻlsa (oʻzbek yoki rus), oʻsha tilda javob ber; faqat javob ' +
+  'matnini qaytar, izohsiz.';
+
+/** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). */
+async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: string): Promise<string | null> {
   if (!s.kalit || !matn.trim()) return null;
   const model = s.model || 'gemini-2.5-flash';
   const f = s.fetchFn ?? fetch;
@@ -49,23 +62,51 @@ export async function odamlashtir(s: LlmSozlama, matn: string): Promise<string |
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': s.kalit },
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: KORSATMA }] },
+          systemInstruction: { parts: [{ text: korsatma }] },
           contents: [{ role: 'user', parts: [{ text: matn }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 400 },
+          // 1024: "oʻylovchi" modellarda (2.5) ichki fikr ham shu hisobga kiradi —
+          // 400 da javob matni boʻsh qolishi mumkin edi.
+          generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
         }),
         signal: nazorat.signal,
       },
     );
-    if (!r.ok) return null;
+    if (!r.ok) {
+      console.warn(`llm ${belgi}: HTTP ${r.status}`);
+      return null;
+    }
     const j = (await r.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
     };
     const chiqdi = (j.candidates?.[0]?.content?.parts ?? [])
       .map((p) => p.text ?? '').join('').trim();
+    if (!chiqdi) console.warn(`llm ${belgi}: boʻsh javob (${j.candidates?.[0]?.finishReason ?? 'nomzod yoʻq'})`);
     return chiqdi || null;
-  } catch {
+  } catch (e) {
+    console.warn(`llm ${belgi}: ${(e as Error)?.name ?? 'xato'}`);
     return null;
   } finally {
     clearTimeout(t);
   }
+}
+
+/**
+ * Jumlani qayta aytadi. `null` — ishlamadi, kod jumlasini ishlating.
+ */
+export async function odamlashtir(s: LlmSozlama, matn: string): Promise<string | null> {
+  return gemini(s, KORSATMA, matn, 'odamlashtir');
+}
+
+/** Erkin xabarga javob. `null` — ishlamadi, kod shablonini ishlating. */
+export async function erkinJavobBer(
+  s: LlmSozlama,
+  k: { savol: string; variantlar: string[]; xabar: string; sabab: string | null },
+): Promise<string | null> {
+  const matn = [
+    `Joriy savol: ${k.savol}`,
+    `Variantlar: ${k.variantlar.length ? k.variantlar.join('; ') : 'yoʻq (erkin javob)'}`,
+    k.sabab ? `Javob qabul qilinmadi: ${k.sabab}` : null,
+    `Odam yozdi: ${k.xabar}`,
+  ].filter(Boolean).join('\n');
+  return gemini(s, ERKIN_KORSATMA, matn, 'erkin');
 }

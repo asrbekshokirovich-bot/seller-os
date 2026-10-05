@@ -78,6 +78,23 @@ export interface SuhbatBogliqliklari {
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
+  /**
+   * Obunachi savolga javob oʻrniga boshqa narsa yozdi — menejerning qisqa
+   * javobi (LLM). `null` — ishlatilmadi, kod shabloni ketadi.
+   */
+  erkinLlm?: (k: ErkinSorov) => Promise<string | null>;
+}
+
+/** Erkin xabar uchun LLM ga beriladigan narsa — faqat shu, boshqa maʼlumot yoʻq. */
+export interface ErkinSorov {
+  /** Joriy savol matni (kod yozgan). */
+  savol: string;
+  /** Joriy savol variantlari nomlari (boʻsh boʻlishi mumkin). */
+  variantlar: string[];
+  /** Obunachi yozgan matn (500 belgigacha). */
+  xabar: string;
+  /** Javob sifatida nega qabul qilinmadi (`null` — savol berdi). */
+  sabab: string | null;
 }
 
 export interface SuhbatJavobi {
@@ -156,10 +173,19 @@ export async function suhbatTurn(
       return { xato: 'hozir savol kutilmayapti', xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false };
     }
     const savolId = kirish.savolId ?? k0.savol.id;
-    const xom = kirish.savolId !== undefined ? kirish.javob : kirish.matn;
-    const q = javobniQabulQil(holat, savolId, xom);
-    if (q.xato) {
-      return { xato: q.xato, xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false };
+    const xom = kirish.javob !== undefined ? kirish.javob : kirish.matn;
+    // Obunachi YOZGAN matn (tugma emas). Savol boʻlsa yoki javob sifatida
+    // oʻtmasa — erkin xabar: menejer javob beradi, joriy savol eslatiladi,
+    // yoʻl holati oʻzgarmaydi. Eskirgan savolId — avvalgidek navbat xatosi.
+    const yozgan = kirish.javob === undefined && typeof kirish.matn === 'string' && kirish.matn.trim()
+      ? kirish.matn.trim() : null;
+    const savolBerdi = yozgan !== null && savolmi(yozgan);
+    const q = savolBerdi ? null : javobniQabulQil(holat, savolId, xom);
+    if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
+      return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null);
+    }
+    if (q === null || q.xato) {
+      return { xato: q?.xato ?? 'javob qabul qilinmadi', xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false };
     }
     holat = q.holat;
     profil = q.profil;
@@ -280,6 +306,85 @@ async function odamlashtirTekshirib(d: SuhbatBogliqliklari, kodJumla: string, ya
     sonlar: yangi.flatMap((x) => (x.rol === 'kod' ? natijaSonlari(x.javob) : [])),
   });
   return t.ok ? taklif : kodJumla;
+}
+
+// ------------------------------------------------------------ erkin xabar
+
+type JoriySavol = Extract<Keyingi, { tur: 'savol' }>;
+
+/** Erkin matn uzunligi chegarasi (chat va LLM uchun). */
+const ERKIN_MAX = 500;
+
+/**
+ * Savolmi: "?" bilan tugaydi yoki soʻroq soʻzidan boshlanadi ("bu nima?",
+ * "qanday ishlaydi", "сколько стоит"). Matn turidagi savolda (doʻkon nomi)
+ * shunday matn javob sifatida yozilib ketmasin.
+ */
+function savolmi(t: string): boolean {
+  if (/[?？]\s*$/u.test(t)) return true;
+  return /^(nima|nimaga|nega|qanday|qancha|qachon|qayer|qaysi|kim|что|как|почему|зачем|сколько|когда|где|какой|какая|какие)(\s|$)/iu.test(t);
+}
+
+/** Uzun savol matnidan — oxirgi soʻroq jumla (eslatma uchun). */
+function qisqaSavol(matn: string): string {
+  const jumlalar = matn.split(/(?<=[.!?])\s+/u).filter(Boolean);
+  const soroq = [...jumlalar].reverse().find((j) => j.trim().endsWith('?'));
+  const t = (soroq ?? matn).trim();
+  return t.length > 180 ? `${t.slice(0, 180)}…` : t;
+}
+
+/** LLM boʻlmasa yoki tekshiruvdan oʻtmasa — kod shabloni. */
+function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null): string {
+  const ruscha = /[\u0400-\u04FF]/u.test(matn);
+  const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)/iu.test(matn);
+  const savol = qisqaSavol(s.matn);
+  const variantlar = s.variantlar.map((v) => v.nom);
+  if (ruscha) {
+    return [
+      salom ? 'Здравствуйте!' : null,
+      sabab ? `Не получилось принять ответ: ${sabab}` : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
+      `Сейчас вопрос: «${savol}»`,
+      variantlar.length ? `Варианты: ${variantlar.join(', ')}.` : null,
+      s.otkazishMumkin ? 'Если не знаете — нажмите «Пропустить».' : null,
+    ].filter(Boolean).join(' ');
+  }
+  return [
+    salom ? 'Vaalaykum assalom!' : null,
+    sabab ?? 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
+    `Hozirgi savol: «${savol}»`,
+    variantlar.length ? `Variantlar: ${variantlar.join(', ')}.` : null,
+    s.otkazishMumkin ? 'Bilmasangiz — «Oʻtkazib yuborish» ni bosing.' : null,
+  ].filter(Boolean).join(' ');
+}
+
+/** Menejer javobi: LLM (tekshiruv bilan) yoki shablon. */
+async function erkinJavob(d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null): Promise<string> {
+  const shablon = erkinShablon(s, matn, sabab);
+  if (!d.erkinLlm) return shablon;
+  const variantlar = s.variantlar.map((v) => v.nom);
+  const taklif = await d.erkinLlm({ savol: s.matn, variantlar, xabar: matn, sabab }).catch(() => null);
+  if (!taklif) return shablon;
+  // Raqam faqat savol, variantlar, sabab va obunachining oʻz matnidan; kafolat — taqiq.
+  const t = tekshir(taklif, { matnlar: [s.matn, matn, sabab ?? '', ...variantlar], sonlar: [] });
+  return t.ok ? taklif : shablon;
+}
+
+/** Erkin xabarni chatga yozadi: holat va qadam oʻzgarmaydi. */
+async function erkinXabar(
+  d: SuhbatBogliqliklari, token: string, holat: YolHolati, k0: JoriySavol, yozgan: string, sabab: string | null,
+): Promise<SuhbatJavobi> {
+  const matn = yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan;
+  const javob = await erkinJavob(d, k0.savol, matn, sabab);
+  const yangi: SuhbatXabari[] = [
+    { rol: 'obunachi', matn },
+    { rol: 'menejer', matn: javob, savolId: k0.savol.id },
+  ];
+  const qadam = joriyQadam(holat);
+  const y = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {
+    p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
+  });
+  const yozildi = y !== null && !y.xato;
+  return { xabarlar: yangi, keyingi: k0, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, q: unknown): string {

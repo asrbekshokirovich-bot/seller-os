@@ -27,7 +27,9 @@ import {
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
   REJA_QADAMI,
+  erkinJavobBer,
   odamlashtir,
+  type ErkinSorov,
   suhbatBoshdan,
   suhbatOqi,
   suhbatTurn,
@@ -172,6 +174,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         // Tarif cheklovi pilot davomida OʻCHIQ: toʻlov oqimi hali
         // yoʻq, yoqilsa hech kim 3-qadamga oʻta olmasdi.
         tarifCheklovi: tarifCheklovi(),
+        // LLM kaliti bormi (qiymati emas) — "LLM ishlayaptimi?" ni tashqaridan bilish uchun.
+        llm: Boolean(Deno.env.get('GEMINI_API_KEY')),
       },
     });
   }
@@ -402,7 +406,11 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         { kalit: Deno.env.get('XITOY_API_KEY') ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
           // 9-qadam studiyasi: Cloudflare Worker manzili va imzo kaliti (docs/STUDIYA.md).
           studiya: { url: Deno.env.get('STUDIYA_URL') ?? null, kalit: Deno.env.get('STUDIYA_KALIT') ?? null } }),
-      ...(kalit ? { llm: (m: string) => odamlashtir({ kalit, model: Deno.env.get('LLM_MODEL') }, m) } : {}),
+      ...(kalit ? {
+        llm: (m: string) => odamlashtir({ kalit, model: Deno.env.get('LLM_MODEL') }, m),
+        // Obunachi javob oʻrniga boshqa narsa yozsa — menejer javobi (tekshiruv bilan).
+        erkinLlm: (k: ErkinSorov) => erkinJavobBer({ kalit, model: Deno.env.get('LLM_MODEL') }, k),
+      } : {}),
     };
     if (req.method === 'GET') {
       const r = await suhbatOqi(d, token);
