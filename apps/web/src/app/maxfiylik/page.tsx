@@ -98,6 +98,12 @@ export default function Maxfiylik() {
             <code>x-sessiya</code> sarlavhasi bilan qoʻshadi.
           </li>
           <li>
+            Usta sahifasi kalitni shu panel varagʻi yopilguncha brauzer
+            xotirasida ham saqlaydi (<code>sessionStorage</code>): panel ichida
+            boshqa sahifaga oʻtib qaytsangiz ham suhbat oʻsha qoladi. Varaq
+            yopilganda u yerdan oʻchadi.
+          </li>
+          <li>
             Yaʼni kengaytmada yuqoridagi <strong>HttpOnly</strong> himoyasi yoʻq:
             sahifaga begona skript tushsa, u kalitni oʻqiy oladi.
           </li>
