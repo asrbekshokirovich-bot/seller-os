@@ -180,7 +180,10 @@ export async function suhbatTurn(
     const yozgan = kirish.javob === undefined && typeof kirish.matn === 'string' && kirish.matn.trim()
       ? kirish.matn.trim() : null;
     const savolBerdi = yozgan !== null && savolmi(yozgan);
-    const q = savolBerdi ? null : javobniQabulQil(holat, savolId, xom);
+    // Tanlov savolida variant nomini yozsa ("ha", "yoʻq") — oʻsha variant.
+    const tanlanganVariant = yozgan !== null && !savolBerdi && k0.savol.turi === 'tanlov'
+      ? variantniTop(k0.savol.variantlar, yozgan) : undefined;
+    const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom);
     if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
       return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null);
     }
@@ -325,6 +328,33 @@ function savolmi(t: string): boolean {
   return /^(nima|nimaga|nega|qanday|qancha|qachon|qayer|qaysi|kim|что|как|почему|зачем|сколько|когда|где|какой|какая|какие)(\s|$)/iu.test(t);
 }
 
+/**
+ * Yozilgan matn — variant nomi yoki uning BUTUN soʻzlar bilan boshi ("ha" →
+ * «Ha, sotyapman», "yoʻq" → «Yoʻq», "kabinet bor" → «Kabinet bor, …»). Faqat
+ * BITTA variant mos kelsa — aks holda taxmin qilinmaydi.
+ */
+function variantniTop(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, t: string): string | number | undefined {
+  const norm = (x: string) => x.toLowerCase()
+    .replace(/['\u2018\u2019\u02bb\u02bc`]/gu, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+  const n = norm(t);
+  if (n.length < 2) return undefined;
+  const aniq = variantlar.filter((v) => norm(v.nom) === n || norm(String(v.qiymat)) === n);
+  if (aniq.length === 1) return aniq[0]!.qiymat;
+  const bosh = variantlar.filter((v) => `${norm(v.nom)} `.startsWith(`${n} `));
+  return bosh.length === 1 ? bosh[0]!.qiymat : undefined;
+}
+
+/** Gapni bosh harf bilan boshlab, oxiriga nuqta qoʻyadi (sabab matnlari kichik harfli). */
+function gap(t: string): string {
+  const s = t.trim();
+  if (!s) return s;
+  const b = s.charAt(0).toUpperCase() + s.slice(1);
+  return /[.!?…]$/u.test(b) ? b : `${b}.`;
+}
+
 /** Uzun savol matnidan — oxirgi soʻroq jumla (eslatma uchun). */
 function qisqaSavol(matn: string): string {
   const jumlalar = matn.split(/(?<=[.!?])\s+/u).filter(Boolean);
@@ -342,7 +372,7 @@ function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null
   if (ruscha) {
     return [
       salom ? 'Здравствуйте!' : null,
-      sabab ? `Не получилось принять ответ: ${sabab}` : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
+      sabab ? `Не получилось принять ответ: ${gap(sabab)}` : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
       `Сейчас вопрос: «${savol}»`,
       variantlar.length ? `Варианты: ${variantlar.join(', ')}.` : null,
       s.otkazishMumkin ? 'Если не знаете — нажмите «Пропустить».' : null,
@@ -350,7 +380,7 @@ function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null
   }
   return [
     salom ? 'Vaalaykum assalom!' : null,
-    sabab ?? 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
+    sabab ? gap(sabab) : 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
     `Hozirgi savol: «${savol}»`,
     variantlar.length ? `Variantlar: ${variantlar.join(', ')}.` : null,
     s.otkazishMumkin ? 'Bilmasangiz — «Oʻtkazib yuborish» ni bosing.' : null,
