@@ -15,6 +15,7 @@ export * from './suhbat.js';
 export * from './chegara.js';
 export * from './llm.js';
 export * from './tekshiruv.js';
+export * from './erkin.js';
 export * from './filtrlar/nakrutka.js';
 export * from './filtrlar/ogir.js';
 export * from './filtrlar/mavsum.js';

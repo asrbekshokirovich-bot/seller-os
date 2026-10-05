@@ -15,6 +15,7 @@ export * from './suhbat.ts';
 export * from './chegara.ts';
 export * from './llm.ts';
 export * from './tekshiruv.ts';
+export * from './erkin.ts';
 export * from './filtrlar/nakrutka.ts';
 export * from './filtrlar/ogir.ts';
 export * from './filtrlar/mavsum.ts';

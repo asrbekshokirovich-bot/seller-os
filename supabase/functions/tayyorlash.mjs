@@ -38,6 +38,7 @@ export const FAYLLAR = [
   ['packages/shared/src/chegara.ts', 'shared/chegara.ts'],
   ['packages/shared/src/llm.ts', 'shared/llm.ts'],
   ['packages/shared/src/tekshiruv.ts', 'shared/tekshiruv.ts'],
+  ['packages/shared/src/erkin.ts', 'shared/erkin.ts'],
   ['packages/shared/src/tarif.ts', 'shared/tarif.ts'],
   ['packages/shared/src/tolov.ts', 'shared/tolov.ts'],
   ['packages/shared/src/kpi.ts', 'shared/kpi.ts'],

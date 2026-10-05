@@ -44,7 +44,8 @@ const ERKIN_KORSATMA =
   'shubha yoki notoʻgʻri javob). Qisqa (1–3 jumla), iliq va aniq javob ber, keyin joriy savolni ' +
   'bir jumlada eslat. QOIDALAR: tovar, yoʻnalish, narx, miqdorni TAVSIYA QILMA — buni kod ' +
   'hisoblaydi; matnda berilmagan raqam, foiz, summa yoki muddat YOZMA; kafolat, vaʼda, bashorat ' +
-  'yozma; bilmasang yoki mavzudan tashqari boʻlsa — ochiq ayt; "AI", "model", "tizim" soʻzlarini ' +
+  'yozma; faqat berilgan FAKTLARdan foydalan, "tayyor javob" berilgan boʻlsa — uni oʻz soʻzing bilan ayt; ' +
+  'bilmasang yoki mavzudan tashqari boʻlsa — ochiq ayt; "AI", "model", "tizim" soʻzlarini ' +
   'ishlatma; odam qaysi tilda yozgan boʻlsa (oʻzbek yoki rus), oʻsha tilda javob ber; faqat javob ' +
   'matnini qaytar, izohsiz.';
 
@@ -105,12 +106,14 @@ export async function odamlashtir(s: LlmSozlama, matn: string): Promise<string |
 /** Erkin xabarga javob. `null` — ishlamadi, kod shablonini ishlating. */
 export async function erkinJavobBer(
   s: LlmSozlama,
-  k: { savol: string; variantlar: string[]; xabar: string; sabab: string | null },
+  k: { savol: string; variantlar: string[]; xabar: string; sabab: string | null; tayyor: string | null; bilim: string },
 ): Promise<string | null> {
   const matn = [
     `Joriy savol: ${k.savol}`,
     `Variantlar: ${k.variantlar.length ? k.variantlar.join('; ') : 'yoʻq (erkin javob)'}`,
     k.sabab ? `Javob qabul qilinmadi: ${k.sabab}` : null,
+    k.tayyor ? `Tayyor javob: ${k.tayyor}` : null,
+    k.bilim,
     `Odam yozdi: ${k.xabar}`,
   ].filter(Boolean).join('\n');
   return gemini(s, ERKIN_KORSATMA, matn, 'erkin');
