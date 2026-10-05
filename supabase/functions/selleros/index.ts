@@ -420,7 +420,12 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     if (req.method === 'POST') {
       let tana: Record<string, unknown> = {};
       try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
-      if (tana.boshdan === true) return javob(await suhbatBoshdan(d, token));
+      if (tana.boshdan === true) {
+        // Boshidan boshlanmasa — 200 EMAS: sahifa ekranni 1-qadamga oʻtkazib qoʻymasin.
+        const b = await suhbatBoshdan(d, token);
+        if (b.xato) return javob(b, /sessiya topilmadi/.test(b.xato) ? 401 : 503);
+        return javob(b);
+      }
       const r = await suhbatTurn(d, token, {
         ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
         ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),

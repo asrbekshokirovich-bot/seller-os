@@ -254,14 +254,30 @@ export async function suhbatTurn(
   return { xabarlar: yangi, keyingi: k, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
-/** Boshidan. Jurnal qoladi, holat tozalanadi. */
+/**
+ * Boshidan. Holat tozalanadi, JURNAL QOLADI — va unga belgi yoziladi
+ * (`kod`, `savolId: 'boshdan'`) hamda birinchi savol. Sahifa belgini
+ * chiziq qilib chizadi: yangilangandan keyin ham eski tarix va yangi yoʻl
+ * ajralib turadi (audit, 2026-10-05: ilgari sahifa tarixni oʻchirib
+ * koʻrsatardi, yangilansa eski 60 xabar yangi savol ustida aralash chiqardi).
+ *
+ * Hammasi BITTA `so_suhbat_yoz` bilan: holat, qadam va ikki xabar bitta
+ * tranzaksiyada — yarmi yozilib qolmaydi.
+ */
 export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Promise<SuhbatJavobi> {
-  const r = await d.rpc<{ xato?: string }>('so_suhbat_boshdan', { p_token: token });
   const h = boshlangichHolat();
-  if (r === null || r.xato) {
-    return { xato: r?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: keyingi(h), qadam: 1, yozildi: false };
+  const k = keyingi(h);
+  const xabarlar: SuhbatXabari[] = [
+    { rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan', javob: null },
+    ...(k.tur === 'savol' ? [{ rol: 'menejer' as const, matn: k.savol.matn, savolId: k.savol.id }] : []),
+  ];
+  const y = await d.rpc<{ xato?: string }>('so_suhbat_yoz', {
+    p_token: token, p_xabarlar: xabarlar, p_holat: h, p_qadam: 1, p_profil: null,
+  });
+  if (y === null || y.xato) {
+    return { xato: y?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: k, qadam: 1, yozildi: false };
   }
-  return { xabarlar: [], keyingi: keyingi(h), qadam: 1, yozildi: true };
+  return { xabarlar, keyingi: k, qadam: 1, yozildi: true };
 }
 
 async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati): Promise<unknown> {

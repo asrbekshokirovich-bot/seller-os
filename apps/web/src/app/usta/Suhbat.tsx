@@ -31,12 +31,13 @@ import { oyNomi, REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, ty
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
-import { saqlanganTil, tarjima, type Til, type Tr } from '@/lib/til';
+import { tarjima, type Til, type Tr } from '@/lib/til';
 import { useTil } from '@/lib/useTil';
 import { faylBolagi, zipYasa } from '@/lib/zip';
 import { Ikon, type IkonNomi } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
+import { jsonOl, keyingiKaliti, navbatBuzildimi, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 
 /**
@@ -45,48 +46,58 @@ import u from './usta.module.css';
  * (`#sessiya=…&kengaytma=1`, serverga ketmaydi) va har soʻrovga
  * `x-sessiya` sarlavhasi bilan qoʻshiladi. Oddiy saytda hash yoʻq —
  * sarlavha ham yoʻq, hammasi avvalgidek cookie bilan.
+ *
+ * Token shu varaq sessiyasida ham saqlanadi (`sessionStorage`): panel
+ * ichida hash'siz havola bosilsa (logo, «Chiqish» → bosh sahifa →
+ * «Usta») suhbat yangi sessiyada boshidan boshlanib ketardi (audit,
+ * 2026-10-05).
  */
+const TOKEN_KALITI = 'zs_sessiya';
 function sessiyaSarlavhasi(): Record<string, string> {
   if (typeof window === 'undefined') return {};
-  const t = hashTokeni(window.location.hash);
+  let t = hashTokeni(window.location.hash);
+  try {
+    if (t) window.sessionStorage.setItem(TOKEN_KALITI, t);
+    else t = window.sessionStorage.getItem(TOKEN_KALITI);
+  } catch { /* saqlash yoʻq (maxfiy rejim) — faqat hash */ }
   return t ? { 'x-sessiya': t } : {};
 }
 
-/* ------------------------------------------------------ turlar (API shakli) */
+/** «Rejalar» ochiq: suhbat yashirinadi, lekin oʻchirilmaydi — aylanish joyi va studiya tanlovlari qoladi. */
+const YASHIRIN = { display: 'none' } as const;
 
-interface Variant { qiymat: string | number; nom: string }
-
-interface Savol {
-  id: string;
-  qadam: number;
-  matn: string;
-  turi: 'tanlov' | 'kopTanlov' | 'son' | 'matn';
-  variantlar: Variant[];
-  erkin: boolean;
-  otkazishMumkin: boolean;
-}
-
-type Keyingi =
-  | { tur: 'savol'; savol: Savol }
-  | { tur: 'kod'; harakat: string; qadam: number }
-  | { tur: 'kutish'; qadam: number; matn: string; boshlandi: string | null }
-  | { tur: 'tezOrada'; qadam: number; nom: string; matn: string };
-
-interface Xabar {
-  rol: 'obunachi' | 'menejer' | 'kod';
-  matn: string;
-  savolId?: string;
-  javob?: unknown;
-  seq?: number;
-}
-
-interface SuhbatJavobi {
-  xato?: string;
-  xabarlar: Xabar[];
-  keyingi: Keyingi;
-  qadam: number;
-  yozildi: boolean;
-  tarix?: Xabar[];
+/**
+ * Modal oyna fokusi: ochilganda ichiga (`data-fokus` belgili tugmaga yoki
+ * birinchisiga), Tab ichida aylanadi, yopilganda oynani ochgan tugmaga
+ * qaytadi. Ilgari fokus orqadagi sahifada qolardi — klaviaturadagi odam
+ * oynani koʻrmay turib orqadagi savolga javob berib yuborardi (audit,
+ * 2026-10-05).
+ */
+function useModalFokus(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const oldingi = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const el = ref.current;
+    const fokuslanadi = (): HTMLElement[] => (el
+      ? Array.from(el.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      : []);
+    (el?.querySelector<HTMLElement>('[data-fokus]') ?? fokuslanadi()[0])?.focus();
+    function tab(e: KeyboardEvent) {
+      if (e.key !== 'Tab' || !el) return;
+      const f = fokuslanadi();
+      if (f.length === 0) return;
+      const birinchi = f[0]!;
+      const oxirgi = f[f.length - 1]!;
+      const joriy = document.activeElement;
+      if (!el.contains(joriy)) { e.preventDefault(); birinchi.focus(); }
+      else if (e.shiftKey && joriy === birinchi) { e.preventDefault(); oxirgi.focus(); }
+      else if (!e.shiftKey && joriy === oxirgi) { e.preventDefault(); birinchi.focus(); }
+    }
+    document.addEventListener('keydown', tab);
+    return () => {
+      document.removeEventListener('keydown', tab);
+      if (oldingi?.isConnected) oldingi.focus({ preventScroll: true });
+    };
+  }, [ref]);
 }
 
 /* ------------------------------------------------------ sahifa */
@@ -97,6 +108,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const [qadam, setQadam] = useState(1);
   const [yuklandi, setYuklandi] = useState(false);
   const [band, setBand] = useState(false);
+  /** Xom xato: server matni yoki `XATO` belgisi — gap renderda tanlanadi (`xatoGapi`). */
   const [xato, setXato] = useState<string | null>(null);
 
   const [matn, setMatn] = useState('');
@@ -105,45 +117,74 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const [mavzu, mavzuniTanla] = useMavzu();
   const [til, tilniTanla] = useTil(boshTil);
   const [menyu, setMenyu] = useState(false);
-  const [profilOchiq, setProfilOchiq] = useState(false);
+  /** Modal oyna: «Profilim» yoki «Boshidan boshlash» tasdigʻi — bir vaqtda bittasi. */
+  const [oyna, setOyna] = useState<'profil' | 'tasdiq' | null>(null);
   const [obunaOchiq, setObunaOchiq] = useState(false);
   const tr = tarjima(til);
   const oqim = useRef<HTMLDivElement>(null);
 
-  /** Javobni qabul qiladi: xabarlarni qoʻshadi, keyingini yangilaydi. */
-  const qabul = useCallback((r: SuhbatJavobi, almashtir: boolean) => {
+  /*
+   * Avlod: «Boshidan boshlash» uni oshiradi. Undan OLDIN yuborilgan
+   * soʻrovning javobi kech kelsa — qoʻllanmaydi: eski qadam ekranga
+   * qaytib chiqmasin.
+   */
+  const avlod = useRef(0);
+  /** Yoʻldagi fon tekshiruvi (5/9-qadam kutishi). */
+  const tekshiruv = useRef<Promise<void> | null>(null);
+  /** `band` ning taymer oʻqiydigan nusxasi — effekt kechikishisiz. */
+  const bandRef = useRef(false);
+  const bandQil = (b: boolean) => { bandRef.current = b; setBand(b); };
+  /** Hozirgi savol kaliti — yozuv va tanlov shu almashganda tozalanadi. */
+  const savolKaliti = useRef('');
+
+  /**
+   * Javobni qabul qiladi: xabarlarni qoʻshadi, keyingini yangilaydi.
+   *
+   * Yozuv va tanlov savol almashganda yoki javob qabul qilinganda
+   * tozalanadi. Erkin savolga menejer javob bersa savol oʻsha — tanlangan
+   * kartalar QOLADI (audit, 2026-10-05: "qaysi biri yaxshi?" deb soʻragan
+   * odamning 3 ta tanlovi oʻchib ketardi). Server javobni rad etsa
+   * (`xato`) ham qoladi — odam xatoni tuzatadi, hammasini qaytadan yozmaydi.
+   */
+  const qabul = useCallback((r: SuhbatJavobi, o: { almashtir?: boolean; tozala?: boolean; javobKetdi?: boolean; matnKetdi?: boolean } = {}) => {
     if (r.tarix !== undefined) setXabarlar(r.tarix);
-    else if (r.xabarlar.length) setXabarlar((eski) => (almashtir ? r.xabarlar : [...eski, ...r.xabarlar]));
+    else if (r.xabarlar.length) setXabarlar((eski) => (o.almashtir ? r.xabarlar : [...eski, ...r.xabarlar]));
     setKeyingi(r.keyingi);
     setQadam(r.qadam);
     setXato(r.xato && r.xabarlar.length === 0 && r.tarix === undefined ? r.xato : null);
-    // Server javobni rad etsa (`xato`) yozilgan matn va tanlov QOLADI —
-    // odam xatoni tuzatadi, hammasini qaytadan yozmaydi.
-    if (!r.xato) {
+    const kalit = keyingiKaliti(r.keyingi);
+    const almashdi = kalit !== savolKaliti.current;
+    savolKaliti.current = kalit;
+    if (almashdi || o.tozala || (o.javobKetdi && !r.xato)) {
       setTanlangan([]);
+      setMatn('');
+    } else if (o.matnKetdi && !r.xato) {
       setMatn('');
     }
   }, []);
 
   /*
-   * BIR MARTA yuklanadi. `tr` har renderda yangi funksiya — u
-   * bogʻliqlikka kirsa `useEffect` har renderda qayta ishlaydi:
-   * jonli tekshiruvda (2026-09-25) `/api/suhbat` bitta ochilishda
-   * 4 marta chaqirildi. Shuning uchun til bu yerda saqlangan
-   * qiymatdan oʻqiladi, `tr` dan emas.
+   * Serverdagi holatni oʻqiydi — birinchi ochilishda va xatodan keyin
+   * (ekran server bilan bir xil boʻlsin). Bogʻliqligi faqat `qabul`:
+   * `tr` har renderda yangi funksiya, u kirsa effekt har renderda qayta
+   * ishlardi (2026-09-25: bitta ochilishda 4 ta GET).
    */
   const yukla = useCallback(async () => {
-    const t = tarjima(saqlanganTil() ?? 'uz');
+    const mening = avlod.current;
     try {
       const r = await fetch('/api/suhbat', { cache: 'no-store', headers: sessiyaSarlavhasi() });
-      const d = (await r.json()) as SuhbatJavobi & { xato?: string };
-      if (!r.ok || (d.xato && !d.keyingi)) {
-        setXato(d.xato ?? t('Ulanib boʻlmadi', 'Не удалось подключиться'));
+      const d = await jsonOl(r);
+      if (mening !== avlod.current) return;
+      if (!r.ok || d === null || !d.keyingi) {
+        if (d?.xato) console.warn('suhbat:', d.xato);
+        setXato(d?.xato ?? XATO.buzuq);
       } else {
-        qabul(d, true);
+        qabul(d, { almashtir: true });
       }
     } catch (q) {
-      setXato(`${t('Soʻrov yuborilmadi', 'Запрос не отправлен')}: ${String(q)}`);
+      if (mening !== avlod.current) return;
+      console.warn('suhbat:', q);
+      setXato(XATO.tarmoq);
     } finally {
       setYuklandi(true);
     }
@@ -151,45 +192,134 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
   useEffect(() => { void yukla(); }, [yukla]);
 
+  /*
+   * Qatlamlar (menyu, modal, «Rejalar») va telefonning «Orqaga» tugmasi.
+   * Qatlam ochilganda tarixga bitta yozuv qoʻshiladi (manzil va hash
+   * oʻsha — kengaytma tokeni qoladi); «Orqaga» uni oladi va hamma qatlam
+   * yopiladi. Ilgari «Orqaga» Ustadan butunlay chiqarib yuborardi (audit,
+   * 2026-10-05). Oxirgi qatlam tugma bilan yopilsa — yozuv ham olinadi,
+   * aks holda keyingi «Orqaga» bekorga ketardi.
+   */
+  const tarixda = useRef(false);
+  const qatlamOch = () => {
+    if (tarixda.current) return;
+    window.history.pushState({ ...(window.history.state ?? {}), zsQatlam: true }, '');
+    tarixda.current = true;
+  };
+  useEffect(() => {
+    const orqaga = () => {
+      if (!tarixda.current) return;
+      tarixda.current = false;
+      setMenyu(false);
+      setOyna(null);
+      setObunaOchiq(false);
+    };
+    window.addEventListener('popstate', orqaga);
+    return () => window.removeEventListener('popstate', orqaga);
+  }, []);
+  /** Bitta qatlamni yopadi; boshqasi qolmasa — tarix yozuvi bilan birga. */
+  const yop = (nima: 'menyu' | 'oyna' | 'obuna') => {
+    const qoladi = (nima !== 'menyu' && menyu) || (nima !== 'oyna' && oyna !== null) || (nima !== 'obuna' && obunaOchiq);
+    if (!qoladi && tarixda.current) { window.history.back(); return; }
+    if (nima === 'menyu') setMenyu(false);
+    else if (nima === 'oyna') setOyna(null);
+    else setObunaOchiq(false);
+  };
+
+  // Esc — ochiq modal yoki menyu yopiladi (har renderda yangilanadi: joriy holatni oʻqiydi).
   useEffect(() => {
     function tugma(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
-      setMenyu(false);
-      setProfilOchiq(false);
+      if (oyna !== null) yop('oyna');
+      else if (menyu) yop('menyu');
     }
     window.addEventListener('keydown', tugma);
     return () => window.removeEventListener('keydown', tugma);
-  }, []);
+  });
 
-  // Oxirgi xabarga: aylanuvchi maydonning oxirigacha (pastki 20 px chekka ham kiradi — dizayndagidek).
+  /*
+   * Oxirgi xabarga aylantirish (pastki 20 px chekka ham kiradi —
+   * dizayndagidek) — faqat YANGI narsa chiqqanda: xabar, boshqa savol,
+   * "Yozmoqda…", xato. 5/9-qadam kutishida har tekshiruv `keyingi` ni
+   * yangi obyekt qilib qaytaradi — ilgari shu ham har 8 s da pastga
+   * sakratardi va tepadagi kartalarni oʻqib boʻlmasdi (audit, 2026-10-05).
+   */
+  const aylantirKaliti = `${xabarlar.length}|${keyingiKaliti(keyingi)}|${band ? 1 : 0}|${xato ?? ''}`;
   useEffect(() => {
     const el = oqim.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [xabarlar, keyingi, band]);
+  }, [aylantirKaliti]);
+
+  // «Rejalar»dan qaytganda suhbat oʻsha joyida turadi (yashirilgan edi, oʻchirilmagan).
+  const aylanish = useRef(0);
+  useLayoutEffect(() => {
+    if (!obunaOchiq && oqim.current) oqim.current.scrollTop = aylanish.current;
+  }, [obunaOchiq]);
 
   /**
-   * `jim` — fon soʻrovi (5-qadam kutishini tekshirish): "Yozmoqda…"
-   * koʻrsatilmaydi, kiritish bloklanmaydi.
+   * Soʻrov. `jim` — fon tekshiruvi (5/9-qadam kutishi): "Yozmoqda…"
+   * koʻrsatilmaydi, kiritish bloklanmaydi, xatosi ekranga chiqmaydi —
+   * keyingi tekshiruv yana soʻraydi.
+   *
+   * XATODA EKRAN OʻZGARMAYDI. Server baza javob bermasa ham `keyingi`
+   * (boshlangʻich savol) va `qadam: 1` qaytaradi — ilgari mijoz ularni
+   * qoʻllab, 8-qadamdagi odamni 1-qadamga otib yuborardi (audit, 2026-10-05).
    */
-  async function yubor(tana: Record<string, unknown>, jim = false) {
-    if (!jim) { setBand(true); setXato(null); }
+  async function yubor(tana: Record<string, unknown>, jim = false): Promise<void> {
+    const mening = avlod.current;
+    if (!jim) { bandQil(true); setXato(null); }
     try {
-      const r = await fetch('/api/suhbat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
-        body: JSON.stringify(tana),
-      });
-      const d = (await r.json()) as SuhbatJavobi;
-      if (!r.ok && !d.keyingi) {
-        setXato(d.xato ?? tr('Ulanib boʻlmadi', 'Не удалось подключиться'));
+      let r: Response;
+      try {
+        r = await fetch('/api/suhbat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
+          body: JSON.stringify(tana),
+        });
+      } catch (q) {
+        if (jim || mening !== avlod.current) return;
+        console.warn('suhbat:', q);
+        // Soʻrov serverga yetib, javobi yoʻlda yoʻqolgan boʻlishi mumkin —
+        // holat qayta oʻqiladi: ekran server bilan bir xil boʻlsin.
+        await yukla();
+        setXato(XATO.tarmoq);
         return;
       }
-      qabul(d, tana.boshdan === true);
-      if (tana.boshdan === true) setXabarlar([]);
-    } catch (q) {
-      setXato(`${tr('Soʻrov yuborilmadi', 'Запрос не отправлен')}: ${String(q)}`);
+      const d = await jsonOl(r);
+      if (mening !== avlod.current) return;
+      if (!r.ok || d === null || !d.keyingi) {
+        if (jim) return;
+        if (d?.xato) console.warn('suhbat:', d.xato);
+        if (d === null) await yukla();
+        setXato(d?.xato ?? XATO.buzuq);
+        return;
+      }
+      if (tana.boshdan === true && d.xato) {
+        // Boshidan boshlanmadi — ekran ham, yoʻl ham avvalgidek.
+        console.warn('suhbat:', d.xato);
+        setXato(d.xato);
+        return;
+      }
+      if (navbatBuzildimi(d.xato)) {
+        // Suhbat boshqa oynada (yoki kengaytmada) oldinga ketgan.
+        console.warn('suhbat:', d.xato);
+        await yukla();
+        setXato(XATO.yangilandi);
+        return;
+      }
+      if (d.yozildi === false && d.xabarlar.length > 0) {
+        // Saqlanmadi: yangi xabarlarni koʻrsatish yolgʻon boʻlardi — sahifa
+        // yangilansa ular yoʻq. Ekran avvalgi savolda, yozuv va tanlov joyida.
+        if (!jim) { console.warn('suhbat:', d.xato); setXato(XATO.saqlanmadi); }
+        return;
+      }
+      qabul(d, {
+        tozala: tana.boshdan === true,
+        javobKetdi: Object.prototype.hasOwnProperty.call(tana, 'javob'),
+        matnKetdi: typeof tana.matn === 'string',
+      });
     } finally {
-      if (!jim) setBand(false);
+      if (!jim) bandQil(false);
     }
   }
 
@@ -198,17 +328,75 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   // deb menejer javob beradi ("salom", "bu nima?") — chatda ikkalasi ham qoladi.
   const matnYubor = (savolId: string, t: string) => void yubor({ savolId, matn: t });
 
-  // 5-qadam (1688, 30–90 s) va 9-qadam (1688 taklif galereyasi, 20–60 s):
-  // `kutish` holatida har 8 s da `{tekshir: true}` yuboriladi; tugagach
-  // javobda xabarlar keladi. Qaysi ish kutilayotganini server biladi.
+  // Eng soʻnggi `yubor` — taymer va effektlar eski yopilmani chaqirmasin.
+  const yuborRef = useRef(yubor);
+  useEffect(() => { yuborRef.current = yubor; });
+
+  /*
+   * 5-qadam (1688, 30–90 s) va 9-qadam (studiya, 20–60 s): `kutish`
+   * holatida `{tekshir: true}` soʻraladi, tugagach javobda xabarlar keladi;
+   * qaysi ish kutilayotganini server biladi. BIR VAQTDA BITTA: keyingisi
+   * oldingisi tugagach 8 s dan keyin. Ilgari `setInterval` sekin javob
+   * ustiga yana yuborardi — 1688 kartasi va keyingi savol ikki marta
+   * yozilardi (audit, 2026-10-05). Odam soʻrovi yoʻlda boʻlsa — bu navbat
+   * oʻtkaziladi.
+   */
   const kutishBormi = keyingi?.tur === 'kutish';
   useEffect(() => {
     if (!kutishBormi) return;
-    const id = setInterval(() => { void yubor({ tekshir: true }, true); }, 8000);
-    return () => clearInterval(id);
+    let toxta = false;
+    let taymer: ReturnType<typeof setTimeout> | undefined;
+    const navbat = () => {
+      taymer = setTimeout(() => {
+        if (toxta) return;
+        if (bandRef.current) { navbat(); return; }
+        const p = yuborRef.current({ tekshir: true }, true);
+        tekshiruv.current = p;
+        void p.finally(() => {
+          if (tekshiruv.current === p) tekshiruv.current = null;
+          if (!toxta) navbat();
+        });
+      }, 8000);
+    };
+    navbat();
+    return () => { toxta = true; if (taymer !== undefined) clearTimeout(taymer); };
   }, [kutishBormi]);
-  const boshdan = () => void yubor({ boshdan: true });
 
+  /*
+   * Kod qadami kutilmoqda (masalan, ssenariyga yangi qadam qoʻshilgach
+   * eski obunachi kirsa): boʻsh soʻrov uni bajaradi. Bir marta — yana
+   * kelsa pastda «Qayta urinish» turadi (aylanib qolmasin).
+   */
+  const kodYurdi = useRef('');
+  useEffect(() => {
+    if (keyingi?.tur !== 'kod' || band) return;
+    const kalit = keyingiKaliti(keyingi);
+    if (kodYurdi.current === kalit) return;
+    kodYurdi.current = kalit;
+    void yuborRef.current({});
+  }, [keyingi, band]);
+
+  const menyuOch = () => { qatlamOch(); setMenyu(true); };
+  const profilOch = () => { qatlamOch(); setMenyu(false); setOyna('profil'); };
+  /** «Boshidan boshlash» endi faqat tasdiqdan keyin — bitta bosish butun yoʻlni oʻchirardi. */
+  const boshdanSora = () => { qatlamOch(); setMenyu(false); setOyna('tasdiq'); };
+  const obunaOch = () => { aylanish.current = oqim.current?.scrollTop ?? 0; qatlamOch(); setOyna(null); setObunaOchiq(true); };
+
+  async function boshdanBoshla() {
+    yop('oyna');
+    avlod.current += 1;
+    bandQil(true);
+    // Fon tekshiruvi yoʻlda boʻlsa — tugashini kutamiz: aks holda u eski
+    // holatni boshidan boshlangandan KEYIN bazaga yozib qoʻyardi.
+    if (tekshiruv.current) await tekshiruv.current;
+    await yubor({ boshdan: true });
+  }
+
+  /** Yuklab boʻlmadi — qayta oʻqish; kod qadami ochilmadi — qayta bajarish. */
+  const qaytaUrin = () => {
+    if (keyingi === null) { setYuklandi(false); setXato(null); void yukla(); }
+    else void yubor({});
+  };
 
   const savol = keyingi?.tur === 'savol' ? keyingi.savol : null;
   // Oxirgi tovar katalogi — joriy savol "tovarlar" bo'lsa aynan u bosiladi.
@@ -228,10 +416,15 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const kutish = keyingi?.tur === 'kutish' ? keyingi : null;
   const tezOradaKorsat = tezOrada !== null && !(oxirgi?.rol === 'menejer' && oxirgi.matn === tezOrada.matn);
 
+  // Holat kelmaguncha (yuklanmoqda yoki xato) hech qaysi qadam "joriy" emas —
+  // ilgari bu paytda ham "1-qadam" deb koʻrsatilardi.
+  const holatBor = keyingi !== null;
+  const modal = oyna !== null;
   const qadamlarSoni = SUHBAT_QADAMLARI.length;
-  const joriyQadam = SUHBAT_QADAMLARI.find((q) => q.n === qadam);
+  const joriyQadam = holatBor ? SUHBAT_QADAMLARI.find((q) => q.n === qadam) : undefined;
   const qadamNomi = joriyQadam ? tr(joriyQadam.nom, joriyQadam.ru) : '';
-  const foiz = Math.round((Math.min(qadam, qadamlarSoni) / qadamlarSoni) * 100);
+  const foiz = holatBor ? Math.round((Math.min(qadam, qadamlarSoni) / qadamlarSoni) * 100) : 0;
+  const yashir = obunaOchiq ? YASHIRIN : undefined;
 
   const yonPanel = (
     <>
@@ -241,7 +434,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         <span className={u.nomUsta}>Usta</span>
       </div>
 
-      <button type="button" className={u.yangiSuhbat} onClick={() => { boshdan(); setMenyu(false); }} disabled={band}>
+      {/* Holat kelmagan boʻlsa (ulanib boʻlmadi) — oʻchirib boʻlmaydi: odam yoʻlini koʻrmay turib oʻchirib qoʻymasin. */}
+      <button type="button" className={u.yangiSuhbat} onClick={boshdanSora} disabled={band || !holatBor}>
         {tr('Boshidan boshlash', 'Начать заново')}
         <span className={u.xiraIkon}><Ikon nom="qaytadan" o={17} /></span>
       </button>
@@ -250,12 +444,13 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         <div className={u.yorliq}>{tr(`Yoʻl · ${qadamlarSoni} qadam`, `Путь · ${qadamlarSoni} шагов`)}</div>
         <ol className={u.qadamRoyxat}>
           {SUHBAT_QADAMLARI.map((q) => {
-            const otildi = q.qurilgan && q.n < qadam;
+            const joriy = holatBor && q.n === qadam;
+            const otildi = holatBor && q.qurilgan && q.n < qadam;
             return (
               <li
                 key={q.n}
-                className={[u.qadamQator, otildi ? u.qadamOtildi : '', q.n === qadam ? u.qadamJoriy : ''].join(' ')}
-                aria-current={q.n === qadam ? 'step' : undefined}
+                className={[u.qadamQator, otildi ? u.qadamOtildi : '', joriy ? u.qadamJoriy : ''].join(' ')}
+                aria-current={joriy ? 'step' : undefined}
               >
                 <span className={u.qadamRaqam} aria-hidden="true">{otildi ? <Ikon nom="belgi" o={13} q={3} /> : q.n}</span>
                 <span className={u.qadamNomi}>{tr(q.nom, q.ru)}</span>
@@ -268,7 +463,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
       <div className={u.bosh} />
 
-      <button type="button" className={u.profilTugma} onClick={() => { setProfilOchiq(true); setMenyu(false); }}>
+      <button type="button" className={u.profilTugma} onClick={profilOch}>
         <span className={u.avatar}><Ikon nom="odam" o={18} /></span>
         <span className={u.profilNomi}>{tr('Profilim', 'Мой профиль')}</span>
         <span className={u.profilSon}>{tr('Bepul', 'Бесплатно')}</span>
@@ -278,43 +473,46 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
   return (
     <div className={`zs-mavzu ${u.ilova} ${menyu ? u.menyuOchiq : ''}`} data-til={til}>
-      <aside className={u.yon} aria-label={tr('Yon panel', 'Боковая панель')}>{yonPanel}</aside>
+      <aside className={u.yon} aria-label={tr('Yon panel', 'Боковая панель')} inert={modal}>{yonPanel}</aside>
       {menyu && (
-        <button type="button" className={u.soya} aria-label={tr('Menyuni yopish', 'Закрыть меню')} onClick={() => setMenyu(false)} />
+        <button type="button" className={u.soya} aria-label={tr('Menyuni yopish', 'Закрыть меню')} onClick={() => yop('menyu')} />
       )}
 
-      <div className={u.asosiy}>
-        {obunaOchiq ? (
-          <Obuna tr={tr} mavzu={mavzu} mavzuniTanla={mavzuniTanla} orqaga={() => setObunaOchiq(false)} />
-        ) : (<>
-        <header className={u.tepa}>
+      <div className={u.asosiy} inert={modal}>
+        {obunaOchiq && <Obuna tr={tr} mavzu={mavzu} mavzuniTanla={mavzuniTanla} orqaga={() => yop('obuna')} />}
+        <header className={u.tepa} style={yashir}>
           <div className={u.tepaChap}>
-            <button type="button" className={u.burger} aria-label={tr('Menyu', 'Меню')} aria-expanded={menyu} onClick={() => setMenyu(true)}>
+            <button type="button" className={u.burger} aria-label={tr('Menyu', 'Меню')} aria-expanded={menyu} onClick={menyuOch}>
               <Ikon nom="menyu" o={18} />
             </button>
             <span className={u.tirik} aria-hidden="true" />
             <div className={u.sarlavhaBlok}>
-              <div className={u.sarlavha}>{qadamNomi}</div>
+              <div className={u.sarlavha}>{qadamNomi || ' '}</div>
               <div className={u.sarlavhaMeta}>
-                {tr(`${qadam}-qadam · ${qadamlarSoni} dan`, `Шаг ${qadam} из ${qadamlarSoni}`)}
+                {holatBor
+                  ? tr(`${qadam}-qadam · ${qadamlarSoni} dan`, `Шаг ${qadam} из ${qadamlarSoni}`)
+                  : yuklandi ? tr('Ulanib boʻlmadi', 'Нет связи') : tr('Yuklanmoqda…', 'Загрузка…')}
               </div>
             </div>
-            <div className={u.jarayon} role="progressbar" aria-valuemin={0} aria-valuemax={qadamlarSoni} aria-valuenow={qadam}
+            <div className={u.jarayon} role="progressbar" aria-valuemin={0} aria-valuemax={qadamlarSoni} aria-valuenow={holatBor ? qadam : 0}
               aria-label={tr('Yoʻl', 'Путь')}>
               <i style={{ width: `${foiz}%` }} />
             </div>
           </div>
           <div className={u.tepaOng}>
             <MavzuTugma mavzu={mavzu} tanla={mavzuniTanla} tr={tr} />
-            <button type="button" className={`${u.pill} ${profilOchiq ? u.pillFaol : ''}`} onClick={() => setProfilOchiq(true)}>
+            <button type="button" className={`${u.pill} ${oyna === 'profil' ? u.pillFaol : ''}`} onClick={profilOch}>
               <Ikon nom="odam" o={16} />{tr('Profilim', 'Мой профиль')}
             </button>
-            <a className={u.pill} href="/"><Ikon nom="chiqish" o={16} />{tr('Chiqish', 'Выйти')}</a>
+            {/* Kengaytma panelida hash (token) bosh sahifaga ham oʻtadi — qaytganda suhbat oʻsha. */}
+            <a className={u.pill} href="/" onClick={(e) => { const h = window.location.hash; if (!h) return; e.preventDefault(); window.location.href = `/${h}`; }}>
+              <Ikon nom="chiqish" o={16} />{tr('Chiqish', 'Выйти')}
+            </a>
           </div>
         </header>
 
-        <div className={u.oqim} ref={oqim}>
-          <div className={u.ichi}>
+        <div className={u.oqim} ref={oqim} style={yashir}>
+          <div className={u.ichi} role="log" aria-label={tr('Suhbat', 'Чат')}>
             {xabarlar.map((x, i) => (
               <XabarPufagi
                 key={x.seq ?? `y${i}`}
@@ -327,7 +525,6 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                   : undefined}
               />
             ))}
-
             {savolKorsat && savol && <div className={`${u.pufak} ${u.ai}`}>{savol.matn}</div>}
             {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}>{tezOrada.matn}</div>}
             {kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
@@ -340,13 +537,13 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
             )}
 
             {xato !== null && (
-              <div className={`${u.pufak} ${u.ai}`}><p className={u.xato}>{xato}</p></div>
+              <div className={`${u.pufak} ${u.ai}`}><p className={u.xato} role="alert">{xatoGapi(xato, tr)}</p></div>
             )}
 
           </div>
         </div>
 
-        <div className={u.past_}>
+        <div className={u.past_} style={yashir}>
           <div className={u.pastIchi}>
             {!yuklandi ? (
               <p className={u.holat}>{tr('Yuklanmoqda…', 'Загрузка…')}</p>
@@ -355,14 +552,17 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                 savol={savol}
                 tezOrada={tezOrada !== null}
                 kutish={kutish !== null}
+                yuklanmadi={!holatBor}
                 band={band}
+                klaviatura={!modal && !menyu && !obunaOchiq}
                 tanlangan={tanlangan}
                 setTanlangan={setTanlangan}
                 matn={matn}
                 setMatn={setMatn}
                 javobBer={javobBer}
                 matnYubor={matnYubor}
-                boshdan={boshdan}
+                boshdan={boshdanSora}
+                qaytaUrin={qaytaUrin}
                 tr={tr}
               />
             )}
@@ -374,13 +574,13 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
             </p>
           </div>
         </div>
-        </>)}
       </div>
 
-      {profilOchiq && (
-        <Profilim mavzu={mavzu} mavzuniTanla={mavzuniTanla} til={til} tilniTanla={tilniTanla} boshdan={boshdan}
-          yop={() => setProfilOchiq(false)} obuna={() => { setProfilOchiq(false); setObunaOchiq(true); }} />
+      {oyna === 'profil' && (
+        <Profilim mavzu={mavzu} mavzuniTanla={mavzuniTanla} til={til} tilniTanla={tilniTanla} band={band || !holatBor}
+          boshdan={() => setOyna('tasdiq')} yop={() => yop('oyna')} obuna={obunaOch} />
       )}
+      {oyna === 'tasdiq' && <BoshdanTasdiq tr={tr} band={band} ha={() => void boshdanBoshla()} yoq={() => yop('oyna')} />}
     </div>
   );
 }
@@ -408,6 +608,8 @@ interface KatalogRejimi {
 function XabarPufagi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined }) {
   if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
   if (x.rol === 'menejer') return <div className={`${u.pufak} ${u.ai}`}>{x.matn}</div>;
+  // «Boshidan boshlash» belgisi: tarix qoladi, yangi yoʻl shu chiziqdan boshlanadi.
+  if (x.savolId === 'boshdan') return <div className={u.ajratgich}>{tr('Yoʻl boshidan boshlandi', 'Путь начат заново')}</div>;
   return <KodKartasi x={x} tr={tr} katalog={katalog} />;
 }
 
@@ -790,13 +992,17 @@ interface BuyurtmaQ {
   izoh?: string;
 }
 
-/** Varaqa matni — agentga yuborish uchun (nusxalash). Hamma raqam natijadan. */
-function varaqaMatni(n: BuyurtmaQ): string {
+/**
+ * Varaqa matni — agentga yuborish uchun (nusxalash). Hamma raqam natijadan.
+ * Sahifa tilida; sarlavhada eski «SellerOS» nomi yoʻq (agentga brend kerak emas).
+ */
+function varaqaMatni(n: BuyurtmaQ, tr: Tr): string {
   const q = (n.qatorlar ?? []).filter((x) => x.holat === 'tayyor');
+  const dona = tr('dona', 'шт');
   const satrlar = q.map((x, i) =>
-    `${i + 1}. ${x.xitoyTitle ?? x.title} — ${x.miqdor ?? '?'} dona × ¥${x.narxYuan ?? '?'}${x.jamiYuan !== null ? ` = ¥${x.jamiYuan}` : ''}${x.manzil ? `\n   ${x.manzil}` : ''}`);
+    `${i + 1}. ${x.xitoyTitle ?? x.title} — ${x.miqdor ?? '?'} ${dona} × ¥${x.narxYuan ?? '?'}${x.jamiYuan !== null ? ` = ¥${x.jamiYuan}` : ''}${x.manzil ? `\n   ${x.manzil}` : ''}`);
   const j = n.jami;
-  return ['Buyurtma varaqasi (SellerOS)', ...satrlar, j ? `Jami: ${j.dona ?? '?'} dona, ¥${j.yuan ?? '?'}` : ''].filter(Boolean).join('\n');
+  return [tr('Buyurtma varaqasi', 'Лист заказа'), ...satrlar, j ? `${tr('Jami', 'Итого')}: ${j.dona ?? '?'} ${dona}, ¥${j.yuan ?? '?'}` : ''].filter(Boolean).join('\n');
 }
 
 function BuyurtmaVaraqasi({ n, tr }: { n: BuyurtmaQ; tr: Tr }) {
@@ -804,7 +1010,7 @@ function BuyurtmaVaraqasi({ n, tr }: { n: BuyurtmaQ; tr: Tr }) {
   const q = n.qatorlar ?? [];
   const j = n.jami;
   const nusxala = () => {
-    try { void navigator.clipboard.writeText(varaqaMatni(n)); setNusxalandi(true); setTimeout(() => setNusxalandi(false), 2000); } catch { /* clipboard yoʻq */ }
+    try { void navigator.clipboard.writeText(varaqaMatni(n, tr)); setNusxalandi(true); setTimeout(() => setNusxalandi(false), 2000); } catch { /* clipboard yoʻq */ }
   };
   const yuan = (y: number | null, s: number | null) => (y === null ? '—' : `¥${y}${s !== null ? ` ≈ ${raqam(s)}` : ''}`);
   return (
@@ -869,6 +1075,15 @@ interface RasmiyQ {
   izoh?: string;
 }
 
+/** Ruscha "yil": 1 год, 2–4 года, 5+ лет (11–14 — лет). */
+function ruYil(n: number): string {
+  const o = n % 100;
+  const b = n % 10;
+  if (o >= 11 && o <= 14) return 'лет';
+  if (b === 1) return 'год';
+  return b >= 2 && b <= 4 ? 'года' : 'лет';
+}
+
 function Manba({ manba, olchandi, tr }: { manba: string | null; olchandi: string | null; tr: Tr }) {
   if (!manba && !olchandi) return null;
   return <p className={u.manba}>{tr('Manba', 'Источник')}: {manba ?? '—'}{olchandi ? ` · ${olchandi}` : ''}</p>;
@@ -885,7 +1100,14 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
   const som = (x: number | null | undefined) => (x === null || x === undefined ? yoq : `${raqam(x)} ${somB}`);
   const bepulYoki = (x: number | null) => (x === null ? '—' : x === 0 ? tr('bepul', 'бесплатно') : som(x));
   const k = f.uzum.komissioner;
-  const rekvizit = [`STIR: ${k.stir ?? '—'}`, `Nom: ${k.nom ?? '—'}`, `MFO: ${k.mfo ?? '—'}`, `Hisob: ${k.hisob ?? '—'}`, `Muddat: ${k.muddatYil !== null ? `${k.muddatYil} yil` : '—'}`, 'ONKM + Marketplace'].join('\n');
+  const rekvizit = [
+    `${tr('STIR', 'ИНН')}: ${k.stir ?? '—'}`,
+    `${tr('Nom', 'Название')}: ${k.nom ?? '—'}`,
+    `${tr('MFO', 'МФО')}: ${k.mfo ?? '—'}`,
+    `${tr('Hisob', 'Счёт')}: ${k.hisob ?? '—'}`,
+    `${tr('Muddat', 'Срок')}: ${k.muddatYil !== null ? tr(`${k.muddatYil} yil`, `${k.muddatYil} ${ruYil(k.muddatYil)}`) : '—'}`,
+    'ONKM + Marketplace',
+  ].join('\n');
   const nusxala = () => {
     try { void navigator.clipboard.writeText(rekvizit); setNusxalandi(true); setTimeout(() => setNusxalandi(false), 2000); } catch { /* clipboard yoʻq */ }
   };
@@ -1367,6 +1589,16 @@ interface HisobotQ {
   izoh?: string;
 }
 
+const OYLAR_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'] as const;
+
+/** `YYYY-MM` → "2026-yil sentyabr" / "сентябрь 2026". Kalit notoʻgʻri boʻlsa — oʻzi. */
+function oyMatni(oy: string, tr: Tr): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(oy);
+  const n = m ? Number(m[2]) : 0;
+  if (!m || n < 1 || n > 12) return oy;
+  return tr(oyNomi(oy), `${OYLAR_RU[n - 1]} ${m[1]}`);
+}
+
 function HisobotKartasi({ n, tr }: { n: HisobotQ; tr: Tr }) {
   const q = n.qatorlar ?? [];
   const f = n.faktlar;
@@ -1375,7 +1607,7 @@ function HisobotKartasi({ n, tr }: { n: HisobotQ; tr: Tr }) {
       {f && f.yetishmaydi.length > 0 && <Ogohlik>{tr('Faktda yoʻq:', 'Нет в фактах:')} {f.yetishmaydi.join(', ')}</Ogohlik>}
       <div className={u.karta}>
         <div className={`${u.kartaBoshi} ${u.kartaBoshiMarkaz}`}>
-          <div className={u.kartaSarlavha}>{tr('Oy hisoboti', 'Отчёт за месяц')} · {n.oy ? oyNomi(n.oy) : '—'}</div>
+          <div className={u.kartaSarlavha}>{tr('Oy hisoboti', 'Отчёт за месяц')} · {n.oy ? oyMatni(n.oy, tr) : '—'}</div>
           {n.tugagan === false && <span className={`${u.teg} ${u.tegNeytral}`}>{tr('hozirgacha', 'на сегодня')}</span>}
         </div>
         {q.map((x) => (
@@ -1411,7 +1643,7 @@ function HisobotHisobKartasi({ n, tr }: { n: HisobotHisobQ; tr: Tr }) {
     <div className={u.kartalar}>
       <div className={u.karta}>
         <div className={`${u.kartaBoshi} ${u.kartaBoshiMarkaz}`}>
-          <div className={u.kartaSarlavha}>{tr('Oy yakuni', 'Итоги месяца')} · {n.oy ? oyNomi(n.oy) : '—'}</div>
+          <div className={u.kartaSarlavha}>{tr('Oy yakuni', 'Итоги месяца')} · {n.oy ? oyMatni(n.oy, tr) : '—'}</div>
           {n.tugagan === false && <span className={`${u.teg} ${u.tegNeytral}`}>{tr('hozirgacha', 'на сегодня')}</span>}
         </div>
         <div className={u.statlar}>
@@ -1595,11 +1827,15 @@ function useUstun(ref: RefObject<HTMLDivElement | null>, eng: number, kalit: str
   return n;
 }
 
-function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, matn, setMatn, javobBer, matnYubor, boshdan, tr }: {
+function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanlangan, setTanlangan, matn, setMatn, javobBer, matnYubor, boshdan, qaytaUrin, tr }: {
   savol: Savol | null;
   tezOrada: boolean;
   kutish: boolean;
+  /** Holat serverdan kelmadi (tarmoq/baza) — faqat «Qayta urinish». */
+  yuklanmadi: boolean;
   band: boolean;
+  /** 1–9 tugmalari ishlaydimi (modal, menyu, «Rejalar» ochiq boʻlsa — yoʻq). */
+  klaviatura: boolean;
   tanlangan: Array<string | number>;
   setTanlangan: (t: Array<string | number>) => void;
   matn: string;
@@ -1607,6 +1843,7 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
   javobBer: (savolId: string, javob: unknown) => void;
   matnYubor: (savolId: string, matn: string) => void;
   boshdan: () => void;
+  qaytaUrin: () => void;
   tr: Tr;
 }) {
   const kiritish = useRef<HTMLInputElement>(null);
@@ -1617,10 +1854,15 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
     savol ? `${savol.id}|${savol.variantlar.map((v) => v.nom).join('|')}|${tr('uz', 'ru')}` : '',
   );
 
-  // Klaviatura: 1–9 — variant raqami (dizayndagi kichik belgilar). Yozish
-  // maydonida emas va koʻp tanlovli savolda emas.
+  /*
+   * Klaviatura: 1–9 — variant raqami. FAQAT raqamli savolda: kichik
+   * belgilar (dizayn) faqat ularda turadi. Belgisiz tugmalarda yashirin
+   * tugma odamni aldardi — "150" yozaman deb bosilgan "1" birinchi
+   * variantni yuborib yuborardi (audit, 2026-10-05). Yozish maydonida,
+   * modal yoki menyu ochiqligida ishlamaydi.
+   */
   useEffect(() => {
-    if (!savol || savol.turi === 'kopTanlov' || savol.variantlar.length === 0 || savol.variantlar.length > 9) return;
+    if (!klaviatura || !savol || savol.turi !== 'son' || savol.variantlar.length === 0 || savol.variantlar.length > 9) return;
     const s = savol;
     function bos(e: KeyboardEvent) {
       if (band || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1633,7 +1875,20 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
     }
     window.addEventListener('keydown', bos);
     return () => window.removeEventListener('keydown', bos);
-  }, [savol, band, javobBer]);
+  }, [savol, band, javobBer, klaviatura]);
+
+  /*
+   * Yozib yuborilgandan keyin fokus maydonga qaytadi: telefonda klaviatura
+   * yopilmaydi, kompyuterda keyingi raqam maydonga tushadi — variant
+   * tugmasiga emas. (Yuborish paytida maydon `readOnly`, `disabled`
+   * emas: oʻchirilgan maydon fokusni `<body>` ga tashlab yuborardi.)
+   */
+  const fokusKerak = useRef(false);
+  useEffect(() => {
+    if (band || !fokusKerak.current) return;
+    fokusKerak.current = false;
+    kiritish.current?.focus({ preventScroll: true });
+  }, [band]);
 
   if (kutish) {
     // Dizayn w8: kutish paytida ham oddiy qator turadi; javob natija kelgach soʻraladi.
@@ -1641,6 +1896,18 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
       <div className={u.kiritish} aria-disabled="true">
         <input type="text" readOnly tabIndex={-1} aria-label={tr('Javob', 'Ответ')} placeholder={tr('Oʻzim yozaman', 'Свой ответ')} />
         <button type="button" className={u.yubor} tabIndex={-1} aria-disabled="true" aria-label={tr('Yuborish', 'Отправить')}><span className={u.yuborMatn}>{tr('Yuborish', 'Отправить')}</span><Ikon nom="ong" o={18} /></button>
+      </div>
+    );
+  }
+  if (yuklanmadi || (savol === null && !tezOrada)) {
+    // Holat kelmadi yoki kod qadami ochilmadi. Bu yerda ilgari faqat
+    // «Boshidan boshlash» turardi — "ishlamayapti" deb bosgan odam butun
+    // yoʻlini oʻchirardi (audit, 2026-10-05). Endi — qayta urinish.
+    return (
+      <div className={u.tugmalar}>
+        <button type="button" className={`${u.tugma} ${u.tugmaSoyali}`} onClick={qaytaUrin} disabled={band}>
+          <Ikon nom="qaytadan" o={18} />{tr('Qayta urinish', 'Повторить')}
+        </button>
       </div>
     );
   }
@@ -1669,7 +1936,8 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
 
   const erkinYubor = () => {
     const t = matn.trim();
-    if (t === '') return;
+    if (t === '' || band) return;
+    fokusKerak.current = true;
     matnYubor(savol.id, t);
   };
   // Javob yoziladigan savol (son, matn, erkin) — oʻz yozuvi; faqat tugmali
@@ -1680,21 +1948,24 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
       {/*
         Oddiy matn maydoni: `type="number"` harf va boʻsh joyni yozdirmasdi
         ("10 mln", "5 000 000"). Sonni ham server oʻqiydi (`matndanSon`); javob
-        boʻlmasa — erkin xabar, menejer javob beradi.
+        boʻlmasa — erkin xabar, menejer javob beradi. Telefonda ham oddiy
+        klaviatura: raqamli klaviaturada (iOS `decimal`) harf ham, boʻsh joy
+        ham yoʻq edi.
       */}
       <input
         ref={kiritish}
         type="text"
-        inputMode={savol.turi === 'son' ? 'decimal' : 'text'}
+        enterKeyHint="send"
         autoComplete="off"
         aria-label={savol.matn}
         placeholder={savol.turi === 'son'
           ? tr('Oʻzim yozaman: aniq son', 'Своё число')
           : ochiqJavob ? tr('Oʻzim yozaman', 'Свой ответ') : tr('Savolingiz boʻlsa — yozing', 'Есть вопрос — напишите')}
         value={matn}
-        disabled={band}
+        readOnly={band}
+        aria-busy={band}
         onChange={(e) => setMatn(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') erkinYubor(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) erkinYubor(); }}
       />
       <button type="button" className={u.yubor} onClick={erkinYubor} disabled={band || matn.trim() === ''} aria-label={tr('Yuborish', 'Отправить')}>
         <span className={u.yuborMatn}>{tr('Yuborish', 'Отправить')}</span><Ikon nom="ong" o={18} />
@@ -1777,12 +2048,14 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
  * (nazoratchi, 2026-09-25). «Kirish» — `/kirish`, «Rejalarni
  * solishtirish» — `/obuna`.
  */
-function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, boshdan, yop, obuna }: {
+function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, obuna }: {
   mavzu: Mavzu; mavzuniTanla: (m: Mavzu) => void;
   til: Til; tilniTanla: (t: Til) => void;
-  boshdan: () => void; yop: () => void; obuna: () => void;
+  band: boolean; boshdan: () => void; yop: () => void; obuna: () => void;
 }) {
   const tr = tarjima(til);
+  const panel = useRef<HTMLDivElement>(null);
+  useModalFokus(panel);
   const rejalar: ReadonlyArray<{ reja: Reja; nom: string }> = [
     { reja: 'bepul', nom: tr('Bepul', 'Бесплатный') },
     { reja: 'pro', nom: 'Pro' },
@@ -1790,13 +2063,13 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, boshdan, yop, obuna }:
   ];
   return (
     <div className={u.panelFon} role="presentation" onClick={yop}>
-      <div className={u.panel} role="dialog" aria-modal="true" aria-labelledby="profil-sarlavha" onClick={(e) => e.stopPropagation()}>
+      <div ref={panel} className={u.panel} role="dialog" aria-modal="true" aria-labelledby="profil-sarlavha" onClick={(e) => e.stopPropagation()}>
         <header className={u.panelBosh}>
           <div>
             <h2 id="profil-sarlavha" className={u.panelSarlavha}>{tr('Profilim', 'Мой профиль')}</h2>
             <p className={u.panelMeta}>{tr('Hisob, obuna va sozlamalar', 'Аккаунт, подписка и настройки')}</p>
           </div>
-          <button type="button" className={u.yopish} aria-label={tr('Yopish', 'Закрыть')} onClick={yop}><Ikon nom="yopish" o={18} /></button>
+          <button type="button" className={u.yopish} data-fokus aria-label={tr('Yopish', 'Закрыть')} onClick={yop}><Ikon nom="yopish" o={18} /></button>
         </header>
         <div className={u.panelIchi}>
           <section>
@@ -1868,11 +2141,44 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, boshdan, yop, obuna }:
                 <div className={u.sozlamaNomi}>{tr('Suhbat', 'Чат')}</div>
                 <div className={u.hisobIzoh}>{tr('Yoʻlni boshidan boshlash. Tarix saqlanadi.', 'Начать путь заново. История сохраняется.')}</div>
               </div>
-              <button type="button" className={u.boshdanTugma} onClick={() => { boshdan(); yop(); }}>
+              <button type="button" className={u.boshdanTugma} onClick={boshdan} disabled={band}>
                 <Ikon nom="qaytadan" o={18} />{tr('Boshidan boshlash', 'Начать заново')}
               </button>
             </div>
           </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ boshidan boshlash tasdigʻi */
+
+/**
+ * «Boshidan boshlash» tasdigʻi. Ilgari bitta bosish butun yoʻlni
+ * (byudjet, tovarlar, 1688 tanlovlari, buyurtma varaqasi) soʻroqsiz
+ * oʻchirardi (audit, 2026-10-05). Endi nima yoʻqolishi aytiladi va fokus
+ * «Bekor qilish» da turadi — tasodifiy Enter hech narsani oʻchirmaydi.
+ */
+function BoshdanTasdiq({ tr, band, ha, yoq }: { tr: Tr; band: boolean; ha: () => void; yoq: () => void }) {
+  const oyna = useRef<HTMLDivElement>(null);
+  useModalFokus(oyna);
+  return (
+    <div className={u.panelFon} role="presentation" onClick={yoq}>
+      <div ref={oyna} className={`${u.panel} ${u.tasdiq}`} role="alertdialog" aria-modal="true"
+        aria-labelledby="tasdiq-sarlavha" aria-describedby="tasdiq-matn" onClick={(e) => e.stopPropagation()}>
+        <h2 id="tasdiq-sarlavha" className={u.tasdiqSarlavha}>{tr('Yoʻlni boshidan boshlaysizmi?', 'Начать путь заново?')}</h2>
+        <p id="tasdiq-matn" className={u.tasdiqMatn}>
+          {tr(
+            'Javoblaringiz oʻchadi: byudjet, yoʻnalish, tovarlar va miqdor, 1688 tanlovlari, buyurtma varaqasi. Suhbat tarixi qoladi.',
+            'Ваши ответы удалятся: бюджет, направление, товары и количество, выбор на 1688, лист заказа. История чата останется.',
+          )}
+        </p>
+        <div className={u.tasdiqTugmalar}>
+          <button type="button" className={u.tugma} data-fokus onClick={yoq}>{tr('Bekor qilish', 'Отмена')}</button>
+          <button type="button" className={`${u.tugma} ${u.tugmaAsosiy}`} onClick={ha} disabled={band}>
+            <Ikon nom="qaytadan" o={18} />{tr('Ha, boshidan', 'Да, заново')}
+          </button>
         </div>
       </div>
     </div>
