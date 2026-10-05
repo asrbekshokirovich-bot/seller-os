@@ -107,6 +107,37 @@ export function raqamlar(matn: string): Raqam[] {
   return chiqdi;
 }
 
+/** Javobdagi birlik soʻzlari — son emas, tashlanadi ("5 000 000 soʻm", "20%", "30 ta"). */
+const BIRLIK = /so['\u2018\u2019\u02bb\u02bc]?m|сум|\bsum\b|foiz|%|dona|штук\p{L}*|шт\.?|\bta\b/giu;
+
+/** Ruscha koʻpaytuvchilar — oʻzbekchasiga (rus tilidagi interfeysda "10 млн" yoziladi). */
+const RUS_KOP: ReadonlyArray<[RegExp, string]> = [
+  [/млрд\.?|миллиард\p{L}*/giu, ' mlrd'],
+  [/млн\.?|миллион\p{L}*/giu, ' mln'],
+  [/тыс\p{L}*\.?/giu, ' ming'],
+];
+
+/**
+ * «Oʻzim yozaman» maydonidagi javobdan BITTA son: "5 000 000", "10 mln",
+ * "1,5 mlrd", "500 тыс", "20%", "oʻn million". Son soʻraladigan savollarda
+ * maydon ilgari `type="number"` edi — harf ham, boʻsh joy ham yozib
+ * boʻlmasdi (nazoratchi, 2026-10-05). Sayt ham, server ham shu funksiyani
+ * ishlatadi.
+ *
+ * TAXMIN QILINMAYDI: son yoʻq, bir nechta son yoki oraliq/manfiy
+ * ("5-10 mln", "-3") — `null`, obunachidan aniq son soʻraladi.
+ */
+export function matndanSon(matn: string): number | null {
+  let s = tozala(matn).trim();
+  if (!s || s.includes('-')) return null;
+  for (const [re, w] of RUS_KOP) s = s.replace(re, w);
+  s = s.replace(BIRLIK, ' ');
+  const r = raqamlar(s);
+  if (r.length !== 1) return null;
+  const q = r[0]!.qiymat;
+  return Number.isFinite(q) && q >= 0 ? q : null;
+}
+
 /** Yaxlitlashga chidamli tenglik: 0,5% yoki mutlaq 1. */
 export function teng(a: number, b: number): boolean {
   if (a === b) return true;

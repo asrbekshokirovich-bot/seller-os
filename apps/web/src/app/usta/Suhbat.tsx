@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { oyNomi, REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { matndanSon, oyNomi, REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -117,8 +117,12 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     setKeyingi(r.keyingi);
     setQadam(r.qadam);
     setXato(r.xato && r.xabarlar.length === 0 && r.tarix === undefined ? r.xato : null);
-    setTanlangan([]);
-    setMatn('');
+    // Server javobni rad etsa (`xato`) yozilgan matn va tanlov QOLADI —
+    // odam xatoni tuzatadi, hammasini qaytadan yozmaydi.
+    if (!r.xato) {
+      setTanlangan([]);
+      setMatn('');
+    }
   }, []);
 
   /*
@@ -1602,6 +1606,8 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
 }) {
   const kiritish = useRef<HTMLInputElement>(null);
   const variantlarRef = useRef<HTMLDivElement>(null);
+  // Son oʻqilmasa — maydon ostida maslahat (qaysi savolga tegishli ekani bilan).
+  const [maslahat, setMaslahat] = useState<{ savolId: string; matn: string } | null>(null);
   const ustun = useUstun(
     variantlarRef,
     savol ? ustunlar(savol) : 1,
@@ -1678,7 +1684,14 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
   const erkinYubor = () => {
     const t = matn.trim();
     if (t === '') return;
-    javobBer(savol.id, savol.turi === 'son' ? Number(t) : t);
+    if (savol.turi !== 'son') { javobBer(savol.id, t); return; }
+    // "10 mln", "5 000 000 soʻm", "1,5 mlrd" — oʻqiladi; taxmin qilinmaydi.
+    const n = matndanSon(t);
+    if (n === null) {
+      setMaslahat({ savolId: savol.id, matn: tr('Bitta son yozing — masalan: 10 000 000 yoki 10 mln', 'Напишите одно число — например: 10 000 000 или 10 млн') });
+      return;
+    }
+    javobBer(savol.id, n);
   };
 
   return (
@@ -1726,16 +1739,21 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
       )}
       {(savol.erkin || savol.turi === 'matn') && (
         <div className={u.kiritish}>
+          {/*
+            Oddiy matn maydoni, son savolida ham: `type="number"` harf va boʻsh
+            joyni yozdirmasdi ("10 mln", "5 000 000"). Son `matndanSon` bilan oʻqiladi.
+          */}
           <input
             ref={kiritish}
-            type={savol.turi === 'son' ? 'number' : 'text'}
-            min={savol.turi === 'son' ? 0 : undefined}
-            inputMode={savol.turi === 'son' ? 'numeric' : 'text'}
+            type="text"
+            inputMode={savol.turi === 'son' ? 'decimal' : 'text'}
+            autoComplete="off"
             aria-label={savol.matn}
+            aria-invalid={maslahat?.savolId === savol.id ? true : undefined}
             placeholder={savol.turi === 'son' ? tr('Oʻzim yozaman: aniq son', 'Своё число') : tr('Oʻzim yozaman', 'Свой ответ')}
             value={matn}
             disabled={band}
-            onChange={(e) => setMatn(e.target.value)}
+            onChange={(e) => { setMatn(e.target.value); if (maslahat) setMaslahat(null); }}
             onKeyDown={(e) => { if (e.key === 'Enter') erkinYubor(); }}
           />
           <button type="button" className={u.yubor} onClick={erkinYubor} disabled={band} aria-label={tr('Yuborish', 'Отправить')}>
@@ -1743,6 +1761,7 @@ function Javoblash({ savol, tezOrada, kutish, band, tanlangan, setTanlangan, mat
           </button>
         </div>
       )}
+      {maslahat?.savolId === savol.id && <p className={u.kiritishMaslahat} role="alert">{maslahat.matn}</p>}
       {otkaz}
     </>
   );

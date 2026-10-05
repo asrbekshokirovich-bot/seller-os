@@ -55,6 +55,7 @@ import type { QabulFaktlar, QadoqQoidasi } from './qabul.js';
 import { STUDIYA_CHIQISH, type SuratNomzodi, type SuratTalablari } from './studiya.js';
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.js';
 import { oldingiOy, oyNomi, type HisobotFaktlar, type OyHisobi } from './hisobot.js';
+import { matndanSon } from './tekshiruv.js';
 
 // ==================================================================== turlar
 
@@ -1388,9 +1389,11 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
   let qiymat: unknown;
   switch (s.turi) {
     case 'son': {
-      if (typeof xom === 'boolean') return { holat: h, xato: 'son kutilgan edi', profil: null };
-      const n = Number(xom);
-      if (!Number.isFinite(n) || n < 0) return { holat: h, xato: 'son kutilgan edi', profil: null };
+      // Matn ("10 mln", "5 000 000 soʻm") ham qabul qilinadi — sayt ham, API ham.
+      const xatoSon = 'Bitta son yozing — masalan: 10 000 000 yoki 10 mln.';
+      if (typeof xom === 'boolean') return { holat: h, xato: xatoSon, profil: null };
+      const n = typeof xom === 'string' ? matndanSon(xom) : Number(xom);
+      if (n === null || !Number.isFinite(n) || n < 0) return { holat: h, xato: xatoSon, profil: null };
       if (!s.erkin && !s.variantlar.some((v) => Number(v.qiymat) === n)) {
         return { holat: h, xato: 'variantlardan birini tanlang', profil: null };
       }

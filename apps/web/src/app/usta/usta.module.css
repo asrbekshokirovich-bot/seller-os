@@ -1204,6 +1204,15 @@
   padding: 6px 6px 6px 24px;
 }
 
+/* Son oʻqilmaganda maydon ostidagi maslahat (xato pufagi rangida). */
+.kiritishMaslahat {
+  margin: 8px 0 0 24px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--acc);
+}
+
 .kiritish input {
   flex: 1;
   min-width: 0;
