@@ -16,6 +16,7 @@ interface TovarJavobi {
 import {
   KESH_ESKI_SOAT,
   demping,
+  erkinJavobBer,
   odamlashtir,
   suhbatBoshdan,
   suhbatOqi,
@@ -394,7 +395,11 @@ export function build(): FastifyInstance {
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null } }),
     ...(process.env.GEMINI_API_KEY
-      ? { llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m) }
+      ? {
+        llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m),
+        erkinLlm: (k: { savol: string; variantlar: string[]; xabar: string; sabab: string | null }) =>
+          erkinJavobBer({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, k),
+      }
       : {}),
   });
 
