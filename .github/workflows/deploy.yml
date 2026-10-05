@@ -83,7 +83,30 @@ jobs:
       - name: Joylash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase functions deploy selleros --project-ref "$PROJECT_REF"
+        run: |
+          # CLI tokenni KESMAYDI va naqsh boʻyicha oʻzida tekshiradi: sirni
+          # nusxalashda qolgan boʻsh joy yoki yangi qator ham "Invalid access
+          # token format" beradi (2026-10-05). Boʻsh joy olib tashlanadi.
+          asl=${#SUPABASE_ACCESS_TOKEN}
+          SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '[:space:]')"
+          export SUPABASE_ACCESS_TOKEN
+          if [ "$asl" != "${#SUPABASE_ACCESS_TOKEN}" ]; then
+            echo "Tokendan boʻsh joy olib tashlandi ($asl → ${#SUPABASE_ACCESS_TOKEN} belgi)."
+          fi
+          # Format notoʻgʻri boʻlsa — sababi tushunarli (qiymatning oʻzi EMAS:
+          # faqat uzunligi va qanday boshlanishi).
+          if ! printf '%s' "$SUPABASE_ACCESS_TOKEN" | grep -Eq '^sbp_(oauth_|v0_)?[a-f0-9]{40}$'; then
+            case "$SUPABASE_ACCESS_TOKEN" in
+              sbp_*) bosh="sbp_ (shakli boshqacha)";;
+              sb_secret_*|sb_publishable_*) bosh="loyiha API kaliti (sb_…) — bu kirish tokeni emas";;
+              eyJ*) bosh="JWT (anon/service_role) — bu kirish tokeni emas";;
+              *) bosh="nomaʼlum";;
+            esac
+            echo "::error::SUPABASE_ACCESS_TOKEN formati notoʻgʻri: ${#SUPABASE_ACCESS_TOKEN} belgi, turi — $bosh."
+            echo "Kerak: supabase.com/dashboard/account/tokens → Generate new token (sbp_ bilan boshlanadi)."
+            exit 1
+          fi
+          supabase functions deploy selleros --project-ref "$PROJECT_REF"
 
       # "Joylandi" degani "javob beryapti" degani emas. Buni tekshirmasak,
       # buzuq versiya ham "muvaffaqiyatli deploy" bo'lib ko'rinadi.
