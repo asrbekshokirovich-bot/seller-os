@@ -29,6 +29,7 @@
 import { type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat,
   javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir } from './ssenariy.ts';
 import { natijaSonlari, tekshir } from './tekshiruv.ts';
+import { minglik } from './fakt.ts';
 import type { ProfilJavoblari } from './profil.ts';
 
 export interface SuhbatXabari {
@@ -283,6 +284,8 @@ async function odamlashtirTekshirib(d: SuhbatBogliqliklari, kodJumla: string, ya
 
 function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, q: unknown): string {
   if (q === null || q === undefined) return 'Oʻtkazib yuborildi';
-  const nom = (x: unknown) => variantlar.find((v) => String(v.qiymat) === String(x))?.nom ?? String(x);
+  // Oʻzi yozgan son ("7 mln" → 7000000) chatda guruhlangan: "7 000 000".
+  const nom = (x: unknown) => variantlar.find((v) => String(v.qiymat) === String(x))?.nom
+    ?? (typeof x === 'number' ? minglik(x) : String(x));
   return Array.isArray(q) ? q.map(nom).join(', ') : nom(q);
 }
