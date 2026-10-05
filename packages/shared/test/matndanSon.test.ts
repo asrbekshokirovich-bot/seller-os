@@ -64,4 +64,17 @@ describe('matndanSon', () => {
     expect(matndanSon('5 yoki 10 mln')).toBeNull();
     expect(matndanSon('-3')).toBeNull();
   });
+
+  it('valyuta va "yarim" — soʻmga oʻgirilmaydi, yarim hisoblanmaydi: null', () => {
+    // Tekshiruv (2026-10-05): "5000$" va "5 ming dollar" 5 000 soʻm, "yarim
+    // million" esa 1 000 000 boʻlib JIMGINA yozilardi.
+    for (const t of ['5000$', '$5000', '5 ming dollar', '100 €', '10 000 usd', '5 тысяч долларов', '100 евро']) {
+      expect(matndanSon(t), t).toBeNull();
+    }
+    for (const t of ['yarim million', 'yarim mln', 'bir yarim mln', 'полмиллиона', 'пол миллиона', 'полтора миллиона']) {
+      expect(matndanSon(t), t).toBeNull();
+    }
+    expect(matndanSon('10 mln')).toBe(10_000_000);
+    expect(matndanSon('1,5 mln')).toBe(1_500_000);
+  });
 });

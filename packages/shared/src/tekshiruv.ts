@@ -117,6 +117,11 @@ const RUS_KOP: ReadonlyArray<[RegExp, string]> = [
   [/тыс\p{L}*\.?/giu, ' ming'],
 ];
 
+/** Soʻmdan boshqa valyuta belgisi yoki nomi ("5000$", "5 ming dollar", "100 €", "10 000 usd"). */
+export function valyutami(matn: string): boolean {
+  return /[$€]|\busd\b|\beur\b|dollar|yevro|evro|доллар|евро/iu.test(String(matn ?? ''));
+}
+
 /**
  * «Oʻzim yozaman» maydonidagi javobdan BITTA son: "5 000 000", "10 mln",
  * "1,5 mlrd", "500 тыс", "20%", "oʻn million". Son soʻraladigan savollarda
@@ -125,11 +130,14 @@ const RUS_KOP: ReadonlyArray<[RegExp, string]> = [
  * ishlatadi.
  *
  * TAXMIN QILINMAYDI: son yoʻq, bir nechta son yoki oraliq/manfiy
- * ("5-10 mln", "-3") — `null`, obunachidan aniq son soʻraladi.
+ * ("5-10 mln", "-3") — `null`, obunachidan aniq son soʻraladi. Valyuta
+ * ("5000$", "5 ming dollar") va "yarim" / "пол…" ham `null`: ilgari ular
+ * jimgina 5 000 soʻm va 1 000 000 boʻlib yozilardi (tekshiruv, 2026-10-05).
  */
 export function matndanSon(matn: string): number | null {
   let s = tozala(matn).trim();
   if (!s || s.includes('-')) return null;
+  if (valyutami(s) || /yarim|(?:^|[^\p{L}])пол/iu.test(s)) return null;
   for (const [re, w] of RUS_KOP) s = s.replace(re, w);
   s = s.replace(BIRLIK, ' ');
   const r = raqamlar(s);

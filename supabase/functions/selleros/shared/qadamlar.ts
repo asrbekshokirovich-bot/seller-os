@@ -245,9 +245,11 @@ export function miqdor(
   const dona = Math.max(1, Math.round((bizniki * zaxiraKun) / 30));
   return {
     dona,
+    // Ulush — TAXMIN (`THRESHOLDS.usta.yangiSotuvchiUlushi`, oʻlchanmagan):
+    // matnda bozor fakti ("odatda oladi") boʻlib koʻrinmasin (QOIDALAR.md, 4-boʻlim).
     hisob:
       `oyiga ~${minglik(Math.round(oylikSotuv))} dona sotiladi · ` +
-      `yangi sotuvchi odatda ~${ulushFoiz}% oladi → oyiga ~${minglik(Math.round(bizniki))} dona · ` +
+      `yangi sotuvchi ~${ulushFoiz}% oladi deb taxmin qilindi (oʻlchanmagan) → oyiga ~${minglik(Math.round(bizniki))} dona · ` +
       `${zaxiraKun} kunlik zaxira = ${minglik(dona)} dona`,
   };
 }
@@ -376,13 +378,14 @@ function sotuvOlchovi(n: TovarNomzodi): {
     return { son: null, sabab: 'Sotuv hali oʻlchanmagan.', kod: 'olchanmagan' };
   }
   if (n.sotuvManbasi !== MIQDOR_UCHUN_MANBA) {
-    const kun = n.olchanganKun ?? 0;
+    // Nechta kun oʻlchangani nomaʼlum (`null`) — "0 kun bor" deyilmaydi.
+    const kun = n.olchanganKun;
     const kerak = THRESHOLDS.data.minDaysForDemand;
     return {
       son: null,
       kod: 'kun-yetmadi',
       sabab:
-        `Sotuv qoldiq farqidan hali oʻlchanmagan — ${kun} kun bor, ` +
+        `Sotuv qoldiq farqidan hali oʻlchanmagan — ${kun === null ? 'necha kun oʻlchangani nomaʼlum' : `${kun} kun bor`}, ` +
         `${kerak} kun kerak. Koʻrsatilgan raqam Uzumning oʻz koʻrsatkichidan ` +
         'olingan taxmin: tartiblash uchun yetadi, miqdor hisoblash uchun emas.',
     };

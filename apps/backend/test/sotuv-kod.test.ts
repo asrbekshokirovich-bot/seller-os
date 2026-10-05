@@ -62,9 +62,9 @@ function soxtaBaza(q: { holati?: unknown; kuzat?: unknown; fakt?: unknown; ochiq
 
 const HOZIR = () => new Date('2026-09-30T12:00:00.000Z');
 
-function kod(b: ReturnType<typeof soxtaBaza>, sessiya = true) {
+function kod(b: ReturnType<typeof soxtaBaza>, sessiya = true, hozir = HOZIR) {
   const k = suhbatKodHarakatlari(b.rpc, () => ({ bayroqlar: [], baholanmadi: [] }), () => 9,
-    sessiya ? { kalit: null, fetch: (async () => { throw new Error('tarmoq yoʻq'); }) as unknown as typeof fetch, token: 'tok', tarifCheklovi: false, hozir: HOZIR } : null);
+    sessiya ? { kalit: null, fetch: (async () => { throw new Error('tarmoq yoʻq'); }) as unknown as typeof fetch, token: 'tok', tarifCheklovi: false, hozir } : null);
   return {
     sotuv: (h: YolHolati) => k.sotuv(h) as Promise<SotuvNatijasi>,
     hisobot: (h: YolHolati) => k.hisobot(h) as Promise<HisobotNatijasi>,
@@ -126,6 +126,20 @@ describe('sotuv (11-qadam)', () => {
     expect(n.signallar).toEqual([]);
   });
 
+  it('sana va oy — Toshkent vaqti: UTC 30-sentyabr 20:00 = 1-oktabr 01:00 (oy — oktabr)', async () => {
+    const n = await kod(soxtaBaza(), true, () => new Date('2026-09-30T20:00:00.000Z')).sotuv(holatYasa());
+    expect(n).toMatchObject({ sana: '2026-10-01', oy: '2026-10' });
+  });
+
+  it('narxi oʻlchanmagan kun — oy tushumi null (nol ham, qisman yigʻindi ham emas); hisobot taxmini ham null', async () => {
+    const narxsiz = HOLATI.map((x) => (x.externalId === 5001
+      ? { ...x, kunlar: x.kunlar.map((d) => (d.sana === '2026-09-30' ? { ...d, narx: null, daromad: null } : d)) } : x));
+    const n = await kod(soxtaBaza({ holati: narxsiz })).sotuv(holatYasa());
+    expect(n.jami).toEqual({ bugunDona: 15, oyDona: 25, oySom: null });
+    const hn = await kod(soxtaBaza({ holati: narxsiz })).hisobot(holatYasa({}, { sotuv: n }));
+    expect(hn).toMatchObject({ olchovDona: 25, olchovSotuv: null });
+  });
+
   it('baza javob bermadi — olchov_yoq sabab bilan; sessiya yoʻq — kuzatuvga qoʻshilmaydi', async () => {
     const n = await kod(soxtaBaza({ holati: null })).sotuv(holatYasa());
     expect(n).toMatchObject({ olchov_yoq: true, sabab: 'oʻlchov oʻqilmadi (baza javob bermadi)' });
@@ -184,13 +198,29 @@ describe('hisobot (12-qadam)', () => {
     const hn = await k.hisobot(holatYasa({}, { sotuv: sn }));
     const hh = await k.hisobotHisob(holatYasa({ oy_sotuv: null, oy_komissiya: null }, { hisobot: hn }));
     const y = await k.hisobotYakun(holatYasa({ deklaratsiya: 'keyin' }, { sotuv: sn, hisobot: hn, hisobot_hisob: hh }));
+    // Oy — odam tilida; hisobot muddati — faktdagi davrdan (chorak), ijtimoiy soliq kunidan emas.
     expect(y.yozildi.map((x) => [x.tur, x.sabab, x.muddat])).toEqual([
-      ['tolov', 'ijtimoiy soliq (2026-09)', '2026-10-15'],
-      ['kutyapman', 'oylik soliq hisoboti (2026-09)', '2026-10-15'],
+      ['tolov', 'ijtimoiy soliq (2026-yil sentyabr)', '2026-10-15'],
+      ['kutyapman', 'aylanma soligʻi hisoboti (2026-yil 3-chorak)', '2026-10-15'],
     ]);
     expect(y.reja).toHaveLength(2);
-    expect(y.reja[0]).toMatch(/^«Sumka»: kuniga ~12\.5 dona, zaxira 0 kunga yetadi/);
+    expect(y.reja[0]).toMatch(/^«Sumka»: kuniga ~12\.5 dona, zaxira bir kunga ham yetmaydi/);
     expect(y.reja[1]).toMatch(/^«Gʻilof»: kartochka havolasi yoʻq/);
+  });
+
+  it('hisobotYakun: avgust (chorak oʻrtasi) — hisobot muddati 15-oktabr, 15-sentyabr EMAS; MChJ — YATT ijtimoiy soligʻi toʻlov ishi yozilmaydi', async () => {
+    const k = kod(soxtaBaza());
+    const sn = await k.sotuv(holatYasa());
+    const hn = await k.hisobot(holatYasa({ hisobot_oy: '2026-08' }, { sotuv: sn }));
+    const hh = await k.hisobotHisob(holatYasa({ oy_sotuv: 1_000_000, oy_komissiya: null, huquqiy_shakl: 'mchj' }, { hisobot: hn }));
+    expect(hh.shakl).toBe('mchj');
+    const yatt = await k.hisobotYakun(holatYasa({ deklaratsiya: 'keyin' }, { sotuv: sn, hisobot: hn, hisobot_hisob: hh }));
+    expect(yatt.yozildi.map((x) => [x.tur, x.sabab, x.muddat])).toEqual([
+      ['tolov', 'ijtimoiy soliq (2026-yil avgust)', '2026-09-15'],
+      ['kutyapman', 'aylanma soligʻi hisoboti (2026-yil 3-chorak)', '2026-10-15'],
+    ]);
+    const mchj = await k.hisobotYakun(holatYasa({ deklaratsiya: 'keyin', huquqiy_shakl: 'mchj' }, { sotuv: sn, hisobot: hn, hisobot_hisob: hh }));
+    expect(mchj.yozildi.map((x) => x.tur)).toEqual(['kutyapman']);
   });
 
   it('hisobotYakun: «Bajardim» — ochiq ish yoʻq; «Sayt boshqacha» — tekshirish; sessiya yoʻq — olchov_yoq', async () => {

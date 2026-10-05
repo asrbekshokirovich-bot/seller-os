@@ -100,9 +100,9 @@ interface TannarxQ {
 }
 
 /** Kod harakatlari — natijalar 6-qadam turlariga keltirilgan (deps `unknown` qaytaradi). */
-function kod(b: ReturnType<typeof soxtaBaza>, f: typeof fetch | null = soxtaFetch().fetch) {
+function kod(b: ReturnType<typeof soxtaBaza>, f: typeof fetch | null = soxtaFetch().fetch, hozir = HOZIR) {
   const k = suhbatKodHarakatlari(b.rpc, () => ({ bayroqlar: [], baholanmadi: [] }), () => 9,
-    f === null ? null : { kalit: 'KALIT', fetch: f, token: 'tok', tarifCheklovi: false, hozir: HOZIR });
+    f === null ? null : { kalit: 'KALIT', fetch: f, token: 'tok', tarifCheklovi: false, hozir });
   return {
     buyurtma: (h: YolHolati) => k.buyurtma(h) as Promise<BuyurtmaNatijasi>,
     ochiqIsh: (h: YolHolati) => k.ochiqIsh(h) as Promise<OchiqIshNatijasi>,
@@ -196,6 +196,11 @@ describe('buyurtma — qayta buyurtma (11-qadam «Ha, yana buyurtma», partiya �
     expect(n0).toMatchObject({ olchov_yoq: true, sabab: '2-partiyada hamma tovarga 0 dona', qatorlar: [] });
   });
 
+  it('1688 sotuvchisi maʼlum tovar yoʻq — "hamma tovarga 0 dona" DEMAYDI (obunachi 0 yozmagan)', async () => {
+    const n = await kod(soxtaBaza()).buyurtma(holatYasa({ 'xitoy_tanlov:100': null }, { partiya: 2, oldingi_partiyalar: ARXIV }));
+    expect(n).toMatchObject({ olchov_yoq: true, sabab: '1688 sotuvchisi maʼlum tovar yoʻq', qatorlar: [] });
+  });
+
   it('ochiq ish sababida partiya raqami (birinchisi bilan qoʻshilib ketmaydi)', async () => {
     const b = soxtaBaza();
     await kod(b).ochiqIsh(holatYasa({}, { partiya: 2 }));
@@ -261,7 +266,18 @@ describe('ochiqIsh', () => {
     expect(n.izoh).toMatch(/Eslatma mexanizmi hali yoʻq/);
   });
 
-  it('kargo kun bor — muddat = bugun + kun (UTC sana)', async () => {
+  it('kargo yoʻli BITTA (tanlov soʻralmagan) — oʻsha yoʻl muddati; Toshkent sanasi (UTC 20:00 — ertasi kun)', async () => {
+    const yolBitta: Partial<BuyurtmaNatijasi> = { kargo: {
+      hamkor: 'Hamkor X', avia: { yol: 'avia', usdKg: 8, kun: 12, somPerKg: 101_200, manba: null, olchandi: null },
+      quruqlik: null, usdM3: null, minUsd: null, tanlovBor: false, izoh: null,
+    } };
+    const n = await kod(soxtaBaza()).ochiqIsh(holatYasa({}, { buyurtma: yolBitta }));
+    expect(n.muddat).toBe('2026-10-10');
+    const kech = await kod(soxtaBaza(), soxtaFetch().fetch, () => new Date('2026-09-28T20:00:00.000Z')).ochiqIsh(holatYasa({}, { buyurtma: yolBitta }));
+    expect(kech.muddat).toBe('2026-10-11');
+  });
+
+  it('kargo kun bor — muddat = bugun + kun (Toshkent sanasi)', async () => {
     const b = soxtaBaza();
     const bn: Partial<BuyurtmaNatijasi> = { kargo: {
       hamkor: 'Hamkor X', avia: { yol: 'avia', usdKg: 8, kun: 12, somPerKg: 101_200, manba: null, olchandi: null },

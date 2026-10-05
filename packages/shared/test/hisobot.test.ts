@@ -5,7 +5,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { deklaratsiyaQadamlari, hisobotFaktlari, keyingiOySanasi, oldingiOy, oyHisobi, oyKaliti, oyKunSoni, oyNomi } from '../src/index.js';
+import {
+  deklaratsiyaQadamlari, hisobotFaktlari, hisobotMuddati, keyingiOySanasi, oldingiOy, oyHisobi, oyKaliti, oyKunSoni, oyNomi,
+  sanaMatni, toshkentSanasi,
+} from '../src/index.js';
 
 const F = (qiymat: unknown, manba = 'manba') => ({ qiymat, birlik: null, manba, olchandi: '2026-09-30', izoh: null });
 const FAKT = {
@@ -30,8 +33,20 @@ describe('hisobotFaktlari', () => {
 });
 
 describe('sanalar', () => {
-  it('oyKaliti va keyingi oy sanasi (dekabr → yanvar, qisqa oy)', () => {
-    expect(oyKaliti(new Date('2026-09-30T20:00:00Z'))).toBe('2026-09');
+  it('oyKaliti va sana — Toshkent vaqti (UTC+5): 1-oktabr 01:00 — allaqachon oktabr', () => {
+    // Tekshiruv (2026-10-05): UTC boʻyicha olinardi — har oyning 1-kuni
+    // 00:00–05:00 da tugagan oy "hozirgacha, hali tugamagan" deb chiqardi.
+    expect(oyKaliti(new Date('2026-09-30T20:00:00Z'))).toBe('2026-10');
+    expect(oyKaliti(new Date('2026-09-30T18:59:59Z'))).toBe('2026-09');
+    expect(toshkentSanasi(new Date('2026-09-30T20:00:00Z'))).toBe('2026-10-01');
+    expect(toshkentSanasi(new Date('2026-09-28T10:00:00Z'), 30)).toBe('2026-10-28');
+  });
+  it('sanaMatni: ISO → KK.OO.YYYY (CBU kursi sanasi bilan bir xil koʻrinish); boshqa matn — oʻzi', () => {
+    expect(sanaMatni('2026-10-15')).toBe('15.10.2026');
+    expect(sanaMatni('2026-10-15T10:00:00.000Z')).toBe('15.10.2026');
+    expect(sanaMatni('25.09.2026')).toBe('25.09.2026');
+  });
+  it('keyingi oy sanasi (dekabr → yanvar, qisqa oy)', () => {
     expect(keyingiOySanasi('2026-09', 15)).toBe('2026-10-15');
     expect(keyingiOySanasi('2026-12', 19)).toBe('2027-01-19');
     expect(keyingiOySanasi('2027-01', 31)).toBe('2027-02-28');
@@ -66,6 +81,21 @@ describe('oyHisobi', () => {
     expect(hech).toMatchObject({ sotuvSom: null, sotuvManbasi: null, komissiyaSom: null });
     expect(hech.soliq.aylanmaSom).toBeNull();
   });
+  it('komissiya sotuvdan katta — sof MANFIY (zarar yashirilmaydi), 0 emas', () => {
+    // Tekshiruv (2026-10-05): `Math.max(0, …)` zararni "sof 0 soʻm" qilib koʻrsatardi.
+    expect(oyHisobi({ oy: '2026-09', kabinetSotuv: 100_000, olchovSotuv: null, komissiya: 150_000, f }).sofSom).toBe(-50_000);
+  });
+});
+
+describe('hisobotMuddati — aylanma soligʻi hisoboti davri faktdan', () => {
+  it('chorak: chorakdan keyingi oyning N-sanasi (avgust ham sentyabr ham — 3-chorak, 15-oktabr); oy: keyingi oy; fakt yoʻq — null', () => {
+    const f = hisobotFaktlari(FAKT);
+    expect(hisobotMuddati('2026-08', f)).toEqual({ davr: '2026-yil 3-chorak', muddat: '2026-10-15' });
+    expect(hisobotMuddati('2026-09', f)).toEqual({ davr: '2026-yil 3-chorak', muddat: '2026-10-15' });
+    expect(hisobotMuddati('2026-11', f)).toEqual({ davr: '2026-yil 4-chorak', muddat: '2027-01-15' });
+    expect(hisobotMuddati('2026-08', { ...f, aylanmaDavri: 'oy' })).toEqual({ davr: '2026-yil avgust', muddat: '2026-09-15' });
+    expect(hisobotMuddati('2026-08', hisobotFaktlari({}))).toEqual({ davr: '2026-yil avgust', muddat: null });
+  });
 });
 
 describe('deklaratsiyaQadamlari', () => {
@@ -73,12 +103,17 @@ describe('deklaratsiyaQadamlari', () => {
     const f = hisobotFaktlari(FAKT);
     const q = deklaratsiyaQadamlari(oyHisobi({ oy: '2026-09', kabinetSotuv: 5_000_000, olchovSotuv: null, komissiya: null, f }), f);
     expect(q).toHaveLength(5);
-    expect(q[0]).toMatch(/2026-yil sentyabr uchun komissioner hisobotini .*2026-10-19 gacha/);
+    expect(q[0]).toMatch(/2026-yil sentyabr uchun komissioner hisobotini .*19\.10\.2026 gacha/);
     expect(q[1]).toMatch(/^https:\/\/my3\.soliq\.uz ga E-imzo/);
-    expect(q[2]).toMatch(/Ijtimoiy soliq: 440 000 soʻm — 2026-10-15 gacha/);
+    expect(q[2]).toMatch(/Ijtimoiy soliq: 440 000 soʻm, 15\.10\.2026 gacha toʻlang/);
     expect(q[3]).toMatch(/^Aylanma soligʻi \(1 %\): 50 000 soʻm\. Toʻlov tashkiloti .* topshirasiz \(chorakdan keyingi oyning 15-sanasigacha — tasdiqlanishi kerak\)\.$/);
+    // Kod bajarmaydigan vaʼda ("keyingi oy solishtiramiz") yoʻq.
+    expect(q[4]).not.toMatch(/solishtiramiz/);
     const bosh = deklaratsiyaQadamlari(oyHisobi({ oy: '2026-09', kabinetSotuv: null, olchovSotuv: null, komissiya: null, f: hisobotFaktlari({}) }), hisobotFaktlari({}));
-    expect(bosh[1]).toMatch(/manzil faktda yoʻq/);
-    expect(bosh[2]).toMatch(/miqdor faktda yoʻq — muddat faktda yoʻq/);
+    expect(bosh[1]).toBe('Soliq portaliga E-imzo (ERI) bilan kiring (portal manzili faktda yoʻq).');
+    // Fakt yoʻq boʻlsa ham gap butun: "muddat faktda yoʻq gacha", "(? %)" emas.
+    expect(bosh[2]).toBe('Ijtimoiy soliq: miqdori faktda yoʻq, toʻlov muddati faktda yoʻq — sotuv boʻlmasa ham toʻlanadi.');
+    expect(bosh[3]).toMatch(/^Aylanma soligʻi \(foizi faktda yoʻq\): hisoblanmadi\./);
+    expect(bosh.join(' ')).not.toMatch(/\?|faktda yoʻq gacha/);
   });
 });

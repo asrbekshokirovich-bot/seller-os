@@ -208,15 +208,42 @@ describe('suhbatTurn', () => {
     expect(b.holat()!.natijalar.yonalishlar).toEqual(YONALISHLAR);
   });
 
-  it('kod yiqilsa oqim to\'xtamaydi — "o\'lchov yo\'q" bilan davom etadi', async () => {
+  it('kod yiqilsa oqim to\'xtamaydi — xom xato obunachiga chiqmaydi, «Qayta urinish» soʻraladi', async () => {
     const b = soxtaBaza({ javoblar: { byudjet: 1 }, natijalar: {} });
     const d = bogliq(b);
     d.kod.yonalishlar = async () => { throw new Error('baza uzildi'); };
     const r = await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
     expect(r.xato).toBeUndefined();
-    expect(r.xabarlar[1]!.matn).toMatch(/hisoblab bera olmadim/);
+    expect(r.xabarlar[1]!.matn).toMatch(/kutilmagan xato/);
+    expect(JSON.stringify(r.xabarlar)).not.toMatch(/baza uzildi/);
     if (r.keyingi.tur !== 'savol') throw new Error();
-    expect(r.keyingi.savol.otkazishMumkin).toBe(true);
+    expect(r.keyingi.savol.id).toBe('xato_qayta:yonalishlar');
+    // Qayta urinish — kod yana chaqiriladi; bu safar ishlasa yoʻl davom etadi.
+    d.kod.yonalishlar = async () => YONALISHLAR;
+    const r2 = await suhbatTurn(d, 'tok', { savolId: 'xato_qayta:yonalishlar', javob: 'qayta' });
+    expect(r2.xato).toBeUndefined();
+    expect(r2.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
+    if (r2.keyingi.tur !== 'savol') throw new Error();
+    expect(r2.keyingi.savol.id).toBe('yonalish');
+  });
+
+  it('6-qadam varaqasi yiqilsa — shahar savolidan keyin chat BERK qolmaydi: «Qayta urinish» bilan davom etadi', async () => {
+    // Tekshiruv (2026-10-05): zaxira natija `{olchov_yoq, sabab}` da `kargo` yoʻq edi —
+    // shaharga javob berilgach `keyingi()` TypeError otardi va har turn 500 qaytarardi.
+    const b = soxtaBaza({ javoblar: { byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+      natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY } });
+    const d = bogliq(b);
+    d.kod.buyurtma = async () => { throw new Error('kutilmagan'); };
+    const r = await suhbatTurn(d, 'tok', { savolId: 'xitoy_tanlov:100', javob: '983093623752' });
+    expect(r.xato).toBeUndefined();
+    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
+    expect(r.keyingi.savol.id).toBe('xato_qayta:buyurtma');
+    expect(r.qadam).toBe(6);
+    d.kod.buyurtma = async () => BUYURTMA;
+    const r2 = await suhbatTurn(d, 'tok', { savolId: 'xato_qayta:buyurtma', javob: 'qayta' });
+    expect(r2.xato).toBeUndefined();
+    if (r2.keyingi.tur !== 'savol') throw new Error(r2.keyingi.tur);
+    expect(r2.keyingi.savol.id).toBe('shahar');
   });
 
   it('LLM jumlani odamlashtiradi — raqam qo\'shmasa qabul', async () => {
@@ -361,15 +388,17 @@ describe('suhbatTurn', () => {
     const t17 = await suhbatTurn(d, 'tok', { savolId: 'uzum_havola:100', javob: 'https://uzum.uz/uz/product/mening-quloqchinim-5001' });
     expect(t17.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
     expect(t17.xabarlar[1]!.savolId).toBe('sotuv');
-    expect(t17.xabarlar[1]!.matn).toMatch(/^Sotuv \(2026-09-30\): Kuzatuvda: 1 ta kartochka/);
+    expect(t17.xabarlar[1]!.matn).toMatch(/^Sotuv \(30\.09\.2026\): Kuzatuvda: 1 ta kartochka/);
     if (t17.keyingi.tur !== 'savol') throw new Error(t17.keyingi.tur);
     expect(t17.keyingi.savol.id).toBe('signal:sharh:100:7');
     const t18 = await suhbatTurn(d, 'tok', { savolId: 'signal:sharh:100:7', javob: 'keyin' });
     if (t18.keyingi.tur !== 'savol') throw new Error(t18.keyingi.tur);
     expect(t18.keyingi.savol.id).toBe('sotuv_holat');
     // 12-qadam: «Oy hisoboti» → faktlar kodi → sotuv summasi → komissiya → hisob kodi → deklaratsiya.
+    // «Oy hisoboti» sotuvni qayta oʻlchaydi (oy eski natijadan olinmasin) — kod xabari bor.
     const t19 = await suhbatTurn(d, 'tok', { savolId: 'sotuv_holat', javob: 'hisobot' });
-    expect(t19.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    expect(t19.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
+    expect(t19.xabarlar[1]!.savolId).toBe('sotuv');
     if (t19.keyingi.tur !== 'savol') throw new Error(t19.keyingi.tur);
     expect(t19.keyingi.savol.id).toBe('hisobot_oy');
     expect(t19.qadam).toBe(12);

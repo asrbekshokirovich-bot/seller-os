@@ -68,16 +68,31 @@ const JAVOBLAR: Record<string, TayyorJavob> = {
   },
 };
 
-/** Tartib muhim: aniqrogʻi oldin ("1688 nima?" — xitoy, "xizmat" emas). */
-const KALITLAR: ReadonlyArray<[keyof typeof JAVOBLAR, RegExp]> = [
-  ['kafolat', /kafolat|foyda (bo|qil)|daromad|zarar|yutqaz|гарант|прибыл|заработ|убыт/u],
-  ['tarif', /obuna|tarif|pullik|bepul|tolov|payme|click|xizmat(ingiz)? narxi|подписк|тариф|оплат|платн|бесплатн/u],
-  ['xitoy', /1688|xitoy|китай/u],
-  ['qadamlar', /qadam|bosqich|шаг|этап/u],
+/**
+ * Boshqa mavzu belgilari: soliq, bank, Uzum, logistika, kargo, yuk kelishi…
+ * Bunday savoldagi "toʻlov", "bepul", "pullik", "daromad", "Xitoy", "qadam"
+ * ZumSavdo obunasi yoki 1688 qidiruvi haqida EMAS: "soliq toʻlovi qachon?"
+ * tarif jadvalini, "daromad soligʻi" kafolat gapini, "Xitoydan qachon
+ * keladi?" 1688 qidiruvini olardi (tekshiruv, 2026-10-05). Bunday matnga
+ * umumiy soʻz boʻyicha tayyor javob berilmaydi.
+ */
+const BOSHQA_MAVZU = /soli[qg]|bank|hisob raqam|uzum|logist|kargo|bojxona|ombor|yetkaz|komissiya|ijtimoiy|deklaratsiya|yatt|mchj|kabinet|guvohnoma|kelad|keldi|kelish|yuk |налог|банк|логист|карго|склад|доставк|комисси|таможн/u;
+
+/**
+ * Tartib muhim: aniqrogʻi oldin ("1688 nima?" — xitoy, "xizmat" emas).
+ * Har mavzuda ikki xil belgi: KUCHLI — faqat ZumSavdo (obunasi, 1688
+ * qidiruvi) haqida boʻladi, doim ishlaydi; KUCHSIZ — umumiy soʻz, matnda
+ * boshqa mavzu belgisi (`BOSHQA_MAVZU`) boʻlsa ishlamaydi.
+ */
+const KALITLAR: ReadonlyArray<[keyof typeof JAVOBLAR, RegExp | null, RegExp | null]> = [
+  ['kafolat', /kafolat|гарант/u, /foyda (bo|qil|ol|kor)|daromad (bo|qil|ol|kor|qancha)|zarar (qil|bo|kor)|yutqaz|прибыл|заработ|убыт/u],
+  ['tarif', /obuna|tarif|payme|click|подписк|тариф/u, /pullik|bepul|tolov|xizmat(ingiz)? narxi|оплат|платн|бесплатн/u],
+  ['xitoy', /1688/u, /xitoy|китай/u],
+  ['qadamlar', null, /qadam|bosqich|шаг|этап/u],
   // «kirish» yolgʻiz emas: "kabinetga kirish" — Uzum haqida, ZumSavdo haqida emas.
-  ['kirish', /royxatdan|login|parol|akkaunt|saytga kirish|tizimga kirish|войти в|регистрац|аккаунт|пароль/u],
-  ['aloqa', /operator|odam bilan|admin|aloqa|boglan|qongiroq|оператор|человек|связат|позвон/u],
-  ['xizmat', /bu nima|nima bu|nima qilasiz|nima qiladi|nimaga kerak|qanday ishlaydi|kimsiz|siz kim|zumsavdo|что это|что за|как работает|кто вы|зачем/u],
+  ['kirish', null, /royxatdan|login|parol|akkaunt|saytga kirish|tizimga kirish|войти в|регистрац|аккаунт|пароль/u],
+  ['aloqa', null, /operator|odam bilan|admin|aloqa|boglan|qongiroq|оператор|человек|связат|позвон/u],
+  ['xizmat', /zumsavdo/u, /bu nima|nima bu|nima qilasiz|nima qiladi|nimaga kerak|qanday ishlaydi|kimsiz|siz kim|что это|что за|как работает|кто вы|зачем/u],
 ];
 
 /** Kichik harf, apostroflarsiz ("to'lov" → "tolov"), bitta boʻsh joy. */
@@ -88,7 +103,10 @@ function norm(t: string): string {
 /** Koʻp soʻraladigan savolga tayyor javob (oʻzbek va rus). Mos kelmasa — `null`. */
 export function tayyorJavob(matn: string): TayyorJavob | null {
   const t = norm(matn);
-  for (const [kalit, re] of KALITLAR) if (re.test(t)) return JAVOBLAR[kalit]!;
+  const boshqa = BOSHQA_MAVZU.test(t);
+  for (const [kalit, kuchli, kuchsiz] of KALITLAR) {
+    if (kuchli?.test(t) || (!boshqa && kuchsiz?.test(t))) return JAVOBLAR[kalit]!;
+  }
   return null;
 }
 
