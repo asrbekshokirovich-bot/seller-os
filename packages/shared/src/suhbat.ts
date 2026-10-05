@@ -30,6 +30,7 @@ import { type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat,
   javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir } from './ssenariy.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
+import { ERKIN_BILIM, tayyorJavob } from './erkin.js';
 import type { ProfilJavoblari } from './profil.js';
 
 export interface SuhbatXabari {
@@ -95,6 +96,10 @@ export interface ErkinSorov {
   xabar: string;
   /** Javob sifatida nega qabul qilinmadi (`null` — savol berdi). */
   sabab: string | null;
+  /** Koʻp soʻraladigan savolga koddagi tayyor javob (`erkin.ts`), boʻlmasa `null`. */
+  tayyor: string | null;
+  /** ZumSavdo haqida faktlar — LLM faqat shulardan foydalanadi. */
+  bilim: string;
 }
 
 export interface SuhbatJavobi {
@@ -363,27 +368,33 @@ function qisqaSavol(matn: string): string {
   return t.length > 180 ? `${t.slice(0, 180)}…` : t;
 }
 
-/** LLM boʻlmasa yoki tekshiruvdan oʻtmasa — kod shabloni. */
+/** Obunachi rus tilida yozdimi (kirill harflari). */
+function ruschami(matn: string): boolean {
+  return /[\u0400-\u04FF]/u.test(matn);
+}
+
+/**
+ * LLM boʻlmasa yoki tekshiruvdan oʻtmasa — kod shabloni: salomga alik,
+ * keyin koʻp soʻraladigan savolga TAYYOR javob (`erkin.ts`), boʻlmasa
+ * nega javob qabul qilinmagani, oxirida joriy savol. Variantlar va
+ * «Oʻtkazib yuborish» qaytarilmaydi — ular pastda tugma boʻlib turibdi.
+ */
 function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null): string {
-  const ruscha = /[\u0400-\u04FF]/u.test(matn);
+  const ruscha = ruschami(matn);
   const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)/iu.test(matn);
+  const tayyor = tayyorJavob(matn);
   const savol = qisqaSavol(s.matn);
-  const variantlar = s.variantlar.map((v) => v.nom);
   if (ruscha) {
     return [
       salom ? 'Здравствуйте!' : null,
-      sabab ? `Не получилось принять ответ: ${gap(sabab)}` : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
+      tayyor ? tayyor.ru : sabab ? `Не получилось принять ответ: ${gap(sabab)}` : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
       `Сейчас вопрос: «${savol}»`,
-      variantlar.length ? `Варианты: ${variantlar.join(', ')}.` : null,
-      s.otkazishMumkin ? 'Если не знаете — нажмите «Пропустить».' : null,
     ].filter(Boolean).join(' ');
   }
   return [
     salom ? 'Vaalaykum assalom!' : null,
-    sabab ? gap(sabab) : 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
+    tayyor ? tayyor.uz : sabab ? gap(sabab) : 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
     `Hozirgi savol: «${savol}»`,
-    variantlar.length ? `Variantlar: ${variantlar.join(', ')}.` : null,
-    s.otkazishMumkin ? 'Bilmasangiz — «Oʻtkazib yuborish» ni bosing.' : null,
   ].filter(Boolean).join(' ');
 }
 
@@ -392,10 +403,12 @@ async function erkinJavob(d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: 
   const shablon = erkinShablon(s, matn, sabab);
   if (!d.erkinLlm) return shablon;
   const variantlar = s.variantlar.map((v) => v.nom);
-  const taklif = await d.erkinLlm({ savol: s.matn, variantlar, xabar: matn, sabab }).catch(() => null);
+  const tj = tayyorJavob(matn);
+  const tayyor = tj ? (ruschami(matn) ? tj.ru : tj.uz) : null;
+  const taklif = await d.erkinLlm({ savol: s.matn, variantlar, xabar: matn, sabab, tayyor, bilim: ERKIN_BILIM }).catch(() => null);
   if (!taklif) return shablon;
-  // Raqam faqat savol, variantlar, sabab va obunachining oʻz matnidan; kafolat — taqiq.
-  const t = tekshir(taklif, { matnlar: [s.matn, matn, sabab ?? '', ...variantlar], sonlar: [] });
+  // Raqam faqat savol, variantlar, sabab, faktlar va obunachining oʻz matnidan; kafolat — taqiq.
+  const t = tekshir(taklif, { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, ERKIN_BILIM, tayyor ?? ''], sonlar: [] });
   return t.ok ? taklif : shablon;
 }
 

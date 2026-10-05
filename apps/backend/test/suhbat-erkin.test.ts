@@ -106,6 +106,15 @@ describe('erkin xabar', () => {
     expect(r.xabarlar[1]!.matn).toMatch(/^Variantlardan birini tanlang. Hozirgi savol/);
   });
 
+  it('koʻp soʻraladigan savol ("obuna qancha turadi") — koddagi tayyor javob + joriy savol', async () => {
+    const b = soxtaBaza();
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: 'obuna qancha turadi' });
+    expect(r.xato).toBeUndefined();
+    expect(r.xabarlar[1]!.matn).toMatch(/99 000/);
+    expect(r.xabarlar[1]!.matn).toMatch(/Hozirgi savol/);
+    expect(b.holat()?.javoblar['byudjet']).toBeUndefined();
+  });
+
   it('ruscha yozsa — ruscha shablon', async () => {
     const b = soxtaBaza();
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: 'что это?' });
