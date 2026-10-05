@@ -58,6 +58,7 @@ describe('qabul', () => {
     expect(n.olchov_yoq).toBe(false);
     expect(n.qatorlar.map((q) => [q.productId, q.miqdor, q.qadoq?.tur ?? null])).toEqual([[100, 30, 'Sumka / aksessuar'], [200, 10, null]]);
     expect(n.jamiDona).toBe(40);
+    expect(n.varaqadan).toBe(true);
     expect(n.faktlar.ombor.manzil).toBe('Toshkent, Sergeli, Xonabod 2/2');
     expect(n.faktlar.yetishmaydi).toEqual([]);
     expect(b.chaqiruvlar[0]!.arg.p_kalitlar).toContain('uzum.qabul.tafovut_som');
@@ -69,6 +70,8 @@ describe('qabul', () => {
     const n = await kod(soxtaBaza()).qabul(h);
     expect(n.qatorlar.map((q) => [q.productId, q.title, q.miqdor])).toEqual([[100, 'Ayollar sumkasi', 30], [200, 'Gʻilof', 10], [300, '#300', 5]]);
     expect(n.jamiDona).toBe(45);
+    // Bu roʻyxat varaqadan EMAS — chat "Varaqada N dona" demasligi uchun belgi.
+    expect(n.varaqadan).toBe(false);
   });
   it('miqdor yoʻq — jami null; fakt oʻqilmadi / kiritilmagan farqlanadi', async () => {
     const n0 = await kod(soxtaBaza()).qabul(holatYasa({}, { buyurtma: { ...BUYURTMA, qatorlar: [{ productId: 100, title: 'A', miqdor: null, holat: 'tayyor' }] } }));

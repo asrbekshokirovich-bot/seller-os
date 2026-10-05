@@ -135,6 +135,15 @@ describe('3-qadam — miqdor', () => {
     expect(m.hisob).toContain('30 kunlik');
   });
 
+  it('5 % — TAXMIN, fakt emas: hisobda shunday yoziladi ("odatda oladi" deyilmaydi)', () => {
+    // Tekshiruv (2026-10-05): `THRESHOLDS.usta.yangiSotuvchiUlushi` — "TAXMIN,
+    // o'lchov emas", matn esa "yangi sotuvchi odatda ~5% oladi" der edi —
+    // tasdiqlanmagan son bozor fakti boʻlib koʻrinardi (QOIDALAR.md, 4-boʻlim).
+    const m = miqdor(600)!;
+    expect(m.hisob).not.toMatch(/odatda/);
+    expect(m.hisob).toMatch(/~5% oladi deb taxmin qilindi \(oʻlchanmagan\)/);
+  });
+
   it('SOTUV BILINMASA null — taxminiy miqdor aytilmaydi', () => {
     // Taxmin odamni ortiqcha tovar sotib olishga olib borishi mumkin.
     expect(miqdor(null)).toBeNull();

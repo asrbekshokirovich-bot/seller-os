@@ -166,3 +166,55 @@ describe('erkin xabar', () => {
     expect(r.xabarlar[0]!.matn.length).toBeLessThanOrEqual(501);
   });
 });
+
+/** 3-qadam miqdor savoli turgan holat: tugmalar «30 kunlik zaxira — 45 dona», «60 kunlik — 90 dona». */
+const MIQDOR_HOLATI: YolHolati = {
+  javoblar: { byudjet: 10_000_000, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100] },
+  natijalar: {
+    yonalishlar: { olchov_yoq: false, royxat: [{ categoryId: 11, name: 'Quloqchinlar' }] },
+    tovarlar: { olchov_yoq: false, royxat: [{ nomzod: { productId: 100, title: 'Quloqchin A' }, miqdor: { dona: 45, hisob: 'oyiga ~900 dona sotiladi' } }] },
+  },
+};
+
+describe('erkin xabar — tekshiruv tuzatishlari (2026-10-05)', () => {
+  it('F8: son savolida tugma matnini yozsa ("60 kunlik") — oʻsha tugma (90 dona), 60 EMAS; faqat raqam — oʻsha son', async () => {
+    const b = soxtaBaza(MIQDOR_HOLATI);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'miqdor:100', matn: '60 kunlik' });
+    expect(r.xato).toBeUndefined();
+    expect(b.holat()!.javoblar['miqdor:100']).toBe(90);
+    const b2 = soxtaBaza(MIQDOR_HOLATI);
+    await suhbatTurn(bogliq(b2), 'tok', { savolId: 'miqdor:100', matn: '30' });
+    expect(b2.holat()!.javoblar['miqdor:100']).toBe(30);
+    const b3 = soxtaBaza();
+    await suhbatTurn(bogliq(b3), 'tok', { savolId: 'byudjet', matn: '10 mln' });
+    expect(b3.holat()!.javoblar['byudjet']).toBe(10_000_000);
+  });
+
+  it('F24: eslatmada tovar nomi qoladi (uzun savoldan faqat soʻroq jumla olinsa ham)', async () => {
+    const r = await suhbatTurn(bogliq(soxtaBaza(MIQDOR_HOLATI)), 'tok', { savolId: 'miqdor:100', matn: 'nima qilay?' });
+    expect(r.xabarlar[1]!.matn).toMatch(/Hozirgi savol: ««Quloqchin A» — Birinchi partiya uchun nechta olasiz\?»/);
+  });
+
+  it('F24: "hisob…" salomlashish emas — "Vaalaykum assalom" deyilmaydi', async () => {
+    const h = { ...boshlangichHolat(), javoblar: { byudjet: 10_000_000 } };
+    const r = await suhbatTurn(bogliq(soxtaBaza(h)), 'tok', { savolId: 'uzum_dokoni', matn: 'hisob raqamim bor' });
+    expect(r.xabarlar[1]!.matn).not.toMatch(/alaykum/i);
+    const s = await suhbatTurn(bogliq(soxtaBaza(h)), 'tok', { savolId: 'uzum_dokoni', matn: 'hi!' });
+    expect(s.xabarlar[1]!.matn).toMatch(/^Vaalaykum assalom!/);
+  });
+
+  it('F24: ruscha shablonda sabab ham ruscha — oʻzbekcha gap aralashmaydi', async () => {
+    const h = { ...boshlangichHolat(), javoblar: { byudjet: 10_000_000 } };
+    const r = await suhbatTurn(bogliq(soxtaBaza(h)), 'tok', { savolId: 'uzum_dokoni', matn: 'ааа' });
+    expect(r.xabarlar[1]!.matn).toMatch(/^Не получилось принять ответ: Выберите один из вариантов\./);
+    expect(r.xabarlar[1]!.matn).not.toMatch(/Variantlardan/);
+  });
+
+  it('F25: javob oʻtmasa VA tayyor javob bor — avval sabab, keyin tayyor javob; boshqa mavzu tarifga burilmaydi', async () => {
+    const r = await suhbatTurn(bogliq(soxtaBaza()), 'tok', { savolId: 'byudjet', matn: 'obuna qancha turadi' });
+    const m = r.xabarlar[1]!.matn;
+    expect(m).toMatch(/^Bitta son yozing — masalan: 10 000 000 yoki 10 mln\. Tariflar:/);
+    const s = await suhbatTurn(bogliq(soxtaBaza()), 'tok', { savolId: 'byudjet', matn: 'soliq toʻlovi qachon?' });
+    expect(s.xabarlar[1]!.matn).not.toMatch(/Tariflar/);
+  });
+});

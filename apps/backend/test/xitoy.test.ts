@@ -93,6 +93,11 @@ describe('apifyRunniOqi', () => {
     expect(apifyRunniOqi({}).ok).toBe(false);
     expect(apifyRunniOqi(null).ok).toBe(false);
   });
+  it('notanish xato turi — provayderning inglizcha matni obunachiga chiqmaydi, tur kodi qoladi', () => {
+    const n = apifyRunniOqi({ error: { type: 'some-new-type', message: 'Something went wrong in English' } });
+    expect(n.ok).toBe(false);
+    if (!n.ok) expect(n.sabab).toBe('provayder xatosi (some-new-type)');
+  });
 });
 
 describe('apifyKartaniOqi', () => {

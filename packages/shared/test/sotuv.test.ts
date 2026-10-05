@@ -89,6 +89,15 @@ describe('ozHolati', () => {
     expect(oyYigindisi(k, '2026-08')).toEqual({ dona: null, som: null, kun: 0 });
     expect(oyYigindisi(null, '2026-09')).toEqual({ dona: null, som: null, kun: 0 });
   });
+  it('oyYigindisi: narxi ham, daromadi ham yoʻq kun — tushum null (nol deb qoʻshilmaydi), dona sanaladi', () => {
+    // Tekshiruv (2026-10-05): bunday kun tushumga 0 soʻm boʻlib qoʻshilardi —
+    // oy summasi (va 12-qadam taxmini, aylanma soligʻi) jimgina kam chiqardi.
+    const narxsiz: TovarKuzatuvi = { ...k, kunlar: [
+      kun('2026-09-29', { zaxira: 10, sotildi: 2, daromad: 200_000 }),
+      { sana: '2026-09-30', narx: null, zaxira: 7, sharh: null, reyting: null, sotildi: 3, daromad: null },
+    ] };
+    expect(oyYigindisi(narxsiz, '2026-09')).toEqual({ dona: 5, som: null, kun: 2 });
+  });
   it('qayta buyurtma: yangi partiya omborga tushmaguncha boshlangʻich yoʻq (eski qoldiq signal bermaydi)', () => {
     const tarix: TovarKuzatuvi = { ...k, kunlar: [
       kun('2026-09-01', { zaxira: 30 }), kun('2026-09-20', { zaxira: 5, sotildi: 2 }),
@@ -129,6 +138,16 @@ describe('raqobatchiHolati va signallar', () => {
     expect(ZAXIRA_SIGNAL_ULUSH).toBe(0.2);
     expect(NARX_SIGNAL_FOIZ).toBe(3);
   });
+  it('narx signali id si — narx OʻZGARGAN kun: bir xil tushish keyingi kunlarda qayta soʻralmaydi', () => {
+    // Tekshiruv (2026-10-05): id oxirgi oʻlchov kuni bilan edi — 100 000 → 95 000
+    // tushishi har «Yangilash» da (7 kungacha) yangi savol boʻlib qaytardi.
+    const kunlar = [100_000, 95_000, 95_000, 95_000].map((n, i) => kun(`2026-10-0${i + 1}`, { narx: n }));
+    const idlar = [2, 3, 4].map((n) => {
+      const raq = raqobatchiHolati({ externalId: 1, kuzatuvda: true, topildi: true, title: 'R', kunlar: kunlar.slice(0, n) }, 7);
+      return sotuvSignallari([{ productId: 7, partiya: 1, oz: null, raqobatchi: raq }]).map((x) => x.id);
+    });
+    expect(idlar).toEqual([['narx:7:2026-10-02:95000'], ['narx:7:2026-10-02:95000'], ['narx:7:2026-10-02:95000']]);
+  });
   it('kichik boshlangʻich zaxira (< 5) yoki kichik tushish (< 3 %) — signal yoʻq', () => {
     const oz = ozHolati({ externalId: 9, kuzatuvda: true, topildi: true, title: 'S', kunlar: [kun('2026-09-29', { zaxira: 3 }), kun('2026-09-30', { zaxira: 0 })] }, 9, '2026-09');
     expect(sotuvSignallari([{ productId: 7, partiya: 1, oz, raqobatchi: raqobatchiHolati(r([100_000, 98_000]), 7) }])).toEqual([]);
@@ -149,5 +168,16 @@ describe('keyingiOyRejasi', () => {
     expect(r[1]).toMatch(/^«B»: kuzatuv endi boshlandi/);
     expect(r[2]).toBe('«C»: oxirgi 1 oʻlchangan kunda sotuv qayd etilmadi — narxingiz 100 000 soʻm, raqobatchi 90 000 soʻm; birinchi surat va nomni tekshiring.');
     expect(r[3]).toMatch(/^«D»: kuniga ~3 dona, zaxira 3 kunga yetadi/);
+  });
+  it('zaxira tugagan yoki oʻlchanmagan — "0 kunga yetadi" / "zaxira — kunga" yozilmaydi', () => {
+    const tugadi = ozHolati({ externalId: 9, kuzatuvda: true, topildi: true, title: 'E', kunlar: [kun('2026-09-29', { zaxira: 6, sotildi: 3 }), kun('2026-09-30', { zaxira: 0, sotildi: 6 })] }, 9, '2026-09');
+    expect(tugadi.zaxiraKun).toBe(0);
+    const r = keyingiOyRejasi([
+      { title: 'E', ozId: 9, oz: tugadi, raqobatchi: null },
+      { title: 'F', ozId: 9, oz: { ...tugadi, zaxira: null, zaxiraKun: null }, raqobatchi: null },
+    ]);
+    expect(r[0]).toMatch(/^«E»: kuniga ~4\.5 dona, zaxira bir kunga ham yetmaydi/);
+    expect(r[1]).toMatch(/^«F»: kuniga ~4\.5 dona; zaxira oʻlchanmagan/);
+    expect(r.join(' ')).not.toMatch(/0 kunga|— kunga/);
   });
 });

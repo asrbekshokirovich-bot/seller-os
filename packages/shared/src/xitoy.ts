@@ -360,7 +360,9 @@ export function apifyRunniOqi(json: unknown): ApifyRunOqish {
   if (Object.keys(xato).length) {
     const tur = matn(xato.type);
     const izoh = tur !== null ? APIFY_XATO_IZOHI[tur] : undefined;
-    return { ok: false, sabab: `${izoh ?? matn(xato.message) ?? 'nomaʼlum xato'}${tur ? ` (${tur})` : ''}` };
+    // Provayderning inglizcha `message` i obunachiga chiqmaydi (u chatda sabab
+    // boʻlib koʻrinadi); notanish tur — umumiy gap va tur kodi (tashxis uchun).
+    return { ok: false, sabab: `${izoh ?? 'provayder xatosi'}${tur ? ` (${tur})` : ''}` };
   }
   const d = obyekt(j.data);
   const runId = matn(d.id);
@@ -550,7 +552,14 @@ async function provayderJson(
     if (json === null) return { ok: false, sabab: `provayder JSON qaytarmadi (HTTP ${r.status})` };
     return { ok: true, json, status: r.status };
   } catch (e) {
-    return { ok: false, sabab: `provayderga ulanib boʻlmadi: ${String((e as Error)?.message ?? e)}` };
+    // Xom xato matni ("The operation was aborted due to timeout") obunachiga
+    // chiqmaydi — u logga yoziladi; chatda — oʻzbekcha sabab.
+    const xom = String((e as Error)?.message ?? e);
+    console.warn('xitoy: provayder soʻrovi yiqildi —', xom);
+    const kechikdi = (e as Error)?.name === 'TimeoutError' || /time(d)? ?out|aborted/i.test(xom);
+    // Qisqa tarmoq kodi (ECONNRESET, ENOTFOUND) tashxis uchun qoladi — u gap emas.
+    const kod = /^[A-Z][A-Z0-9_]{2,}$/.test(xom) ? xom : null;
+    return { ok: false, sabab: `provayderga ulanib boʻlmadi${kechikdi ? ' (javob kechikdi)' : kod ? ` (${kod})` : ''}` };
   }
 }
 

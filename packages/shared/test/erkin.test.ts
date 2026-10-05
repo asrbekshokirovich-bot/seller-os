@@ -40,6 +40,18 @@ describe('tayyorJavob', () => {
     expect(tayyorJavob('operator bilan gaplashsam boʻladimi?')?.uz).toMatch(/chat/);
   });
 
+  it('boshqa mavzu (soliq, logistika, bank, yuk kelishi) — tarif / kafolat / 1688 javobi BERILMAYDI', () => {
+    // Tekshiruv (2026-10-05): "soliq toʻlovi", "pullikmi", "bepulmi" ZumSavdo
+    // tarifiga, "daromad soligʻi" kafolatga, "Xitoydan qachon keladi" 1688
+    // qidiruviga burilib ketardi.
+    for (const t of ['soliq toʻlovi qachon?', 'Uzum logistikasi pullikmi?', 'bank hisobini ochish bepulmi?',
+      'daromad soligʻi qancha?', 'Xitoydan qachon keladi?', 'налог на прибыль какой?']) {
+      expect(tayyorJavob(t), t).toBeNull();
+    }
+    // ZumSavdo mavzusi (obuna) boshqa soʻz bilan kelsa ham tanilaveradi.
+    expect(tayyorJavob('obunani bank kartasi bilan toʻlasa boʻladimi?')?.uz).toMatch(/Payme/);
+  });
+
   it('tovar narxi — tarif EMAS; salom va boshqa — null', () => {
     expect(tayyorJavob('tovar narxi qancha?')).toBeNull();
     expect(tayyorJavob('salom')).toBeNull();

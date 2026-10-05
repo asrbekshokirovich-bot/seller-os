@@ -65,6 +65,14 @@ describe('3-qadam — tovarlar', () => {
       expect(r.royxat[0]!.nomzod.soldUnits30d).toBe(17_286);
     });
 
+    it('necha kun oʻlchangani nomaʼlum (null) — "0 kun bor" deyilmaydi', () => {
+      // Tekshiruv (2026-10-05): `olchanganKun ?? 0` nomaʼlumni nolga aylantirardi
+      // (QOIDALAR.md, 4-boʻlim: oʻlchov yoʻq — nol emas).
+      const r = tovarlar([tovar({ soldUnits30d: 17_286, sotuvManbasi: 'taxmin', olchanganKun: null })], toza);
+      expect(r.royxat[0]!.miqdorSababi).not.toMatch(/0 kun bor/);
+      expect(r.royxat[0]!.miqdorSababi).toMatch(/necha kun oʻlchangani nomaʼlum/);
+    });
+
     it('sotuv umuman oʻlchanmagan boʻlsa boshqa sabab', () => {
       const r = tovarlar([tovar({ soldUnits30d: null, sotuvManbasi: null })], toza);
       expect(r.royxat[0]!.miqdor).toBeNull();

@@ -65,9 +65,31 @@ export function hisobotFaktlari(f: Faktlar): HisobotFaktlar {
   return h;
 }
 
-/** `YYYY-MM` — hisobot oyi (UTC). */
+/** Toshkent vaqti — UTC+5, yozgi vaqt yoʻq. */
+const TOSHKENT_MS = 5 * 3_600_000;
+
+/**
+ * Toshkentdagi sana (`YYYY-MM-DD`), `kun` kun qoʻshib. Sotuvchi Toshkentda
+ * yashaydi: UTC boʻyicha olinsa har kuni 00:00–05:00 da "bugun" kechagi
+ * kun, oyning 1-kunida esa tugagan oy "hozirgacha" boʻlib chiqardi
+ * (tekshiruv, 2026-10-05).
+ */
+export function toshkentSanasi(d: Date, kun = 0): string {
+  return new Date(d.getTime() + TOSHKENT_MS + Math.round(kun) * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** `YYYY-MM` — hisobot oyi (Toshkent vaqti). */
 export function oyKaliti(d: Date): string {
-  return d.toISOString().slice(0, 7);
+  return toshkentSanasi(d).slice(0, 7);
+}
+
+/**
+ * ISO sana (`YYYY-MM-DD…`) → "15.10.2026" — CBU kursi sanasi bilan bir xil
+ * koʻrinish; chatda bitta sana shakli boʻlsin. Boshqa matn — oʻzi.
+ */
+export function sanaMatni(x: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(x);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : x;
 }
 
 const OYLAR = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr'] as const;
@@ -106,6 +128,23 @@ export function keyingiOySanasi(oy: string, kun: number | null): string | null {
   return `${yil}-${String(oyN).padStart(2, '0')}-${String(k).padStart(2, '0')}`;
 }
 
+/**
+ * Aylanma soligʻi hisobotining davri va topshirish muddati — faktdan.
+ * "chorak" — chorakdan keyingi oyning `aylanmaKun`-sanasi (avgust ham,
+ * sentyabr ham — 3-chorak, 15-oktabr); "oy" — keyingi oyning. Fakt yoʻq —
+ * muddat `null`: ijtimoiy soliq kuni bilan almashtirilmaydi (tekshiruv,
+ * 2026-10-05: "oylik soliq hisoboti" ijtimoiy soliq muddati bilan yozilardi).
+ */
+export function hisobotMuddati(oy: string, f: Pick<HisobotFaktlar, 'aylanmaDavri' | 'aylanmaKun'>): { davr: string; muddat: string | null } {
+  const m = /^(\d{4})-(\d{2})$/.exec(oy);
+  if (!m) return { davr: oy, muddat: null };
+  if (f.aylanmaDavri === 'chorak') {
+    const chorak = Math.ceil(Number(m[2]) / 3);
+    return { davr: `${m[1]}-yil ${chorak}-chorak`, muddat: keyingiOySanasi(`${m[1]}-${String(chorak * 3).padStart(2, '0')}`, f.aylanmaKun) };
+  }
+  return { davr: oyNomi(oy), muddat: f.aylanmaDavri === 'oy' ? keyingiOySanasi(oy, f.aylanmaKun) : null };
+}
+
 export interface OyHisobi {
   oy: string;
   /** Sotuv (xaridor toʻlagan toʻliq narx) — sotuvchi yozgan yoki oʻlchovdan taxmin. */
@@ -113,7 +152,7 @@ export interface OyHisobi {
   sotuvManbasi: 'kabinet' | 'olchov' | null;
   /** Uzum komissiyasi va logistika — sotuvchi yozgan (kabinet hisobotidan). */
   komissiyaSom: number | null;
-  /** Sof tushum = sotuv − komissiya. Ikkalasi boʻlmasa `null`. */
+  /** Sof tushum = sotuv − komissiya; MANFIY boʻlishi mumkin (zarar yashirilmaydi). Ikkalasi boʻlmasa `null`. */
   sofSom: number | null;
   soliq: OylikSoliq;
   /** Ijtimoiy soliq toʻlov muddati (keyingi oyning `tolovKuni`-sanasi). */
@@ -147,7 +186,7 @@ export function oyHisobi(q: {
     sotuvSom,
     sotuvManbasi: kabinet !== null ? 'kabinet' : olchov !== null ? 'olchov' : null,
     komissiyaSom,
-    sofSom: sotuvSom !== null && komissiyaSom !== null ? Math.max(0, sotuvSom - komissiyaSom) : null,
+    sofSom: sotuvSom !== null && komissiyaSom !== null ? sotuvSom - komissiyaSom : null,
     soliq,
     ijtimoiyMuddat: keyingiOySanasi(q.oy, q.f.soliq.tolovKuni),
     komissionerSana: keyingiOySanasi(q.oy, q.f.komissionerKun),
@@ -165,11 +204,16 @@ export function deklaratsiyaQadamlari(h: OyHisobi, f: HisobotFaktlar): string[] 
   const agent = f.agent ? ` ${f.agent}.` : '';
   const oziTopshirsa = f.aylanmaDavri && f.aylanmaKun !== null
     ? ` (${f.aylanmaDavri}dan keyingi oyning ${f.aylanmaKun}-sanasigacha — tasdiqlanishi kerak)` : '';
+  // Fakt yoʻq boʻlsa gap butunicha boshqacha quriladi: "muddat faktda yoʻq
+  // gacha", "(? %)" kabi chala gap chiqmasin (tekshiruv, 2026-10-05).
+  const ijtimoiy = s.ijtimoiySom !== null ? `${minglik(s.ijtimoiySom)} soʻm` : 'miqdori faktda yoʻq';
+  const muddat = h.ijtimoiyMuddat ? `${sanaMatni(h.ijtimoiyMuddat)} gacha toʻlang, sotuv boʻlmasa ham` : 'toʻlov muddati faktda yoʻq — sotuv boʻlmasa ham toʻlanadi';
   return [
-    `Uzum kabinetidan ${oyNomi(h.oy)} uchun komissioner hisobotini yuklab oling${h.komissionerSana ? ` (${h.komissionerSana} gacha tayyor boʻladi)` : ''} — soliq hisobotining asos hujjati.`,
-    `${f.portalUrl ?? 'Soliq portali (manzil faktda yoʻq)'} ga E-imzo (ERI) bilan kiring.`,
-    `Ijtimoiy soliq: ${s.ijtimoiySom !== null ? `${minglik(s.ijtimoiySom)} soʻm` : 'miqdor faktda yoʻq'} — ${h.ijtimoiyMuddat ?? 'muddat faktda yoʻq'} gacha toʻlang, sotuv boʻlmasa ham.`,
-    `Aylanma soligʻi (${f.soliq.aylanmaFoiz ?? '?'} %): ${s.aylanmaSom !== null ? `${minglik(s.aylanmaSom)} soʻm` : 'hisoblanmadi'}.${agent} Komissioner hisobotida ushlab qolinganini tekshiring; ushlanmagan boʻlsa hisob-kitobni oʻzingiz topshirasiz${oziTopshirsa}.`,
-    'Toʻlov kvitansiyasi va hisobotni saqlang — keyingi oy solishtiramiz.',
+    `Uzum kabinetidan ${oyNomi(h.oy)} uchun komissioner hisobotini yuklab oling${h.komissionerSana ? ` (${sanaMatni(h.komissionerSana)} gacha tayyor boʻladi)` : ''} — soliq hisobotining asos hujjati.`,
+    f.portalUrl ? `${f.portalUrl} ga E-imzo (ERI) bilan kiring.` : 'Soliq portaliga E-imzo (ERI) bilan kiring (portal manzili faktda yoʻq).',
+    `Ijtimoiy soliq: ${ijtimoiy}, ${muddat}.`,
+    `Aylanma soligʻi (${f.soliq.aylanmaFoiz !== null ? `${f.soliq.aylanmaFoiz} %` : 'foizi faktda yoʻq'}): ${s.aylanmaSom !== null ? `${minglik(s.aylanmaSom)} soʻm` : 'hisoblanmadi'}.${agent} Komissioner hisobotida ushlab qolinganini tekshiring; ushlanmagan boʻlsa hisob-kitobni oʻzingiz topshirasiz${oziTopshirsa}.`,
+    // "Keyingi oy solishtiramiz" deyilmaydi — bunday solishtirish kodda yoʻq.
+    'Toʻlov kvitansiyasi va hisobotni saqlang.',
   ];
 }

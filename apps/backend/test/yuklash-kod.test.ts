@@ -93,14 +93,16 @@ describe('yuklashYakun', () => {
     ]);
     expect(b.ochiq()[1]).toMatchObject({ p_token: 'tok', p_tur: 'kutyapman', p_muddat: '2026-10-06', p_props: { savolId: 'topshirildi', javob: 'topshirdim' } });
   });
-  it('boshqacha — tekshirish (yuklash: …); oʻtkazilgan (null) — kutyapman; kutyapman — qabul kutish', async () => {
+  it('boshqacha — tekshirish (yuklash: …); oʻtkazilgan (null) — kutyapman; taymslot kutilmoqda — topshirish kutiladi, qabul muddati SANALMAYDI', async () => {
     const n = await kod(soxtaBaza()).yuklashYakun(holatYasa({ kartochka_yaratildi: 'boshqacha', qadoq_tayyor: 'boshqacha', yetkazish: null, taymslot: 'boshqacha', topshirildi: 'kutyapman' }, { yuklash: YUKLASH }));
-    expect(n.yozildi.map((y) => [y.tur, y.sabab])).toEqual([
-      ['tekshirish', 'yuklash: kabinet (kartochka) boshqacha'],
-      ['tekshirish', 'yuklash: qadoq qoʻllanmasi boshqacha'],
-      ['kutyapman', 'omborga yetkazish usuli'],
-      ['tekshirish', 'yuklash: yetkazma/taymslot boshqacha'],
-      ['kutyapman', 'Uzum ombor qabuli'],
+    // Tekshiruv (2026-10-05): yuk hali topshirilmagan, lekin "Uzum ombor qabuli"
+    // bugundan +7 kun muddat bilan yozilardi — toʻqilgan sana.
+    expect(n.yozildi.map((y) => [y.tur, y.sabab, y.muddat])).toEqual([
+      ['tekshirish', 'yuklash: kabinet (kartochka) boshqacha', null],
+      ['tekshirish', 'yuklash: qadoq qoʻllanmasi boshqacha', null],
+      ['kutyapman', 'omborga yetkazish usuli', null],
+      ['tekshirish', 'yuklash: yetkazma/taymslot boshqacha', null],
+      ['kutyapman', 'omborga topshirish (taymslot kutilmoqda)', null],
     ]);
   });
   it('kartochka keyin — kutyapman; muddat fakti yoʻq — null (nol emas); 8-qadam faktiga tushadi', async () => {

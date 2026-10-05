@@ -113,9 +113,13 @@ export function kuzatuvlarniOqi(json: unknown): TovarKuzatuvi[] {
 export function oyYigindisi(k: TovarKuzatuvi | null, oy: string): { dona: number | null; som: number | null; kun: number } {
   const kunlar = (k?.kunlar ?? []).filter((x) => x.sotildi !== null && x.sana.startsWith(oy));
   if (!kunlar.length) return { dona: null, som: null, kun: 0 };
+  // Daromadi ham, narxi ham yoʻq kun tushumga NOL boʻlib qoʻshilmaydi — oy
+  // tushumi nomaʼlum (`null`), aks holda summa jimgina kam chiqadi
+  // (QOIDALAR.md, 4-boʻlim; tekshiruv, 2026-10-05).
+  const narxsiz = kunlar.some((x) => x.daromad === null && x.narx === null);
   return {
     dona: kunlar.reduce((s, x) => s + (x.sotildi ?? 0), 0),
-    som: Math.round(kunlar.reduce((s, x) => s + (x.daromad ?? (x.sotildi !== null && x.narx !== null ? x.sotildi * x.narx : 0)), 0)),
+    som: narxsiz ? null : Math.round(kunlar.reduce((s, x) => s + (x.daromad ?? (x.sotildi ?? 0) * (x.narx ?? 0)), 0)),
     kun: kunlar.length,
   };
 }
@@ -204,6 +208,12 @@ export interface RaqobatchiHolat {
   oldingiNarx: number | null;
   /** Narx tushgan boʻlsa — foiz; oshgan yoki oʻzgarmagan — `null`. */
   tushdiFoiz: number | null;
+  /**
+   * Hozirgi narx birinchi oʻlchangan kun (narx oʻzgargan sana). Signal id si
+   * shundan: bir xil tushish har yangi oʻlchov kunida qayta soʻralmasin.
+   * Eski natijalarda yoʻq — `sana` ishlatiladi.
+   */
+  ozgardi?: string | null;
 }
 
 /** Raqobatchi (3-qadamda tanlangan Uzum tovari) narxi — oxirgi oʻzgarish. */
@@ -211,15 +221,17 @@ export function raqobatchiHolati(k: TovarKuzatuvi | null, productId: number): Ra
   const narxli = (k?.kunlar ?? []).filter((x) => x.narx !== null);
   const oxirgi = narxli[narxli.length - 1] ?? null;
   let oldingiNarx: number | null = null;
+  let ozgardi: string | null = oxirgi?.sana ?? null;
   if (oxirgi) {
     for (let i = narxli.length - 2; i >= Math.max(0, narxli.length - 8); i--) {
       if (narxli[i]!.narx !== oxirgi.narx) { oldingiNarx = narxli[i]!.narx; break; }
+      ozgardi = narxli[i]!.sana;
     }
   }
   const narx = oxirgi?.narx ?? null;
   const tushdiFoiz = narx !== null && oldingiNarx !== null && oldingiNarx > 0 && narx < oldingiNarx
     ? Math.round(((oldingiNarx - narx) / oldingiNarx) * 1000) / 10 : null;
-  return { productId, sana: oxirgi?.sana ?? null, narx, oldingiNarx, tushdiFoiz };
+  return { productId, sana: oxirgi?.sana ?? null, narx, oldingiNarx, tushdiFoiz, ozgardi };
 }
 
 export type SotuvSignali =
@@ -229,9 +241,10 @@ export type SotuvSignali =
 
 /**
  * Signallar. ID lar takrorlanmaydi: zaxira — tovar partiyasi boʻyicha
- * (tovar oxirgi olingan partiyada bir marta soʻraladi), narx — sana va
- * narx boʻyicha, sharh — sharhlar soni boʻyicha. Javob berilgan signal
- * qayta soʻralmaydi.
+ * (tovar oxirgi olingan partiyada bir marta soʻraladi), narx — narx
+ * OʻZGARGAN kun va yangi narx boʻyicha (oxirgi oʻlchov kuni emas — aks holda
+ * bir xil tushish har kuni qayta soʻralardi), sharh — sharhlar soni
+ * boʻyicha. Javob berilgan signal qayta soʻralmaydi.
  */
 export function sotuvSignallari(
   qatorlar: Array<{ productId: number; partiya: number; oz: OzHolat | null; raqobatchi: RaqobatchiHolat | null }>,
@@ -244,7 +257,7 @@ export function sotuvSignallari(
     }
     const r = q.raqobatchi;
     if (r && r.narx !== null && r.oldingiNarx !== null && r.tushdiFoiz !== null && r.tushdiFoiz >= NARX_SIGNAL_FOIZ && r.sana) {
-      s.push({ id: `narx:${q.productId}:${r.sana}:${r.narx}`, tur: 'narx', productId: q.productId, narx: r.narx, oldingiNarx: r.oldingiNarx, foiz: r.tushdiFoiz, sana: r.sana, ozNarx: o?.narx ?? null });
+      s.push({ id: `narx:${q.productId}:${r.ozgardi ?? r.sana}:${r.narx}`, tur: 'narx', productId: q.productId, narx: r.narx, oldingiNarx: r.oldingiNarx, foiz: r.tushdiFoiz, sana: r.sana, ozNarx: o?.narx ?? null });
     }
     if (o && o.yangiSharh > 0 && o.sharh !== null) {
       s.push({ id: `sharh:${q.productId}:${o.sharh}`, tur: 'sharh', productId: q.productId, yangi: o.yangiSharh, jami: o.sharh, reyting: o.reyting });
@@ -270,6 +283,9 @@ export function keyingiOyRejasi(
       const raqobatchi = q.raqobatchi?.narx ? `, raqobatchi ${minglik(q.raqobatchi.narx)} soʻm` : '';
       return `«${q.title}»: oxirgi ${o.tezlikKun} oʻlchangan kunda sotuv qayd etilmadi${o.oyDona ? ` (shu oy ${minglik(o.oyDona)} dona)` : ''} — ${narx}${raqobatchi}; birinchi surat va nomni tekshiring.`;
     }
-    return `«${q.title}»: kuniga ~${minglik(o.tezlik)} dona, zaxira ${o.zaxiraKun ?? '—'} kunga yetadi — yangi partiya shu muddatdan oldin kelishi uchun 1688 va kargo muddatini hisoblab buyurtma bering.`;
+    // Zaxira tugagan yoki oʻlchanmagan — "0 kunga yetadi" / "zaxira — kunga" emas, gap shunga qarab.
+    if (o.zaxiraKun === null) return `«${q.title}»: kuniga ~${minglik(o.tezlik)} dona; zaxira oʻlchanmagan — necha kunga yetishi hisoblanmadi.`;
+    if (o.zaxiraKun === 0) return `«${q.title}»: kuniga ~${minglik(o.tezlik)} dona, zaxira bir kunga ham yetmaydi — yangi partiyani imkon qadar tez buyurtma bering (1688 va kargo muddatini hisobga oling).`;
+    return `«${q.title}»: kuniga ~${minglik(o.tezlik)} dona, zaxira ${minglik(o.zaxiraKun)} kunga yetadi — yangi partiya shu muddatdan oldin kelishi uchun 1688 va kargo muddatini hisoblab buyurtma bering.`;
   });
 }

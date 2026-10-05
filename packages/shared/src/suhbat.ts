@@ -27,7 +27,7 @@
  */
 
 import { type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat,
-  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir } from './ssenariy.js';
+  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, yiqilganNatija } from './ssenariy.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
 import { ERKIN_BILIM, tayyorJavob } from './erkin.js';
@@ -186,7 +186,11 @@ export async function suhbatTurn(
       ? kirish.matn.trim() : null;
     const savolBerdi = yozgan !== null && savolmi(yozgan);
     // Tanlov savolida variant nomini yozsa ("ha", "yoʻq") — oʻsha variant.
-    const tanlanganVariant = yozgan !== null && !savolBerdi && k0.savol.turi === 'tanlov'
+    // Son savolida ham tugma matnini yozsa ("60 kunlik") — oʻsha tugma: aks
+    // holda "60 kunlik" 60 dona boʻlib ketardi (tugma — 90 dona). Faqat raqam
+    // ("30") — oʻsha son, tugma emas.
+    const tugmaMatni = k0.savol.turi === 'tanlov' || (k0.savol.turi === 'son' && yozgan !== null && /\p{L}/u.test(yozgan));
+    const tanlanganVariant = yozgan !== null && !savolBerdi && tugmaMatni
       ? variantniTop(k0.savol.variantlar, yozgan) : undefined;
     const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom);
     if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
@@ -292,9 +296,12 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
     if (harakat === 'hisobot_yakun') return await d.kod.hisobotYakun(h);
     return await d.kod.tannarx(h);
   } catch (e) {
-    // Yiqilish jim o'tmaydi: natija sifatida sabab qaytadi va ssenariy
-    // uni "o'lchov yo'q" deb ko'rsatadi.
-    return { olchov_yoq: true, sabab: `hisob yiqildi: ${String((e as Error)?.message ?? e)}` };
+    // Yiqilish jim oʻtmaydi: xom xato LOGGA yoziladi (obunachiga inglizcha
+    // JS matni chiqmaydi), natija — `yiqilganNatija()`: ssenariy uni koʻrib
+    // «Qayta urinish» savolini beradi. Ilgari `{olchov_yoq, sabab}` yozilardi
+    // va matn quruvchilar unda TypeError otardi (tekshiruv, 2026-10-05).
+    console.error(`suhbat: "${harakat}" harakati yiqildi:`, e);
+    return yiqilganNatija();
   }
 }
 
@@ -360,12 +367,35 @@ function gap(t: string): string {
   return /[.!?…]$/u.test(b) ? b : `${b}.`;
 }
 
-/** Uzun savol matnidan — oxirgi soʻroq jumla (eslatma uchun). */
+/**
+ * Uzun savol matnidan — oxirgi soʻroq jumla (eslatma uchun). Savolda «nom»
+ * boʻlsa-yu, soʻroq jumlada boʻlmasa — nom oldiga qoʻshiladi: aks holda
+ * bir nechta tovar boʻlganda «Birinchi partiya uchun nechta olasiz?» qaysi
+ * tovar haqida ekani bilinmasdi (tekshiruv, 2026-10-05).
+ */
 function qisqaSavol(matn: string): string {
   const jumlalar = matn.split(/(?<=[.!?])\s+/u).filter(Boolean);
   const soroq = [...jumlalar].reverse().find((j) => j.trim().endsWith('?'));
-  const t = (soroq ?? matn).trim();
+  let t = (soroq ?? matn).trim();
+  const nom = /«[^»]+»/u.exec(matn)?.[0];
+  if (soroq && nom && !t.includes(nom)) t = `${nom} — ${t}`;
   return t.length > 180 ? `${t.slice(0, 180)}…` : t;
+}
+
+/**
+ * Rad etish sababi rus tilida — oʻzbekcha sabab rus gapiga aralashmasin
+ * ("Не получилось принять ответ: Variantlardan birini tanlang."). Sabablar
+ * ssenariyda (`javobniQabulQil`) yoziladi; notanishi — umumiy gap.
+ */
+function sababRu(sabab: string): string {
+  const s = sabab.toLowerCase();
+  if (s.startsWith('bitta son')) return 'Напишите одно число.';
+  if (s.startsWith('summani soʻmda')) return 'Напишите сумму в сумах.';
+  if (s.startsWith('marja')) return 'Маржа — от 0 до 99 %.';
+  if (s.startsWith('variantlardan')) return 'Выберите один из вариантов.';
+  if (s.includes('havola')) return 'Пришлите ссылку на свою карточку Uzum (uzum.uz/…/product/…).';
+  if (s.includes('manzil')) return 'Пришлите ссылку на фото — она начинается с http(s)://.';
+  return 'Ответ не подошёл.';
 }
 
 /** Obunachi rus tilida yozdimi (kirill harflari). */
@@ -381,19 +411,24 @@ function ruschami(matn: string): boolean {
  */
 function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null): string {
   const ruscha = ruschami(matn);
-  const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)/iu.test(matn);
+  // Salom — butun soʻz: "hisob…" "hi" bilan boshlanadi, lekin salomlashish emas.
+  const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)(?!\p{L})/iu.test(matn);
   const tayyor = tayyorJavob(matn);
   const savol = qisqaSavol(s.matn);
+  // Javob oʻtmagan boʻlsa — avval nega oʻtmagani, keyin (boʻlsa) tayyor javob:
+  // obunachi javobi nega qabul qilinmaganini bilishi kerak.
   if (ruscha) {
     return [
       salom ? 'Здравствуйте!' : null,
-      tayyor ? tayyor.ru : sabab ? `Не получилось принять ответ: ${gap(sabab)}` : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
+      sabab ? `Не получилось принять ответ: ${sababRu(sabab)}` : null,
+      tayyor ? tayyor.ru : sabab ? null : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
       `Сейчас вопрос: «${savol}»`,
     ].filter(Boolean).join(' ');
   }
   return [
     salom ? 'Vaalaykum assalom!' : null,
-    tayyor ? tayyor.uz : sabab ? gap(sabab) : 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
+    sabab ? gap(sabab) : null,
+    tayyor ? tayyor.uz : sabab ? null : 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
     `Hozirgi savol: «${savol}»`,
   ].filter(Boolean).join(' ');
 }

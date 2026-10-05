@@ -51,7 +51,7 @@ function holatYasa(q: Partial<YolHolati['javoblar']> = {}, natijalar: Partial<Yo
   };
 }
 
-function soxtaBaza(q: { soni?: number; jami?: number; kesh?: Record<string, unknown[]>; limitXato?: boolean } = {}) {
+function soxtaBaza(q: { soni?: number; jami?: number; kesh?: Record<string, unknown[]>; limitXato?: boolean; limitNull?: boolean } = {}) {
   let soni = q.soni ?? 0;
   let jami = q.jami ?? 0;
   const yozilgan: Array<{ hash: string; natijalar: unknown[] }> = [];
@@ -62,6 +62,7 @@ function soxtaBaza(q: { soni?: number; jami?: number; kesh?: Record<string, unkn
     if (nom === 'so_obuna') return { obuna: null } as T;
     if (nom === 'so_fakt_oqi') return {} as T;
     if (nom === 'so_xitoy_limit') {
+      if (q.limitNull) return null;
       if (q.limitXato) return { xato: 'sessiya topilmadi' } as T;
       if (a.p_qaytar === true) { soni = Math.max(0, soni - 1); jami = Math.max(0, jami - 1); return { soni, jami, ruxsat: true } as T; }
       if (a.p_oshir === true) {
@@ -99,9 +100,9 @@ function soxtaFetch(q: { cbu?: unknown | (() => never); boshlash?: unknown; hola
   return { fetch: f, urllar, apify: () => urllar.filter((u) => u.includes('apify')) };
 }
 
-function kod(b: ReturnType<typeof soxtaBaza>, f: typeof fetch, q: { kalit?: string | null; tarifCheklovi?: boolean } = {}) {
+function kod(b: ReturnType<typeof soxtaBaza>, f: typeof fetch, q: { kalit?: string | null; tarifCheklovi?: boolean; hozir?: () => Date } = {}) {
   return suhbatKodHarakatlari(b.rpc, () => ({ bayroqlar: [], baholanmadi: [] }), () => 9,
-    { kalit: q.kalit === undefined ? 'KALIT' : q.kalit, fetch: f, token: 'tok', tarifCheklovi: q.tarifCheklovi ?? false });
+    { kalit: q.kalit === undefined ? 'KALIT' : q.kalit, fetch: f, token: 'tok', tarifCheklovi: q.tarifCheklovi ?? false, ...(q.hozir ? { hozir: q.hozir } : {}) });
 }
 
 const qator = (n: XitoyNatijasi, id: number) => n.qatorlar.find((x) => x.productId === id)!;
@@ -123,6 +124,18 @@ describe('xitoy — boshlash', () => {
     expect(n.kutilmoqda).toBeNull();
     expect(qator(n, 100).sabab).toMatch(/sessiya topilmadi/);
     expect(s.apify()).toEqual([]);
+  });
+
+  it('tovar tanlanmagan — tarmoqqa chiqilmaydi, sabab "tovar tanlanmagan" ("oʻlchov yoʻq" emas)', async () => {
+    const s = soxtaFetch();
+    const n = await kod(soxtaBaza(), s.fetch).xitoy(holatYasa({ tovarlar: [] })) as XitoyNatijasi;
+    expect(n).toMatchObject({ olchov_yoq: true, sabab: 'tovar tanlanmagan', qatorlar: [], kutilmoqda: null });
+    expect(s.urllar).toEqual([]);
+  });
+
+  it('limit sanogʻi kelmasa — sabab bir marta aytiladi ("limit oʻlchanmadi: … limit oʻlchanmadi" emas)', async () => {
+    const n = await kod(soxtaBaza({ limitNull: true }), soxtaFetch().fetch).xitoy(holatYasa()) as XitoyNatijasi;
+    expect(qator(n, 100).sabab).toBe('baza javob bermadi — limit oʻlchanmadi');
   });
 
   it('tarif cheklovi yoqiq, bepul reja — qidirilmadi "tarif", yurish yoʻq', async () => {
@@ -209,10 +222,21 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
 
   it('RUNNING — hech narsa oʻzgarmaydi (oʻsha holat qaytadi), kurs qayta soʻralmaydi', async () => {
     const b = soxtaBaza({ soni: 2 }); const s = soxtaFetch({ holat: F.ishlayapti });
-    const n = await kod(b, s.fetch).xitoy(holatYasa({}, { xitoy: KUTILMOQDA })) as XitoyNatijasi;
+    const n = await kod(b, s.fetch, { hozir: () => new Date('2026-09-25T20:01:30.000Z') }).xitoy(holatYasa({}, { xitoy: KUTILMOQDA })) as XitoyNatijasi;
     expect(n).toEqual(KUTILMOQDA);
     expect(s.urllar.some((u) => u.includes('cbu.uz'))).toBe(false);
     expect(b.yozilgan).toEqual([]);
+  });
+
+  it('RUNNING, lekin 10 daqiqadan oshdi — cheksiz kutilmaydi: qidirilmadi (sabab bilan), bandlar qaytadi', async () => {
+    // Tekshiruv (2026-10-05): 9-qadamda 5 daqiqa chegarasi bor edi, 5-qadamda yoʻq —
+    // yurish navbatda qolib ketsa chat "odatda 1–2 daqiqa" deb abadiy kutardi.
+    const b = soxtaBaza({ soni: 2 }); const s = soxtaFetch({ holat: F.ishlayapti });
+    const n = await kod(b, s.fetch, { hozir: () => new Date('2026-09-25T20:11:00.000Z') }).xitoy(holatYasa({}, { xitoy: KUTILMOQDA })) as XitoyNatijasi;
+    expect(n.kutilmoqda).toBeNull();
+    expect(qator(n, 100)).toMatchObject({ holat: 'qidirilmadi', sabab: 'provayder 10 daqiqada natija bermadi' });
+    expect(qator(n, 200).holat).toBe('qidirilmadi');
+    expect(b.soni()).toBe(0);
   });
 
   it('SUCCEEDED — qatorlar toʻldiriladi: A topildi (chegara, tartib), B RISK_CONTROL → qidirilmadi + band qaytadi', async () => {
@@ -263,6 +287,8 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
     const n = await kod(b, s.fetch).xitoy(h) as XitoyNatijasi;
     expect(n.kutilmoqda).toBeNull();
     expect(qator(n, 100).sabab).toMatch(/ulanib boʻlmadi/);
+    // Xom (inglizcha) xato matni obunachiga chiqmaydi, "provayder: provayderga …" takrori yoʻq.
+    expect(qator(n, 100).sabab).toBe('provayderga ulanib boʻlmadi (javob kechikdi)');
     expect(b.soni()).toBe(0);
   });
 
