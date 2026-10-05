@@ -65,3 +65,18 @@ export const TIL_COOKIE = KALIT;
 export function tilniQoy(til: Til): void {
   document.documentElement.lang = til;
 }
+
+/**
+ * Ruscha ot son bilan kelishadi: 1 товар, 3 товара, 5 товаров; 21 товар,
+ * 3 020 064 товара, 11–14 — товаров. Son yoʻq (`null`, chiziqcha) yoki
+ * kasr boʻlsa — koʻplik (`kop`).
+ */
+export function ruShakl(n: number | null, [bir, oz, kop]: readonly [string, string, string]): string {
+  if (n === null || !Number.isInteger(n)) return kop;
+  const yuz = Math.abs(n) % 100;
+  const on = yuz % 10;
+  if (yuz >= 11 && yuz <= 14) return kop;
+  if (on === 1) return bir;
+  if (on >= 2 && on <= 4) return oz;
+  return kop;
+}

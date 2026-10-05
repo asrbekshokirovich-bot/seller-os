@@ -9,15 +9,18 @@
 // (`api.selleros.uz`) qaragan — yaʼni tugma nashr qilingan kunidan
 // beri faqat "Tarmoq xatosi" berardi.
 
+import { savatTugmasimi, xatoMatni } from './matn';
+
 const TUGMA_ID = 'selleros-xitoy-tugma';
 const PANEL_ID = 'selleros-xitoy-panel';
 /** Uzum.uz tovar sahifasida tugma qoʻyiladigan blok. Selektor oʻzgarishi mumkin — kengaytma yangilanadi. */
 const JOY_SELEKTOR = '[data-testid="product-actions"], .product-actions, .product-page';
 /**
- * ZumSavdo chat manzili — "toʻliq hisob" havolasi uchun. Boʻsh boʻlsa
- * havola chizilmaydi (manzil nazoratchidan olinadi, kodda taxmin yoʻq).
+ * ZumSavdo chat manzili — natijalar panelidagi "toʻliq hisob" havolasi
+ * (yangi oynada `/usta`). Yon panel bilan bir manzil (`panel.ts`, `SAYT`).
+ * Boʻsh boʻlsa havola chizilmaydi.
  */
-const SELLEROS_SAYT = '';
+const SELLEROS_SAYT = 'https://zumsavdo.vercel.app';
 
 /**
  * Tovar id — manzildan. Uzum haqiqiy manzili `/uz/product/<slug>-<id>`
@@ -36,11 +39,12 @@ function tovarIdOl(): number | null {
  * 343 px) → … → `div.call-to-action` → `div.content-right`. Bizning tugma
  * `.add-cart` blokidan keyin (Savatga ostida, toʻliq kenglikda), panel esa
  * `.call-to-action` dan keyin (oʻng ustunda). Matn boʻyicha qidiriladi —
- * Uzum klass nomlari oʻzgarsa ham "Savatga" soʻzi qoladi.
+ * Uzum klass nomlari oʻzgarsa ham "Savatga" soʻzi qoladi; ruscha sahifada
+ * «В корзину» (`savatTugmasimi`).
  */
 function savatgaTugmasi(): HTMLElement | null {
   for (const b of Array.from(document.querySelectorAll('button'))) {
-    if (/savatga/i.test(b.textContent ?? '')) return b;
+    if (savatTugmasimi(b.textContent ?? '')) return b;
   }
   return null;
 }
@@ -106,6 +110,12 @@ function tugmaYarat(): HTMLButtonElement {
         rasmUrl: rasmUrlOl(),
       });
 
+      // Qidiruv 1–2 daqiqa: shu orada boshqa tovarga oʻtilgan boʻlsa (Uzum —
+      // SPA, sahifa qayta yuklanmaydi) natija YANGI tovar sahifasiga chizilardi,
+      // holbuki u oldingisiniki. Chizilmaydi; natija serverda keshlangan —
+      // oʻsha tovarga qaytib bosilsa darhol chiqadi.
+      if (tovarIdOl() !== pid) return;
+
       if (!javob) {
         tugma.textContent = 'Javob kelmadi';
       } else if (javob.xato) {
@@ -126,7 +136,8 @@ function tugmaYarat(): HTMLButtonElement {
         tugma.textContent = 'Natija topilmadi';
       }
     } catch (e) {
-      tugma.textContent = `Xato: ${(e as Error)?.message ?? 'nomaʼlum'}`;
+      console.warn('ZumSavdo: qidiruv xatosi', e);
+      tugma.textContent = `Xato: ${xatoMatni(e)}`;
     } finally {
       tugma.disabled = false;
     }

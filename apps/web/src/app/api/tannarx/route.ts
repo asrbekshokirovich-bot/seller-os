@@ -24,7 +24,9 @@ export async function POST(request: Request): Promise<Response> {
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
     });
   } catch (xato) {
-    return javob({ olchov_yoq: true, sabab: `API ga ulanib boʻlmadi: ${String(xato)}` }, 502);
+    // Xom xato (inglizcha "TypeError: fetch failed") faqat server logida — odamga qisqa matn.
+    console.error('[api/tannarx] API ga ulanib boʻlmadi:', xato);
+    return javob({ olchov_yoq: true, sabab: 'API ga ulanib boʻlmadi' }, 502);
   }
 }
 

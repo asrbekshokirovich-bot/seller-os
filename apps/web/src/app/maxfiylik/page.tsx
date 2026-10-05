@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-09-30';
+const YANGILANDI = '2026-10-05';
 
 export default function Maxfiylik() {
   return (
@@ -37,8 +37,8 @@ export default function Maxfiylik() {
 
         <div className={u.urgu}>
           <p>
-            <strong>Ism, telefon va elektron pochta soʻralmaydi.</strong> Roʻyxatdan
-            oʻtish yoʻq. Siz savollarga javob berasiz, tizim tavsiya beradi — bu
+            <strong>Ism va elektron pochta soʻralmaydi, telefon raqam saqlanmaydi.</strong>{' '}
+            Roʻyxatdan oʻtish yoʻq. Siz savollarga javob berasiz, tizim tavsiya beradi — bu
             uchun kim ekaningizni bilish shart emas.
           </p>
         </div>
@@ -69,6 +69,44 @@ export default function Maxfiylik() {
           Cookie ni oʻchirsangiz sayt sizni tanimaydi va javoblaringiz
           koʻrinmay qoladi.
         </p>
+        <p>Brauzerda yana ikkita sozlama turadi — ularda siz haqingizda hech narsa yoʻq:</p>
+        <ul>
+          <li>
+            <code>so_til</code> cookie — tanlagan tilingiz (<code>uz</code> yoki{' '}
+            <code>ru</code>), bir yil. Sahifa birinchi chizilishidanoq shu tilda
+            chiqishi uchun serverga boradi; <code>SameSite=None; Partitioned</code>{' '}
+            — kengaytma yon panelida ham ishlashi uchun.
+          </li>
+          <li>
+            Brauzer xotirasida (<code>localStorage</code>) — <code>so_til</code>{' '}
+            (til) va <code>so_mavzu</code> (yorugʻ yoki tungi mavzu). Xotiradagi
+            yozuvlar serverga yuborilmaydi.
+          </li>
+        </ul>
+
+        <h2>Chrome kengaytmasi</h2>
+        <p>
+          Kengaytmaning yon panelida sayt ramka ichida ochiladi va u yerda cookie
+          ishlamaydi. Shuning uchun kalitni kengaytmaning oʻzi saqlaydi
+          (<code>chrome.storage</code>) va sahifaga manzilning <code>#</code> dan
+          keyingi qismida beradi (<code>#sessiya=…</code>).
+        </p>
+        <ul>
+          <li>
+            Bu qism manzil bilan birga serverga <strong>yuborilmaydi</strong>.
+            Sahifadagi JavaScript uni oʻqiydi va har soʻrovga{' '}
+            <code>x-sessiya</code> sarlavhasi bilan qoʻshadi.
+          </li>
+          <li>
+            Yaʼni kengaytmada yuqoridagi <strong>HttpOnly</strong> himoyasi yoʻq:
+            sahifaga begona skript tushsa, u kalitni oʻqiy oladi.
+          </li>
+          <li>
+            Uzum sahifasidagi «Xitoydan top» tugmasi bosilgandagina tovar raqami va
+            uning asosiy rasmi manzili yuboriladi (pastda — Apify). Batafsil —
+            kengaytmaning oʻz maxfiylik siyosatida (omborda <code>PRIVACY.md</code>).
+          </li>
+        </ul>
 
         <h2>Nima saqlanadi</h2>
         <p>Faqat oʻzingiz kiritgan javoblar va tizim bergan tavsiyalar.</p>
@@ -81,11 +119,12 @@ export default function Maxfiylik() {
             <tbody>
               <tr>
                 <td>
-                  Oʻn ikki savol javobi: tajriba sohalari, oila ishi,
-                  qiziqish, byudjet, pulning bogʻlanishi, haftasiga necha
-                  soat, shahar, onlayn tajriba, Uzumda doʻkon bormi,
-                  Xitoydan tovar keltirganmisiz, sertifikat tajribasi,
-                  risk munosabati
+                  Profil: byudjet, Uzumda doʻkoningiz bormi va yuk keladigan
+                  shahar — hozirgi suhbat shu uchtasini yozadi. Ustaning
+                  oldingi shaklida (2026-09-25 gacha) yana soʻralgan: tajriba
+                  sohalari, oila ishi, qiziqish, pulning bogʻlanishi, haftasiga
+                  necha soat, onlayn tajriba, Xitoydan tovar keltirganmisiz,
+                  sertifikat tajribasi, risk munosabati
                 </td>
                 <td><code>user_profiles</code></td>
               </tr>
@@ -103,11 +142,19 @@ export default function Maxfiylik() {
               </tr>
               <tr>
                 <td>
-                  Usta suhbati: savol-javoblar, qaysi qadamdasiz va har
-                  qadamda kod hisoblagan natija (yoʻnalish, tovar, 1688
-                  takliflari, varaqa, suratlar roʻyxati)
+                  Usta suhbati: savol-javoblar (oʻzingiz yozgan erkin xabarlar
+                  ham), qaysi qadamdasiz va har qadamda kod hisoblagan natija
+                  (yoʻnalish, tovar, 1688 takliflari, varaqa, suratlar roʻyxati)
                 </td>
                 <td><code>suhbat_xabar</code>, <code>yol</code></td>
+              </tr>
+              <tr>
+                <td>
+                  Usta haqidagi fikr: «mantiqli / mantiqsiz» belgisi va izoh
+                  matni — Ustaning oldingi shaklida soʻralgan; hozirgi suhbat
+                  soʻramaydi
+                </td>
+                <td><code>events</code></td>
               </tr>
               <tr>
                 <td>
@@ -129,15 +176,19 @@ export default function Maxfiylik() {
         </div>
 
         <p>
-          Har savol <strong>ixtiyoriy</strong>. Javob bermasangiz maydon boʻsh
-          qoladi — tizim taxmin qilmaydi va nol qoʻymaydi. Bu shunchaki
-          xushmuomalalik emas: boʻsh maydonni nolga aylantirish tavsiyani
-          buzadi.
+          Savolni <strong>oʻtkazib yuborsangiz</strong> (bunday tugmasi bor
+          savollarda) maydon boʻsh qoladi — tizim taxmin qilmaydi va nol
+          qoʻymaydi. Bu shunchaki xushmuomalalik emas: boʻsh maydonni nolga
+          aylantirish tavsiyani buzadi.
         </p>
 
         <h2>Nima yigʻilmaydi</h2>
         <ul>
-          <li>Ism, telefon raqami, elektron pochta.</li>
+          <li>
+            Ism, telefon raqami, elektron pochta. «Kirish» sahifasida telefon raqam
+            maydoni bor, lekin SMS orqali kirish hali ulanmagan: u yerga yozilgan
+            raqam faqat sahifada turadi — hech qayerga yuborilmaydi va saqlanmaydi.
+          </li>
           <li>
             Toʻlov maʼlumoti — toʻlov tizimi hali ulanmagan, karta raqami
             hech qayerda soʻralmaydi.
@@ -187,16 +238,25 @@ export default function Maxfiylik() {
             keshida 30 kungacha turadi.
           </li>
           <li>
-            <strong>Google Gemini</strong> (ulangan boʻlsa) — menejer savolini
-            tabiiyroq qilish uchun kod yozgan jumla yuboriladi; unda
-            raqamlar boʻlishi mumkin (masalan, dona soni). Sessiya kaliti
-            yuborilmaydi; jumlaga yangi raqam qoʻshilsa, kod uni tashlaydi.
+            <strong>Google Gemini</strong> (ulangan boʻlsa) — ikki holatda.
+            Birinchisi: menejer savolini tabiiyroq qilish uchun kod yozgan jumla
+            yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
+            Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
+            va h.k.) va u javob sifatida qabul qilinmasa —{' '}
+            <strong>oʻzingiz yozgan matn</strong> (500 belgigacha), joriy savol va
+            uning variantlari hamda mahsulot haqidagi tayyor faktlar yuboriladi:
+            javobni Gemini soʻzlaydi. Ikkala holatda ham javobni kod tekshiradi —
+            yangi raqam yoki kafolat soʻzi boʻlsa, u tashlanadi va kodning oʻz
+            jumlasi ketadi. Sessiya kaliti yuborilmaydi. Shuning uchun suhbatga
+            pasport, telefon kabi shaxsiy maʼlumot yozmang.
           </li>
           <li>
-            Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq va
-            u yerda <strong>umumiy sonlar</strong> koʻrinadi: nechta odam
-            boshladi, nechtasi uchinchi qadamga yetdi. Alohida odamning
-            javoblari emas.
+            Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq. U
+            yerda asosan <strong>umumiy sonlar</strong> koʻrinadi: nechta odam
+            boshladi, nechtasi uchinchi qadamga yetdi. Bitta istisno — fikr
+            izohlari: Ustaning oldingi shaklida qoldirilgan «mantiqli /
+            mantiqsiz» belgisi va izoh matni roʻyxat boʻlib chiqadi (kimniki
+            ekani koʻrsatilmaydi).
           </li>
         </ul>
         <p>Maʼlumot sotilmaydi va reklama uchun berilmaydi.</p>
@@ -205,7 +265,7 @@ export default function Maxfiylik() {
         <p>
           Brauzeringizdagi <code>so_sessiya</code> cookie sini oʻchirsangiz,
           javoblaringiz bogʻlanishi uziladi va ularni hech kim — siz ham —
-          topa olmaydi.
+          topa olmaydi. Kengaytmadagi kalit kengaytma oʻchirilganda yoʻqoladi.
         </p>
 
         <div className={u.ochiq}>

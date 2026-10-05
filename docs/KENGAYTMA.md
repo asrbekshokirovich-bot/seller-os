@@ -10,6 +10,23 @@ CHAT + Uzum sahifasidagi tugma, 0.1.3 tuzatishlari bilan; sayt manzili
 data usage — faqat "Website content"). Developer Dashboard kengaytmalar
 bilan boshqarilmaydi — yuklashni har doim nazoratchi qiladi.
 
+## 2026-10-05 — 0.2.3: ruscha Uzum, eski natija, chat havolasi (yuklash nazoratchida)
+
+- Ruscha Uzum sahifasida (`/ru/product/…`) savat tugmasi «Добавить в корзину»:
+  tugma faqat "savatga" deb qidirilgani uchun topilmasdi va «Xitoydan top»
+  sahifaning eng pastiga (`.product-page` oxiriga) tushardi. Endi ikkala til
+  (`src/matn.ts`, `savatTugmasimi`).
+- Qidiruv 1–2 daqiqa davom etadi: shu orada boshqa tovarga oʻtilsa (Uzum —
+  SPA) natija yangi tovar sahifasiga chizilmaydi — u oldingisiniki edi;
+  oʻsha tovarga qaytib bosilsa keshdan darhol chiqadi.
+- Natijalar panelidagi «Toʻliq hisob — ZumSavdo chatida» endi havola
+  (`SELLEROS_SAYT` = `https://zumsavdo.vercel.app`, `/usta` yangi oynada).
+- Xato matni oʻzbekcha: «kengaytma yangilandi — sahifani yangilang (F5)»,
+  «internetga ulanib boʻlmadi — qayta urinib koʻring»; xom xato faqat konsolda.
+- Sinov: soxta Uzum sahifasida (ruscha va oʻzbekcha) haqiqiy `dist/content.js`
+  bilan — 0.2.2 da toʻrtala nuqson takrorlandi, 0.2.3 da yoʻq.
+- `PRIVACY.md` — versiya (0.2.3) va havola jumlasi; maʼlumot bilan ishlash oʻzgarmadi.
+
 ## 2026-10-01 — 0.2.2: terrakota dizayn (yuklash nazoratchida)
 
 0.2.1 (2026-09-30) dizaynni oʻzgartirgan, doʻkonga hali yuklanmagan edi —

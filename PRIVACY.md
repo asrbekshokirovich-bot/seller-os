@@ -1,6 +1,6 @@
 # Privacy Policy — ZumSavdo: Xitoydan top
 
-**Last updated: 1 October 2026** (version 0.2.2 of the extension)
+**Last updated: 5 October 2026** (version 0.2.3 of the extension)
 
 This policy describes what the Chrome extension **"ZumSavdo — Xitoydan top"**
 does with data. It is written to match the extension's source code exactly;
@@ -16,7 +16,8 @@ Two things:
 1. It adds one button — **"Xitoydan top"** — to product pages on
    `uzum.uz`. When you click it, the extension looks up visually similar
    products on the Chinese wholesale marketplace 1688 and shows the results
-   on the same page.
+   on the same page. A link under the results opens the ZumSavdo chat (our
+   website) in a new browser tab.
 2. Clicking the extension icon opens a Chrome side panel that shows the
    **ZumSavdo chat** — our own website (`/usta` page) loaded in a frame.
    Everything you type there goes to our server exactly as it would if you
@@ -116,7 +117,7 @@ asrbekshokirovich@gmail.com
 
 # Maxfiylik siyosati — ZumSavdo: Xitoydan top
 
-**Oxirgi yangilanish: 2026-yil 1-oktabr** (kengaytma 0.2.2)
+**Oxirgi yangilanish: 2026-yil 5-oktabr** (kengaytma 0.2.3)
 
 Bu hujjat **"ZumSavdo — Xitoydan top"** Chrome kengaytmasi maʼlumot bilan
 nima qilishini tushuntiradi. Matn kodning oʻziga qarab yozilgan; kod ochiq:
@@ -128,7 +129,8 @@ Ikki narsa:
 
 1. `uzum.uz` mahsulot sahifasiga bitta tugma qoʻshadi — **"Xitoydan top"**.
    Uni bosganingizda 1688 ulgurji bozoridan oʻxshash tovarlar qidiriladi va
-   natija oʻsha sahifada koʻrsatiladi.
+   natija oʻsha sahifada koʻrsatiladi. Natijalar ostidagi havola ZumSavdo
+   chatini (oʻz saytimiz) brauzerning yangi oynasida ochadi.
 2. Kengaytma belgisini bossangiz Chrome yon paneli ochiladi va unda
    **ZumSavdo chati** — oʻz saytimizning `/usta` sahifasi — ramkada
    koʻrsatiladi. U yerga yozganingiz saytni oddiy ochgandagidek

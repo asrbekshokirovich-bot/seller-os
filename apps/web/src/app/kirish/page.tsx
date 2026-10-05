@@ -5,22 +5,26 @@
  * bilan bir kesh (`bazamizOl.ts`), brauzerda sakramaydi.
  */
 
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import { after } from 'next/server';
 import { bazamizniKutibOl } from '@/lib/bazamizOl';
+import { tarjima } from '@/lib/til';
 import { serverTili } from '@/lib/til-server';
 import Kirish from './Kirish';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'ZumSavdo — Kirish',
-  description: 'Suhbatingiz hisobingizga bogʻlanadi va istalgan qurilmada ochiladi.',
-};
-
-export const viewport: Viewport = {
-  themeColor: '#13100C',
-};
+/** Sarlavha va tavsif — sahifa tilida (`so_til` cookie). */
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = tarjima(await serverTili());
+  return {
+    title: tr('ZumSavdo — Kirish', 'ZumSavdo — Вход'),
+    description: tr(
+      'Suhbatingiz hisobingizga bogʻlanadi va istalgan qurilmada ochiladi.',
+      'Чат привяжется к аккаунту и откроется на любом устройстве.',
+    ),
+  };
+}
 
 export default async function Page() {
   // Baza sekin boʻlsa sahifa 4 s dan ortiq kutmaydi (`bazamizniKutibOl`).

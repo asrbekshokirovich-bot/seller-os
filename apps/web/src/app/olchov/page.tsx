@@ -14,7 +14,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import type { Kpi, Reja } from '@selleros/shared';
+import { SUHBAT_QADAMLARI, type Kpi, type Reja } from '@selleros/shared';
 import { olib } from '@/lib/api';
 import { holat } from '@/lib/panel';
 import { PANEL_COOKIE, kalit, togrimi, xesh } from '@/lib/qulf';
@@ -91,15 +91,14 @@ interface DarvozaJavobi {
   olchov_yoq?: boolean;
 }
 
-/** Usta qadamlarining nomlari — reja, 2-boʻlim. */
-const QADAM_NOMI: Record<number, string> = {
-  1: 'Profil',
-  2: 'Yoʻnalish',
-  3: 'Tovar va miqdor',
-  4: 'Tannarx',
-  5: 'Buyurtma',
-  6: 'Chiqish',
-};
+/**
+ * Qadam nomi — suhbatdagi bilan bir xil (`SUHBAT_QADAMLARI`). Ilgari bu yerda
+ * eski shakldagi oltita nom qoʻlda yozilgan edi va suhbat 12 qadamga oʻtgach
+ * eskirdi («5 — Buyurtma», «6 — Chiqish»).
+ */
+function qadamNomi(qadam: number): string {
+  return SUHBAT_QADAMLARI.find((q) => q.n === qadam)?.nom ?? '—';
+}
 
 export default async function OlchovSahifasi(
   props: { searchParams: Promise<Record<string, string | string[] | undefined>> },
@@ -570,11 +569,18 @@ function Darvoza({ d }: { d: DarvozaJavobi | null }) {
         </span>
       </p>
 
+      {/*
+        Ilgari bu yerda «Fikr Usta oqimining 3-qadamida soʻraladi» deyilgan edi.
+        2026-09-25 da Usta suhbatga almashdi va suhbat fikr SOʻRAMAYDI — sanoq
+        oʻsishi uchun yangi dalil yoʻli kerak (nazoratchi qarori).
+      */}
+      <p className={u.sabab}>
+        Hozirgi suhbat fikr soʻramaydi: sanoq Ustaning oldingi shaklidan
+        qolgan va yangi javob qoʻshilmaydi — shu holatda darvoza ochilmaydi.
+      </p>
+
       {b2.izohlar.length === 0 ? (
-        <p className={u.sabab}>
-          Izoh yozilmagan. Fikr Usta oqimining 3-qadamida soʻraladi —
-          tovar roʻyxati koʻrsatilgandan keyin.
-        </p>
+        <p className={u.sabab}>Izoh yozilmagan.</p>
       ) : (
         <div className={u.qatorlar}>
           {b2.izohlar.map((i, n) => (
@@ -645,7 +651,7 @@ function Tarif({ t }: { t: TarifJavobi | null }) {
             className={`${u.qadam} ${q.ochiq ? u.qadamOchiq : u.qadamYopiq}`}
           >
             <span className={u.qadamNo}>{q.qadam}-qadam</span>
-            <span className={u.qadamT}>{QADAM_NOMI[q.qadam] ?? '—'}</span>
+            <span className={u.qadamT}>{qadamNomi(q.qadam)}</span>
             <span className={u.qadamH}>{q.ochiq ? 'Ochiq' : 'Yopiq'}</span>
           </div>
         ))}
