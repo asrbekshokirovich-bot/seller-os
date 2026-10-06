@@ -12,7 +12,12 @@
  * kodda hech qachon turmaydi.
  *
  * Provayder: Gemini (bepul daraja, function calling shart emas — biz
- * asbob chaqirmaymiz). Model nomi env dan; bo'lmasa `gemini-2.5-flash`.
+ * asbob chaqirmaymiz). Model nomi env dan (`LLM_MODEL`); bo'lmasa `gemini-3.5-flash`.
+ *
+ * 2.5 → 3.5 (2026-10-06): yangi kalit bilan `gemini-2.5-flash` 404 qaytardi —
+ * "no longer available to new users"; Google yangi loyihalarga 3.5/3.8 ni
+ * beradi. Gemini 3.x da harorat (temperature) oʻzgartirilmaydi — rasmiy
+ * tavsiya: standart qiymat; "oʻylash" `thinkingLevel` bilan beriladi.
  *
  * Har yiqilish `null` qaytaradi va bu XATO EMAS: kalit yo'q, tarmoq
  * yo'q, model 429 dedi — hammasida oqim to'xtamaydi.
@@ -50,11 +55,11 @@ const ERKIN_KORSATMA =
   'matnini qaytar, izohsiz.';
 
 /** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). */
-async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: string): Promise<string | null> {
+async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low'): Promise<string | null> {
   // Sirni nusxalashda qolgan boʻsh joy/yangi qator kalitni buzmasin.
   const kalit = s.kalit?.trim();
   if (!kalit || !matn.trim()) return null;
-  const model = s.model?.trim() || 'gemini-2.5-flash';
+  const model = s.model?.trim() || 'gemini-3.5-flash';
   const f = s.fetchFn ?? fetch;
   const nazorat = new AbortController();
   const t = setTimeout(() => nazorat.abort(), s.vaqtMs ?? 8_000);
@@ -67,9 +72,14 @@ async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: stri
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: korsatma }] },
           contents: [{ role: 'user', parts: [{ text: matn }] }],
-          // 1024: "oʻylovchi" modellarda (2.5) ichki fikr ham shu hisobga kiradi —
-          // 400 da javob matni boʻsh qolishi mumkin edi.
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+          // Ichki fikr tokenlari ham `maxOutputTokens` ga kiradi — chegara kichik
+          // boʻlsa javob matni boʻsh qoladi. Fikr darajasi: qayta aytish —
+          // `minimal` (tez), erkin javob — `low`. 2.x modellar `thinkingLevel`
+          // ni bilmaydi (rad etadi) — ularga yuborilmaydi.
+          generationConfig: {
+            maxOutputTokens: 2048,
+            ...(/^gemini-[12]\./.test(model) ? {} : { thinkingConfig: { thinkingLevel: fikr } }),
+          },
         }),
         signal: nazorat.signal,
       },
@@ -100,7 +110,7 @@ async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: stri
  * Jumlani qayta aytadi. `null` — ishlamadi, kod jumlasini ishlating.
  */
 export async function odamlashtir(s: LlmSozlama, matn: string): Promise<string | null> {
-  return gemini(s, KORSATMA, matn, 'odamlashtir');
+  return gemini(s, KORSATMA, matn, 'odamlashtir', 'minimal');
 }
 
 /** Erkin xabarga javob. `null` — ishlamadi, kod shablonini ishlating. */
@@ -116,5 +126,5 @@ export async function erkinJavobBer(
     k.bilim,
     `Odam yozdi: ${k.xabar}`,
   ].filter(Boolean).join('\n');
-  return gemini(s, ERKIN_KORSATMA, matn, 'erkin');
+  return gemini(s, ERKIN_KORSATMA, matn, 'erkin', 'low');
 }
