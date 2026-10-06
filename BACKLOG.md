@@ -182,8 +182,10 @@ qizartiradi. CI (Linux) da yashil. `kodi()` izoh kesuvchi `
 ` ga
 chidamli boʻlishi kerak.
 
-— [agent, 2026-09-25] **Komissiya jadvali tovarlar turkumini qamramaydi —
-4-qadam deyarli hamma uchun boʻsh.** Jonli oʻlchov: `uzum_komissiya` da 223
+— ~~[agent, 2026-09-25] **Komissiya jadvali tovarlar turkumini qamramaydi —
+4-qadam deyarli hamma uchun boʻsh.**~~ **HAL QILINDI 2026-10-06:** Uzumning
+kalkulyator jadvali yuklandi — tovar qamrovi 97,9 % (docs/KOMISSIYA.md).
+Eski yozuv: Jonli oʻlchov: `uzum_komissiya` da 223
 qator (331 turkumdan), lekin `selleros.product` dagi 6 025 tovarning **5 682
 tasi (94%)** komissiyasiz — ularning turkumi (masalan Sumkalar, 11770)
 jadvalda yoʻq. Natija: `chegaraNarxi` `null`, suhbat "komissiya yetishmaydi"
