@@ -85,7 +85,8 @@ export interface SuhbatSavoli {
 /** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi. */
 export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun' | 'qabul' | 'qabul_yakun'
   | 'studiya' | 'studiya_yakun' | 'yuklash' | 'yuklash_yakun'
-  | 'sotuv' | 'hisobot' | 'hisobot_hisob' | 'hisobot_yakun';
+  | 'sotuv' | 'hisobot' | 'hisobot_hisob' | 'hisobot_yakun'
+  | 'usta_fikri';
 
 export type Keyingi =
   | { tur: 'savol'; savol: SuhbatSavoli }
@@ -743,6 +744,17 @@ export const STUDIYA_TAYYOR: readonly SuhbatVarianti[] = [
   { qiymat: 'qayta', nom: 'Qayta qidir' },
   { qiymat: 'keyin', nom: 'Keyinroq' },
 ];
+/**
+ * B2 darvozasi — Usta haqidagi fikr (nazoratchi qarori, 2026-10-06: "a").
+ * Reja: "begona 3 sotuvchi Ustadan mustaqil oʻtadi va «mantiqli» deydi".
+ * Chat buni soʻramas edi va /olchov dagi darvoza hech qachon ochilmasdi.
+ * Endi 4-qadamdan keyin (tovar, miqdor va chegara narx koʻrilgach) BIR
+ * MARTA soʻraladi; oʻtkazib yuborish mumkin — yoʻlni toʻxtatmaydi.
+ */
+export const USTA_FIKRI: readonly SuhbatVarianti[] = [
+  { qiymat: 'ha', nom: 'Ha, mantiqli' },
+  { qiymat: 'yoq', nom: 'Yoʻq, nimadir notoʻgʻri' },
+];
 export const SIGNAL_ZAXIRA: readonly SuhbatVarianti[] = [
   { qiymat: 'yana', nom: 'Ha, yana buyurtma' },
   { qiymat: 'yoq', nom: 'Hozircha yoʻq' },
@@ -1134,6 +1146,7 @@ const HARAKAT_QADAMI: Readonly<Record<KodHarakati, number>> = {
   yonalishlar: 2, tovarlar: 3, tannarx: 4, xitoy: 5, buyurtma: 6, ochiq_ish: 6, rasmiy: 7, rasmiy_yakun: 7,
   qabul: 8, qabul_yakun: 8, studiya: 9, studiya_yakun: 9, yuklash: 10, yuklash_yakun: 10,
   sotuv: 11, hisobot: 12, hisobot_hisob: 12, hisobot_yakun: 12,
+  usta_fikri: 4,
 };
 
 /**
@@ -1283,6 +1296,30 @@ export function keyingi(h: YolHolati): Keyingi {
         { qiymat: 'miqdor', nom: 'Miqdorni oʻzgartiraman' },
         { qiymat: 'marja', nom: 'Marjani oʻzgartiraman' },
       ] }) };
+  }
+
+  // ---------------------------------------------------------- B2: Usta haqidagi fikr
+  //
+  // «Ha, Xitoydan topamiz» dan keyin, 1688 qidiruvidan OLDIN — faqat
+  // qidiruv natijasi hali yoʻq boʻlsa. Qidiruvdan oʻtib ketgan eski
+  // sessiyalarga soʻralmaydi (yoʻl orqaga qaytmasin); «Qayta qidirish»
+  // natijani oʻchirganda ham qayta soʻralmaydi — javob holatda turadi.
+  if (h.natijalar.xitoy === undefined) {
+    if (!berilgan(h, 'usta_fikri')) {
+      return { tur: 'savol', savol: savol('usta_fikri', 4,
+        'Xitoydan qidirishdan oldin bitta savol: shu paytgacha — yoʻnalish, tovar, miqdor va chegara narx — Usta mantiqli tuyuldimi? Javobingiz Ustani yaxshilashga yordam beradi; xohlamasangiz — oʻtkazib yuboring.',
+        'tanlov', { variantlar: USTA_FIKRI, otkazishMumkin: true }) };
+    }
+    if (h.javoblar['usta_fikri'] !== null) {
+      if (!berilgan(h, 'usta_fikri_izoh')) {
+        return { tur: 'savol', savol: savol('usta_fikri_izoh', 4,
+          h.javoblar['usta_fikri'] === 'yoq'
+            ? 'Rahmat. Nima notoʻgʻri yoki tushunarsiz boʻldi? Bir-ikki soʻz bilan yozing — tuzatamiz. Xohlamasangiz — oʻtkazib yuboring.'
+            : 'Rahmat! Nima yoqdi yoki nima yetishmadi? Bir-ikki soʻz bilan yozib qoldiring — yoki oʻtkazib yuboring.',
+          'matn', { erkin: true, otkazishMumkin: true }) };
+      }
+      if (h.natijalar.usta_fikri === undefined) return { tur: 'kod', harakat: 'usta_fikri', qadam: 4 };
+    }
   }
 
   // ---------------------------------------------------------- 5. Xitoydan topish
@@ -1831,6 +1868,12 @@ export function joriyQadam(h: YolHolati): number {
 export function tushuntir(harakat: KodHarakati, natija: unknown): string {
   // Kutilmagan xato — natija shakli yoʻq; quyidagi quruvchilar unga tegmaydi.
   if (yiqildimi(natija)) return 'Hisoblashda kutilmagan xato boʻldi — bu natija emas, nosozlik. Qayta urinib koʻrish mumkin.';
+  if (harakat === 'usta_fikri') {
+    const n = natija as { olchov_yoq?: boolean; sabab?: string } | null;
+    return n?.olchov_yoq
+      ? `Fikringizni yoza olmadim (${n.sabab ?? 'baza javob bermadi'}) — lekin yoʻl davom etadi.`
+      : 'Fikringiz yozildi — rahmat. Endi Xitoydan qidiramiz.';
+  }
   if (harakat === 'yonalishlar') {
     const n = natija as YonalishlarNatijasi;
     if (n.olchov_yoq || !n.royxat?.length) {

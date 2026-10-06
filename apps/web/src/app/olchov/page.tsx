@@ -570,13 +570,13 @@ function Darvoza({ d }: { d: DarvozaJavobi | null }) {
       </p>
 
       {/*
-        Ilgari bu yerda «Fikr Usta oqimining 3-qadamida soʻraladi» deyilgan edi.
-        2026-09-25 da Usta suhbatga almashdi va suhbat fikr SOʻRAMAYDI — sanoq
-        oʻsishi uchun yangi dalil yoʻli kerak (nazoratchi qarori).
+        2026-09-25 da Usta suhbatga almashganda fikr savoli yoʻqolgan edi.
+        Nazoratchi qarori (2026-10-06): suhbat 4-qadamdan keyin soʻraydi —
+        «Ha, Xitoydan topamiz» bosilgach, 1688 qidiruvidan oldin, ixtiyoriy.
       */}
       <p className={u.sabab}>
-        Hozirgi suhbat fikr soʻramaydi: sanoq Ustaning oldingi shaklidan
-        qolgan va yangi javob qoʻshilmaydi — shu holatda darvoza ochilmaydi.
+        Fikr suhbatda 4-qadamdan keyin soʻraladi («Ha, mantiqli» / «Yoʻq» va
+        ixtiyoriy izoh); oʻtkazib yuborilgani sanalmaydi.
       </p>
 
       {b2.izohlar.length === 0 ? (

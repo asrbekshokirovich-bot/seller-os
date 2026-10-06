@@ -336,6 +336,9 @@ describe('4-qadam — Tannarx va zanjir oxiri', () => {
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     expect(savolId(h)).toBe('xitoy_tasdiq');
     h = javob(h, 'xitoy_tasdiq', 'ha');
+    // B2 fikri (2026-10-06) — oʻtkazib yuborilsa toʻgʻri qidiruvga.
+    expect(savolId(h)).toBe('usta_fikri');
+    h = javob(h, 'usta_fikri', null);
     // Rasm bazada bor (fikstura) — savolsiz to'g'ri qidiruvga.
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
     expect(joriyQadam(h)).toBe(5);
@@ -431,8 +434,77 @@ describe('tushuntir — tannarx rostini aytadi', () => {
 function tasdiqlandi(): YolHolati {
   let h = javob(tovarlarTanlandi(), 'marja', 30);
   h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
-  return javob(h, 'xitoy_tasdiq', 'ha');
+  h = javob(h, 'xitoy_tasdiq', 'ha');
+  // B2 fikri oʻtkazib yuborilgan — 5-qadam testlari fikrsiz yoʻlni sinaydi.
+  return javob(h, 'usta_fikri', null);
 }
+
+describe('B2 — Usta haqidagi fikr, 4-qadamdan keyin (nazoratchi qarori, 2026-10-06)', () => {
+  function haDeyildi(): YolHolati {
+    let h = javob(tovarlarTanlandi(), 'marja', 30);
+    h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
+    return javob(h, 'xitoy_tasdiq', 'ha');
+  }
+
+  it('«Ha, Xitoydan topamiz» dan keyin — fikr savoli: «Ha» / «Yoʻq», oʻtkazish mumkin, 4-qadam', () => {
+    const k = keyingi(haDeyildi());
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('usta_fikri');
+    expect(k.savol.qadam).toBe(4);
+    expect(k.savol.turi).toBe('tanlov');
+    expect(k.savol.otkazishMumkin).toBe(true);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['ha', 'yoq']);
+    expect(k.savol.matn).toMatch(/mantiqli/);
+  });
+
+  it('«Ha, mantiqli» → izoh (ixtiyoriy) → fikr yoziladi (kod) → keyin 1688', () => {
+    let h = javob(haDeyildi(), 'usta_fikri', 'ha');
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('usta_fikri_izoh');
+    expect(k.savol.turi).toBe('matn');
+    expect(k.savol.otkazishMumkin).toBe(true);
+    expect(k.savol.qadam).toBe(4);
+    h = javob(h, 'usta_fikri_izoh', 'Hammasi tushunarli');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'usta_fikri', qadam: 4 });
+    h = natijaniYoz(h, 'usta_fikri', { olchov_yoq: false, yozildi: true });
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+  });
+
+  it('«Yoʻq» — izoh nima notoʻgʻri ekanini soʻraydi; izohsiz ham fikr yoziladi', () => {
+    let h = javob(haDeyildi(), 'usta_fikri', 'yoq');
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.matn).toMatch(/notoʻgʻri|tushunarsiz/);
+    h = javob(h, 'usta_fikri_izoh', null);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'usta_fikri', qadam: 4 });
+  });
+
+  it('oʻtkazib yuborilsa — izoh ham, yozuv ham yoʻq: toʻgʻri 1688 ga', () => {
+    const h = javob(haDeyildi(), 'usta_fikri', null);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+  });
+
+  it('1688 qidiruvidan oʻtib ketgan eski sessiyaga soʻralmaydi — yoʻl orqaga qaytmaydi', () => {
+    const h = natijaniYoz(haDeyildi(), 'xitoy', XITOY);
+    expect(savolId(h)).toBe('xitoy_tanlov:100');
+  });
+
+  it('«Qayta qidirish» (1688 natijasi oʻchadi) — fikr qayta soʻralmaydi', () => {
+    let h = javob(haDeyildi(), 'usta_fikri', 'ha');
+    h = javob(h, 'usta_fikri_izoh', null);
+    h = natijaniYoz(h, 'usta_fikri', { olchov_yoq: false, yozildi: true });
+    const bosh = { ...XITOY, olchov_yoq: true, qatorlar: [{ ...XITOY.qatorlar[0]!, holat: 'qidirilmadi' as const, sabab: 'provayder: balans', takliflar: [] }] };
+    h = javob(natijaniYoz(h, 'xitoy', bosh), 'xitoy_qayta', 'qayta');
+    expect(h.natijalar.xitoy).toBeUndefined();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+  });
+
+  it('kod xulosasi: yozildi — rahmat; yozilmadi — sabab, yoʻl davom etadi', () => {
+    expect(tushuntir('usta_fikri', { olchov_yoq: false, yozildi: true })).toMatch(/Fikringiz yozildi/);
+    expect(tushuntir('usta_fikri', { olchov_yoq: true, sabab: 'baza javob bermadi' })).toMatch(/yoza olmadim \(baza javob bermadi\)/);
+  });
+});
 
 describe('5-qadam — Xitoydan topish', () => {
   it('rasmsiz tovar: avval rasm manzili soʻraladi (matn, oʻtkazish mumkin), keyin kod', () => {
@@ -443,6 +515,7 @@ describe('5-qadam — Xitoydan topish', () => {
     h = javob(h, 'marja', 30);
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     h = javob(h, 'xitoy_tasdiq', 'ha');
+    h = javob(h, 'usta_fikri', null);
     // 100 da rasm bor, 200 da yo'q — faqat 200 uchun so'raladi.
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
@@ -524,6 +597,7 @@ describe('5-qadam — Xitoydan topish', () => {
     h = javob(h, 'marja', 30);
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     h = javob(h, 'xitoy_tasdiq', 'ha');
+    h = javob(h, 'usta_fikri', null);
     expect(savolId(h)).toBe('rasm:200');
     expect(javobniQabulQil(h, 'rasm:200', 'rasm.jpg').xato).toMatch(/http\(s\)/);
     expect(javobniQabulQil(h, 'rasm:200', 'javascript:alert(1)').xato).toMatch(/http\(s\)/);
