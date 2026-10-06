@@ -10,6 +10,22 @@ CHAT + Uzum sahifasidagi tugma, 0.1.3 tuzatishlari bilan; sayt manzili
 data usage — faqat "Website content"). Developer Dashboard kengaytmalar
 bilan boshqarilmaydi — yuklashni har doim nazoratchi qiladi.
 
+## 2026-10-06 — 0.2.2 RAD ETILDI: ortiqcha `activeTab` (0.2.3 da olib tashlandi)
+
+Doʻkon 0.2.2 ni rad etdi (2026-10-05): **Purple Potassium** — "Requesting but not
+using the following permission(s): activeTab". Toʻgʻri: kodda `chrome.tabs` ham,
+`chrome.scripting` ham yoʻq — yon panel `sidePanel.setPanelBehavior` bilan ochiladi,
+Uzum sahifasidagi tugma manifestdagi `content_scripts` bilan turadi. Ruxsat 0.1.1
+davridan qolib ketgan edi.
+
+0.2.3 da ruxsatlar: `storage` (sessiya tokeni), `sidePanel` (chat paneli) va
+`host_permissions` — faqat Edge Function. `apps/extension/test/manifest.test.ts`
+har ruxsat kodda ishlatilishini talab qiladi: ishlatilmaydigan ruxsat qoʻshilsa —
+test yiqiladi (doʻkonga yetmasdan).
+
+Doʻkon taqdimotidagi **Privacy** boʻlimida `activeTab` asoslash maydoni boʻlsa —
+u ruxsat endi yoʻq; qolganlarini (storage, sidePanel, host) asoslash kifoya.
+
 ## 2026-10-05 — 0.2.3: ruscha Uzum, eski natija, chat havolasi (yuklash nazoratchida)
 
 - Ruscha Uzum sahifasida (`/ru/product/…`) savat tugmasi «Добавить в корзину»:
@@ -203,7 +219,9 @@ fikstura oʻsha bilan almashtirilishi kerak.
 ## Doʻkonga yuklash
 
 1. `cd apps/extension && npm run build`
-2. `cd dist && zip -r ../selleros-extension-v<versiya>.zip .`
+2. `cd dist && zip -r ../selleros-extension-v<versiya>.zip .` (Windows da `zip` yoʻq —
+   Python `zipfile` bilan, fayllar arxiv ildizida, yoʻllar `/` bilan: PowerShell 5.1
+   `Compress-Archive` papka yoʻllarini `\` bilan yozadi va doʻkon ularni oʻqimasligi mumkin)
 3. Chrome Web Store Developer Dashboard → Package → Upload new package.
 
 `manifest.json` va `package.json` dagi versiya bir xil boʻlishi
