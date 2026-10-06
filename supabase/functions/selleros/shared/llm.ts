@@ -35,8 +35,9 @@ const KORSATMA =
   'Sen ZumSavdo menejerisan. Quyida KOD yozgan o\'zbekcha jumla bor. Uni odamdek, ' +
   'iliq va qisqa qilib qayta ayt. QOIDALAR: ma\'nosini o\'zgartirma; birorta raqam ' +
   'QO\'SHMA va olib tashlama; kafolat, va\'da, bashorat yozma; "AI", "model", "tizim" ' +
-  'so\'zlarini ishlatma; salomlashishni takrorlama; faqat jumlaning o\'zini qaytar, ' +
-  'izohsiz. Jumla allaqachon yaxshi bo\'lsa — o\'zini qaytar.';
+  'so\'zlarini ishlatma; salomlashishni takrorlama; sodda, kundalik so\'zlashuv tilida yoz — ' +
+  'kitobiy so\'z ishlatma; faqat jumlaning o\'zini qaytar, izohsiz. Jumla allaqachon sodda va ' +
+  'tushunarli bo\'lsa — o\'zini qaytar.';
 
 /**
  * Erkin xabar: obunachi savolga javob oʻrniga boshqa narsa yozdi (savol,
@@ -51,8 +52,9 @@ const ERKIN_KORSATMA =
   'hisoblaydi; matnda berilmagan raqam, foiz, summa yoki muddat YOZMA; kafolat, vaʼda, bashorat ' +
   'yozma; faqat berilgan FAKTLARdan foydalan, "tayyor javob" berilgan boʻlsa — uni oʻz soʻzing bilan ayt; ' +
   'bilmasang yoki mavzudan tashqari boʻlsa — ochiq ayt; "AI", "model", "tizim" soʻzlarini ' +
-  'ishlatma; odam qaysi tilda yozgan boʻlsa (oʻzbek yoki rus), oʻsha tilda javob ber; faqat javob ' +
-  'matnini qaytar, izohsiz.';
+  'ishlatma; salom bilan BOSHLAMA — faqat odam oʻzi salom bergan boʻlsa, qisqa alik ol; sodda, ' +
+  'kundalik soʻzlashuv tilida yoz; odam qaysi tilda yozgan boʻlsa (oʻzbek yoki rus), oʻsha tilda ' +
+  'javob ber; faqat javob matnini qaytar, izohsiz.';
 
 /** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). */
 async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low'): Promise<string | null> {
