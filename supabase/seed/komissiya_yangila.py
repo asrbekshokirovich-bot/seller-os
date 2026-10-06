@@ -1,12 +1,12 @@
 """
 Uzum komissiyasi — Uzumning oʻz kalkulyator jadvalidan `selleros.uzum_komissiya` ga.
 
-MANBA. "Kalkulyator: Logistika va saqlash / Калькулятор: Логистика и хранение"
+Manba. "Kalkulyator: Logistika va saqlash / Калькулятор: Логистика и хранение"
 (Google Sheets, egasi a.yermakova@uzum.com; havolasi Uzum sotuvchi qoʻllanmasining
 3-bobida — seller.uzum.uz/manual/uz/3.tariffs). Varaq: "Комиссия на продажу" —
 turkum ID, FBO/FBS/DBS komissiyasi chegirmagacha, chegirma va chegirmadan keyin.
 
-ISHLATISH:
+Ishlatish:
   1) Jadvalni .xlsx qilib yuklab oling (Fayl → Yuklab olish → Microsoft Excel).
   2) uv run --with openpyxl python supabase/seed/komissiya_yangila.py <fayl.xlsx> <YYYY-MM-DD>
      — `supabase/seed/uzum_komissiya.csv` yangilanadi, stdout ga SQL chiqadi.
@@ -14,7 +14,7 @@ ISHLATISH:
      ID yigʻindisi, ID×foiz yigʻindisi) skript SQL izohida yozgani bilan BIR XIL
      boʻlishi shart — aks holda maʼlumot yoʻlda buzilgan.
 
-QOIDALAR (docs/KOMISSIYA.md):
+Qoidalar (docs/KOMISSIYA.md):
   - FBO, CHEGIRMADAN KEYINGI foiz — Uzum hozir aynan shuni oladi.
   - FBO da "-%" (bu sxemada sotilmaydi) — yozilmaydi: `null` qoladi, taxmin yoʻq.
   - Bir ID ikki xil foiz bilan takrorlansa — yozilmaydi (qaysi biri toʻgʻri — nomaʼlum).
