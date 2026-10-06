@@ -3,6 +3,56 @@
 > Bu hujjat `SERTIFIKAT-TOLDIRISH.md` dan ajratildi (2026-09-02):
 > komissiya sertifikat emas va u yerda yotishi chalgʻitardi.
 
+## 2026-10-06 — TOʻLIQ JADVAL YUKLANDI (qamrov 5,7 % → 97,9 %)
+
+Nazoratchi Uzumning oʻz kalkulyator jadvalini topdi — havolasi Uzum
+sotuvchi qoʻllanmasining 3-bobida (seller.uzum.uz/manual/uz/3.tariffs):
+**"Kalkulyator: Logistika va saqlash / Калькулятор: Логистика и хранение"**
+(Google Sheets, egasi a.yermakova@uzum.com, 2026-10-06 da yangilangan).
+"Комиссия на продажу" varagʻi — 4 992 turkum, joriy ID fazosida (11 — 18 325).
+
+| | Oldin (2026-08-26) | Endi (2026-10-06) |
+|---|---:|---:|
+| Jadvalda turkum | 223 | 4 705 (4 684 yangi + 21 eski) |
+| Bizning turkumlardan komissiyali | 19 / 326 | **319 / 326** |
+| Tovar qamrovi | 343 / 6 025 (5,7 %) | **5 897 / 6 025 (97,9 %)** |
+
+Jonli tekshiruv: 4-qadam "Chegara narxlar tayyor" deydi (Sumkalar, 25 %:
+98 010 soʻmlik sumkaga Xitoyda koʻpi bilan 37 104 soʻm; yetishmaydi — faqat
+kargo, hamkor yoʻq).
+
+**Qoidalar (`supabase/seed/komissiya_yangila.py` da):**
+
+- **FBO, chegirmadan keyingi foiz** — Uzum hozir aynan shuni oladi. 1 085
+  turkumda chegirma bor (masalan 12 % → 7,5 %); FBO va FBS keyingi foizi
+  hamma joyda bir xil.
+- **Yarim foiz yaxlitlanmaydi** — 407 turkumda 7,5 %, 18,5 % kabi; ustun
+  `numeric(5,2)` ga kengaytirildi (0062). Ilgari `smallint` 18,5 ni jimgina
+  19 qilardi.
+- **FBO da "-%" (297 turkum)** — yozilmadi, `null`: bu turkum Uzum omborida
+  sotilmaydi, FBS foizi bilan FBO hisobini qilish notoʻgʻri boʻlardi.
+  Bizning turkumlardan uchtasi shunday: 16127 (romanlar), 10057 (urugʻlar),
+  11613 (kumush uzuklar).
+- **Zid takror (4 ID: 15009, 15047, 15120, 15121)** — bir ID ikki foiz
+  bilan; yozilmadi.
+- **Eski 223 qatordan 21 tasi** yangi jadvalda yoʻq — oʻchirilmadi, oʻz
+  manbasi va sanasi bilan qoldi (bizning tovarlarda ishlatilmaydi). Eski
+  223 dan 90 tasining foizi oʻzgargan — yangisi yozildi.
+- **Bizning 4 turkum** (12374, 13322, 12084, 13429 — 66 tovar) jadvalda
+  umuman yoʻq — `null`, chat "komissiya yetishmaydi" deydi.
+
+### Yangilash (har chorakda yoki Uzum "komissiyalar oʻzgardi" desa)
+
+1. Jadvalni .xlsx qilib yuklab oling (Fayl → Yuklab olish → Excel).
+2. `uv run --with openpyxl python supabase/seed/komissiya_yangila.py <fayl.xlsx> <YYYY-MM-DD> > yuk.sql`
+   — `supabase/seed/uzum_komissiya.csv` (yuklangan nusxa) yangilanadi.
+3. `yuk.sql` ni Supabase SQL editor da ishga tushiring: qaytgan uchta son
+   (soni, ID yigʻindisi, ID×foiz yigʻindisi) faylning birinchi qatoridagi
+   bilan bir xil boʻlishi shart.
+
+Quyidagi boʻlimlar — 2026-10-06 gacha boʻlgan holat va yopilgan yoʻllar
+(tarix uchun).
+
 ## Nega muhim
 
 `tannarxHisobi()` va 3-tuzoq (demping) `komissiyaFoizi` ni TALAB

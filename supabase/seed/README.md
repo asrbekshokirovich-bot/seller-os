@@ -18,6 +18,8 @@ mavsumiylik) qo'lda to'ldiriladi."
 | `selleros.fakt` jadvali (0059) | Surat talablari va kartochka qoidalari — `uzum.surat.*`, `uzum.kartochka.*` | Agent Uzum qoʻllanmasi 5-bobdan oʻlchadi (2026-09-29); qoʻllanma oʻzgarsa nazoratchi tuzatadi |
 | `selleros.fakt` jadvali (0060) | Oylik soliq hisoboti — `soliq.agent`, `soliq.aylanma.hisobot_*`, `soliq.portal.url`, `uzum.hisobot.komissioner_kun` | Agent oʻlchadi (2026-09-30); `[TASDIQ]` bandlarini nazoratchi tekshiradi |
 | `fikstura_yasash.py` | Darvoza ro'yxatlarini **bazadan** yasaydi | Skript |
+| `uzum_komissiya.csv` | Uzum komissiyasi turkum boʻyicha (FBO, chegirmadan keyin) — `selleros.uzum_komissiya` ga yuklangan nusxa | `komissiya_yangila.py` Uzum kalkulyator jadvalidan yasaydi (docs/KOMISSIYA.md) |
+| `komissiya_yangila.py` | Uzum jadvalidan CSV va upsert SQL (nazorat yigʻindilari bilan) | Skript; SQL ni nazoratchi yoki agent ishga tushiradi |
 
 **`traps.json` bu papkada YO'Q va bo'lmasligi kerak.** U bir vaqtlar
 bo'sh fayl bo'lib turgan va "nazoratchi to'ldiradi" deb yozilgan edi
