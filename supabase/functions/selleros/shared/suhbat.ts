@@ -76,6 +76,8 @@ export interface SuhbatBogliqliklari {
     hisobotHisob: (holat: YolHolati) => Promise<unknown>;
     /** 12-qadam: ochiq ishlar (soliq toʻlovi) va keyingi oy rejasi. */
     hisobotYakun: (holat: YolHolati) => Promise<unknown>;
+    /** 4-qadamdan keyin: Usta haqidagi fikr — B2 darvozasi dalili (`so_fikr_yoz`). */
+    ustaFikri: (holat: YolHolati) => Promise<unknown>;
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
@@ -310,6 +312,7 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
     if (harakat === 'hisobot') return await d.kod.hisobot(h);
     if (harakat === 'hisobot_hisob') return await d.kod.hisobotHisob(h);
     if (harakat === 'hisobot_yakun') return await d.kod.hisobotYakun(h);
+    if (harakat === 'usta_fikri') return await d.kod.ustaFikri(h);
     return await d.kod.tannarx(h);
   } catch (e) {
     // Yiqilish jim oʻtmaydi: xom xato LOGGA yoziladi (obunachiga inglizcha

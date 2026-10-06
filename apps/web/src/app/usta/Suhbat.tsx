@@ -645,7 +645,7 @@ interface TannarxQatori {
  * xulosa pufagi: ✓ belgisi, qalin jumla va kulrang izoh (dizayn w7).
  * Yozib boʻlmagan boʻlsa (`olchov_yoq`) — ogohlantirish belgisi.
  */
-const XULOSA_HARAKATLARI = new Set(['ochiq_ish', 'rasmiy_yakun', 'qabul_yakun', 'studiya_yakun', 'yuklash_yakun']);
+const XULOSA_HARAKATLARI = new Set(['ochiq_ish', 'rasmiy_yakun', 'qabul_yakun', 'studiya_yakun', 'yuklash_yakun', 'usta_fikri']);
 
 function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined }) {
   const n = (x.javob ?? {}) as Record<string, unknown>;

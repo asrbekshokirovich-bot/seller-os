@@ -157,8 +157,7 @@ export default function Maxfiylik() {
               <tr>
                 <td>
                   Usta haqidagi fikr: «mantiqli / mantiqsiz» belgisi va izoh
-                  matni — Ustaning oldingi shaklida soʻralgan; hozirgi suhbat
-                  soʻramaydi
+                  matni — suhbatda 4-qadamdan keyin soʻraladi, ixtiyoriy
                 </td>
                 <td><code>events</code></td>
               </tr>
@@ -260,9 +259,8 @@ export default function Maxfiylik() {
             Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq. U
             yerda asosan <strong>umumiy sonlar</strong> koʻrinadi: nechta odam
             boshladi, nechtasi uchinchi qadamga yetdi. Bitta istisno — fikr
-            izohlari: Ustaning oldingi shaklida qoldirilgan «mantiqli /
-            mantiqsiz» belgisi va izoh matni roʻyxat boʻlib chiqadi (kimniki
-            ekani koʻrsatilmaydi).
+            izohlari: suhbatda qoldirilgan «mantiqli / mantiqsiz» belgisi va
+            izoh matni roʻyxat boʻlib chiqadi (kimniki ekani koʻrsatilmaydi).
           </li>
         </ul>
         <p>Maʼlumot sotilmaydi va reklama uchun berilmaydi.</p>

@@ -144,6 +144,7 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       hisobot: async () => HISOBOT_N,
       hisobotHisob: async () => HISOBOT_HISOB_N,
       hisobotYakun: async () => HISOBOT_YAKUN_N,
+      ustaFikri: async () => ({ olchov_yoq: false, yozildi: true }),
     },
     ...(llm ? { llm } : {}),
   };
@@ -286,6 +287,8 @@ describe('suhbatTurn', () => {
       { savolId: 'miqdor:100', javob: 30 },
       { savolId: 'marja', javob: 30 },
       { savolId: 'xitoy_tasdiq', javob: 'ha' },
+      // B2 fikri (2026-10-06) — oʻtkazib yuboriladi.
+      { savolId: 'usta_fikri', javob: null },
     ];
     let oxirgi: Awaited<ReturnType<typeof suhbatTurn>> | null = null;
     for (const q of qadamlar) {
@@ -456,6 +459,28 @@ describe('suhbatTurn', () => {
     expect(r.xabarlar).toEqual([]);
     expect(r.keyingi.tur).toBe('kutish');
     expect(b.jurnal.length).toBe(0);
+  });
+
+  it('B2 fikri: «Ha» + izoh → fikr yoziladi va 1688 qidiruvi shu turnda boshlanadi', async () => {
+    const b = soxtaBaza({ javoblar: { byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+      natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true } } });
+    const d = bogliq(b);
+    const yozilgan: YolHolati[] = [];
+    d.kod.ustaFikri = async (h: YolHolati) => { yozilgan.push(h); return { olchov_yoq: false, yozildi: true }; };
+    const r1 = await suhbatTurn(d, 'tok', { savolId: 'usta_fikri', javob: 'ha' });
+    if (r1.keyingi.tur !== 'savol') throw new Error(r1.keyingi.tur);
+    expect(r1.keyingi.savol.id).toBe('usta_fikri_izoh');
+    expect(yozilgan).toHaveLength(0);
+    const r2 = await suhbatTurn(d, 'tok', { savolId: 'usta_fikri_izoh', matn: 'Chegara narx foydali' });
+    expect(r2.xato).toBeUndefined();
+    expect(r2.xabarlar.map((x) => [x.rol, x.savolId])).toEqual([
+      ['obunachi', 'usta_fikri_izoh'], ['kod', 'usta_fikri'], ['menejer', undefined],
+    ]);
+    expect(r2.xabarlar[1]!.matn).toMatch(/Fikringiz yozildi/);
+    expect(r2.keyingi.tur).toBe('kutish');
+    expect(yozilgan).toHaveLength(1);
+    expect(yozilgan[0]!.javoblar['usta_fikri']).toBe('ha');
+    expect(yozilgan[0]!.javoblar['usta_fikri_izoh']).toBe('Chegara narx foydali');
   });
 
   it('boshdan: holat tozalanadi, jurnal QOLADI — belgi va birinchi savol bilan', async () => {

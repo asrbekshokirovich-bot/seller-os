@@ -620,6 +620,28 @@ export function suhbatKodHarakatlari(
     },
 
     /** 6-qadam — "yuk kelishini kutyapman" ochiq ishi (0056). Muddat — fakt kun bo'lsa. */
+    /**
+     * B2 darvozasi — Usta haqidagi fikr (0029 `so_fikr_yoz` → `events`).
+     * /olchov darvozasi shu yozuvlardan sanaydi: har odamning oxirgi
+     * «mantiqli» belgisi. Oʻtkazib yuborilgan fikr bu yerga kelmaydi —
+     * u fikr emas (ssenariy kodni chaqirmaydi).
+     */
+    async ustaFikri(holat: YolHolati) {
+      if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq' };
+      const j = holat.javoblar['usta_fikri'];
+      const izoh = holat.javoblar['usta_fikri_izoh'];
+      const yonalish = Number(holat.javoblar['yonalish']);
+      const r = await rpc<{ xato?: string; saqlandi?: boolean }>('so_fikr_yoz', {
+        p_token: xitoy.token,
+        p_mantiqli: j === 'ha' ? true : j === 'yoq' ? false : null,
+        p_matn: typeof izoh === 'string' && izoh.trim() ? izoh.trim().slice(0, 2000) : null,
+        p_qadam: 4,
+        p_turkum: Number.isInteger(yonalish) && yonalish > 0 ? yonalish : null,
+      });
+      if (r === null || r.xato) return { olchov_yoq: true, sabab: r?.xato ?? 'baza javob bermadi' };
+      return { olchov_yoq: false, yozildi: true };
+    },
+
     async ochiqIsh(holat: YolHolati): Promise<OchiqIshNatijasi> {
       const IZOH = 'Ochiq ish: yuk kelishini kutish. Eslatma mexanizmi hali yoʻq (BACKLOG) — kelganda oʻzingiz aytasiz.';
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', id: null, yangi: false, tur: 'kutyapman', muddat: null, izoh: IZOH };
