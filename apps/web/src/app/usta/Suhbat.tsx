@@ -37,7 +37,7 @@ import { faylBolagi, zipYasa } from '@/lib/zip';
 import { Ikon, type IkonNomi } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
-import { jsonOl, keyingiKaliti, navbatBuzildimi, qisqaSavol, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, qisqaSavol, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 
 /**
@@ -423,6 +423,11 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const tezOrada = keyingi?.tur === 'tezOrada' ? keyingi : null;
   const kutish = keyingi?.tur === 'kutish' ? keyingi : null;
   const tezOradaKorsat = tezOrada !== null && !(oxirgi?.rol === 'menejer' && oxirgi.matn === tezOrada.matn);
+  // Kutish gapini server oʻsha turnda menejer xabari qilib yozadi (savolsiz);
+  // kutish paytida yozib boʻlmaydi — oxirgi xabar oʻsha. Matn bir xil boʻlmasligi
+  // mumkin (LLM qayta aytadi), shuning uchun matn emas, xabar turi solishtiriladi.
+  // Ilgari 9-qadamda bir gap ikki marta chiqardi (2026-10-07).
+  const kutishKorsat = kutish !== null && !(oxirgi?.rol === 'menejer' && oxirgi.savolId === undefined);
 
   // Holat kelmaguncha (yuklanmoqda yoki xato) hech qaysi qadam "joriy" emas —
   // ilgari bu paytda ham "1-qadam" deb koʻrsatilardi.
@@ -541,9 +546,9 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                   : undefined}
               />
             ))}
-            {savolKorsat && savol && <div className={`${u.pufak} ${u.ai}`}>{savol.matn}</div>}
-            {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}>{tezOrada.matn}</div>}
-            {kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
+            {savolKorsat && savol && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={savol.matn} /></div>}
+            {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={tezOrada.matn} /></div>}
+            {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
 
             {band && (
               <div className={u.yozmoqda} role="status">
@@ -647,9 +652,23 @@ interface KatalogRejimi {
   band: boolean;
 }
 
+/**
+ * Menejer gapi: ichidagi `https://` manzillar bosiladi (yangi oynada), son
+ * qatorga boʻlinmaydi («Sotuv 1 / 500 000 soʻm» boʻlib qolardi).
+ */
+function Havolali({ matn }: { matn: string }) {
+  return (
+    <>
+      {havolaQismlari(matn).map((q, i) => (q.havola
+        ? <a key={i} href={q.matn} target="_blank" rel="noopener noreferrer">{q.matn}</a>
+        : uzilmasSon(q.matn)))}
+    </>
+  );
+}
+
 function XabarPufagi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined }) {
   if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
-  if (x.rol === 'menejer') return <div className={`${u.pufak} ${u.ai}`}>{x.matn}</div>;
+  if (x.rol === 'menejer') return <div className={`${u.pufak} ${u.ai}`}><Havolali matn={x.matn} /></div>;
   // «Boshidan boshlash» belgisi: tarix qoladi, yangi yoʻl shu chiziqdan boshlanadi.
   if (x.savolId === 'boshdan') return <div className={u.ajratgich}>{tr('Yoʻl boshidan boshlandi', 'Путь начат заново')}</div>;
   return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} />;
@@ -901,7 +920,7 @@ function Chegaralar({ qatorlar, izoh, tr }: { qatorlar: TannarxQatori[]; izoh: s
             <Stat nom={tr('Marja', 'Маржа')} q={q.marjaFoizi === null ? '—' : `${q.marjaFoizi}%`} />
             <Stat nom={tr('Xitoyda chegara', 'Потолок в Китае')} q={q.chegaraSom === null ? '—' : `${raqam(q.chegaraSom)} ${tr('soʻm', 'сум')}`} />
           </div>
-          {q.hisob && <p className={`${u.kichikIzoh} ${u.mono}`}>{q.hisob}</p>}
+          {q.hisob && <p className={`${u.kichikIzoh} ${u.mono}`}>{uzilmasSon(q.hisob)}</p>}
           {q.yetishmaydi.length > 0 && (
             <Ogohlik>{tr('Hisobga kirmadi:', 'Не учтено:')} {q.yetishmaydi.join(', ')}</Ogohlik>
           )}
@@ -970,7 +989,19 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, tr }: {
                   <div key={t.sourceId} className={`${u.katalogKarta} ${tanlangan ? u.katalogTanlangan : ''}`}>
                     <div className={`${u.katalogRasm} ${t.rasmUrl ? u.katalogRasmBor : ''}`}>
                       {t.rasmUrl
-                        ? <img src={t.rasmUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        ? (
+                          <img
+                            src={kichikRasm(t.rasmUrl)}
+                            alt=""
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            // Kichik nusxa ochilmasa — bir marta asl rasm (alicdn oʻlcham qoʻshimchasini rad etsa).
+                            onError={(e) => {
+                              const r = e.currentTarget;
+                              if (t.rasmUrl && r.dataset.asl === undefined) { r.dataset.asl = '1'; r.src = t.rasmUrl; }
+                            }}
+                          />
+                        )
                         : <><Ikon nom="rasm" o={26} q={1.75} />{tr('Mahsulot rasmi', 'Фото товара')}</>}
                     </div>
                     <div className={u.katalogIchi}>
@@ -1758,7 +1789,7 @@ function Stat({ nom, q, izoh, birlik, katta = false }: {
   return (
     <div className={`${u.stat} ${katta ? u.statKatta : ''}`}>
       <div className={u.statNomi}>{nom}</div>
-      <div className={u.statQiymat}>{q}{birlik !== undefined && <span className={u.birlik}>{birlik}</span>}</div>
+      <div className={`${u.statQiymat} ${/^\p{L}/u.test(q) ? u.statQiymatMatn : ''}`}>{uzilmasSon(q)}{birlik !== undefined && <span className={u.birlik}>{birlik}</span>}</div>
       {izoh !== undefined && <div className={u.statIzoh}>{izoh}</div>}
     </div>
   );
@@ -1780,18 +1811,21 @@ function Ogohlik({ children }: { children: ReactNode }) {
  * Savol kartasining qisqa sarlavhasi. Toʻliq savol menejer pufagida
  * turadi; kartada — dizayndagidek qisqa bosh gap (w4: «Birinchi
  * partiyaga qancha ajratasiz?»). Maxsus sarlavha boʻlmasa — savol
- * matnidagi oxirgi soʻroq gapi.
+ * matnidagi oxirgi soʻroq gapi; u ham boʻlmasa — «Nima qilamiz?».
  */
 const SAVOL_SARLAVHASI: Record<string, [string, string]> = {
   byudjet: ['Birinchi partiyaga qancha ajratasiz?', 'Сколько выделите на первую партию?'],
   shahar: ['Tovar qaysi shaharga keladi?', 'В какой город придёт товар?'],
   usta_fikri: ['Usta mantiqli tuyuldimi?', 'Мастер показался логичным?'],
+  // Matnda soʻroq gap yoʻq — oxirgi gap sarlavha boʻlib qolardi (2026-10-07).
+  sotuv_holat: ['Yangilaymizmi yoki oy hisobotiga oʻtamizmi?', 'Обновить или перейти к отчёту за месяц?'],
+  deklaratsiya_qadam: ['Bajardingizmi?', 'Сделали?'],
 };
 
 
 function savolBoshi(s: Savol, tr: Tr): { nom: string; izoh: string; ikon: IkonNomi; son: string } {
   const maxsus = SAVOL_SARLAVHASI[s.id];
-  const nom = maxsus ? tr(maxsus[0], maxsus[1]) : qisqaSavol(s.matn);
+  const nom = maxsus ? tr(maxsus[0], maxsus[1]) : (qisqaSavol(s.matn) || tr('Nima qilamiz?', 'Что делаем дальше?'));
   const izoh = s.turi === 'kopTanlov'
     ? tr('Bir nechtasini belgilang', 'Отметьте несколько')
     : s.turi === 'son'
@@ -2025,12 +2059,15 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
   );
 
   if (savol.id.startsWith('xitoy_tanlov:')) {
-    // 1688 takliflari oqimdagi rasmli kartalarda tanlanadi — pastda faqat yoʻriqnoma.
+    // 1688 takliflari oqimdagi rasmli kartalarda tanlanadi — pastda faqat
+    // yoʻriqnoma. Oddiy qator: kulrang «tabletka» boʻlsa, telefonda ostidagi
+    // yozish maydoni bilan ikki maydon ustma-ust koʻrinardi (2026-10-07).
     return (
       <>
-        <div className={u.tanlovQator}>
-          <span>{tr('Yuqoridagi kartalardan birini tanlang', 'Выберите карточку выше')}</span>
-        </div>
+        <p className={u.tanlovIzoh}>
+          <Ikon nom="yuqori" o={16} />
+          <span>{tr('Yuqoridagi kartalardan birini tanlang — «Shuni olamiz»', 'Выберите карточку выше — «Берём это»')}</span>
+        </p>
         {kiritishQatori}
         {otkaz}
       </>

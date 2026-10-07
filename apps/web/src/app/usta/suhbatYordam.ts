@@ -117,25 +117,69 @@ export function navbatBuzildimi(x: string | undefined): boolean {
   return x !== undefined && /^(navbat buzildi|hozir savol kutilmayapti)/.test(x);
 }
 
+/* ------------------------------------------------------ koʻrinish */
+
+/**
+ * Son ichida qator uzilmasin: mingliklar orasidagi boʻshliq va «≈ » dan
+ * keyingisi — uzilmas boʻshliq (U+00A0). Telefonda «≈ 108 / 920» va
+ * «komissiya 24 / 503» boʻlib qolardi (2026-10-07). `son()` oʻzi oddiy
+ * boʻshliq beradi (matn va nusxa uchun) — bu faqat ekranga chiqarishda.
+ */
+export function uzilmasSon(s: string): string {
+  return s.replace(/(\d) (?=\d{3}(?!\d))/gu, '$1 ').replace(/≈ /gu, '≈ ');
+}
+
+/**
+ * 1688 rasmi kartada kichik nusxada. Asl fayl 50–500 KB (1500×1500 gacha),
+ * kartada esa ~380×210 px koʻrinadi; alicdn oʻlcham qoʻshimchasi
+ * (`_600x600.jpg`) — 20–70 KB, retina ekranga ham yetadi. Faqat alicdn
+ * manzili: studiya (imzoli) va Uzum rasmlariga tegilmaydi; qoʻshimcha
+ * bor boʻlsa — ikkinchi marta qoʻshilmaydi.
+ */
+export function kichikRasm(url: string): string {
+  if (!/^https?:\/\/[a-z0-9.-]+\.alicdn\.com\/[^?#]+\.(jpe?g|png|webp)$/iu.test(url)) return url;
+  if (/_\d+x\d+[^/]*$|\.\d+x\d+\.(jpe?g|png|webp)$/iu.test(url)) return url;
+  return `${url}_600x600.jpg`;
+}
+
+/**
+ * Matnni oddiy matn va `https://` havolalarga boʻladi — chat pufagida
+ * manzil bosiladigan boʻlsin (telefonda «https://logistics.uzum.uz» ni
+ * qoʻlda koʻchirish kerak edi, 2026-10-07). Oxiridagi tinish belgisi
+ * («…uzum.uz.», «…uz),») havolaga kirmaydi.
+ */
+export function havolaQismlari(matn: string): Array<{ matn: string; havola: boolean }> {
+  return matn
+    .split(/(https?:\/\/[^\s«»"'<>]*[^\s«»"'<>.,;:!?)\]])/u)
+    .map((q, i) => ({ matn: q, havola: i % 2 === 1 }))
+    .filter((q) => q.matn !== '');
+}
+
 /* ------------------------------------------------------ savol sarlavhasi */
 
 /**
  * Savol kartasining sarlavhasi — toʻliq savoldagi oxirgi soʻroq gap. Uzun
  * boʻlsa kirish qismi (":" yoki " — " gacha) tashlanadi; baribir uzun boʻlsa
  * — soʻz chegarasida qisqaradi. Ilgari 88-belgida soʻz oʻrtasidan kesilardi:
- * «…miqdor va cheg…» (nazoratchi, 2026-10-06). Savolda «nom» boʻlib, soʻroq
- * gapda boʻlmasa — nom oldiga qoʻshiladi (qaysi tovar haqida ekani bilinsin).
+ * «…miqdor va cheg…» (nazoratchi, 2026-10-06). Matn tovar nomi bilan
+ * boshlansa («Nom»: …) va soʻroq gapda nom boʻlmasa — nom oldiga qoʻshiladi
+ * (qaysi tovar haqida ekani bilinsin). Boshqa «…» — tugma yoki menyu nomi,
+ * sarlavhaga chiqmaydi: «Keldi» — Boshlaymizmi? (2026-10-07).
+ *
+ * Soʻroq gap boʻlmasa — boʻsh satr: sarlavhani chaqiruvchi tanlaydi (oxirgi
+ * gap «Oy yakunida — «Oy hisoboti».» savolga oʻxshamasdi).
  */
 export function qisqaSavol(matn: string): string {
   const gaplar = matn.split(/(?<=[.?!])\s+/).map((g) => g.trim()).filter(Boolean);
   const soroq = gaplar.filter((g) => g.endsWith('?'));
-  let g = soroq[soroq.length - 1] ?? gaplar[gaplar.length - 1] ?? matn;
+  let g = soroq[soroq.length - 1];
+  if (g === undefined) return '';
   if (g.length > 90) {
     const kesim = Math.max(g.lastIndexOf(': '), g.lastIndexOf(' — '));
     const qolgan = kesim > 0 ? g.slice(kesim).replace(/^(: | — )/u, '') : '';
     if (qolgan.length >= 10) g = qolgan.charAt(0).toUpperCase() + qolgan.slice(1);
   }
-  const nom = /«[^»]+»/u.exec(matn)?.[0];
+  const nom = /^«[^»]+»(?=:)/u.exec(matn.trimStart())?.[0];
   if (nom && !g.includes(nom)) {
     // Uzun nom — soʻz chegarasida, oxirgi tinish belgisisiz: «Ayollar sumkasi, katta, A4 formatda…».
     const qisqa = nom.length > 42 ? `${nom.slice(0, 41).replace(/\s+\S*$/u, '').replace(/[\s,.;:—-]+$/u, '')}…»` : nom;
