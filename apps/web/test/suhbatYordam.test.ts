@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { jsonOl, keyingiKaliti, navbatBuzildimi, qisqaSavol, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
+import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, qisqaSavol, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -76,6 +76,60 @@ describe('navbatBuzildimi', () => {
   });
 });
 
+describe('uzilmasSon — son ichida qator uzilmaydi (telefonda «108 / 920», 2026-10-07)', () => {
+  const NB = ' ';
+  it('mingliklar va «≈» — uzilmas boʻshliq; boshqa boʻshliqlar oʻzicha', () => {
+    expect(uzilmasSon('¥62 ≈ 108 920')).toBe(`¥62 ≈${NB}108${NB}920`);
+    expect(uzilmasSon('98 010 soʻm × (1 − 30%) − komissiya 24 503 = 37 104 soʻm'))
+      .toBe(`98${NB}010 soʻm × (1 − 30%) − komissiya 24${NB}503 = 37${NB}104 soʻm`);
+    expect(uzilmasSon('1 850 863')).toBe(`1${NB}850${NB}863`);
+    expect(uzilmasSon('4 dona')).toBe('4 dona');
+    expect(uzilmasSon('30 kunlik zaxira — 4 dona')).toBe('30 kunlik zaxira — 4 dona');
+  });
+});
+
+describe('havolaQismlari — chatdagi manzil bosiladi', () => {
+  it('manzil ajraladi, oxiridagi tinish belgisi kirmaydi', () => {
+    expect(havolaQismlari('Viloyatdan — https://logistics.uzum.uz (quti 20 kg gacha).')).toEqual([
+      { matn: 'Viloyatdan — ', havola: false },
+      { matn: 'https://logistics.uzum.uz', havola: true },
+      { matn: ' (quti 20 kg gacha).', havola: false },
+    ]);
+    expect(havolaQismlari('https://my3.soliq.uz ga kiring.')[0]).toEqual({ matn: 'https://my3.soliq.uz', havola: true });
+    expect(havolaQismlari('Saytga kiring: https://seller.uzum.uz/manual/uz/3.tariffs.')[1])
+      .toEqual({ matn: 'https://seller.uzum.uz/manual/uz/3.tariffs', havola: true });
+  });
+
+  it('manzilsiz matn — bitta oddiy qism; sxemasiz domen havola emas', () => {
+    expect(havolaQismlari('Hammasi mosmi?')).toEqual([{ matn: 'Hammasi mosmi?', havola: false }]);
+    expect(havolaQismlari('Manba: seller.uzum.uz/manual')).toEqual([{ matn: 'Manba: seller.uzum.uz/manual', havola: false }]);
+  });
+});
+
+describe('kichikRasm — 1688 rasmi kartada kichik nusxada', () => {
+  it('alicdn — _600x600.jpg qoʻshiladi', () => {
+    expect(kichikRasm('https://cbu01.alicdn.com/O1CN01uNFCKH1SJ6NNRyeAY_!!2222171032225-0-cib.jpg'))
+      .toBe('https://cbu01.alicdn.com/O1CN01uNFCKH1SJ6NNRyeAY_!!2222171032225-0-cib.jpg_600x600.jpg');
+    expect(kichikRasm('https://cbu01.alicdn.com/img/ibank/O1CN018rCrg21SJ6NN2vkZ5_!!2222171032225-0-cib.png'))
+      .toBe('https://cbu01.alicdn.com/img/ibank/O1CN018rCrg21SJ6NN2vkZ5_!!2222171032225-0-cib.png_600x600.jpg');
+  });
+
+  it('boshqa manzil, imzoli studiya, soʻrovli yoki oʻlchamli manzil — oʻzgarmaydi', () => {
+    const uzum = 'https://images.uzum.uz/d61p543q345o6s420l5g/t_product_540_high.jpg';
+    expect(kichikRasm(uzum)).toBe(uzum);
+    const studiya = 'https://selleros-studiya.zumsavdo.workers.dev/?r=auto&src=https%3A%2F%2Fcbu01.alicdn.com%2Fa.jpg&s=9472';
+    expect(kichikRasm(studiya)).toBe(studiya);
+    const sorovli = 'https://cbu01.alicdn.com/a.jpg?x=1';
+    expect(kichikRasm(sorovli)).toBe(sorovli);
+    const tayyor = 'https://cbu01.alicdn.com/a.jpg_300x300.jpg';
+    expect(kichikRasm(tayyor)).toBe(tayyor);
+    const tayyor2 = 'https://cbu01.alicdn.com/a-0-cib.310x310.jpg';
+    expect(kichikRasm(tayyor2)).toBe(tayyor2);
+    const soxta = 'https://alicdn.com.yomon.uz/a.jpg';
+    expect(kichikRasm(soxta)).toBe(soxta);
+  });
+});
+
 describe('qisqaSavol — savol kartasi sarlavhasi', () => {
   it('uzun kirish qismi tashlanadi, soʻz oʻrtasidan kesilmaydi (nazoratchi, 2026-10-06: «…miqdor va cheg…»)', () => {
     const t = qisqaSavol('Xitoydan qidirishdan oldin bitta savol: shu paytgacha — yoʻnalish, tovar, miqdor va chegara narx — Usta mantiqli tuyuldimi? Javobingiz Ustani yaxshilashga yordam beradi; xohlamasangiz — oʻtkazib yuboring.');
@@ -85,6 +139,17 @@ describe('qisqaSavol — savol kartasi sarlavhasi', () => {
   it('qaysi tovar haqida ekani koʻrinadi: «nom» soʻroq gapda boʻlmasa — oldiga', () => {
     const t = qisqaSavol('«Ayollar sumkasi, katta, A4 formatda, oʻqish, maktab, universitet, ish uchun, kundalik»: oyiga ~78 dona sotiladi · 30 kunlik zaxira = 4 dona. Birinchi partiya uchun nechta olasiz?');
     expect(t).toBe('«Ayollar sumkasi, katta, A4 formatda…» — Birinchi partiya uchun nechta olasiz?');
+  });
+
+  it('tugma yoki menyu nomi («Keldi», «Yetkazmalar → Yaratish») sarlavhaga chiqmaydi (2026-10-07)', () => {
+    expect(qisqaSavol('Kelguncha doʻkonni tayyorlaymiz. Yuk kelganini oʻzingiz aytasiz («Keldi» tugmasi) — eslatma hali yoʻq. Boshlaymizmi?')).toBe('Boshlaymizmi?');
+    expect(qisqaSavol('Kabinetda «Yetkazmalar → Yaratish»: tovarlar (100 SKU gacha), tannarx, dona, taymslot. Yaratdingizmi?')).toBe('Yaratdingizmi?');
+    expect(qisqaSavol('Ombor: Toshkent (Fulfillment markazi, «Uzum» peshtaxtasi), har kuni 06:00–00:00. Qanday yetkazasiz?')).toBe('Qanday yetkazasiz?');
+  });
+
+  it('soʻroq gap yoʻq — boʻsh satr (sarlavhani chaqiruvchi tanlaydi)', () => {
+    expect(qisqaSavol('Zaxira: 6 dona. Shu tezlikda 42 kunga yetadi. Oy yakunida — «Oy hisoboti».')).toBe('');
+    expect(qisqaSavol('Qadamlar kartada — har birini bajaring va «Bajardim» ni bosing. Sayt boshqacha boʻlsa — «Sayt boshqacha», nazoratchi tekshiradi.')).toBe('');
   });
 
   it('qisqa savol — oʻzicha; juda uzun — soʻz chegarasida «…»', () => {
