@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { jsonOl, keyingiKaliti, navbatBuzildimi, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
+import { jsonOl, keyingiKaliti, navbatBuzildimi, qisqaSavol, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -73,5 +73,26 @@ describe('navbatBuzildimi', () => {
     expect(navbatBuzildimi('hozir savol kutilmayapti')).toBe(true);
     expect(navbatBuzildimi('variantlardan birini tanlang')).toBe(false);
     expect(navbatBuzildimi(undefined)).toBe(false);
+  });
+});
+
+describe('qisqaSavol — savol kartasi sarlavhasi', () => {
+  it('uzun kirish qismi tashlanadi, soʻz oʻrtasidan kesilmaydi (nazoratchi, 2026-10-06: «…miqdor va cheg…»)', () => {
+    const t = qisqaSavol('Xitoydan qidirishdan oldin bitta savol: shu paytgacha — yoʻnalish, tovar, miqdor va chegara narx — Usta mantiqli tuyuldimi? Javobingiz Ustani yaxshilashga yordam beradi; xohlamasangiz — oʻtkazib yuboring.');
+    expect(t).toBe('Usta mantiqli tuyuldimi?');
+  });
+
+  it('qaysi tovar haqida ekani koʻrinadi: «nom» soʻroq gapda boʻlmasa — oldiga', () => {
+    const t = qisqaSavol('«Ayollar sumkasi, katta, A4 formatda, oʻqish, maktab, universitet, ish uchun, kundalik»: oyiga ~78 dona sotiladi · 30 kunlik zaxira = 4 dona. Birinchi partiya uchun nechta olasiz?');
+    expect(t).toBe('«Ayollar sumkasi, katta, A4 formatda…» — Birinchi partiya uchun nechta olasiz?');
+  });
+
+  it('qisqa savol — oʻzicha; juda uzun — soʻz chegarasida «…»', () => {
+    expect(qisqaSavol('Uzumda doʻkoningiz bormi?')).toBe('Uzumda doʻkoningiz bormi?');
+    const uzun = qisqaSavol(`${'soʻz '.repeat(40)}tugadimi?`);
+    expect(uzun.length).toBeLessThanOrEqual(121);
+    expect(uzun.endsWith('…')).toBe(true);
+    // Soʻz chegarasida: oxirgi soʻz butun ("soʻz…"), yarmi emas ("so…").
+    expect(uzun).toMatch(/soʻz…$/u);
   });
 });

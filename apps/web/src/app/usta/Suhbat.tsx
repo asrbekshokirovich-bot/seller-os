@@ -37,7 +37,7 @@ import { faylBolagi, zipYasa } from '@/lib/zip';
 import { Ikon, type IkonNomi } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
-import { jsonOl, keyingiKaliti, navbatBuzildimi, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { jsonOl, keyingiKaliti, navbatBuzildimi, qisqaSavol, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 
 /**
@@ -404,6 +404,14 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   for (let i = xabarlar.length - 1; i >= 0; i--) {
     if (xabarlar[i]!.rol === 'kod' && xabarlar[i]!.savolId === 'tovarlar') { oxirgiTovarKod = i; break; }
   }
+  // 5-qadam: 1688 taklifi oqimdagi RASMLI kartada tanlanadi. Ilgari pastda
+  // 10 ta uzun matnli tugma turardi — ekranni egallab, rasmlarni yopardi
+  // (nazoratchi, 2026-10-06). Faqat oxirgi 1688 kartasi tanlash rejimida.
+  const xitoyPid = savol?.id.startsWith('xitoy_tanlov:') ? Number(savol.id.slice('xitoy_tanlov:'.length)) : null;
+  let oxirgiXitoyKod = -1;
+  for (let i = xabarlar.length - 1; i >= 0; i--) {
+    if (xabarlar[i]!.rol === 'kod' && xabarlar[i]!.savolId === 'xitoy') { oxirgiXitoyKod = i; break; }
+  }
   const tovarToggle = (id: number) =>
     setTanlangan(tanlangan.some((x) => String(x) === String(id))
       ? tanlangan.filter((x) => String(x) !== String(id))
@@ -523,6 +531,14 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                     ? { tanlangan, onToggle: tovarToggle, band }
                     : { tanlangan: tarixdagiTanlov(xabarlar, i), band: true })
                   : undefined}
+                xitoy={x.rol === 'kod' && x.savolId === 'xitoy'
+                  ? {
+                    faolPid: i === oxirgiXitoyKod ? xitoyPid : null,
+                    tanlangan: tarixdagiXitoyTanlov(xabarlar, i),
+                    tanla: (pid: number, sourceId: string) => javobBer(`xitoy_tanlov:${pid}`, sourceId),
+                    band,
+                  }
+                  : undefined}
               />
             ))}
             {savolKorsat && savol && <div className={`${u.pufak} ${u.ai}`}>{savol.matn}</div>}
@@ -598,6 +614,32 @@ function tarixdagiTanlov(xabarlar: Xabar[], kodIdx: number): Array<string | numb
   return [];
 }
 
+/**
+ * 1688 kartasidan keyingi javoblar: qaysi tovarga qaysi taklif tanlangan
+ * (keyingi 1688 kartasigacha — yangi partiyada karta qaytadan chiqadi).
+ */
+function tarixdagiXitoyTanlov(xabarlar: Xabar[], kodIdx: number): Record<number, string> {
+  const t: Record<number, string> = {};
+  for (let j = kodIdx + 1; j < xabarlar.length; j++) {
+    const x = xabarlar[j]!;
+    if (x.rol === 'kod' && x.savolId === 'xitoy') break;
+    if (x.rol === 'obunachi' && x.savolId?.startsWith('xitoy_tanlov:') && typeof x.javob === 'string') {
+      t[Number(x.savolId.slice('xitoy_tanlov:'.length))] = x.javob;
+    }
+  }
+  return t;
+}
+
+/** 1688 kartasining tanlash rejimi (5-qadam). */
+interface XitoyRejimi {
+  /** Taklifi hozir soʻralayotgan tovar — faqat shu tovarning kartalari bosiladi. */
+  faolPid: number | null;
+  /** Allaqachon tanlangan: tovar → 1688 taklifi (`sourceId`). */
+  tanlangan: Record<number, string>;
+  tanla: (pid: number, sourceId: string) => void;
+  band: boolean;
+}
+
 interface KatalogRejimi {
   tanlangan: Array<string | number>;
   /** Berilsa — karta bosiladi (joriy savol). Berilmasa — faqat ko'rsatiladi. */
@@ -605,12 +647,12 @@ interface KatalogRejimi {
   band: boolean;
 }
 
-function XabarPufagi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined }) {
+function XabarPufagi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined }) {
   if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
   if (x.rol === 'menejer') return <div className={`${u.pufak} ${u.ai}`}>{x.matn}</div>;
   // «Boshidan boshlash» belgisi: tarix qoladi, yangi yoʻl shu chiziqdan boshlanadi.
   if (x.savolId === 'boshdan') return <div className={u.ajratgich}>{tr('Yoʻl boshidan boshlandi', 'Путь начат заново')}</div>;
-  return <KodKartasi x={x} tr={tr} katalog={katalog} />;
+  return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} />;
 }
 
 /* ------------------------------------------------------ kod kartalari */
@@ -647,7 +689,7 @@ interface TannarxQatori {
  */
 const XULOSA_HARAKATLARI = new Set(['ochiq_ish', 'rasmiy_yakun', 'qabul_yakun', 'studiya_yakun', 'yuklash_yakun', 'usta_fikri']);
 
-function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined }) {
+function KodKartasi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined }) {
   const n = (x.javob ?? {}) as Record<string, unknown>;
   const olchovYoq = n.olchov_yoq === true;
   const izoh = typeof n.izoh === 'string' ? n.izoh : null;
@@ -674,7 +716,7 @@ function KodKartasi({ x, tr, katalog }: { x: Xabar; tr: Tr; katalog?: KatalogRej
         : x.savolId === 'tannarx'
           ? <Chegaralar qatorlar={(n.qatorlar as TannarxQatori[] | undefined) ?? []} izoh={izoh} tr={tr} />
           : x.savolId === 'xitoy'
-            ? <XitoyTakliflari qatorlar={(n.qatorlar as XitoyQatorQ[] | undefined) ?? []} kurs={(n.kurs as XitoyKursQ | null | undefined) ?? null} izoh={izoh} tr={tr} />
+            ? <XitoyTakliflari qatorlar={(n.qatorlar as XitoyQatorQ[] | undefined) ?? []} kurs={(n.kurs as XitoyKursQ | null | undefined) ?? null} izoh={izoh} rejim={xitoy} tr={tr} />
             : x.savolId === 'buyurtma'
               ? <BuyurtmaVaraqasi n={n as unknown as BuyurtmaQ} tr={tr} />
               : x.savolId === 'rasmiy'
@@ -891,8 +933,8 @@ interface XitoyKursQ { somPerYuan: number; sana: string; manba: string }
  * bu javob) / qidirilmadi (sabab). Raqamlar provayderdan; soʻm — CBU
  * kursi bilan, kurs boʻlmasa koʻrsatilmaydi. Havola faqat http(s).
  */
-function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
-  qatorlar: XitoyQatorQ[]; kurs: XitoyKursQ | null; izoh: string | null; tr: Tr;
+function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, tr }: {
+  qatorlar: XitoyQatorQ[]; kurs: XitoyKursQ | null; izoh: string | null; rejim?: XitoyRejimi | undefined; tr: Tr;
 }) {
   const holatMatni = (h: XitoyQatorQ['holat']) =>
     h === 'topildi' ? tr('topildi', 'найдено') : h === 'topilmadi' ? tr('1688 da oʻxshash yoʻq', 'на 1688 нет похожих') : tr('qidirilmadi', 'не искалось');
@@ -922,8 +964,10 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
             <div className={u.katalog}>
               {q.takliflar.map((t) => {
                 const havola = /^https?:\/\//i.test(t.manzil ?? '') ? t.manzil : null;
+                const faol = rejim !== undefined && rejim.faolPid === q.productId;
+                const tanlangan = rejim?.tanlangan[q.productId] === t.sourceId;
                 return (
-                  <div key={t.sourceId} className={u.katalogKarta}>
+                  <div key={t.sourceId} className={`${u.katalogKarta} ${tanlangan ? u.katalogTanlangan : ''}`}>
                     <div className={`${u.katalogRasm} ${t.rasmUrl ? u.katalogRasmBor : ''}`}>
                       {t.rasmUrl
                         ? <img src={t.rasmUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
@@ -958,6 +1002,18 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, tr }: {
                             {t.chegaradaMi ? tr('chegarada', 'в пределах потолка') : tr('chegaradan yuqori', 'выше потолка')}
                           </span>
                         </div>
+                      )}
+                      <div className={u.katalogOxir} />
+                      {(faol || tanlangan) && (
+                        <button
+                          type="button"
+                          className={`${u.tugma} ${u.katalogTugma} ${tanlangan ? u.tugmaAsosiy : ''}`}
+                          aria-pressed={tanlangan}
+                          disabled={!faol || rejim!.band}
+                          onClick={() => rejim!.tanla(q.productId, t.sourceId)}
+                        >
+                          {tanlangan ? <>{tr('Tanlangan', 'Выбрано')}<Ikon nom="belgi" o={18} /></> : tr('Shuni olamiz', 'Берём это')}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1729,14 +1785,9 @@ function Ogohlik({ children }: { children: ReactNode }) {
 const SAVOL_SARLAVHASI: Record<string, [string, string]> = {
   byudjet: ['Birinchi partiyaga qancha ajratasiz?', 'Сколько выделите на первую партию?'],
   shahar: ['Tovar qaysi shaharga keladi?', 'В какой город придёт товар?'],
+  usta_fikri: ['Usta mantiqli tuyuldimi?', 'Мастер показался логичным?'],
 };
 
-function qisqaSavol(matn: string): string {
-  const gaplar = matn.split(/(?<=[.?!])\s+/).map((g) => g.trim()).filter(Boolean);
-  const soroq = gaplar.filter((g) => g.endsWith('?'));
-  const g = soroq[soroq.length - 1] ?? gaplar[gaplar.length - 1] ?? matn;
-  return g.length > 90 ? `${g.slice(0, 88)}…` : g;
-}
 
 function savolBoshi(s: Savol, tr: Tr): { nom: string; izoh: string; ikon: IkonNomi; son: string } {
   const maxsus = SAVOL_SARLAVHASI[s.id];
@@ -1972,6 +2023,19 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
       </button>
     </div>
   );
+
+  if (savol.id.startsWith('xitoy_tanlov:')) {
+    // 1688 takliflari oqimdagi rasmli kartalarda tanlanadi — pastda faqat yoʻriqnoma.
+    return (
+      <>
+        <div className={u.tanlovQator}>
+          <span>{tr('Yuqoridagi kartalardan birini tanlang', 'Выберите карточку выше')}</span>
+        </div>
+        {kiritishQatori}
+        {otkaz}
+      </>
+    );
+  }
 
   if (savol.turi === 'kopTanlov' && savol.id === 'tovarlar') {
     // Tanlov oqimdagi kartalarda (w5). Bu yerda faqat yakun.
