@@ -116,3 +116,32 @@ export function xatoGapi(x: string, tr: Tr): string {
 export function navbatBuzildimi(x: string | undefined): boolean {
   return x !== undefined && /^(navbat buzildi|hozir savol kutilmayapti)/.test(x);
 }
+
+/* ------------------------------------------------------ savol sarlavhasi */
+
+/**
+ * Savol kartasining sarlavhasi — toʻliq savoldagi oxirgi soʻroq gap. Uzun
+ * boʻlsa kirish qismi (":" yoki " — " gacha) tashlanadi; baribir uzun boʻlsa
+ * — soʻz chegarasida qisqaradi. Ilgari 88-belgida soʻz oʻrtasidan kesilardi:
+ * «…miqdor va cheg…» (nazoratchi, 2026-10-06). Savolda «nom» boʻlib, soʻroq
+ * gapda boʻlmasa — nom oldiga qoʻshiladi (qaysi tovar haqida ekani bilinsin).
+ */
+export function qisqaSavol(matn: string): string {
+  const gaplar = matn.split(/(?<=[.?!])\s+/).map((g) => g.trim()).filter(Boolean);
+  const soroq = gaplar.filter((g) => g.endsWith('?'));
+  let g = soroq[soroq.length - 1] ?? gaplar[gaplar.length - 1] ?? matn;
+  if (g.length > 90) {
+    const kesim = Math.max(g.lastIndexOf(': '), g.lastIndexOf(' — '));
+    const qolgan = kesim > 0 ? g.slice(kesim).replace(/^(: | — )/u, '') : '';
+    if (qolgan.length >= 10) g = qolgan.charAt(0).toUpperCase() + qolgan.slice(1);
+  }
+  const nom = /«[^»]+»/u.exec(matn)?.[0];
+  if (nom && !g.includes(nom)) {
+    // Uzun nom — soʻz chegarasida, oxirgi tinish belgisisiz: «Ayollar sumkasi, katta, A4 formatda…».
+    const qisqa = nom.length > 42 ? `${nom.slice(0, 41).replace(/\s+\S*$/u, '').replace(/[\s,.;:—-]+$/u, '')}…»` : nom;
+    g = `${qisqa} — ${g}`;
+  }
+  if (g.length <= 120) return g;
+  const bosh = g.slice(0, 118);
+  return `${bosh.slice(0, Math.max(bosh.lastIndexOf(' '), 60)).trimEnd()}…`;
+}
