@@ -463,6 +463,8 @@
   padding: 18px 22px;
   font-size: 16px;
   line-height: 1.6;
+  /* Xatboshi va roʻyxat qatorlari (birinchi gap: platforma, qadamlar, vaʼdalar). */
+  white-space: pre-line;
 }
 
 /* Menejer gapidagi manzil (logistics.uzum.uz, my3.soliq.uz) — bosiladigan havola. */

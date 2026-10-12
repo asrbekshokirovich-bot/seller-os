@@ -180,6 +180,33 @@ export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
   return tugmalar;
 }
 
+/**
+ * Suhbatning birinchi gapi (nazoratchi, 2026-10-12): "menejer" emas —
+ * YORDAMCHI; "birinchi partiyangizni birga sotamiz" deyilmaydi — yangi
+ * odam hali ZumSavdo nima ekanini, nima qila olishini va qanday shartlar
+ * bilan ishlashini bilmaydi. Shuning uchun avval shu uchtasi, keyin savol.
+ *
+ * Har gap kodda bor narsa: 12 qadam (SUHBAT_QADAMLARI), 8 ta tuzoq-filtr,
+ * 1688 qidiruvi, tizim buyurtma bermaydi va toʻlov qilmaydi, raqam manbasi
+ * koʻrsatiladi, "Bepul" reja. Foyda vaʼda qilinmaydi (QOIDALAR §4) —
+ * ochiq aytiladi. Ism va telefon savollari LLM ga bormaydi: matn oʻzicha chiqadi.
+ */
+const SALOM = [
+  'Assalomu alaykum! Men ZumSavdo yordamchingizman.',
+  '',
+  'ZumSavdo — Uzumda savdoni noldan boshlashga yordam beradigan platforma. Sizni 12 qadamda olib boraman:',
+  '• Uzumda nima sotilayotganini Uzum maʼlumotlaridan koʻrsataman, xavfli tovarlarni 8 ta tuzoq-filtr bilan chetlataman;',
+  '• tovarni Xitoydan (1688) topib, qancha turishini oldindan hisoblayman;',
+  '• rasmiylashtirish, kartochka, suratlar va omborga topshirishda yoʻl koʻrsataman;',
+  '• sotuv boshlangach kuzatib, oy hisobotini tayyorlayman.',
+  '',
+  'Vaʼdalarim: har bir raqamning manbasi koʻrsatiladi, taxmin boʻlsa — taxmin deb aytaman. '
+    + 'Tovar puliga tegmaymiz: buyurtmani ham, toʻlovni ham oʻzingiz qilasiz — qaror doim sizniki. '
+    + 'Foydani hech kim oldindan vaʼda qila olmaydi, men ham qilmayman — lekin xatarlarni oldindan koʻrsataman.',
+  '',
+  'Boshlash bepul. Avval tanishib olaylik: ismingiz va familiyangiz?',
+].join('\n');
+
 /** Dollar tugmasining dollar summasi (soʻmdagi qiymatidan), boʻlmasa `null`. */
 function tugmaDollari(som: number, usdKurs: number | null): number | null {
   if (usdKurs === null || !(usdKurs > 0)) return null;
@@ -1264,9 +1291,7 @@ export function keyingi(h: YolHolati): Keyingi {
   // byudjet javobi bor-u ism yoʻq boʻlsa — ism va telefon bir marta
   // soʻraladi, keyin yoʻl oʻsha joyidan davom etadi.
   if (!berilgan(h, 'ism')) {
-    return { tur: 'savol', savol: savol('ism', 1,
-      'Assalomu alaykum! Men ZumSavdo menejeriman — Uzumda birinchi partiyangizni birga sotamiz. Avval tanishib olaylik: ismingiz va familiyangiz?',
-      'matn', { erkin: true, profilMaydoni: 'fullName' }) };
+    return { tur: 'savol', savol: savol('ism', 1, SALOM, 'matn', { erkin: true, profilMaydoni: 'fullName' }) };
   }
   if (!berilgan(h, 'telefon')) {
     const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;

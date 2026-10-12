@@ -254,7 +254,7 @@ export default function Maxfiylik() {
           </li>
           <li>
             <strong>Google Gemini</strong> (ulangan boʻlsa) — ikki holatda.
-            Birinchisi: menejer savolini tabiiyroq qilish uchun kod yozgan jumla
+            Birinchisi: yordamchi savolini tabiiyroq qilish uchun kod yozgan jumla
             yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
             Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
             va h.k.) va u javob sifatida qabul qilinmasa —{' '}
