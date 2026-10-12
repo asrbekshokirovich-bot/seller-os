@@ -7,6 +7,14 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-10-07] **1688 taklifi nomi xitoycha.** 5-qadam kartasida sarlavha
+1688 dagi asl matn ("大容量托特女包…") — oʻzbek sotuvchi oʻqiy olmaydi; hozir
+rasm, narx va 1688 havolasi bilan tanlaydi. Kerak: natija kelganda (Edge,
+1688 natijasini yozish joyida) nomni Gemini bilan oʻzbekchaga oʻgirib alohida
+maydonga yozish, asl nom ham qoladi (agentga shu kerak). Raqam emas —
+`tekshiruv.ts` darvozasi shart emas. Keyinroq: Edge oʻzgarishi va har qidiruvga
+LLM chaqiruvi — nazoratchi qarori.
+
 — [agent, 2026-10-05] **`so_suhbat_yoz` holat versiyasini tekshirmaydi.**
 Bitta odamning ikki oynasi (yoki sayt + kengaytma) bir vaqtda yozsa, oxirgisi
 yutadi: ikkalasi bir xil holatni oʻqib, ikkalasi yozadi (masalan, 1688

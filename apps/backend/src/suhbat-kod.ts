@@ -642,6 +642,16 @@ export function suhbatKodHarakatlari(
       return { olchov_yoq: false, yozildi: true };
     },
 
+    /**
+     * 1-qadam: dollar kursi (CBU) — byudjet tugmalari dollarda ham boʻlsin,
+     * "5000 $" soʻmga oʻgirilsin (nazoratchi, 2026-10-12). Hech qachon otmaydi:
+     * olinmasa `usd: null` — byudjet faqat soʻmda soʻraladi va shu aytiladi.
+     */
+    async kurs() {
+      const usd = xitoy ? await kursniOl(xitoy.fetch, 'USD').catch(() => null) : null;
+      return usd === null ? { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null } : { olchov_yoq: false, usd };
+    },
+
     async ochiqIsh(holat: YolHolati): Promise<OchiqIshNatijasi> {
       const IZOH = 'Ochiq ish: yuk kelishini kutish. Eslatma mexanizmi hali yoʻq (BACKLOG) — kelganda oʻzingiz aytasiz.';
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', id: null, yangi: false, tur: 'kutyapman', muddat: null, izoh: IZOH };

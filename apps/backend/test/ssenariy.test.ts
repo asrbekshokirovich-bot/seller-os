@@ -174,15 +174,43 @@ describe('ssenariy — 12 qadam', () => {
   });
 });
 
-describe('1-qadam — Tanishuv', () => {
-  it('birinchi savol byudjet, 1-qadam', () => {
+/** CBU dollar kursi — 1-qadamning jim kod harakati (`kurs`). */
+const KURS = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
+
+/** Byudjet savoligacha: ism, telefon, tajriba ("yoʻq"), dollar kursi. */
+function byudjetgacha(tajriba: unknown = 'yoq'): YolHolati {
+  let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
+  h = javob(h, 'telefon', '+998901234567');
+  h = javob(h, 'uzum_dokoni', tajriba);
+  return natijaniYoz(h, 'kurs', KURS);
+}
+
+describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
+  it('birinchi savol — ism va familiya: matn, 1-qadam, oʻtkazib boʻlmaydi', () => {
     const k = keyingi(boshlangichHolat());
-    expect(k.tur).toBe('savol');
-    if (k.tur === 'savol') {
-      expect(k.savol.id).toBe('byudjet');
-      expect(k.savol.qadam).toBe(1);
-      expect(k.savol.variantlar.length).toBeGreaterThan(0);
-    }
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol).toMatchObject({ id: 'ism', qadam: 1, turi: 'matn', otkazishMumkin: false });
+    expect(k.savol.matn).toMatch(/ismingiz va familiyangiz\?$/);
+  });
+
+  it('tartib: ism → telefon (ism bilan murojaat) → tajriba → dollar kursi (kod) → byudjet', () => {
+    let h = javob(boshlangichHolat(), 'ism', 'aziz karimov');
+    expect(h.javoblar['ism']).toBe('Aziz Karimov');
+    const kt = keyingi(h);
+    if (kt.tur !== 'savol') throw new Error(kt.tur);
+    expect(kt.savol).toMatchObject({ id: 'telefon', turi: 'matn', otkazishMumkin: false });
+    expect(kt.savol.matn).toMatch(/^Aziz, telefon raqamingizni yozing/);
+    h = javob(h, 'telefon', '93 123 45 67');
+    expect(h.javoblar['telefon']).toBe('+998931234567');
+    expect(savolId(h)).toBe('uzum_dokoni');
+    h = javob(h, 'uzum_dokoni', 'yoq');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'kurs', qadam: 1 });
+    expect(tushuntir('kurs', KURS)).toBe('');
+    h = natijaniYoz(h, 'kurs', KURS);
+    expect(savolId(h)).toBe('byudjet');
+    h = javob(h, 'byudjet', 10_000_000);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yonalishlar', qadam: 2 });
+    expect(joriyQadam(h)).toBe(2);
   });
 
   it('NAVBAT: boshqa savolga javob rad etiladi', () => {
@@ -191,52 +219,88 @@ describe('1-qadam — Tanishuv', () => {
     expect(n.holat.javoblar).toEqual({});
   });
 
-  it('byudjet tugmalari ANIQ son yozadi, oraliq emas', () => {
-    const k = keyingi(boshlangichHolat());
-    if (k.tur !== 'savol') throw new Error();
-    for (const v of k.savol.variantlar) expect(typeof v.qiymat).toBe('number');
+  it('ism va telefon: notoʻgʻrisi sababi bilan rad, toʻgʻrisi profilga (fullName, phone)', () => {
+    expect(javobniQabulQil(boshlangichHolat(), 'ism', 'Aziz').xato).toMatch(/familiyangizni birga yozing/);
+    expect(javobniQabulQil(boshlangichHolat(), 'ism', '').xato).toBe('bu savolga javob kerak');
+    const n = javobniQabulQil(boshlangichHolat(), 'ism', 'Aziz Karimov');
+    expect(n.profil).toEqual({ fullName: 'Aziz Karimov' });
+    expect(javobniQabulQil(n.holat, 'telefon', '12345').xato).toMatch(/\+998 90 123 45 67/);
+    expect(javobniQabulQil(n.holat, 'telefon', '+998 90 123 45 67').profil).toEqual({ phone: '+998901234567' });
+  });
+
+  it('tajriba: tugma yoki oʻzi yozgan matn (saqlanadi); salom va bir harf — javob emas', () => {
+    let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
+    h = javob(h, 'telefon', '+998901234567');
+    expect(javobniQabulQil(h, 'uzum_dokoni', 'sotyapman').profil).toEqual({ hasUzumShop: true });
+    expect(javobniQabulQil(h, 'uzum_dokoni', 'boshqa').profil).toEqual({ hasUzumShop: false });
+    const yozdi = javobniQabulQil(h, 'uzum_dokoni', 'Instagramda kiyim sotganman');
+    expect(yozdi.xato).toBeNull();
+    expect(yozdi.holat.javoblar['uzum_dokoni']).toBe('Instagramda kiyim sotganman');
+    expect(yozdi.profil).toEqual({ hasUzumShop: null });
+    expect(javobniQabulQil(h, 'uzum_dokoni', 'salom').xato).toMatch(/nima sotganingizni/);
+    expect(javobniQabulQil(h, 'uzum_dokoni', 'x').xato).toMatch(/nima sotganingizni/);
+  });
+
+  it("'sotyapman' desa do'kon nomi so'raladi; boshqasida so'ralmaydi", () => {
+    let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
+    h = javob(h, 'telefon', '+998901234567');
+    expect(savolId(javob(h, 'uzum_dokoni', 'sotyapman'))).toBe('dokon_nomi');
+    expect(keyingi(javob(h, 'uzum_dokoni', 'boshqa'))).toEqual({ tur: 'kod', harakat: 'kurs', qadam: 1 });
+  });
+
+  it('byudjet tugmalari ANIQ son: soʻmda va dollarda (kurs bilan); kurs boʻlmasa — faqat soʻm', () => {
+    const k = keyingi(byudjetgacha());
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([5_000_000, 10_000_000, 30_000_000, 70_000_000, 6_325_000, 12_650_000, 37_950_000, 63_250_000]);
+    expect(k.savol.matn).toMatch(/Soʻmda yoki dollarda/);
+    const kursSiz = natijaniYoz(javob(javob(javob(boshlangichHolat(), 'ism', 'Aziz Karimov'), 'telefon', '901234567'), 'uzum_dokoni', 'yoq'),
+      'kurs', { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
+    const k2 = keyingi(kursSiz);
+    if (k2.tur !== 'savol') throw new Error(k2.tur);
+    expect(k2.savol.variantlar).toHaveLength(4);
+    expect(k2.savol.matn).toMatch(/dollar kursini hozir ololmadim/);
+    expect(javobniQabulQil(kursSiz, 'byudjet', '5000$').xato).toMatch(/Dollar kursini hozir ololmadim/);
   });
 
   it("BO'SH byudjet null, NOL esa javob", () => {
-    const bosh = javobniQabulQil(boshlangichHolat(), 'byudjet', '');
+    const bosh = javobniQabulQil(byudjetgacha(), 'byudjet', '');
     expect(bosh.xato).toBeNull();
     expect(bosh.holat.javoblar['byudjet']).toBeNull();
     expect(bosh.profil).toEqual({ budgetUzs: null });
 
-    const nol = javobniQabulQil(boshlangichHolat(), 'byudjet', 0);
+    const nol = javobniQabulQil(byudjetgacha(), 'byudjet', 0);
     expect(nol.holat.javoblar['byudjet']).toBe(0);
     expect(nol.profil).toEqual({ budgetUzs: 0 });
   });
 
-  it('byudjet: matn va manfiy son rad etiladi', () => {
-    expect(javobniQabulQil(boshlangichHolat(), 'byudjet', 'abc').xato).not.toBeNull();
-    expect(javobniQabulQil(boshlangichHolat(), 'byudjet', -5).xato).not.toBeNull();
-    expect(javobniQabulQil(boshlangichHolat(), 'byudjet', true).xato).not.toBeNull();
+  it('byudjet: gap ichidan boshlash summasi, dollar soʻmga; tushunarsiz va manfiy — rad', () => {
+    const g = javobniQabulQil(byudjetgacha(), 'byudjet', 'hozir 100 mln pulim bor lekin 70 mln bilan boshlamoqchiman');
+    expect(g.xato).toBeNull();
+    expect(g.holat.javoblar['byudjet']).toBe(70_000_000);
+    expect(g.profil).toEqual({ budgetUzs: 70_000_000 });
+    const d = javobniQabulQil(byudjetgacha(), 'byudjet', '5000$');
+    expect(d.holat.javoblar['byudjet']).toBe(63_250_000);
+    expect(d.holat.javoblar['byudjet_usd']).toBe(5000);
+    // Dollar tugmasi — soʻmdagi son; dollari ham yoziladi.
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', 12_650_000).holat.javoblar['byudjet_usd']).toBe(1000);
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', 'abc').xato).not.toBeNull();
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', -5).xato).not.toBeNull();
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', true).xato).not.toBeNull();
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', '50 yoki 70 mln').xato).toMatch(/Bir nechta summa/);
   });
 
-  it("'sotyapman' desa do'kon nomi so'raladi; 'yoq' desa so'ralmaydi", () => {
-    let h = javob(boshlangichHolat(), 'byudjet', 10_000_000);
-    const sot = javobniQabulQil(h, 'uzum_dokoni', 'sotyapman');
-    expect(sot.profil).toEqual({ hasUzumShop: true });
-    expect(savolId(sot.holat)).toBe('dokon_nomi');
-
-    const yoq = javobniQabulQil(h, 'uzum_dokoni', 'yoq');
-    expect(yoq.profil).toEqual({ hasUzumShop: false });
-    expect(keyingi(yoq.holat)).toEqual({ tur: 'kod', harakat: 'yonalishlar', qadam: 2 });
-    h = yoq.holat;
-    expect(joriyQadam(h)).toBe(2);
-  });
-
-  it('uzum_dokoni: variantdan tashqari qiymat rad etiladi', () => {
-    const h = javob(boshlangichHolat(), 'byudjet', 10_000_000);
-    expect(javobniQabulQil(h, 'uzum_dokoni', 'balki').xato).not.toBeNull();
+  it('eski suhbat: byudjet va tajriba bor, ism yoʻq — avval ism va telefon, keyin yoʻl oʻsha joyidan', () => {
+    const eski: YolHolati = { javoblar: { byudjet: 10_000_000, uzum_dokoni: 'yoq', yonalish: 11 }, natijalar: { yonalishlar: YONALISHLAR } };
+    expect(savolId(eski)).toBe('ism');
+    const h = javob(javob(eski, 'ism', 'Aziz Karimov'), 'telefon', '901234567');
+    // Kurs soʻralmaydi (byudjet bor) — toʻgʻri 3-qadam tovarlar kodi.
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'tovarlar', qadam: 3 });
   });
 });
 
+/** 1-qadam tugagan holat: ism, telefon, tajriba ("yoʻq"), dollar kursi, byudjet. */
 function tanishuvTugadi(): YolHolati {
-  let h = javob(boshlangichHolat(), 'byudjet', 10_000_000);
-  h = javob(h, 'uzum_dokoni', 'yoq');
-  return h;
+  return javob(byudjetgacha(), 'byudjet', 10_000_000);
 }
 
 describe("2-qadam — Yo'nalish", () => {
@@ -386,14 +450,16 @@ describe('zanjir hech qayerda uzilmaydi', () => {
                                     : k.harakat === 'sotuv' ? SOTUV
                                       : k.harakat === 'hisobot' ? HISOBOT
                                         : k.harakat === 'hisobot_hisob' ? HISOBOT_HISOB
-                                          : k.harakat === 'hisobot_yakun' ? HISOBOT_YAKUN : { ok: true });
+                                          : k.harakat === 'hisobot_yakun' ? HISOBOT_YAKUN
+                                            : k.harakat === 'kurs' ? KURS : { ok: true });
         continue;
       }
       if (k.tur === 'kutish') throw new Error('kutish: bu yoʻlda kutilmagan');
       expect(k.savol.matn.trim().length).toBeGreaterThan(5);
       const s = k.savol;
       // Aylanmaydigan javoblar: oʻz kartochka havolasi, «Oy hisoboti», «Hozircha yoʻq».
-      const q = s.id.startsWith('uzum_havola:') ? 'https://uzum.uz/uz/product/mening-quloqchinim-5001'
+      const q = s.id === 'ism' ? 'Aziz Karimov' : s.id === 'telefon' ? '+998901234567'
+        : s.id.startsWith('uzum_havola:') ? 'https://uzum.uz/uz/product/mening-quloqchinim-5001'
         : s.id === 'sotuv_holat' ? 'hisobot'
           : s.id.startsWith('signal:zaxira:') ? 'yoq'
             : s.turi === 'kopTanlov' ? [s.variantlar[0]!.qiymat]
@@ -1363,7 +1429,7 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
     expect(kd.savol.id).toBe('dokon_tayyorlash');
     expect(kd.savol.matn).not.toMatch(/oʻzim aytaman|yuk kelgan kuni sotish/);
     expect(kd.savol.matn).toMatch(/eslatma hali yoʻq/);
-    const sot = javobniQabulQil(javob(boshlangichHolat(), 'byudjet', 10_000_000), 'uzum_dokoni', 'sotyapman').holat;
+    const sot = javobniQabulQil(javob(javob(boshlangichHolat(), 'ism', 'Aziz Karimov'), 'telefon', '901234567'), 'uzum_dokoni', 'sotyapman').holat;
     const kn = keyingi(sot);
     if (kn.tur !== 'savol') throw new Error(kn.tur);
     expect(kn.savol.id).toBe('dokon_nomi');
@@ -1433,9 +1499,9 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
     expect(tushuntir('tannarx', { qatorlar: [{ chegaraSom: 50_000, yetishmaydi: [] }] })).not.toMatch(/pastroq/);
   });
 
-  it('F8: son xatosida misol savolga mos; valyuta — "soʻmda yozing"; "yarim" — taxmin qilinmaydi', () => {
-    expect(javobniQabulQil(boshlangichHolat(), 'byudjet', '5000$').xato).toBe('Summani soʻmda yozing — masalan: 10 000 000 yoki 10 mln.');
-    expect(javobniQabulQil(boshlangichHolat(), 'byudjet', 'yarim million').xato).toBe('Bitta son yozing — masalan: 10 000 000 yoki 10 mln.');
+  it('F8: son xatosida misol savolga mos; byudjetda dollar va "yarim" endi tushuniladi (2026-10-12)', () => {
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', '5000$').holat.javoblar['byudjet']).toBe(63_250_000);
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', 'yarim million').holat.javoblar['byudjet']).toBe(500_000);
     expect(javobniQabulQil(tovarlarTanlandi(), 'marja', 'koʻp').xato).toBe('Bitta son yozing — masalan: 30.');
     const h = javob(natijaniYoz(yonalishTanlandi(), 'tovarlar', TOVARLAR), 'tovarlar', [100]);
     expect(javobniQabulQil(h, 'miqdor:100', 'bilmadim').xato).toBe('Bitta son yozing — masalan: 50.');

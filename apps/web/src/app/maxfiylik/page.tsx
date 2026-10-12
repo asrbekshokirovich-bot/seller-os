@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-05';
+const YANGILANDI = '2026-10-12';
 
 export default function Maxfiylik() {
   return (
@@ -37,9 +37,9 @@ export default function Maxfiylik() {
 
         <div className={u.urgu}>
           <p>
-            <strong>Ism va elektron pochta soʻralmaydi, telefon raqam saqlanmaydi.</strong>{' '}
-            Roʻyxatdan oʻtish yoʻq. Siz savollarga javob berasiz, tizim tavsiya beradi — bu
-            uchun kim ekaningizni bilish shart emas.
+            <strong>Suhbat boshida ism-familiya va telefon raqam soʻraladi</strong> — faqat
+            siz bilan bogʻlanish uchun. Ular boshqa hech kimga berilmaydi va sunʼiy intellektga
+            (Gemini) yuborilmaydi. Elektron pochta va parol soʻralmaydi, roʻyxatdan oʻtish yoʻq.
           </p>
         </div>
 
@@ -125,7 +125,16 @@ export default function Maxfiylik() {
             <tbody>
               <tr>
                 <td>
-                  Profil: byudjet, Uzumda doʻkoningiz bormi va yuk keladigan
+                  Ism-familiya va telefon raqam — suhbatning birinchi ikki savoli
+                  (2026-10-12 dan). Siz bilan bogʻlanish uchun; «Boshidan
+                  boshlash» bosilsa ham oʻchmaydi, yangi javob eskisining oʻrniga yoziladi
+                </td>
+                <td><code>users</code></td>
+              </tr>
+              <tr>
+                <td>
+                  Profil: byudjet (soʻmda yoki dollarda aytilgan boʻlsa — dollar
+                  summasi ham), Uzumda doʻkoningiz bormi va yuk keladigan
                   shahar — hozirgi suhbat shu uchtasini yozadi. Ustaning
                   oldingi shaklida (2026-09-25 gacha) yana soʻralgan: tajriba
                   sohalari, oila ishi, qiziqish, pulning bogʻlanishi, haftasiga
@@ -190,9 +199,10 @@ export default function Maxfiylik() {
         <h2>Nima yigʻilmaydi</h2>
         <ul>
           <li>
-            Ism, telefon raqami, elektron pochta. «Kirish» sahifasida telefon raqam
-            maydoni bor, lekin SMS orqali kirish hali ulanmagan: u yerga yozilgan
-            raqam faqat sahifada turadi — hech qayerga yuborilmaydi va saqlanmaydi.
+            Elektron pochta va parol. «Kirish» sahifasida telefon raqam maydoni
+            bor, lekin SMS orqali kirish hali ulanmagan: u yerga yozilgan raqam
+            faqat sahifada turadi — hech qayerga yuborilmaydi va saqlanmaydi
+            (suhbatda soʻralgan raqam esa yuqoridagi jadvalda).
           </li>
           <li>
             Toʻlov maʼlumoti — toʻlov tizimi hali ulanmagan, karta raqami
@@ -252,8 +262,10 @@ export default function Maxfiylik() {
             uning variantlari hamda mahsulot haqidagi tayyor faktlar yuboriladi:
             javobni Gemini soʻzlaydi. Ikkala holatda ham javobni kod tekshiradi —
             yangi raqam yoki kafolat soʻzi boʻlsa, u tashlanadi va kodning oʻz
-            jumlasi ketadi. Sessiya kaliti yuborilmaydi. Shuning uchun suhbatga
-            pasport, telefon kabi shaxsiy maʼlumot yozmang.
+            jumlasi ketadi. Sessiya kaliti yuborilmaydi. Ism-familiya va telefon
+            savollari (ularga yozgan matningiz ham) Gemini ga umuman
+            yuborilmaydi. Boshqa joyda suhbatga pasport kabi shaxsiy maʼlumot
+            yozmang.
           </li>
           <li>
             Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq. U

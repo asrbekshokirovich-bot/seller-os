@@ -99,6 +99,17 @@ const HISOB_N = oyHisobi({ oy: '2026-09', kabinetSotuv: 600_000, olchovSotuv: 59
 const HISOBOT_HISOB_N = { ...HISOB_N, tugagan: true, faktlar: HISOBOT_F, qadamlar: deklaratsiyaQadamlari(HISOB_N, HISOBOT_F), izoh: 'hisob' };
 const HISOBOT_YAKUN_N = { olchov_yoq: false, yozildi: [], reja: ['«Quloqchin A»: kuniga ~2 dona, zaxira 10 kunga yetadi.'], izoh: 'yakun' };
 
+/** 1-qadam (2026-10-12): ism va telefon — yoʻlning boshqa qismini sinaydigan holatlar shu bilan boshlanadi. */
+const TANISH = { ism: 'Aziz Karimov', telefon: '+998901234567' };
+/** CBU dollar kursi — 1-qadamning jim kod harakati. */
+const KURS_N = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
+/** Tanishuv byudjet savoligacha yetgan: ism, telefon, tajriba, kurs. */
+const BYUDJETGACHA: YolHolati = { javoblar: { ...TANISH, uzum_dokoni: 'yoq' }, natijalar: { kurs: KURS_N } };
+const TELEFON_SAVOLI = 'Aziz, telefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.';
+const TAJRIBA_SAVOLI = 'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.';
+/** Telefon savoli turgan holat — javobidan keyin tajriba savoli (LLM odamlashtiradi). */
+const TELEFONGACHA: YolHolati = { javoblar: { ism: 'Aziz Karimov' }, natijalar: {} };
+
 /** Xotiradagi soxta baza — so_suhbat_* RPC lari. */
 function soxtaBaza(boshlangich: YolHolati | null = null) {
   const jurnal: unknown[] = [];
@@ -145,18 +156,19 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       hisobotHisob: async () => HISOBOT_HISOB_N,
       hisobotYakun: async () => HISOBOT_YAKUN_N,
       ustaFikri: async () => ({ olchov_yoq: false, yozildi: true }),
+      kurs: async () => KURS_N,
     },
     ...(llm ? { llm } : {}),
   };
 }
 
 describe('suhbatOqi', () => {
-  it('birinchi tashrif: holat yo\'q, birinchi savol byudjet', async () => {
+  it('birinchi tashrif: holat yo\'q, birinchi savol — ism va familiya', async () => {
     const b = soxtaBaza();
     const r = await suhbatOqi(bogliq(b), 'tok');
     if ('xato' in r && !('keyingi' in r)) throw new Error(r.xato);
     expect(r.keyingi.tur).toBe('savol');
-    if (r.keyingi.tur === 'savol') expect(r.keyingi.savol.id).toBe('byudjet');
+    if (r.keyingi.tur === 'savol') expect(r.keyingi.savol.id).toBe('ism');
     expect(r.qadam).toBe(1);
   });
   it('noto\'g\'ri token — xato, hech narsa emas', async () => {
@@ -166,20 +178,85 @@ describe('suhbatOqi', () => {
 });
 
 describe('suhbatTurn', () => {
-  it('byudjet javobi: obunachi xabari + keyingi savol, profil yoziladi', async () => {
+  it('tanishuv (nazoratchi, 2026-10-12): ism → telefon → tajriba → byudjet; kurs jim, profil yoziladi', async () => {
     const b = soxtaBaza();
-    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 10_000_000 });
+    const d = bogliq(b);
+    const r1 = await suhbatTurn(d, 'tok', { savolId: 'ism', matn: 'mening ismim aziz karimov' });
+    expect(r1.xato).toBeUndefined();
+    expect(r1.xabarlar.map((x) => [x.rol, x.matn])).toEqual([['obunachi', 'Aziz Karimov'], ['menejer', TELEFON_SAVOLI]]);
+    if (r1.keyingi.tur !== 'savol') throw new Error();
+    expect(r1.keyingi.savol.id).toBe('telefon');
+
+    const r2 = await suhbatTurn(d, 'tok', { savolId: 'telefon', matn: '90 123 45 67' });
+    expect(r2.xabarlar[0]!.matn).toBe('+998 90 123 45 67');
+    if (r2.keyingi.tur !== 'savol') throw new Error();
+    expect(r2.keyingi.savol.id).toBe('uzum_dokoni');
+
+    // Dollar kursi — jim kod harakati: chatda kod xabari yoʻq, natija holatda.
+    const r3 = await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    expect(r3.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    expect(b.holat()!.natijalar.kurs).toEqual(KURS_N);
+    if (r3.keyingi.tur !== 'savol') throw new Error();
+    expect(r3.keyingi.savol.id).toBe('byudjet');
+    expect(r3.keyingi.savol.variantlar.map((v) => v.nom)).toEqual([
+      '5 mln soʻm', '10 mln soʻm', '30 mln soʻm', '70 mln soʻm', '$500 (≈6,3 mln)', '$1 000 (≈12,7 mln)', '$3 000 (≈38 mln)', '$5 000 (≈63,3 mln)',
+    ]);
+
+    const r4 = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 10_000_000 });
+    expect(r4.xabarlar[0]!.matn).toBe('10 mln soʻm');
+    expect(b.profil()).toEqual({ fullName: 'Aziz Karimov', phone: '+998901234567', hasUzumShop: false, budgetUzs: 10_000_000 });
+  });
+
+  it('ism bitta soʻz yoki telefon notoʻgʻri — qayta soʻraladi, sababi aytiladi, holat oʻzgarmaydi', async () => {
+    const b = soxtaBaza();
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Aziz' });
+    expect(r.xabarlar[1]!.matn).toMatch(/Ism va familiyangizni birga yozing/);
+    expect(b.holat()?.javoblar['ism']).toBeUndefined();
+    const b2 = soxtaBaza({ javoblar: { ism: 'Aziz Karimov' }, natijalar: {} });
+    const r2 = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'telefon', matn: '12345' });
+    expect(r2.xabarlar[1]!.matn).toMatch(/\+998 90 123 45 67/);
+    expect(b2.holat()!.javoblar['telefon']).toBeUndefined();
+  });
+
+  it('byudjet gap ichida — "100 mln bor, lekin 70 mln bilan": qayta soʻralmaydi, menejer tushunganini aytadi', async () => {
+    const b = soxtaBaza(BYUDJETGACHA);
+    const matn = 'hozir 100 mln pulim bor lekin 70 mln bilan boshlamoqchiman';
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn });
     expect(r.xato).toBeUndefined();
-    expect(r.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
-    expect(r.xabarlar[0]!.matn).toBe('10 mln soʻm');
+    expect(r.xabarlar[0]).toMatchObject({ rol: 'obunachi', matn, javob: 70_000_000 });
+    expect(r.xabarlar[1]).toMatchObject({ rol: 'menejer', matn: 'Tushunarli — 70 000 000 soʻm bilan boshlaymiz.' });
+    expect(b.holat()!.javoblar['byudjet']).toBe(70_000_000);
     if (r.keyingi.tur !== 'savol') throw new Error();
-    expect(r.keyingi.savol.id).toBe('uzum_dokoni');
-    expect(b.profil()).toEqual({ budgetUzs: 10_000_000 });
-    expect(b.jurnal.length).toBe(2);
+    expect(r.keyingi.savol.id).toBe('yonalish');
+  });
+
+  it('byudjet dollarda — soʻmga CBU kursi bilan; dollar tugmasi ham', async () => {
+    const b = soxtaBaza(BYUDJETGACHA);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: '4000 dollar' });
+    expect(b.holat()!.javoblar['byudjet']).toBe(50_600_000);
+    expect(b.holat()!.javoblar['byudjet_usd']).toBe(4000);
+    expect(r.xabarlar[1]!.matn).toBe('Tushunarli — $4 000 (≈ 50,6 mln soʻm) bilan boshlaymiz.');
+    const b2 = soxtaBaza(BYUDJETGACHA);
+    const r2 = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'byudjet', javob: 12_650_000 });
+    expect(r2.xabarlar[0]!.matn).toBe('$1 000 (≈12,7 mln)');
+    expect(b2.holat()!.javoblar['byudjet_usd']).toBe(1000);
+  });
+
+  it('dollar kursi olinmasa — tugmalar faqat soʻmda, dollar yozilsa sababi aytiladi', async () => {
+    const b = soxtaBaza({ javoblar: { ...TANISH }, natijalar: {} });
+    const d = bogliq(b);
+    d.kod.kurs = async () => ({ olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
+    const r = await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    if (r.keyingi.tur !== 'savol') throw new Error();
+    expect(r.keyingi.savol.variantlar).toHaveLength(4);
+    expect(r.keyingi.savol.matn).toMatch(/dollar kursini hozir ololmadim/);
+    const r2 = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: '5000$' });
+    expect(r2.xabarlar[1]!.matn).toMatch(/Dollar kursini hozir ololmadim/);
+    expect(b.holat()!.javoblar['byudjet']).toBeUndefined();
   });
 
   it('erkin matn ham kutilayotgan savolga javob sifatida olinadi', async () => {
-    const b = soxtaBaza();
+    const b = soxtaBaza(BYUDJETGACHA);
     const r = await suhbatTurn(bogliq(b), 'tok', { matn: '7000000' });
     expect(r.xato).toBeUndefined();
     expect(b.holat()!.javoblar['byudjet']).toBe(7_000_000);
@@ -193,11 +270,9 @@ describe('suhbatTurn', () => {
     expect(r.yozildi).toBe(false);
   });
 
-  it('kod harakati BITTA turnda bajariladi: uzum_dokoni → yonalishlar → yo\'nalish savoli', async () => {
-    let h = boshlangichHolat();
-    h = { ...h, javoblar: { byudjet: 10_000_000 } };
-    const b = soxtaBaza(h);
-    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+  it('kod harakati BITTA turnda bajariladi: byudjet → yonalishlar → yo\'nalish savoli', async () => {
+    const b = soxtaBaza(BYUDJETGACHA);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 10_000_000 });
     expect(r.xato).toBeUndefined();
     expect(r.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
     expect(r.xabarlar[1]!.savolId).toBe('yonalishlar');
@@ -210,10 +285,10 @@ describe('suhbatTurn', () => {
   });
 
   it('kod yiqilsa oqim to\'xtamaydi — xom xato obunachiga chiqmaydi, «Qayta urinish» soʻraladi', async () => {
-    const b = soxtaBaza({ javoblar: { byudjet: 1 }, natijalar: {} });
+    const b = soxtaBaza(BYUDJETGACHA);
     const d = bogliq(b);
     d.kod.yonalishlar = async () => { throw new Error('baza uzildi'); };
-    const r = await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 1 });
     expect(r.xato).toBeUndefined();
     expect(r.xabarlar[1]!.matn).toMatch(/kutilmagan xato/);
     expect(JSON.stringify(r.xabarlar)).not.toMatch(/baza uzildi/);
@@ -231,7 +306,7 @@ describe('suhbatTurn', () => {
   it('6-qadam varaqasi yiqilsa — shahar savolidan keyin chat BERK qolmaydi: «Qayta urinish» bilan davom etadi', async () => {
     // Tekshiruv (2026-10-05): zaxira natija `{olchov_yoq, sabab}` da `kargo` yoʻq edi —
     // shaharga javob berilgach `keyingi()` TypeError otardi va har turn 500 qaytarardi.
-    const b = soxtaBaza({ javoblar: { byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+    const b = soxtaBaza({ javoblar: { ...TANISH, byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
       natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY } });
     const d = bogliq(b);
     d.kod.buyurtma = async () => { throw new Error('kutilmagan'); };
@@ -248,40 +323,51 @@ describe('suhbatTurn', () => {
   });
 
   it('LLM jumlani odamlashtiradi — raqam qo\'shmasa qabul', async () => {
+    const b = soxtaBaza(TELEFONGACHA);
+    const d = bogliq(b, async (m) => `Yaxshi! ${m}`);
+    const r = await suhbatTurn(d, 'tok', { savolId: 'telefon', javob: '+998901234567' });
+    expect(r.xabarlar[1]!.matn).toBe(`Yaxshi! ${TAJRIBA_SAVOLI}`);
+  });
+
+  it('shaxsiy savol (telefon savolida ism bor) LLM ga YUBORILMAYDI — kod jumlasi oʻzi', async () => {
     const b = soxtaBaza();
-    const d = bogliq(b, async (m) => `Assalomu alaykum! ${m}`);
-    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 5_000_000 });
-    expect(r.xabarlar[1]!.matn).toMatch(/^Assalomu alaykum/);
+    const yuborilgan: string[] = [];
+    const d = bogliq(b, async (m) => { yuborilgan.push(m); return `Yaxshi! ${m}`; });
+    const r = await suhbatTurn(d, 'tok', { savolId: 'ism', javob: 'Aziz Karimov' });
+    expect(r.xabarlar[1]!.matn).toBe(TELEFON_SAVOLI);
+    expect(yuborilgan).toEqual([]);
   });
 
   it('LLM RAQAM QO\'SHSA — kod jumlasi ketadi', async () => {
-    const b = soxtaBaza();
-    const d = bogliq(b, async () => 'Uzumda doʻkoningiz bormi? Odatda 350 ta sotuvchi bor.');
-    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 5_000_000 });
-    expect(r.xabarlar[1]!.matn).toBe('Uzumda doʻkoningiz bormi?');
+    const b = soxtaBaza(TELEFONGACHA);
+    const d = bogliq(b, async () => 'Oldin savdo qilganmisiz? Odatda 350 ta sotuvchi bor.');
+    const r = await suhbatTurn(d, 'tok', { savolId: 'telefon', javob: '+998901234567' });
+    expect(r.xabarlar[1]!.matn).toBe(TAJRIBA_SAVOLI);
   });
 
   it('LLM KAFOLAT yozsa — kod jumlasi ketadi', async () => {
-    const b = soxtaBaza();
-    const d = bogliq(b, async () => 'Uzumda doʻkoningiz bormi? Kafolat beraman, ishlaydi.');
-    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 5_000_000 });
-    expect(r.xabarlar[1]!.matn).toBe('Uzumda doʻkoningiz bormi?');
+    const b = soxtaBaza(TELEFONGACHA);
+    const d = bogliq(b, async () => 'Oldin savdo qilganmisiz? Kafolat beraman, ishlaydi.');
+    const r = await suhbatTurn(d, 'tok', { savolId: 'telefon', javob: '+998901234567' });
+    expect(r.xabarlar[1]!.matn).toBe(TAJRIBA_SAVOLI);
   });
 
   it('LLM yiqilsa — oqim to\'xtamaydi', async () => {
-    const b = soxtaBaza();
+    const b = soxtaBaza(TELEFONGACHA);
     const d = bogliq(b, async () => { throw new Error('429'); });
-    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 5_000_000 });
+    const r = await suhbatTurn(d, 'tok', { savolId: 'telefon', javob: '+998901234567' });
     expect(r.xato).toBeUndefined();
-    expect(r.xabarlar[1]!.matn).toBe('Uzumda doʻkoningiz bormi?');
+    expect(r.xabarlar[1]!.matn).toBe(TAJRIBA_SAVOLI);
   });
 
   it('to\'liq yo\'l: 1-qadamdan 12-qadam va yangi oyga qaytishgacha, har turnda bitta savol', async () => {
     const b = soxtaBaza();
     const d = bogliq(b);
     const qadamlar: Array<{ savolId?: string; javob?: unknown }> = [
-      { savolId: 'byudjet', javob: 10_000_000 },
+      { savolId: 'ism', javob: 'Aziz Karimov' },
+      { savolId: 'telefon', javob: '+998 90 123 45 67' },
       { savolId: 'uzum_dokoni', javob: 'yoq' },
+      { savolId: 'byudjet', javob: 10_000_000 },
       { savolId: 'yonalish', javob: 11 },
       { savolId: 'tovarlar', javob: [100] },
       { savolId: 'miqdor:100', javob: 30 },
@@ -450,7 +536,7 @@ describe('suhbatTurn', () => {
   });
 
   it('tekshir: yurish hali tugamagan — xabar yoʻq, jurnal oʻzgarmaydi, holat kutishda qoladi', async () => {
-    const b = soxtaBaza({ javoblar: { byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+    const b = soxtaBaza({ javoblar: { ...TANISH, byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
       natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY_KUTISH } });
     const d = bogliq(b);
     d.kod.xitoy = async () => XITOY_KUTISH;
@@ -462,7 +548,7 @@ describe('suhbatTurn', () => {
   });
 
   it('B2 fikri: «Ha» + izoh → fikr yoziladi va 1688 qidiruvi shu turnda boshlanadi', async () => {
-    const b = soxtaBaza({ javoblar: { byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+    const b = soxtaBaza({ javoblar: { ...TANISH, byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
       natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true } } });
     const d = bogliq(b);
     const yozilgan: YolHolati[] = [];
@@ -483,26 +569,31 @@ describe('suhbatTurn', () => {
     expect(yozilgan[0]!.javoblar['usta_fikri_izoh']).toBe('Chegara narx foydali');
   });
 
-  it('boshdan: holat tozalanadi, jurnal QOLADI — belgi va birinchi savol bilan', async () => {
+  it('boshdan — YANGI suhbat (nazoratchi, 2026-10-12): holat tozalanadi, jurnal bazada qoladi, chatga faqat yangisi', async () => {
     const b = soxtaBaza();
-    await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 1 });
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', javob: 'Aziz Karimov' });
     expect(b.jurnal.length).toBe(2);
     const r = await suhbatBoshdan(bogliq(b), 'tok');
     expect(r.xato).toBeUndefined();
     expect(r.yozildi).toBe(true);
     expect(b.holat()).toEqual(boshlangichHolat());
-    // Eski 2 xabar QOLDI, ustiga belgi (sahifa chiziq chizadi) va birinchi savol.
+    // Eski 2 xabar bazada QOLDI, ustiga belgi va birinchi savol.
     expect(b.jurnal.length).toBe(4);
     expect(b.jurnal[2]).toMatchObject({ rol: 'kod', savolId: 'boshdan' });
-    expect(b.jurnal[3]).toMatchObject({ rol: 'menejer', savolId: 'byudjet' });
-    expect(r.xabarlar).toEqual(b.jurnal.slice(2));
-    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'byudjet' } });
+    expect(b.jurnal[3]).toMatchObject({ rol: 'menejer', savolId: 'ism' });
+    // Chatga belgi ham, eski yoʻl ham chiqmaydi — faqat yangi savol.
+    expect(r.xabarlar).toEqual([b.jurnal[3]]);
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'ism' } });
     expect(r.qadam).toBe(1);
+    // Sahifa yangilansa ham — eski tarix koʻrinmaydi.
+    const o = await suhbatOqi(bogliq(b), 'tok');
+    if (!('tarix' in o)) throw new Error(o.xato);
+    expect(o.tarix).toEqual([b.jurnal[3]]);
   });
 
   it('boshdan: baza yozmasa — xato, xabar yoʻq (sahifa ekranni oʻzgartirmaydi)', async () => {
     const b = soxtaBaza();
-    await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 1 });
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', javob: 'Aziz Karimov' });
     const oldin = b.holat();
     const d = bogliq(b);
     const r = await suhbatBoshdan({ ...d, rpc: async () => null }, 'tok');

@@ -56,6 +56,7 @@ import { STUDIYA_CHIQISH, type SuratNomzodi, type SuratTalablari } from './studi
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.ts';
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.ts';
 import { matndanSon, valyutami } from './tekshiruv.ts';
+import { BYUDJET_DOLLAR, byudjetniOqi, ismniOqi, mlnMatni, telefonniOqi } from './tanishuv.ts';
 
 // ==================================================================== turlar
 
@@ -79,14 +80,29 @@ export interface SuhbatSavoli {
   /** O'tkazib yuborish mumkinmi. Mumkin bo'lsa javob `null` bo'ladi. */
   otkazishMumkin: boolean;
   /** Bu javob profilning qaysi maydoniga tushadi (bo'lsa). */
-  profilMaydoni: keyof ProfilJavoblari | null;
+  profilMaydoni: keyof (ProfilJavoblari & AloqaJavoblari) | null;
+}
+
+/**
+ * Bogʻlanish uchun (nazoratchi, 2026-10-12): har yangi suhbat ism-familiya va
+ * telefonni soʻraydi. Bazada `selleros.users.name` / `phone` ga yoziladi (0063).
+ */
+export interface AloqaJavoblari {
+  fullName: string | null;
+  phone: string | null;
 }
 
 /** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi. */
 export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun' | 'qabul' | 'qabul_yakun'
   | 'studiya' | 'studiya_yakun' | 'yuklash' | 'yuklash_yakun'
   | 'sotuv' | 'hisobot' | 'hisobot_hisob' | 'hisobot_yakun'
-  | 'usta_fikri';
+  | 'usta_fikri' | 'kurs';
+
+/**
+ * Chatga xabar yozmaydigan kod harakatlari: natija faqat keyingi savol
+ * uchun kerak (dollar kursi — byudjet tugmalari va dollarni soʻmga oʻgirish).
+ */
+export const JIM_HARAKATLAR: ReadonlySet<KodHarakati> = new Set(['kurs']);
 
 export type Keyingi =
   | { tur: 'savol'; savol: SuhbatSavoli }
@@ -145,11 +161,55 @@ export const BYUDJET_TUGMALARI: readonly SuhbatVarianti[] = [
   { qiymat: 70_000_000, nom: '70 mln soʻm' },
 ];
 
+/**
+ * Byudjet tugmalari: soʻmda va dollarda (nazoratchi, 2026-10-12). Dollar
+ * tugmasi soʻmdagi qiymatni yozadi — suhbat paytidagi CBU kursi bilan,
+ * yorligʻida ikkalasi ham. Kurs olinmagan boʻlsa — faqat soʻm.
+ */
+export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
+  const tugmalar: SuhbatVarianti[] = [...BYUDJET_TUGMALARI];
+  if (usdKurs === null || !(usdKurs > 0)) return tugmalar;
+  for (const d of BYUDJET_DOLLAR) {
+    const q = Math.round(d * usdKurs);
+    if (tugmalar.some((t) => t.qiymat === q)) continue;
+    tugmalar.push({ qiymat: q, nom: `$${minglik(d)} (≈${mlnMatni(q).replace(/ soʻm$/u, '')})` });
+  }
+  return tugmalar;
+}
+
+/** Dollar tugmasining dollar summasi (soʻmdagi qiymatidan), boʻlmasa `null`. */
+function tugmaDollari(som: number, usdKurs: number | null): number | null {
+  if (usdKurs === null || !(usdKurs > 0)) return null;
+  return BYUDJET_DOLLAR.find((d) => Math.round(d * usdKurs) === som) ?? null;
+}
+
+/**
+ * Savdo tajribasi (nazoratchi, 2026-10-12: "oldin nimadir sotganmi yoki
+ * qanday tovarga qiziqadi — shunga oʻxshash bitta savol"). Id eski —
+ * `uzum_dokoni`: "sotyapman" / "kabinet_bor" 7-qadamda roʻyxatdan oʻtishni
+ * oʻtkazib yuboradi (`kabinetBormi`). Oʻzi yozsa ham boʻladi ("kiyim
+ * sotganman") — matn saqlanadi.
+ */
 export const UZUM_DOKONI = [
-  { qiymat: 'sotyapman', nom: 'Ha, sotyapman' },
-  { qiymat: 'kabinet_bor', nom: 'Kabinet bor, hali sotmaganman' },
-  { qiymat: 'yoq', nom: 'Yoʻq' },
+  { qiymat: 'sotyapman', nom: 'Ha, Uzumda sotyapman' },
+  { qiymat: 'kabinet_bor', nom: 'Uzumda kabinet bor, hali sotmaganman' },
+  { qiymat: 'boshqa', nom: 'Boshqa joyda sotganman (bozor, Instagram…)' },
+  { qiymat: 'yoq', nom: 'Yoʻq, birinchi marta' },
 ] as const;
+
+/** `uzum_dokoni` javobidan Uzum doʻkoni bormi: tugma — ha/yoʻq, oʻzi yozgan matn — bilmaymiz. */
+export function uzumDokoniBormi(javob: unknown): boolean | null {
+  if (javob === 'sotyapman' || javob === 'kabinet_bor') return true;
+  if (javob === 'yoq' || javob === 'boshqa') return false;
+  return null;
+}
+
+/** 1-qadamdagi dollar kursi (kod harakati `kurs`), boʻlmasa `null`. */
+export function usdKursi(h: YolHolati): number | null {
+  const n = h.natijalar.kurs as { usd?: { somPerYuan?: unknown } | null } | undefined;
+  const k = n?.usd?.somPerYuan;
+  return typeof k === 'number' && k > 0 ? k : null;
+}
 
 export const MARJA_TUGMALARI: readonly SuhbatVarianti[] = [
   { qiymat: 20, nom: '20%' },
@@ -1146,7 +1206,7 @@ const HARAKAT_QADAMI: Readonly<Record<KodHarakati, number>> = {
   yonalishlar: 2, tovarlar: 3, tannarx: 4, xitoy: 5, buyurtma: 6, ochiq_ish: 6, rasmiy: 7, rasmiy_yakun: 7,
   qabul: 8, qabul_yakun: 8, studiya: 9, studiya_yakun: 9, yuklash: 10, yuklash_yakun: 10,
   sotuv: 11, hisobot: 12, hisobot_hisob: 12, hisobot_yakun: 12,
-  usta_fikri: 4,
+  usta_fikri: 4, kurs: 1,
 };
 
 /**
@@ -1196,15 +1256,25 @@ export function keyingi(h: YolHolati): Keyingi {
   }
 
   // ---------------------------------------------------------- 1. Tanishuv
-  if (!berilgan(h, 'byudjet')) {
-    return { tur: 'savol', savol: savol('byudjet', 1,
-      'Salom. Men sizning menejeringizman — birgalikda Uzumda birinchi partiyangizni sotamiz. Boshlaymiz: birinchi partiyaga qancha pul ajratasiz?',
-      'son', { variantlar: BYUDJET_TUGMALARI, erkin: true, otkazishMumkin: true, profilMaydoni: 'budgetUzs' }) };
+  // Nazoratchi tartibi (2026-10-12): ism-familiya → telefon → savdo
+  // tajribasi → qancha pul bilan boshlash (soʻm yoki dollar). Eski suhbatda
+  // byudjet javobi bor-u ism yoʻq boʻlsa — ism va telefon bir marta
+  // soʻraladi, keyin yoʻl oʻsha joyidan davom etadi.
+  if (!berilgan(h, 'ism')) {
+    return { tur: 'savol', savol: savol('ism', 1,
+      'Assalomu alaykum! Men ZumSavdo menejeriman — Uzumda birinchi partiyangizni birga sotamiz. Avval tanishib olaylik: ismingiz va familiyangiz?',
+      'matn', { erkin: true, profilMaydoni: 'fullName' }) };
+  }
+  if (!berilgan(h, 'telefon')) {
+    const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;
+    return { tur: 'savol', savol: savol('telefon', 1,
+      `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.`,
+      'matn', { erkin: true, profilMaydoni: 'phone' }) };
   }
   if (!berilgan(h, 'uzum_dokoni')) {
     return { tur: 'savol', savol: savol('uzum_dokoni', 1,
-      'Uzumda doʻkoningiz bormi?',
-      'tanlov', { variantlar: UZUM_DOKONI, profilMaydoni: 'hasUzumShop' }) };
+      'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.',
+      'tanlov', { variantlar: UZUM_DOKONI, erkin: true, profilMaydoni: 'hasUzumShop' }) };
   }
   if (h.javoblar['uzum_dokoni'] === 'sotyapman' && !berilgan(h, 'dokon_nomi')) {
     // Vaʼda yoʻq: doʻkon nomi boʻyicha sotuv raqamlari kodda koʻrsatilmaydi
@@ -1212,6 +1282,16 @@ export function keyingi(h: YolHolati): Keyingi {
     return { tur: 'savol', savol: savol('dokon_nomi', 1,
       'Doʻkoningiz nomi qanday?',
       'matn', { erkin: true, otkazishMumkin: true }) };
+  }
+  if (!berilgan(h, 'byudjet')) {
+    // Dollar tugmalari va dollarni soʻmga oʻgirish uchun — CBU kursi (jim harakat).
+    if (h.natijalar.kurs === undefined) return { tur: 'kod', harakat: 'kurs', qadam: 1 };
+    const kurs = usdKursi(h);
+    return { tur: 'savol', savol: savol('byudjet', 1,
+      kurs !== null
+        ? 'Qancha pul bilan savdoni boshlamoqchisiz? Soʻmda yoki dollarda — tugmani bosing yoki oʻzingiz yozing (masalan: 70 mln yoki 5000 $).'
+        : 'Qancha pul bilan savdoni boshlamoqchisiz? Tugmani bosing yoki soʻmda yozing (masalan: 70 mln) — dollar kursini hozir ololmadim.',
+      'son', { variantlar: byudjetTugmalari(kurs), erkin: true, otkazishMumkin: true, profilMaydoni: 'budgetUzs' }) };
   }
 
   // ---------------------------------------------------------- 2. Yo'nalish
@@ -1607,7 +1687,24 @@ export interface QabulNatijasi {
   /** `null` — qabul qilindi. Aks holda sabab, obunachiga ko'rsatiladi. */
   xato: string | null;
   /** Profilga yoziladigan maydon va qiymat (bo'lsa). */
-  profil: Partial<ProfilJavoblari> | null;
+  profil: Partial<ProfilJavoblari & AloqaJavoblari> | null;
+}
+
+/** Byudjet: soʻmdagisi `byudjet` ga, dollarda aytilgan boʻlsa — dollari `byudjet_usd` ga (chatda koʻrsatish uchun). */
+function byudjetniYoz(h: YolHolati, s: SuhbatSavoli, som: number, usd: number | null): QabulNatijasi {
+  const n = yoz(h, s, som);
+  const javoblar = { ...n.holat.javoblar };
+  if (usd === null) delete javoblar['byudjet_usd'];
+  else javoblar['byudjet_usd'] = usd;
+  return { ...n, holat: { ...n.holat, javoblar } };
+}
+
+/** Tajriba savoliga oʻzi yozgan javob: salom, "ha" kabi bir soʻz — javob emas. */
+function tajribaMatnimi(t: string): boolean {
+  const sozlar = t.split(/\s+/u).filter((x) => /\p{L}{2,}/u.test(x));
+  if (sozlar.length === 0) return false;
+  if (/^(salom|assalom\p{L}*|hi|hello|привет|здравствуй\p{L}*)(?!\p{L})/iu.test(t)) return false;
+  return sozlar.length >= 2 || sozlar[0]!.length >= 6;
 }
 
 /**
@@ -1636,6 +1733,19 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
   let qiymat: unknown;
   switch (s.turi) {
     case 'son': {
+      // Byudjet: soʻm yoki dollar, gapning ichidan ham ("100 mln bor, lekin 70
+      // mln bilan boshlayman" → 70 mln) — `tanishuv.ts`. Tugma — soʻmdagi son.
+      if (s.id === 'byudjet') {
+        const kurs = usdKursi(h);
+        if (typeof xom === 'number') {
+          if (!Number.isFinite(xom) || xom < 0) return { holat: h, xato: 'Summa manfiy boʻlmaydi — masalan: 70 mln.', profil: null };
+          return byudjetniYoz(h, s, xom, tugmaDollari(xom, kurs));
+        }
+        if (typeof xom !== 'string') return { holat: h, xato: 'Summani yozing — masalan: 70 mln yoki 5000 $.', profil: null };
+        const b = byudjetniOqi(xom, kurs);
+        if ('xato' in b) return { holat: h, xato: b.xato, profil: null };
+        return byudjetniYoz(h, s, b.som, b.usd);
+      }
       // Matn ("10 mln", "5 000 000 soʻm") ham qabul qilinadi — sayt ham, API ham.
       // Misol savolga mos: marja va miqdorda "10 mln" misoli chalgʻitardi.
       const pul = !(s.id === 'marja' || s.id.startsWith('miqdor:') || s.id.startsWith('partiya_miqdor:'));
@@ -1660,6 +1770,12 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
     case 'tanlov': {
       const bor = s.variantlar.some((v) => String(v.qiymat) === String(xom));
       if (!bor && !s.erkin) return { holat: h, xato: 'variantlardan birini tanlang', profil: null };
+      if (!bor && s.id === 'uzum_dokoni') {
+        const t = String(xom).trim();
+        if (!tajribaMatnimi(t)) return { holat: h, xato: 'Variantlardan birini tanlang yoki nima sotganingizni bir-ikki soʻz bilan yozing.', profil: null };
+        qiymat = t.slice(0, 200);
+        break;
+      }
       const v = s.variantlar.find((x) => String(x.qiymat) === String(xom));
       qiymat = v ? v.qiymat : String(xom);
       break;
@@ -1675,6 +1791,19 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
     case 'matn': {
       const t = String(xom).trim();
       if (!t) return yoz(h, s, null);
+      // Ism-familiya va telefon — tekshirib, bir xil shaklda (`tanishuv.ts`).
+      if (s.id === 'ism') {
+        const r = ismniOqi(t);
+        if ('xato' in r) return { holat: h, xato: r.xato, profil: null };
+        qiymat = r.ism;
+        break;
+      }
+      if (s.id === 'telefon') {
+        const r = telefonniOqi(t);
+        if ('xato' in r) return { holat: h, xato: r.xato, profil: null };
+        qiymat = r.telefon;
+        break;
+      }
       // Rasm manzili — qabul PAYTIDA tekshiriladi: notoʻgʻri matn jimgina
       // "rasm yoʻq" ga aylanmasin, savol qayta soʻralsin (tekshiruv,
       // 2026-09-25). Manzil kesilmaydi (200 belgi kesigi uni buzardi).
@@ -1833,12 +1962,12 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
     return { holat: { javoblar: yangi, natijalar }, xato: null, profil: null };
   }
 
-  let profil: Partial<ProfilJavoblari> | null = null;
+  let profil: Partial<ProfilJavoblari & AloqaJavoblari> | null = null;
   if (s.profilMaydoni === 'city') profil = { city: qiymat === null ? null : String(qiymat).trim().slice(0, 100) };
   if (s.profilMaydoni === 'budgetUzs') profil = { budgetUzs: qiymat === null ? null : Number(qiymat) };
-  if (s.profilMaydoni === 'hasUzumShop') {
-    profil = { hasUzumShop: qiymat === null ? null : qiymat !== 'yoq' };
-  }
+  if (s.profilMaydoni === 'hasUzumShop') profil = { hasUzumShop: qiymat === null ? null : uzumDokoniBormi(qiymat) };
+  if (s.profilMaydoni === 'fullName') profil = { fullName: qiymat === null ? null : String(qiymat) };
+  if (s.profilMaydoni === 'phone') profil = { phone: qiymat === null ? null : String(qiymat) };
   return { holat, xato: null, profil };
 }
 
@@ -1868,6 +1997,8 @@ export function joriyQadam(h: YolHolati): number {
 export function tushuntir(harakat: KodHarakati, natija: unknown): string {
   // Kutilmagan xato — natija shakli yoʻq; quyidagi quruvchilar unga tegmaydi.
   if (yiqildimi(natija)) return 'Hisoblashda kutilmagan xato boʻldi — bu natija emas, nosozlik. Qayta urinib koʻrish mumkin.';
+  // Jim harakat — chatga yozilmaydi (`JIM_HARAKATLAR`).
+  if (harakat === 'kurs') return '';
   if (harakat === 'usta_fikri') {
     const n = natija as { olchov_yoq?: boolean; sabab?: string } | null;
     return n?.olchov_yoq
