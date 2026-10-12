@@ -34,10 +34,10 @@ import { hashTokeni } from '@/lib/sessiya-sarlavha';
 import { tarjima, type Til, type Tr } from '@/lib/til';
 import { useTil } from '@/lib/useTil';
 import { faylBolagi, zipYasa } from '@/lib/zip';
-import { Ikon, type IkonNomi } from '../Ikon';
+import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
-import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, qisqaSavol, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 
 /**
@@ -122,6 +122,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const [obunaOchiq, setObunaOchiq] = useState(false);
   const tr = tarjima(til);
   const oqim = useRef<HTMLDivElement>(null);
+  /** Yozish maydoni — pastda; savol pufagidagi «Boshqa javob — pastda yozing» ham shunga fokus beradi. */
+  const kiritishRef = useRef<HTMLInputElement>(null);
 
   /*
    * Avlod: «Boshidan boshlash» uni oshiradi. Undan OLDIN yuborilgan
@@ -452,6 +454,21 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const foiz = holatBor ? Math.round((Math.min(qadam, qadamlarSoni) / qadamlarSoni) * 100) : 0;
   const yashir = obunaOchiq ? YASHIRIN : undefined;
 
+  /*
+   * Savol va javob — BITTA oyna (nazoratchi, 2026-10-12): javob tugmalari
+   * savol pufagining oʻzida, pastda faqat yozish qatori. Ilgari pastda alohida
+   * savol kartasi (oʻz sarlavhasi bilan) turardi — savol ikki marta koʻrinardi.
+   * Tovar va 1688 tanlovi — oqimdagi oʻz kartalarida.
+   */
+  const tugmaliSavol = savol !== null && savol.variantlar.length > 0 && savol.id !== 'tovarlar' && !savol.id.startsWith('xitoy_tanlov:') ? savol : null;
+  const tugmalar = tugmaliSavol && (
+    <SavolTugmalari savol={tugmaliSavol} band={band} klaviatura={!modal && !menyu && !obunaOchiq}
+      tanlangan={tanlangan} setTanlangan={setTanlangan} javobBer={javobBer}
+      yozishga={() => kiritishRef.current?.focus()} tr={tr} />
+  );
+  // Savol oqimda turgan boʻlsa (server yozgan) — tugmalar oʻsha pufakka; boʻlmasa — pastdagi savol pufagiga.
+  const tugmaPufagi = tugmalar && !savolKorsat ? xabarlar.length - 1 : -1;
+
   const yonPanel = (
     <>
       <div className={u.belgi}>
@@ -557,9 +574,12 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                     band,
                   }
                   : undefined}
+                ilova={i === tugmaPufagi ? tugmalar : undefined}
               />
             ))}
-            {savolKorsat && savol && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={savol.matn} /></div>}
+            {savolKorsat && savol && (
+              <div className={`${u.pufak} ${u.ai}${tugmalar ? ` ${u.savolPufak}` : ''}`}><Havolali matn={savol.matn} />{tugmalar}</div>
+            )}
             {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={tezOrada.matn} /></div>}
             {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
 
@@ -588,9 +608,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                 kutish={kutish !== null}
                 yuklanmadi={!holatBor}
                 band={band}
-                klaviatura={!modal && !menyu && !obunaOchiq}
+                kiritish={kiritishRef}
                 tanlangan={tanlangan}
-                setTanlangan={setTanlangan}
                 matn={matn}
                 setMatn={setMatn}
                 javobBer={javobBer}
@@ -679,9 +698,15 @@ function Havolali({ matn }: { matn: string }) {
   );
 }
 
-function XabarPufagi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined }) {
+function XabarPufagi({ x, tr, katalog, xitoy, ilova }: {
+  x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined;
+  /** Hozirgi savolning javob tugmalari — savol bilan bitta oynada. */
+  ilova?: ReactNode;
+}) {
   if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
-  if (x.rol === 'menejer') return <div className={`${u.pufak} ${u.ai}`}><Havolali matn={x.matn} /></div>;
+  if (x.rol === 'menejer') {
+    return <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`}><Havolali matn={x.matn} />{ilova}</div>;
+  }
   // «Boshidan boshlash» belgisi bu yerga yetmaydi (`songgiSuhbat`): yangi suhbat — chiziqsiz.
   return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} />;
 }
@@ -1820,42 +1845,6 @@ function Ogohlik({ children }: { children: ReactNode }) {
 /* ------------------------------------------------------ javob berish */
 
 /**
- * Savol kartasining qisqa sarlavhasi. Toʻliq savol menejer pufagida
- * turadi; kartada — dizayndagidek qisqa bosh gap (w4: «Birinchi
- * partiyaga qancha ajratasiz?»). Maxsus sarlavha boʻlmasa — savol
- * matnidagi oxirgi soʻroq gapi; u ham boʻlmasa — «Nima qilamiz?».
- */
-const SAVOL_SARLAVHASI: Record<string, [string, string]> = {
-  byudjet: ['Qancha pul bilan boshlaysiz?', 'С какой суммы начнёте?'],
-  uzum_dokoni: ['Oldin savdo qilganmisiz?', 'Вы уже торговали?'],
-  shahar: ['Tovar qaysi shaharga keladi?', 'В какой город придёт товар?'],
-  usta_fikri: ['Usta mantiqli tuyuldimi?', 'Мастер показался логичным?'],
-  // Matnda soʻroq gap yoʻq — oxirgi gap sarlavha boʻlib qolardi (2026-10-07).
-  sotuv_holat: ['Yangilaymizmi yoki oy hisobotiga oʻtamizmi?', 'Обновить или перейти к отчёту за месяц?'],
-  deklaratsiya_qadam: ['Bajardingizmi?', 'Сделали?'],
-};
-
-
-function savolBoshi(s: Savol, tr: Tr): { nom: string; izoh: string; ikon: IkonNomi; son: string } {
-  const maxsus = SAVOL_SARLAVHASI[s.id];
-  const nom = maxsus ? tr(maxsus[0], maxsus[1]) : (qisqaSavol(s.matn) || tr('Nima qilamiz?', 'Что делаем дальше?'));
-  const izoh = s.turi === 'kopTanlov'
-    ? tr('Bir nechtasini belgilang', 'Отметьте несколько')
-    : s.id === 'byudjet'
-      ? tr('Tanlang yoki pastda yozing — soʻmda yoki dollarda', 'Выберите или напишите ниже — в сумах или долларах')
-    : s.turi === 'son'
-      ? (s.erkin ? tr('Bittasini tanlang yoki pastda aniq sonni yozing', 'Выберите или впишите точное число ниже') : tr('Bittasini tanlang', 'Выберите один вариант'))
-      : (s.erkin ? tr('Bittasini tanlang yoki pastda oʻzingiz yozing', 'Выберите или напишите свой ответ ниже') : tr('Bittasini tanlang', 'Выберите один вариант'));
-  const k = s.variantlar.length;
-  return {
-    nom,
-    izoh,
-    ikon: s.id === 'byudjet' ? 'hamyon' : s.id === 'shahar' ? 'joy' : 'savol',
-    son: s.id === 'shahar' ? tr(`${k} shahar`, `${k} городов`) : tr(`${k} variant`, `${k} вар.`),
-  };
-}
-
-/**
  * Variantlar ustunlari: qisqa roʻyxat — bir qatorda (byudjet: 4), shaharlar
  * kabi koʻp va qisqa — 5 ustun (dizayn w6), uzun matn — 2 yoki 1 ustun.
  */
@@ -1927,32 +1916,25 @@ function useUstun(ref: RefObject<HTMLDivElement | null>, eng: number, kalit: str
   return n;
 }
 
-function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanlangan, setTanlangan, matn, setMatn, javobBer, matnYubor, boshdan, qaytaUrin, tr }: {
-  savol: Savol | null;
-  tezOrada: boolean;
-  kutish: boolean;
-  /** Holat serverdan kelmadi (tarmoq/baza) — faqat «Qayta urinish». */
-  yuklanmadi: boolean;
+/**
+ * Hozirgi savolning javob tugmalari — savol pufagining ICHIDA (nazoratchi,
+ * 2026-10-12: "savol javob oynasi bitta boʻlsin"). Variantlar, «Boshqa javob
+ * — pastda yozing», koʻp tanlovda «Davom etish», «Oʻtkazib yuborish».
+ */
+function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javobBer, yozishga, tr }: {
+  savol: Savol;
   band: boolean;
   /** 1–9 tugmalari ishlaydimi (modal, menyu, «Rejalar» ochiq boʻlsa — yoʻq). */
   klaviatura: boolean;
   tanlangan: Array<string | number>;
   setTanlangan: (t: Array<string | number>) => void;
-  matn: string;
-  setMatn: (s: string) => void;
   javobBer: (savolId: string, javob: unknown) => void;
-  matnYubor: (savolId: string, matn: string) => void;
-  boshdan: () => void;
-  qaytaUrin: () => void;
+  /** Pastdagi yozish maydoniga fokus. */
+  yozishga: () => void;
   tr: Tr;
 }) {
-  const kiritish = useRef<HTMLInputElement>(null);
   const variantlarRef = useRef<HTMLDivElement>(null);
-  const ustun = useUstun(
-    variantlarRef,
-    savol ? ustunlar(savol) : 1,
-    savol ? `${savol.id}|${savol.variantlar.map((v) => v.nom).join('|')}|${tr('uz', 'ru')}` : '',
-  );
+  const ustun = useUstun(variantlarRef, ustunlar(savol), `${savol.id}|${savol.variantlar.map((v) => v.nom).join('|')}|${tr('uz', 'ru')}`);
 
   /*
    * Klaviatura: 1–9 — variant raqami. FAQAT raqamli savolda: kichik
@@ -1962,7 +1944,7 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
    * modal yoki menyu ochiqligida ishlamaydi.
    */
   useEffect(() => {
-    if (!klaviatura || !savol || savol.turi !== 'son' || savol.variantlar.length === 0 || savol.variantlar.length > 9) return;
+    if (!klaviatura || savol.turi !== 'son' || savol.variantlar.length > 9) return;
     const s = savol;
     function bos(e: KeyboardEvent) {
       if (band || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1977,6 +1959,77 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
     return () => window.removeEventListener('keydown', bos);
   }, [savol, band, javobBer, klaviatura]);
 
+  const kop = savol.turi === 'kopTanlov';
+  const raqamli = savol.turi === 'son';
+  const uzun = ustunlar(savol) <= 2 && !raqamli;
+  const otkaz = savol.otkazishMumkin && !(kop && tanlangan.length > 0);
+  return (
+    <div className={u.savolJavob} role="group" aria-label={tr('Javob variantlari', 'Варианты ответа')}>
+      {kop && <p className={u.savolJavobIzoh}>{tr('Bir nechtasini belgilang', 'Отметьте несколько')}</p>}
+      <div ref={variantlarRef} className={u.variantlar} data-ustun={ustun} style={{ gridTemplateColumns: `repeat(${ustun}, minmax(0, 1fr))` }}>
+        {savol.variantlar.map((v, i) => {
+          const bor = kop && tanlangan.some((x) => String(x) === String(v.qiymat));
+          return (
+            <button
+              key={String(v.qiymat)}
+              type="button"
+              className={[u.variant, raqamli ? u.variantRaqam : '', uzun ? u.variantUzun : '', bor ? u.variantTanlangan : ''].join(' ')}
+              aria-pressed={kop ? bor : undefined}
+              disabled={band}
+              onClick={() => (kop
+                ? setTanlangan(bor ? tanlangan.filter((x) => String(x) !== String(v.qiymat)) : [...tanlangan, v.qiymat])
+                : javobBer(savol.id, v.qiymat))}
+            >
+              <span className={u.radio} aria-hidden="true" />
+              <span className={u.variantNomi}>{v.nom}</span>
+              {raqamli && i < 9 && <span className={u.klavish} aria-hidden="true">{i + 1}</span>}
+            </button>
+          );
+        })}
+        {savol.erkin && !kop && !raqamli && (
+          <button type="button" className={u.variantBoshqa} onClick={yozishga}>
+            <span><Ikon nom="plyus" o={16} /></span>
+            {savol.id === 'shahar' ? tr('Boshqa shahar — pastda yozing', 'Другой город — напишите ниже') : tr('Boshqa javob — pastda yozing', 'Другой ответ — напишите ниже')}
+          </button>
+        )}
+      </div>
+      {(otkaz || kop) && (
+        <div className={u.variantYakun}>
+          {otkaz && (
+            <button type="button" className={u.otkazishIchki} onClick={() => javobBer(savol.id, null)} disabled={band}>
+              {tr('Oʻtkazib yuborish', 'Пропустить')}
+            </button>
+          )}
+          {kop && (
+            <button type="button" className={u.davom} onClick={() => javobBer(savol.id, tanlangan)} disabled={band || tanlangan.length === 0}>
+              {tanlangan.length > 0 ? tr(`Davom etish · ${tanlangan.length} ta`, `Продолжить · ${tanlangan.length}`) : tr('Davom etish', 'Продолжить')}
+              <Ikon nom="ong" o={18} />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlangan, matn, setMatn, javobBer, matnYubor, boshdan, qaytaUrin, tr }: {
+  savol: Savol | null;
+  tezOrada: boolean;
+  kutish: boolean;
+  /** Holat serverdan kelmadi (tarmoq/baza) — faqat «Qayta urinish». */
+  yuklanmadi: boolean;
+  band: boolean;
+  /** Yozish maydoni (sahifada — savol pufagidagi «Boshqa javob» ham unga fokus beradi). */
+  kiritish: RefObject<HTMLInputElement | null>;
+  tanlangan: Array<string | number>;
+  matn: string;
+  setMatn: (s: string) => void;
+  javobBer: (savolId: string, javob: unknown) => void;
+  matnYubor: (savolId: string, matn: string) => void;
+  boshdan: () => void;
+  qaytaUrin: () => void;
+  tr: Tr;
+}) {
   /*
    * Yozib yuborilgandan keyin fokus maydonga qaytadi: telefonda klaviatura
    * yopilmaydi, kompyuterda keyingi raqam maydonga tushadi — variant
@@ -2021,11 +2074,10 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
     );
   }
 
-  // Ixcham ekranda (telefon, past oyna) «Oʻtkazib yuborish» savol kartasining tepasiga chiqadi — pastdagi alohida qator joyi suhbatga qoladi.
-  const otkazTugma = (klass: string | undefined) => (savol.otkazishMumkin
-    ? <button type="button" className={klass} onClick={() => javobBer(savol.id, null)} disabled={band}>{tr('Oʻtkazib yuborish', 'Пропустить')}</button>
-    : null);
-  const otkaz = otkazTugma(u.otkazish);
+  // «Oʻtkazib yuborish»: tugmali savolda — savol pufagining ichida (`SavolTugmalari`), qolganida — shu yerda.
+  const otkaz = savol.otkazishMumkin
+    ? <button type="button" className={u.otkazish} onClick={() => javobBer(savol.id, null)} disabled={band}>{tr('Oʻtkazib yuborish', 'Пропустить')}</button>
+    : null;
 
   const davom = (
     <button type="button" className={u.davom} onClick={() => javobBer(savol.id, tanlangan)} disabled={band || tanlangan.length === 0}>
@@ -2111,56 +2163,11 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
     );
   }
 
-  const bosh = savolBoshi(savol, tr);
-  const kop = savol.turi === 'kopTanlov';
-  const raqamli = savol.turi === 'son';
-  const uzun = ustunlar(savol) <= 2 && !raqamli;
-
+  // Tugmali savol: variantlar va «Oʻtkazib yuborish» savol pufagining ichida — bu yerda faqat yozish qatori.
   return (
     <>
-      {savol.variantlar.length > 0 && (
-        <div className={u.savolKarta}>
-          <div className={u.savolBosh}>
-            <span className={u.savolIkon}><Ikon nom={bosh.ikon} o={18} /></span>
-            <div className={u.savolMatn}>
-              <div className={u.savolSarlavha}>{bosh.nom}</div>
-              <div className={u.savolIzoh}>{bosh.izoh}</div>
-            </div>
-            <span className={u.savolSon}>{bosh.son}</span>
-            {otkazTugma(u.otkazishBosh)}
-          </div>
-          <div ref={variantlarRef} className={u.variantlar} data-ustun={ustun} style={{ gridTemplateColumns: `repeat(${ustun}, minmax(0, 1fr))` }}>
-            {savol.variantlar.map((v, i) => {
-              const bor = kop && tanlangan.some((x) => String(x) === String(v.qiymat));
-              return (
-                <button
-                  key={String(v.qiymat)}
-                  type="button"
-                  className={[u.variant, raqamli ? u.variantRaqam : '', uzun ? u.variantUzun : '', bor ? u.variantTanlangan : ''].join(' ')}
-                  aria-pressed={kop ? bor : undefined}
-                  disabled={band}
-                  onClick={() => (kop
-                    ? setTanlangan(bor ? tanlangan.filter((x) => String(x) !== String(v.qiymat)) : [...tanlangan, v.qiymat])
-                    : javobBer(savol.id, v.qiymat))}
-                >
-                  <span className={u.radio} aria-hidden="true" />
-                  <span className={u.variantNomi}>{v.nom}</span>
-                  {raqamli && i < 9 && <span className={u.klavish} aria-hidden="true">{i + 1}</span>}
-                </button>
-              );
-            })}
-            {savol.erkin && !kop && !raqamli && (
-              <button type="button" className={u.variantBoshqa} onClick={() => kiritish.current?.focus()}>
-                <span><Ikon nom="plyus" o={16} /></span>
-                {savol.id === 'shahar' ? tr('Boshqa shahar — pastda yozing', 'Другой город — напишите ниже') : tr('Boshqa javob — pastda yozing', 'Другой ответ — напишите ниже')}
-              </button>
-            )}
-          </div>
-          {kop && <div className={u.variantYakun}>{davom}</div>}
-        </div>
-      )}
       {kiritishQatori}
-      {otkaz}
+      {savol.variantlar.length === 0 && otkaz}
     </>
   );
 }

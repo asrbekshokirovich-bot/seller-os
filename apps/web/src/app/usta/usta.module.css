@@ -1062,52 +1062,22 @@
   color: var(--xira);
 }
 
-/* Savol kartasi — sarlavha, izoh va variantlar (w4, w6). */
-.savolKarta {
-  background: var(--kart);
-  box-shadow: var(--soya);
-  border-radius: 22px;
-  padding: 16px;
+/*
+ * Savol va javob — BITTA oyna (nazoratchi, 2026-10-12): javob tugmalari savol
+ * pufagining ichida. Ilgari pastda alohida savol kartasi (oʻz sarlavhasi
+ * bilan) turardi va savol ikki marta koʻrinardi. Pufak tugmalar uchun keng.
+ */
+.savolPufak { width: min(720px, 100%); }
+
+.savolJavob {
+  margin-top: 16px;
+  /* Pufak matni `pre-line` — tugmalar ichida oddiy boʻshliq. */
+  white-space: normal;
 }
 
-.savolBosh {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.savolIkon {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: var(--acc10);
-  color: var(--acc);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.savolMatn { flex: 1; min-width: 0; }
-
-.savolSarlavha {
-  font-size: 15px;
-  font-weight: 700;
-  /* Uzun soʻz (tayyorlaymizmi?) tor kartada qoʻshni tugma ustiga chiqmasin. */
-  overflow-wrap: anywhere;
-}
-
-.savolIzoh {
-  margin-top: 2px;
+.savolJavobIzoh {
+  margin: 0 0 10px;
   font-size: 13px;
-  color: var(--xira);
-}
-
-.savolSon {
-  flex: none;
-  font-size: 12.5px;
-  font-weight: 600;
   color: var(--xira);
 }
 
@@ -1225,8 +1195,29 @@
 .variantYakun {
   margin-top: 12px;
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
+
+/* Koʻp tanlovda «Davom etish» oʻngda, «Oʻtkazib yuborish» chapda. */
+.variantYakun .davom { margin-left: auto; }
+
+/* Savol pufagidagi «Oʻtkazib yuborish» — javob variantlari yonida, kichik. */
+.otkazishIchki {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--chip);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ilova .otkazishIchki { color: var(--xira); }
 
 /* Erkin javob — dizayndagi «Oʻzim yozaman» qatori. */
 .kiritish {
@@ -1303,23 +1294,6 @@
 }
 
 .ilova .otkazish { color: var(--xira); }
-
-/* Ixcham ekranda savol kartasi tepasidagi «Oʻtkazib yuborish» (pastdagi qator oʻrniga). Odatda yashirin. */
-.otkazishBosh {
-  display: none;
-  flex: none;
-  align-items: center;
-  height: 32px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--chip);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.ilova .otkazishBosh { color: var(--xira); }
 
 .yuborMatn { display: inline; }
 
@@ -1799,31 +1773,15 @@
 
 /*
  * Ixcham pastki panel — telefon va past oyna (1366×768, 1920×1080 150 %).
- * Dizayn 1440×900 uchun; bu yerda suhbatga joy qoldiriladi: izoh qatori va
- * «N variant» yashirinadi, «Oʻtkazib yuborish» savol kartasining tepasiga
- * chiqadi, variantlar koʻp boʻlsa — kartaning ichida aylanadi.
+ * Dizayn 1440×900 uchun; bu yerda suhbatga joy qoldiriladi: izoh qatori
+ * yashirinadi. Javob tugmalari savol pufagida — suhbat bilan birga aylanadi.
  */
 @media (max-width: 760px), (max-height: 700px) {
   .past_ { padding: 10px 0 12px; }
   .pastIchi { gap: 10px; }
   .pastIzoh { display: none; }
 
-  .savolKarta { padding: 12px; border-radius: 18px; }
-  .savolBosh { gap: 10px; margin-bottom: 10px; }
-  .savolIkon { width: 32px; height: 32px; border-radius: 10px; }
-  .savolIzoh, .savolSon { display: none; }
-  .otkazishBosh { display: inline-flex; }
-  .savolKarta ~ .otkazish { display: none; }
-
-  .variantlar {
-    /* 3,5 qator: pastda yarim koʻrinib turgan qator roʻyxat davom etishini bildiradi. */
-    max-height: 186px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    /* Fokus halqasi aylanuvchi chetda kesilmasin. */
-    padding: 4px;
-    margin: -4px;
-  }
+  .savolJavob { margin-top: 12px; }
 
   .variant { height: 44px; padding: 0 12px; gap: 8px; }
   /* Uzun matnli variant oʻraladi — balandlik matnga qarab (44 px emas). */
@@ -1843,9 +1801,4 @@
 @media (max-width: 480px) {
   .yuborMatn { display: none; }
   .yubor { width: 44px; padding: 0; }
-}
-
-/* Kengaytma paneli (320 px) va kichik telefon: savol belgisi joyini sarlavhaga beradi. */
-@media (max-width: 400px) {
-  .savolIkon { display: none; }
 }

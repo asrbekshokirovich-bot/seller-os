@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, qisqaSavol, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
+import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -127,37 +127,5 @@ describe('kichikRasm — 1688 rasmi kartada kichik nusxada', () => {
     expect(kichikRasm(tayyor2)).toBe(tayyor2);
     const soxta = 'https://alicdn.com.yomon.uz/a.jpg';
     expect(kichikRasm(soxta)).toBe(soxta);
-  });
-});
-
-describe('qisqaSavol — savol kartasi sarlavhasi', () => {
-  it('uzun kirish qismi tashlanadi, soʻz oʻrtasidan kesilmaydi (nazoratchi, 2026-10-06: «…miqdor va cheg…»)', () => {
-    const t = qisqaSavol('Xitoydan qidirishdan oldin bitta savol: shu paytgacha — yoʻnalish, tovar, miqdor va chegara narx — Usta mantiqli tuyuldimi? Javobingiz Ustani yaxshilashga yordam beradi; xohlamasangiz — oʻtkazib yuboring.');
-    expect(t).toBe('Usta mantiqli tuyuldimi?');
-  });
-
-  it('qaysi tovar haqida ekani koʻrinadi: «nom» soʻroq gapda boʻlmasa — oldiga', () => {
-    const t = qisqaSavol('«Ayollar sumkasi, katta, A4 formatda, oʻqish, maktab, universitet, ish uchun, kundalik»: oyiga ~78 dona sotiladi · 30 kunlik zaxira = 4 dona. Birinchi partiya uchun nechta olasiz?');
-    expect(t).toBe('«Ayollar sumkasi, katta, A4 formatda…» — Birinchi partiya uchun nechta olasiz?');
-  });
-
-  it('tugma yoki menyu nomi («Keldi», «Yetkazmalar → Yaratish») sarlavhaga chiqmaydi (2026-10-07)', () => {
-    expect(qisqaSavol('Kelguncha doʻkonni tayyorlaymiz. Yuk kelganini oʻzingiz aytasiz («Keldi» tugmasi) — eslatma hali yoʻq. Boshlaymizmi?')).toBe('Boshlaymizmi?');
-    expect(qisqaSavol('Kabinetda «Yetkazmalar → Yaratish»: tovarlar (100 SKU gacha), tannarx, dona, taymslot. Yaratdingizmi?')).toBe('Yaratdingizmi?');
-    expect(qisqaSavol('Ombor: Toshkent (Fulfillment markazi, «Uzum» peshtaxtasi), har kuni 06:00–00:00. Qanday yetkazasiz?')).toBe('Qanday yetkazasiz?');
-  });
-
-  it('soʻroq gap yoʻq — boʻsh satr (sarlavhani chaqiruvchi tanlaydi)', () => {
-    expect(qisqaSavol('Zaxira: 6 dona. Shu tezlikda 42 kunga yetadi. Oy yakunida — «Oy hisoboti».')).toBe('');
-    expect(qisqaSavol('Qadamlar kartada — har birini bajaring va «Bajardim» ni bosing. Sayt boshqacha boʻlsa — «Sayt boshqacha», nazoratchi tekshiradi.')).toBe('');
-  });
-
-  it('qisqa savol — oʻzicha; juda uzun — soʻz chegarasida «…»', () => {
-    expect(qisqaSavol('Uzumda doʻkoningiz bormi?')).toBe('Uzumda doʻkoningiz bormi?');
-    const uzun = qisqaSavol(`${'soʻz '.repeat(40)}tugadimi?`);
-    expect(uzun.length).toBeLessThanOrEqual(121);
-    expect(uzun.endsWith('…')).toBe(true);
-    // Soʻz chegarasida: oxirgi soʻz butun ("soʻz…"), yarmi emas ("so…").
-    expect(uzun).toMatch(/soʻz…$/u);
   });
 });
