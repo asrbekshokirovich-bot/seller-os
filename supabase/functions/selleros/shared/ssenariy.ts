@@ -182,27 +182,19 @@ export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
 
 /**
  * Suhbatning birinchi gapi (nazoratchi, 2026-10-12): "menejer" emas —
- * YORDAMCHI; "birinchi partiyangizni birga sotamiz" deyilmaydi — yangi
- * odam hali ZumSavdo nima ekanini, nima qila olishini va qanday shartlar
- * bilan ishlashini bilmaydi. Shuning uchun avval shu uchtasi, keyin savol.
- *
- * Har gap kodda bor narsa: 12 qadam (SUHBAT_QADAMLARI), 8 ta tuzoq-filtr,
- * 1688 qidiruvi, tizim buyurtma bermaydi va toʻlov qilmaydi, raqam manbasi
- * koʻrsatiladi, "Bepul" reja. Foyda vaʼda qilinmaydi (QOIDALAR §4) —
- * ochiq aytiladi. Ism va telefon savollari LLM ga bormaydi: matn oʻzicha chiqadi.
+ * YORDAMCHI; "birinchi partiyangizni birga sotamiz" emas. Bunday platformadan
+ * hech foydalanmagan odamga tushuntirgandek — SODDA va umumiy: nima sotishni
+ * tanlashdan Xitoydan olib kelish va Uzumda sotishgacha butun yoʻlda yordam,
+ * har qanday savolga javob. Tafsilot (12 qadam, tuzoq-filtrlar, vaʼdalar)
+ * birinchi gapda emas — soʻralsa javobda (`erkin.ts`: xizmat, kafolat).
+ * Foyda vaʼda qilinmaydi (QOIDALAR §4). Ism va telefon savollari LLM ga
+ * bormaydi: matn oʻzicha chiqadi.
  */
 const SALOM = [
   'Assalomu alaykum! Men ZumSavdo yordamchingizman.',
   '',
-  'ZumSavdo — Uzumda savdoni noldan boshlashga yordam beradigan platforma. Sizni 12 qadamda olib boraman:',
-  '• Uzumda nima sotilayotganini Uzum maʼlumotlaridan koʻrsataman, xavfli tovarlarni 8 ta tuzoq-filtr bilan chetlataman;',
-  '• tovarni Xitoydan (1688) topib, qancha turishini oldindan hisoblayman;',
-  '• rasmiylashtirish, kartochka, suratlar va omborga topshirishda yoʻl koʻrsataman;',
-  '• sotuv boshlangach kuzatib, oy hisobotini tayyorlayman.',
-  '',
-  'Vaʼdalarim: har bir raqamning manbasi koʻrsatiladi, taxmin boʻlsa — taxmin deb aytaman. '
-    + 'Tovar puliga tegmaymiz: buyurtmani ham, toʻlovni ham oʻzingiz qilasiz — qaror doim sizniki. '
-    + 'Foydani hech kim oldindan vaʼda qila olmaydi, men ham qilmayman — lekin xatarlarni oldindan koʻrsataman.',
+  'Uzumda savdo qilishning butun yoʻlida yoningizdaman: nima sotishni tanlashdan tortib, tovarni Xitoydan topish, '
+    + 'olib kelish va Uzumda sotishgacha. Har bir qadamda nima qilishni oddiy tilda tushuntiraman — savol tugʻilsa, bemalol soʻrang.',
   '',
   'Boshlash bepul. Avval tanishib olaylik: ismingiz va familiyangiz?',
 ].join('\n');

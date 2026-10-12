@@ -193,18 +193,18 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
     expect(k.savol.matn).toMatch(/ismingiz va familiyangiz\?$/);
   });
 
-  it('birinchi gap (nazoratchi, 2026-10-12): "yordamchi", menejer emas; platforma nima, nima qiladi, vaʼdalar — foyda vaʼdasiz', () => {
+  it('birinchi gap (nazoratchi, 2026-10-12): "yordamchi", menejer emas; sodda — butun yoʻlda yordam; vaʼda yoʻq', () => {
     const k = keyingi(boshlangichHolat());
     if (k.tur !== 'savol') throw new Error(k.tur);
     const m = k.savol.matn;
     expect(m).toMatch(/^Assalomu alaykum! Men ZumSavdo yordamchingizman\./);
     expect(m).not.toMatch(/menejer|birinchi partiyangizni birga sotamiz/);
-    expect(m).toMatch(/12 qadamda/);
-    expect(m).toMatch(/8 ta tuzoq-filtr/);
-    expect(m).toMatch(/Vaʼdalarim:/);
-    // QOIDALAR §4: kafolat yoʻq, foyda vaʼda qilinmaydi — buni ochiq aytadi.
-    expect(m).not.toMatch(/kafolat|albatta/i);
-    expect(m).toMatch(/Foydani hech kim oldindan vaʼda qila olmaydi/);
+    expect(m).toMatch(/nima sotishni tanlashdan tortib, tovarni Xitoydan topish, olib kelish va Uzumda sotishgacha/);
+    expect(m).toMatch(/savol tugʻilsa, bemalol soʻrang/);
+    // Sodda: platformadan foydalanmagan odamga notanish soʻzlar birinchi gapda yoʻq.
+    expect(m).not.toMatch(/tuzoq-filtr|1688|platforma/);
+    // QOIDALAR §4: kafolat va foyda vaʼdasi yoʻq.
+    expect(m).not.toMatch(/kafolat|albatta|foyda/i);
   });
 
   it('tartib: ism → telefon (ism bilan murojaat) → tajriba → dollar kursi (kod) → byudjet', () => {
