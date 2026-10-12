@@ -249,7 +249,16 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const aylantirKaliti = `${xabarlar.length}|${keyingiKaliti(keyingi)}|${band ? 1 : 0}|${xato ?? ''}`;
   useEffect(() => {
     const el = oqim.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    if (!el) return;
+    // Yangi pufak ekranga sigʻmasa (birinchi gap telefonda) — boshidan koʻrinsin:
+    // pastga aylantirilsa "Assalomu alaykum…" tepada kesilib qolardi (2026-10-12).
+    const songgi = el.querySelector('[role="log"]')?.lastElementChild;
+    if (songgi instanceof HTMLElement && songgi.offsetHeight > el.clientHeight - 40) {
+      const tepa = songgi.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - 16;
+      el.scrollTo({ top: Math.max(0, tepa), behavior: 'smooth' });
+      return;
+    }
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [aylantirKaliti]);
 
   // «Rejalar»dan qaytganda suhbat oʻsha joyida turadi (yashirilgan edi, oʻchirilmagan).
