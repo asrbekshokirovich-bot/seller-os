@@ -147,10 +147,10 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    * (`xato`) ham qoladi — odam xatoni tuzatadi, hammasini qaytadan yozmaydi.
    */
   const qabul = useCallback((r: SuhbatJavobi, o: { almashtir?: boolean; tozala?: boolean; javobKetdi?: boolean; matnKetdi?: boolean } = {}) => {
-    // «Boshidan boshlash» — yangi suhbat: oxirgi belgidan oldingisi chatga chiqmaydi
-    // (server ham shunday qaytaradi; bu — eski server javobi uchun ham).
+    // «Boshidan boshlash» — yangi suhbat: oxirgi belgidan oldingisi (belgining oʻzi
+    // ham) chatga chiqmaydi. Server ham shunday qaytaradi; bu — eski javob shakli uchun.
     if (r.tarix !== undefined) setXabarlar(songgiSuhbat(r.tarix));
-    else if (r.xabarlar.length) setXabarlar((eski) => (o.almashtir ? r.xabarlar : [...eski, ...r.xabarlar]));
+    else if (r.xabarlar.length) setXabarlar((eski) => (o.almashtir ? songgiSuhbat(r.xabarlar) : [...eski, ...r.xabarlar]));
     setKeyingi(r.keyingi);
     setQadam(r.qadam);
     setXato(r.xato && r.xabarlar.length === 0 && r.tarix === undefined ? r.xato : null);
@@ -673,8 +673,7 @@ function Havolali({ matn }: { matn: string }) {
 function XabarPufagi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined }) {
   if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
   if (x.rol === 'menejer') return <div className={`${u.pufak} ${u.ai}`}><Havolali matn={x.matn} /></div>;
-  // «Boshidan boshlash» belgisi: tarix qoladi, yangi yoʻl shu chiziqdan boshlanadi.
-  if (x.savolId === 'boshdan') return <div className={u.ajratgich}>{tr('Yoʻl boshidan boshlandi', 'Путь начат заново')}</div>;
+  // «Boshidan boshlash» belgisi bu yerga yetmaydi (`songgiSuhbat`): yangi suhbat — chiziqsiz.
   return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} />;
 }
 
