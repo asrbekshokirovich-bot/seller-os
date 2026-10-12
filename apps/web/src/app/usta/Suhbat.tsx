@@ -2058,6 +2058,9 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
         type={savol.id === 'telefon' ? 'tel' : 'text'}
         inputMode={savol.id === 'telefon' ? 'tel' : undefined}
         enterKeyHint="send"
+        // Server erkin matnni 500 belgida kesadi (`ERKIN_MAX`) — oxiri jimgina
+        // yoʻqolmasin, yozayotganda chegara koʻrinsin.
+        maxLength={500}
         autoComplete={savol.id === 'ism' ? 'name' : savol.id === 'telefon' ? 'tel' : 'off'}
         aria-label={savol.matn}
         placeholder={savol.id === 'ism' ? tr('Ism va familiya — masalan: Aziz Karimov', 'Имя и фамилия — например: Азиз Каримов')
