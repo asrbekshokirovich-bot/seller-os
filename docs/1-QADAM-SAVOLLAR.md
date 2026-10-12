@@ -53,6 +53,30 @@ puli yoʻq odamga oʻxshab qoladi va tavsiya notoʻgʻri chiqadi.
 Byudjet `null` boʻlsa 2-qadam miqdorni hisoblamaydi — "byudjet
 koʻrsatilmagan" deb yozadi va yoʻnalishni baribir beradi.
 
+### Tanishuv yangi tartibda (nazoratchi, 2026-10-12)
+
+Sinovdan keyingi qaror: «Boshidan boshlash» — YANGI suhbat (eski xabarlar
+ekranga chiqmaydi, jurnal bazada qoladi). Tanishuv tartibi:
+
+| # | Savol | Turi | Qayerga |
+|---|---|---|---|
+| 1 | Ismingiz va familiyangiz? | matn, majburiy (kamida 2 soʻz) | `users.name` (0063) |
+| 2 | Telefon raqamingiz? | matn, majburiy (`+998901234567` shaklida) | `users.phone` (0063) |
+| 3 | Oldin savdo qilganmisiz? (Uzumda sotyapman / kabinet bor / boshqa joyda / birinchi marta, yoki oʻzi yozadi) | tanlov + matn | `uzum_dokoni`, `hasUzumShop` |
+| 4 | Qancha pul bilan savdoni boshlamoqchisiz? | son: soʻmda YOKI dollarda | `budgetUzs` |
+
+Byudjet: tugmalar soʻmda (5/10/30/70 mln) va dollarda ($500/1 000/3 000/5 000,
+suhbat paytidagi CBU kursi bilan soʻmga). Oʻzi yozsa — gapning ichidan
+BOSHLASH summasi olinadi: "hozir 100 mln pulim bor, lekin 70 mln bilan
+boshlamoqchiman" → 70 mln (ilgari "bitta son yozing" deb qayta soʻralardi).
+Oraliq ("5-10 mln") — pastki chegara, tugmalardagidek. Ishorasiz ikki summa
+("50 yoki 70 mln") yoki birliksiz kichik son ("70") — taxmin qilinmaydi,
+qisqa savol beriladi. Kod: `packages/shared/src/tanishuv.ts`.
+
+Ism va telefon savollari (va ularga yozilgan matn) LLM ga yuborilmaydi.
+Eski suhbatda ism yoʻq boʻlsa — ism va telefon bir marta soʻraladi, keyin
+yoʻl oʻsha joyidan davom etadi.
+
 ### Ruscha qoʻshildi (2026-09-25)
 
 Nazoratchi qarori: «Profilim» da til tanlanadi — Oʻzbekcha / Русский.

@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { oyNomi, REJA_QADAMI, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { oyNomi, REJA_QADAMI, songgiSuhbat, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -147,7 +147,9 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    * (`xato`) ham qoladi — odam xatoni tuzatadi, hammasini qaytadan yozmaydi.
    */
   const qabul = useCallback((r: SuhbatJavobi, o: { almashtir?: boolean; tozala?: boolean; javobKetdi?: boolean; matnKetdi?: boolean } = {}) => {
-    if (r.tarix !== undefined) setXabarlar(r.tarix);
+    // «Boshidan boshlash» — yangi suhbat: oxirgi belgidan oldingisi chatga chiqmaydi
+    // (server ham shunday qaytaradi; bu — eski server javobi uchun ham).
+    if (r.tarix !== undefined) setXabarlar(songgiSuhbat(r.tarix));
     else if (r.xabarlar.length) setXabarlar((eski) => (o.almashtir ? r.xabarlar : [...eski, ...r.xabarlar]));
     setKeyingi(r.keyingi);
     setQadam(r.qadam);
@@ -314,6 +316,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         return;
       }
       qabul(d, {
+        // Boshidan — yangi suhbat: eski xabarlar ekrandan ketadi (nazoratchi, 2026-10-12).
+        almashtir: tana.boshdan === true,
         tozala: tana.boshdan === true,
         javobKetdi: Object.prototype.hasOwnProperty.call(tana, 'javob'),
         matnKetdi: typeof tana.matn === 'string',
@@ -1814,7 +1818,8 @@ function Ogohlik({ children }: { children: ReactNode }) {
  * matnidagi oxirgi soʻroq gapi; u ham boʻlmasa — «Nima qilamiz?».
  */
 const SAVOL_SARLAVHASI: Record<string, [string, string]> = {
-  byudjet: ['Birinchi partiyaga qancha ajratasiz?', 'Сколько выделите на первую партию?'],
+  byudjet: ['Qancha pul bilan boshlaysiz?', 'С какой суммы начнёте?'],
+  uzum_dokoni: ['Oldin savdo qilganmisiz?', 'Вы уже торговали?'],
   shahar: ['Tovar qaysi shaharga keladi?', 'В какой город придёт товар?'],
   usta_fikri: ['Usta mantiqli tuyuldimi?', 'Мастер показался логичным?'],
   // Matnda soʻroq gap yoʻq — oxirgi gap sarlavha boʻlib qolardi (2026-10-07).
@@ -1828,6 +1833,8 @@ function savolBoshi(s: Savol, tr: Tr): { nom: string; izoh: string; ikon: IkonNo
   const nom = maxsus ? tr(maxsus[0], maxsus[1]) : (qisqaSavol(s.matn) || tr('Nima qilamiz?', 'Что делаем дальше?'));
   const izoh = s.turi === 'kopTanlov'
     ? tr('Bir nechtasini belgilang', 'Отметьте несколько')
+    : s.id === 'byudjet'
+      ? tr('Tanlang yoki pastda yozing — soʻmda yoki dollarda', 'Выберите или напишите ниже — в сумах или долларах')
     : s.turi === 'son'
       ? (s.erkin ? tr('Bittasini tanlang yoki pastda aniq sonni yozing', 'Выберите или впишите точное число ниже') : tr('Bittasini tanlang', 'Выберите один вариант'))
       : (s.erkin ? tr('Bittasini tanlang yoki pastda oʻzingiz yozing', 'Выберите или напишите свой ответ ниже') : tr('Bittasini tanlang', 'Выберите один вариант'));
@@ -2039,13 +2046,18 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, klaviatura, tanl
       */}
       <input
         ref={kiritish}
-        type="text"
+        // Telefon — raqamli klaviatura va brauzer toʻldirishi; ism — ism toʻldirishi.
+        type={savol.id === 'telefon' ? 'tel' : 'text'}
+        inputMode={savol.id === 'telefon' ? 'tel' : undefined}
         enterKeyHint="send"
-        autoComplete="off"
+        autoComplete={savol.id === 'ism' ? 'name' : savol.id === 'telefon' ? 'tel' : 'off'}
         aria-label={savol.matn}
-        placeholder={savol.turi === 'son'
-          ? tr('Oʻzim yozaman: aniq son', 'Своё число')
-          : ochiqJavob ? tr('Oʻzim yozaman', 'Свой ответ') : tr('Savolingiz boʻlsa — yozing', 'Есть вопрос — напишите')}
+        placeholder={savol.id === 'ism' ? tr('Ism va familiya — masalan: Aziz Karimov', 'Имя и фамилия — например: Азиз Каримов')
+          : savol.id === 'telefon' ? '+998 90 123 45 67'
+            : savol.id === 'byudjet' ? tr('Oʻzim yozaman: masalan, 70 mln yoki 5000 $', 'Своя сумма: например, 70 млн или 5000 $')
+              : savol.turi === 'son'
+                ? tr('Oʻzim yozaman: aniq son', 'Своё число')
+                : ochiqJavob ? tr('Oʻzim yozaman', 'Свой ответ') : tr('Savolingiz boʻlsa — yozing', 'Есть вопрос — напишите')}
         value={matn}
         readOnly={band}
         aria-busy={band}

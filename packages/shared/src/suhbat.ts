@@ -26,12 +26,13 @@
  * tugagach kod xabari + keyingi savol odatdagidek yoziladi.
  */
 
-import { type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat,
-  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, yiqilganNatija } from './ssenariy.js';
+import { type AloqaJavoblari, type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat, JIM_HARAKATLAR,
+  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, uzumDokoniBormi, yiqilganNatija } from './ssenariy.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
 import { ERKIN_BILIM, tayyorJavob } from './erkin.js';
 import type { ProfilJavoblari } from './profil.js';
+import { byudjetMatni, telefonKorinishi } from './tanishuv.js';
 
 export interface SuhbatXabari {
   rol: 'obunachi' | 'menejer' | 'kod';
@@ -78,6 +79,8 @@ export interface SuhbatBogliqliklari {
     hisobotYakun: (holat: YolHolati) => Promise<unknown>;
     /** 4-qadamdan keyin: Usta haqidagi fikr — B2 darvozasi dalili (`so_fikr_yoz`). */
     ustaFikri: (holat: YolHolati) => Promise<unknown>;
+    /** 1-qadam: dollar kursi (CBU) — byudjet tugmalari va dollarni soʻmga oʻgirish. Hech qachon otmaydi. */
+    kurs: (holat: YolHolati) => Promise<unknown>;
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
@@ -122,6 +125,17 @@ interface OqishJavobi {
   xabarlar: Array<SuhbatXabari & { seq: number; at: string }>;
 }
 
+/**
+ * «Boshidan boshlash» — YANGI suhbat (nazoratchi, 2026-10-12): chatda faqat
+ * oxirgi belgidan keyingi xabarlar. Jurnal bazada qoladi (belgi bilan), lekin
+ * eski yoʻl ekranga chiqmaydi. Belgining oʻzi ham koʻrsatilmaydi.
+ */
+export function songgiSuhbat<T extends { rol: string; savolId?: string | null }>(xabarlar: readonly T[]): T[] {
+  let i = xabarlar.length - 1;
+  while (i >= 0 && !(xabarlar[i]!.rol === 'kod' && xabarlar[i]!.savolId === 'boshdan')) i--;
+  return xabarlar.slice(i + 1);
+}
+
 /** Tarix + hozirgi savol. Hech narsa yozmaydi. */
 export async function suhbatOqi(d: SuhbatBogliqliklari, token: string): Promise<
   (SuhbatJavobi & { tarix: OqishJavobi['xabarlar'] }) | { xato: string }
@@ -131,7 +145,7 @@ export async function suhbatOqi(d: SuhbatBogliqliklari, token: string): Promise<
   if (o.xato) return { xato: o.xato };
   const holat = o.holat ?? boshlangichHolat();
   return {
-    xabarlar: [], tarix: o.xabarlar ?? [],
+    xabarlar: [], tarix: songgiSuhbat(o.xabarlar ?? []),
     keyingi: keyingi(holat), qadam: joriyQadam(holat), yozildi: true,
   };
 }
@@ -151,7 +165,7 @@ export async function suhbatTurn(
 
   let holat = o.holat ?? boshlangichHolat();
   const yangi: SuhbatXabari[] = [];
-  let profil: Partial<ProfilJavoblari> | null = null;
+  let profil: Partial<ProfilJavoblari & AloqaJavoblari> | null = null;
 
   // ---- 1b. kutilayotgan ishni tekshirish (`tekshir`)
   if (kirish.tekshir === true) {
@@ -209,12 +223,30 @@ export async function suhbatTurn(
     const yozilgan = Object.prototype.hasOwnProperty.call(holat.javoblar, savolId)
       ? holat.javoblar[savolId]
       : k0.savol.variantlar.find((v) => String(v.qiymat) === String(xom))?.qiymat ?? xom ?? null;
+    // Byudjetni oʻzi yozgan boʻlsa ("100 mln bor, lekin 70 mln bilan…") —
+    // chatda yozgani oʻzicha, keyin menejer qanday tushunganini aytadi
+    // ("70 000 000 soʻm", "$5 000 (≈ 63,3 mln soʻm)"). Telefon — bir xil shaklda.
+    const usdJavob = holat.javoblar['byudjet_usd'];
+    const usd = typeof usdJavob === 'number' ? usdJavob : null;
+    const byudjetSoni = savolId === 'byudjet' && typeof yozilgan === 'number';
+    // Gap yozgan (tugma nomi yoki shunchaki son emas) — gapi oʻzicha + menejer tushunganini aytadi.
+    const byudjetGapi = byudjetSoni && yozgan !== null && tanlanganVariant === undefined && !/^[\d\s.,]+$/u.test(yozgan);
+    const tugma = k0.savol.variantlar.find((v) => String(v.qiymat) === String(yozilgan));
     yangi.push({
       rol: 'obunachi',
-      matn: javobMatni(k0.savol.variantlar, yozilgan),
+      matn: byudjetGapi && yozgan !== null
+        ? (yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan)
+        : byudjetSoni && !tugma
+          ? byudjetMatni(yozilgan as number, usd)
+          : savolId === 'telefon' && typeof yozilgan === 'string'
+            ? telefonKorinishi(yozilgan)
+            : javobMatni(k0.savol.variantlar, yozilgan),
       savolId,
       javob: yozilgan ?? null,
     });
+    if (byudjetGapi) {
+      yangi.push({ rol: 'menejer', matn: `Tushunarli — ${byudjetMatni(yozilgan as number, usd)} bilan boshlaymiz.` });
+    }
   }
 
   // ---- 3. kod harakatlari, savol chiqquncha
@@ -225,7 +257,8 @@ export async function suhbatTurn(
     holat = natijaniYoz(holat, k.harakat, natija);
     // Yurish endigina boshlangan bo'lsa kod xabari YOZILMAYDI — natija
     // kelganda (`tekshir`) yoziladi; hozircha menejerning "kutish" gapi yetadi.
-    if (!(natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
+    // Jim harakat (dollar kursi) — chatga hech qachon yozilmaydi.
+    if (!JIM_HARAKATLAR.has(k.harakat) && !(natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
       yangi.push({ rol: 'kod', matn: tushuntir(k.harakat, natija), savolId: k.harakat, javob: natija });
     }
     k = keyingi(holat);
@@ -243,7 +276,8 @@ export async function suhbatTurn(
     };
   }
   const kodJumla = k.tur === 'savol' ? k.savol.matn : k.matn;
-  const menejerMatn = await odamlashtirTekshirib(d, kodJumla, yangi);
+  // Shaxsiy savol (ism, telefon) LLM ga yuborilmaydi — telefon savolida ism bor.
+  const menejerMatn = k.tur === 'savol' && SHAXSIY_SAVOLLAR.has(k.savol.id) ? kodJumla : await odamlashtirTekshirib(d, kodJumla, yangi);
   yangi.push({ rol: 'menejer', matn: menejerMatn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
 
   // ---- 5. yozish
@@ -261,11 +295,11 @@ export async function suhbatTurn(
 }
 
 /**
- * Boshidan. Holat tozalanadi, JURNAL QOLADI — va unga belgi yoziladi
- * (`kod`, `savolId: 'boshdan'`) hamda birinchi savol. Sahifa belgini
- * chiziq qilib chizadi: yangilangandan keyin ham eski tarix va yangi yoʻl
- * ajralib turadi (audit, 2026-10-05: ilgari sahifa tarixni oʻchirib
- * koʻrsatardi, yangilansa eski 60 xabar yangi savol ustida aralash chiqardi).
+ * Boshidan — YANGI suhbat (nazoratchi, 2026-10-12). Holat tozalanadi,
+ * JURNAL QOLADI: unga belgi (`kod`, `savolId: 'boshdan'`) va birinchi savol
+ * yoziladi. Chatga faqat belgidan keyingisi chiqadi (`songgiSuhbat`) —
+ * sahifa yangilansa ham eski yoʻl koʻrinmaydi (ilgari belgi chiziq boʻlib
+ * chizilardi va eski tarix ustida turardi).
  *
  * Hammasi BITTA `so_suhbat_yoz` bilan: holat, qadam va ikki xabar bitta
  * tranzaksiyada — yarmi yozilib qolmaydi.
@@ -273,29 +307,28 @@ export async function suhbatTurn(
 export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Promise<SuhbatJavobi> {
   const h = boshlangichHolat();
   const k = keyingi(h);
-  const xabarlar: SuhbatXabari[] = [
-    { rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan', javob: null },
-    ...(k.tur === 'savol' ? [{ rol: 'menejer' as const, matn: k.savol.matn, savolId: k.savol.id }] : []),
-  ];
+  const savol: SuhbatXabari[] = k.tur === 'savol' ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id }] : [];
   const y = await d.rpc<{ xato?: string }>('so_suhbat_yoz', {
-    p_token: token, p_xabarlar: xabarlar, p_holat: h, p_qadam: 1, p_profil: null,
+    p_token: token,
+    p_xabarlar: [{ rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan', javob: null }, ...savol],
+    p_holat: h, p_qadam: 1, p_profil: null,
   });
   if (y === null || y.xato) {
     return { xato: y?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: k, qadam: 1, yozildi: false };
   }
-  return { xabarlar, keyingi: k, qadam: 1, yozildi: true };
+  return { xabarlar: savol, keyingi: k, qadam: 1, yozildi: true };
 }
 
 async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati): Promise<unknown> {
   try {
     if (harakat === 'yonalishlar') {
       const b = h.javoblar['byudjet'];
-      const u = h.javoblar['uzum_dokoni'];
       return await d.kod.yonalishlar({
         budgetUzs: typeof b === 'number' ? b : null,
-        hasUzumShop: u === undefined || u === null ? null : u !== 'yoq',
+        hasUzumShop: uzumDokoniBormi(h.javoblar['uzum_dokoni']),
       }, h);
     }
+    if (harakat === 'kurs') return await d.kod.kurs(h);
     if (harakat === 'tovarlar') return await d.kod.tovarlar(Number(h.javoblar['yonalish']), h);
     if (harakat === 'xitoy') return await d.kod.xitoy(h);
     if (harakat === 'buyurtma') return await d.kod.buyurtma(h);
@@ -343,6 +376,12 @@ async function odamlashtirTekshirib(d: SuhbatBogliqliklari, kodJumla: string, ya
 }
 
 // ------------------------------------------------------------ erkin xabar
+
+/**
+ * Shaxsiy maʼlumot soʻraladigan savollar (nazoratchi, 2026-10-12): ular va ularga
+ * yozilgan matn LLM ga (Gemini) YUBORILMAYDI — maxfiylik sahifasi shuni aytadi.
+ */
+const SHAXSIY_SAVOLLAR: ReadonlySet<string> = new Set(['ism', 'telefon']);
 
 type JoriySavol = Extract<Keyingi, { tur: 'savol' }>;
 
@@ -408,6 +447,16 @@ function qisqaSavol(matn: string): string {
  */
 function sababRu(sabab: string): string {
   const s = sabab.toLowerCase();
+  // 1-qadam (tanishuv.ts): ism, telefon, byudjet.
+  if (s.includes('familiya')) return 'Напишите имя и фамилию — например: Азиз Каримов.';
+  if (s.includes('telefon')) return 'Напишите номер телефона полностью — например: +998 90 123 45 67.';
+  if (s.startsWith('bir nechta summa')) return 'Вы написали несколько сумм — с какой начинаем? Напишите одну.';
+  if (s.includes('soʻmmi yoki') || s.includes('dollarmi')) return 'Укажите валюту: например, 70 млн или 70 $.';
+  if (s.includes('dollar kursini')) return 'Не удалось получить курс доллара — напишите сумму в сумах.';
+  if (s.startsWith('yevroni')) return 'Евро не считаю — напишите в сумах или долларах.';
+  if (s.startsWith('summani yozing') || s.startsWith('qaysi summa')) return 'Напишите одну сумму — например: 30 млн или 3000 $.';
+  if (s.includes('manfiy')) return 'Сумма не может быть отрицательной.';
+  if (s.includes('nima sotganingizni')) return 'Выберите вариант или коротко напишите, что продавали.';
   if (s.startsWith('bitta son')) return 'Напишите одно число.';
   if (s.startsWith('summani soʻmda')) return 'Напишите сумму в сумах.';
   if (s.startsWith('marja')) return 'Маржа — от 0 до 99 %.';
@@ -455,7 +504,8 @@ function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null
 /** Menejer javobi: LLM (tekshiruv bilan) yoki shablon. */
 async function erkinJavob(d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null): Promise<string> {
   const shablon = erkinShablon(s, matn, sabab);
-  if (!d.erkinLlm) return shablon;
+  // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
+  if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
   const variantlar = s.variantlar.map((v) => v.nom);
   const tj = tayyorJavob(matn);
   const tayyor = tj ? (ruschami(matn) ? tj.ru : tj.uz) : null;
