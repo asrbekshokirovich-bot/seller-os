@@ -199,8 +199,10 @@ describe('suhbatTurn', () => {
     if (r3.keyingi.tur !== 'savol') throw new Error();
     expect(r3.keyingi.savol.id).toBe('byudjet');
     expect(r3.keyingi.savol.variantlar.map((v) => v.nom)).toEqual([
-      '5 mln soʻm', '10 mln soʻm', '30 mln soʻm', '70 mln soʻm', '$500 (≈6,3 mln)', '$1 000 (≈12,7 mln)', '$3 000 (≈38 mln)', '$5 000 (≈63,3 mln)',
+      '5 mln soʻm', '10 mln soʻm', '30 mln soʻm', '70 mln soʻm', '$500', '$1 000', '$3 000', '$5 000',
     ]);
+    // Kurs savol matnida — dollar tugmasi yorligʻi qisqa (telefonda ikki ustun).
+    expect(r3.keyingi.savol.matn).toMatch(/1 \$ = 12 650 soʻm, Markaziy bank kursi/);
 
     const r4 = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 10_000_000 });
     expect(r4.xabarlar[0]!.matn).toBe('10 mln soʻm');
@@ -238,7 +240,7 @@ describe('suhbatTurn', () => {
     expect(r.xabarlar[1]!.matn).toBe('Tushunarli — $4 000 (≈ 50,6 mln soʻm) bilan boshlaymiz.');
     const b2 = soxtaBaza(BYUDJETGACHA);
     const r2 = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'byudjet', javob: 12_650_000 });
-    expect(r2.xabarlar[0]!.matn).toBe('$1 000 (≈12,7 mln)');
+    expect(r2.xabarlar[0]!.matn).toBe('$1 000 (≈ 12,7 mln soʻm)');
     expect(b2.holat()!.javoblar['byudjet_usd']).toBe(1000);
   });
 

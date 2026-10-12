@@ -1269,6 +1269,14 @@
 
 .kiritish input::placeholder { color: var(--xira); opacity: 1; }
 
+/*
+ * Fokus halqasi — butun yozish qatorida (yumaloq), maydonning oʻzida emas:
+ * umumiy `:focus-visible` qoidasi yumaloq qator ichida toʻrtburchak chizardi
+ * (telefonda yozishni boshlaganda, 2026-10-12).
+ */
+.kiritish input:focus-visible { outline: none; }
+.kiritish:focus-within { box-shadow: var(--soya), 0 0 0 2px var(--acc); }
+
 .kiritish input::-webkit-outer-spin-button,
 .kiritish input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 

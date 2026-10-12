@@ -56,7 +56,7 @@ import { STUDIYA_CHIQISH, type SuratNomzodi, type SuratTalablari } from './studi
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.js';
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.js';
 import { matndanSon, valyutami } from './tekshiruv.js';
-import { BYUDJET_DOLLAR, byudjetniOqi, ismniOqi, mlnMatni, telefonniOqi } from './tanishuv.js';
+import { BYUDJET_DOLLAR, byudjetniOqi, ismniOqi, telefonniOqi } from './tanishuv.js';
 
 // ==================================================================== turlar
 
@@ -163,8 +163,11 @@ export const BYUDJET_TUGMALARI: readonly SuhbatVarianti[] = [
 
 /**
  * Byudjet tugmalari: soʻmda va dollarda (nazoratchi, 2026-10-12). Dollar
- * tugmasi soʻmdagi qiymatni yozadi — suhbat paytidagi CBU kursi bilan,
- * yorligʻida ikkalasi ham. Kurs olinmagan boʻlsa — faqat soʻm.
+ * tugmasi soʻmdagi qiymatni yozadi — suhbat paytidagi CBU kursi bilan.
+ * Yorliq qisqa ("$1 000"): soʻmdagisi bilan uzun yorliq telefonda bitta
+ * ustunga tushib, dollar tugmalarini pastga — koʻrinmas joyga — surardi;
+ * kurs savol matnida, soʻmdagisi tanlangandan keyin chatda aytiladi.
+ * Kurs olinmagan boʻlsa — faqat soʻm.
  */
 export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
   const tugmalar: SuhbatVarianti[] = [...BYUDJET_TUGMALARI];
@@ -172,7 +175,7 @@ export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
   for (const d of BYUDJET_DOLLAR) {
     const q = Math.round(d * usdKurs);
     if (tugmalar.some((t) => t.qiymat === q)) continue;
-    tugmalar.push({ qiymat: q, nom: `$${minglik(d)} (≈${mlnMatni(q).replace(/ soʻm$/u, '')})` });
+    tugmalar.push({ qiymat: q, nom: `$${minglik(d)}` });
   }
   return tugmalar;
 }
@@ -1289,7 +1292,7 @@ export function keyingi(h: YolHolati): Keyingi {
     const kurs = usdKursi(h);
     return { tur: 'savol', savol: savol('byudjet', 1,
       kurs !== null
-        ? 'Qancha pul bilan savdoni boshlamoqchisiz? Soʻmda yoki dollarda — tugmani bosing yoki oʻzingiz yozing (masalan: 70 mln yoki 5000 $).'
+        ? `Qancha pul bilan savdoni boshlamoqchisiz? Soʻmda yoki dollarda (1 $ = ${minglik(Math.round(kurs))} soʻm, Markaziy bank kursi) — tugmani bosing yoki oʻzingiz yozing (masalan: 70 mln yoki 5000 $).`
         : 'Qancha pul bilan savdoni boshlamoqchisiz? Tugmani bosing yoki soʻmda yozing (masalan: 70 mln) — dollar kursini hozir ololmadim.',
       'son', { variantlar: byudjetTugmalari(kurs), erkin: true, otkazishMumkin: true, profilMaydoni: 'budgetUzs' }) };
   }

@@ -236,7 +236,8 @@ export async function suhbatTurn(
       rol: 'obunachi',
       matn: byudjetGapi && yozgan !== null
         ? (yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan)
-        : byudjetSoni && !tugma
+        // Dollar tugmasi ("$1 000") — soʻmdagisi bilan: "$1 000 (≈ 12,7 mln soʻm)".
+        : byudjetSoni && (!tugma || usd !== null)
           ? byudjetMatni(yozilgan as number, usd)
           : savolId === 'telefon' && typeof yozilgan === 'string'
             ? telefonKorinishi(yozilgan)
