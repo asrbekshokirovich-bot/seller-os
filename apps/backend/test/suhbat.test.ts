@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boshlangichHolat, deklaratsiyaQadamlari, hisobotFaktlari, oyHisobi, suhbatBoshdan, suhbatOqi, suhbatTurn,
+  boshlangichHolat, deklaratsiyaQadamlari, eskiSavolsiz, hisobotFaktlari, oyHisobi, suhbatBoshdan, suhbatOqi, suhbatTurn,
   type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
@@ -174,6 +174,34 @@ describe('suhbatOqi', () => {
   it('noto\'g\'ri token — xato, hech narsa emas', async () => {
     const r = await suhbatOqi(bogliq(soxtaBaza()), 'yomon');
     expect('xato' in r && r.xato).toMatch(/sessiya/);
+  });
+
+  it('javobsiz ESKI savol chatga chiqmaydi (nazoratchi, 2026-10-12: eski "qancha pul ajratasiz?" + yangi "ismingiz?" ikkalasi turardi)', async () => {
+    const b = soxtaBaza();
+    b.jurnal.push({ rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan', javob: null },
+      { rol: 'menejer', matn: 'Salom. Men sizning menejeringizman. Boshlaymiz: birinchi partiyaga qancha pul ajratasiz?', savolId: 'byudjet' });
+    const r = await suhbatOqi(bogliq(b), 'tok');
+    if (!('tarix' in r)) throw new Error(r.xato);
+    expect(r.tarix).toEqual([]);
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'ism' } });
+  });
+});
+
+describe('eskiSavolsiz — oxiridagi javobsiz eski savol', () => {
+  const m = (savolId?: string) => ({ rol: 'menejer', matn: 'm', ...(savolId ? { savolId } : {}) });
+  const o = (savolId?: string) => ({ rol: 'obunachi', matn: 'o', ...(savolId ? { savolId } : {}) });
+  const k = { rol: 'kod', matn: 'k', savolId: 'yonalishlar' };
+
+  it('hozirgi savol oxirida — oʻzgarmaydi; savolsiz menejer gapi (kutish, "Tushunarli…") — oʻzgarmaydi', () => {
+    expect(eskiSavolsiz([o('ism'), m('telefon')], 'telefon')).toEqual([o('ism'), m('telefon')]);
+    expect(eskiSavolsiz([o('byudjet'), m()], 'yonalish')).toEqual([o('byudjet'), m()]);
+    expect(eskiSavolsiz([], 'ism')).toEqual([]);
+  });
+
+  it('eski savol, unga yozilgan erkin matn va javob — olinadi; kod natijasi va berilgan javob qoladi', () => {
+    expect(eskiSavolsiz([o('uzum_dokoni'), k, m('yonalish'), o(), m('yonalish')], 'ism')).toEqual([o('uzum_dokoni'), k]);
+    expect(eskiSavolsiz([m('byudjet')], 'ism')).toEqual([]);
+    expect(eskiSavolsiz([o('a'), m('b')], null)).toEqual([o('a')]);
   });
 });
 

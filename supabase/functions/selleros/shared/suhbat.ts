@@ -136,6 +136,28 @@ export function songgiSuhbat<T extends { rol: string; savolId?: string | null }>
   return xabarlar.slice(i + 1);
 }
 
+/**
+ * Javobsiz qolgan ESKI savol chatdan olinadi: ssenariy oʻzgargan (2026-10-12
+ * gacha birinchi savol "qancha pul ajratasiz?" edi, endi "ismingiz?") yoki
+ * oldinga yangi savol qoʻshilgan boʻlsa, tarix oxirida eski savol turib
+ * qolardi va ekranda ikki savol chiqardi: eskisi va hozirgisi (nazoratchi,
+ * 2026-10-12). Oxiridan faqat shu savolning menejer gaplari va unga yozilgan
+ * erkin matnlar olinadi; kod natijasi va berilgan javoblar qoladi. Hozirgi
+ * savol pufagi sahifada `keyingi` dan chiziladi.
+ */
+export function eskiSavolsiz<T extends { rol: string; savolId?: string | null }>(xabarlar: readonly T[], joriySavolId: string | null): T[] {
+  const oxirgi = xabarlar[xabarlar.length - 1];
+  if (!oxirgi || oxirgi.rol !== 'menejer' || !oxirgi.savolId || oxirgi.savolId === joriySavolId) return [...xabarlar];
+  const eski = oxirgi.savolId;
+  let i = xabarlar.length - 1;
+  while (i >= 0) {
+    const x = xabarlar[i]!;
+    if (!((x.rol === 'menejer' && x.savolId === eski) || (x.rol === 'obunachi' && !x.savolId))) break;
+    i--;
+  }
+  return xabarlar.slice(0, i + 1);
+}
+
 /** Tarix + hozirgi savol. Hech narsa yozmaydi. */
 export async function suhbatOqi(d: SuhbatBogliqliklari, token: string): Promise<
   (SuhbatJavobi & { tarix: OqishJavobi['xabarlar'] }) | { xato: string }
@@ -144,9 +166,10 @@ export async function suhbatOqi(d: SuhbatBogliqliklari, token: string): Promise<
   if (o === null) return { xato: 'baza javob bermadi' };
   if (o.xato) return { xato: o.xato };
   const holat = o.holat ?? boshlangichHolat();
+  const k = keyingi(holat);
   return {
-    xabarlar: [], tarix: songgiSuhbat(o.xabarlar ?? []),
-    keyingi: keyingi(holat), qadam: joriyQadam(holat), yozildi: true,
+    xabarlar: [], tarix: eskiSavolsiz(songgiSuhbat(o.xabarlar ?? []), k.tur === 'savol' ? k.savol.id : null),
+    keyingi: k, qadam: joriyQadam(holat), yozildi: true,
   };
 }
 
