@@ -91,6 +91,19 @@ interface DarvozaJavobi {
   olchov_yoq?: boolean;
 }
 
+/** `GET /baholar` javobi — 👍/👎 sanogʻi, matnsiz (`so_baho_xulosa`, 0065). */
+interface BaholarJavobi {
+  olchov_yoq?: boolean;
+  sabab?: string;
+  baholar?: {
+    kun: number;
+    yaxshi: number;
+    yomon: number;
+    manba: Record<string, { yaxshi: number; yomon: number }>;
+    savol: { savolId: string; yomon: number }[];
+  };
+}
+
 /**
  * Qadam nomi — suhbatdagi bilan bir xil (`SUHBAT_QADAMLARI`). Ilgari bu yerda
  * eski shakldagi oltita nom qoʻlda yozilgan edi va suhbat 12 qadamga oʻtgach
@@ -110,11 +123,12 @@ export default async function OlchovSahifasi(
     return <Kirish xato={q.xato === '1'} />;
   }
 
-  const [kpi, tarif, darvoza, tuzoqlar] = await Promise.all([
+  const [kpi, tarif, darvoza, tuzoqlar, baholar] = await Promise.all([
     olib<KpiJavobi>('/kpi'),
     olib<TarifJavobi>('/tarif'),
     olib<DarvozaJavobi>('/darvoza'),
     olib<TuzoqJavobi>('/tuzoqlar'),
+    olib<BaholarJavobi>('/baholar'),
   ]);
 
   return (
@@ -162,6 +176,8 @@ export default async function OlchovSahifasi(
         <Tuzoqlar t={tuzoqlar} />
 
         <Darvoza d={darvoza} />
+
+        <Baholar b={baholar} />
 
         <Tarif t={tarif} />
 
@@ -534,6 +550,76 @@ function YetishmaganMaydonlar({ x }: { x: TuzoqXulosa }) {
  * darvoza "hali tekshirilmagan" emas, "muammosiz" boʻlib
  * koʻrinardi.
  */
+/** Javob manbasi — `suhbat.ts` `ErkinManba`. */
+const MANBA_NOMI: Readonly<Record<string, string>> = {
+  ai: 'Sunʼiy intellekt (Gemini)',
+  baza: 'Tayyor javob / bilim bazasi',
+  shablon: 'Umumiy shablon',
+};
+
+/**
+ * 👍/👎 — yordamchi javoblari bahosi (nazoratchi, 2026-10-13: "bahoni siz
+ * koʻrasiz"). Faqat sanoq: javob matnlari panelga chiqmaydi — qaysi javobga
+ * 👎 bosilgani bazadan alohida oʻqiladi (`events` + `suhbat_xabar`).
+ */
+function Baholar({ b }: { b: BaholarJavobi | null }) {
+  const x = b?.baholar;
+  if (!x) {
+    return (
+      <section className={u.blok}>
+        <header className={u.blokHead}><h2>Yordamchi javoblari bahosi</h2></header>
+        <div className={u.xato}>
+          <b>Baholar olinmadi.</b>
+          <p>
+            &laquo;Hammasi yaxshi&raquo; deb koʻrsatilmaydi: baho kelmagani — yaxshi
+            degani emas. Bazada <code className={u.kod}>so_baho_xulosa</code> (0065)
+            qoʻllanganini tekshiring.
+          </p>
+        </div>
+      </section>
+    );
+  }
+  const jami = x.yaxshi + x.yomon;
+  return (
+    <section className={u.blok}>
+      <header className={u.blokHead}>
+        <h2>Yordamchi javoblari bahosi</h2>
+        <span>GET /baholar · {x.kun} kun</span>
+      </header>
+
+      <p className={u.tarifHolati}>
+        <span>👍 {x.yaxshi} · 👎 {x.yomon}{jami > 0 ? ` · jami ${jami} ta baho` : ''}</span>
+      </p>
+
+      {jami === 0 ? (
+        <p className={u.sabab}>Hali hech kim baho bermagan.</p>
+      ) : (
+        <div className={u.qatorlar}>
+          {Object.entries(x.manba).map(([m, s]) => (
+            <div key={m} className={`${u.qator} ${s.yomon > s.yaxshi ? kerak('sYomon') : kerak('sYaxshi')}`}>
+              <div className={u.stripe} />
+              <div className={u.nom}>
+                <b>{MANBA_NOMI[m] ?? m}</b>
+                <span className={u.sabab}>👍 {s.yaxshi} · 👎 {s.yomon}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {x.savol.length > 0 && (
+        <p className={u.sabab}>
+          Eng koʻp 👎 olgan savollar: {x.savol.map((s) => `${s.savolId} — ${s.yomon}`).join(', ')}.
+        </p>
+      )}
+      <p className={u.sabab}>
+        Har xabar uchun oxirgi baho sanaladi (fikrini oʻzgartirgan mijoz ikki marta
+        sanalmaydi). Javob matnlari bu yerda koʻrsatilmaydi — maxfiylik uchun.
+      </p>
+    </section>
+  );
+}
+
 function Darvoza({ d }: { d: DarvozaJavobi | null }) {
   const b2 = d?.b2;
   if (!b2) {

@@ -525,6 +525,13 @@ export function build(): FastifyInstance {
     return { olchov_yoq: false, bazamiz: b };
   });
 
+  /** 👍/👎 xulosasi — /olchov paneli (0065; Edge bilan bir xil). Faqat sanoq. */
+  app.get('/baholar', async () => {
+    const b = await rpc<unknown>('so_baho_xulosa', { p_kun: 30 });
+    if (b === null) return { olchov_yoq: true, sabab: 'baza javob bermadi' };
+    return { olchov_yoq: false, baholar: b };
+  });
+
   /** B2 darvozasi holati — nechta odam "mantiqli" dedi. */
   app.get('/darvoza', async () => {
     const d = await rpc<unknown>('so_darvoza_b2', {});

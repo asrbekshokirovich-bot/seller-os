@@ -488,6 +488,14 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     return javob(n.tana, n.status);
   }
 
+  // 👍/👎 xulosasi — /olchov paneli (0065). FAQAT sanoq, matn emas: bu uchga anon
+  // kalit bilan har kim kira oladi (kalit kengaytmada ochiq).
+  if (yol === '/baholar') {
+    const b = await rpc<unknown>('so_baho_xulosa', { p_kun: 30 });
+    if (b === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    return javob({ olchov_yoq: false, baholar: b });
+  }
+
   // B2 darvozasi holati — nechta odam "mantiqli" dedi.
   if (yol === '/darvoza') {
     const d = await rpc<unknown>('so_darvoza_b2', {});
