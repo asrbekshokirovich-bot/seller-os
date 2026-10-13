@@ -399,7 +399,7 @@ describe('3-qadam — Tovar va miqdor', () => {
   });
 
   it('tushuntirish chiqarilganlarni yashirmaydi', () => {
-    expect(tushuntir('tovarlar', TOVARLAR)).toMatch(/1 tasi tuzoq sababli/);
+    expect(tushuntir('tovarlar', TOVARLAR)).toMatch(/Yana 1 ta xavfli tovarni/);
   });
 });
 
@@ -1619,11 +1619,13 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
   it('F14: tovarlar xulosasi — "8 ta tuzoq-filtrdan oʻtdi" emas; oʻlchanmagan va baholanmagan sanaladi', () => {
     const m = tushuntir('tovarlar', { ...TOVARLAR, royxat: [...TOVARLAR.royxat,
       { nomzod: { productId: 300, title: 'C' }, miqdor: null, miqdorSababi: 'Sotuv hali oʻlchanmagan.', baholanmadi: [{ filtr: 'nakrutka', missing: ['sharhSoni'] }], bayroqlar: [] }] });
-    expect(m).toMatch(/^3 ta tovar roʻyxatga chiqdi/);
-    expect(m).not.toMatch(/tuzoq-filtrdan oʻtdi/);
-    expect(m).toMatch(/1 tasida ayrim filtrlar maʼlumot yetmagani uchun baholanmadi/);
-    expect(m).toMatch(/2 tasida sotuv hali oʻlchanmagan/);
-    expect(m).toMatch(/1 tasi tuzoq sababli/);
+    expect(m).toMatch(/^Bu yoʻnalishdan Uzumdagi 3 ta tovarni koʻrsatyapman/);
+    expect(m).not.toMatch(/tuzoq-filtrdan oʻtdi|tuzoq-filtrning/);
+    expect(m).toMatch(/1 tasida ayrim xavf tekshiruvlari maʼlumot yetmagani uchun qilinmadi/);
+    expect(m).toMatch(/2 tasining sotuvi hali oʻlchanmagan/);
+    expect(m).toMatch(/Yana 1 ta xavfli tovarni/);
+    // Raqam qayerdan — ochiq: Uzum bermaydi, oʻzimiz oʻlchaymiz, taxminiy.
+    expect(m).toMatch(/Uzum sotuv sonini oshkor qilmaydi/);
   });
 
   it('F15: komissiya sotuvdan katta — sof manfiy (zarar) koʻrsatiladi, 0 emas', () => {

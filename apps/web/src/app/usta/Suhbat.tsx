@@ -727,6 +727,8 @@ interface TovarQatori {
     narxSom: number | null; soldUnits30d: number | null;
     sotuvManbasi: 'olchandi' | 'taxmin' | null; olchanganKun: number | null;
     categoryMedianUnits30d?: number | null; reyting?: number | null; sharhSoni?: number | null;
+    /** Oxirgi oʻlchovdagi qoldiq (dona). 0 — Uzumda qoldiq koʻrinmayapti. */
+    qoldiq?: number | null;
     /** `so_tovar_royxati.rasmUrl` (0054) — kalit oʻlchangan tovarda; boʻlmasa harf turadi. */
     rasmUrl?: string | null;
   };
@@ -909,11 +911,13 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
  * "Tayyor". Savol javob berilgach kartalar qoladi, tanlanganlari
  * belgilangan holda — tarixda nima tanlangani ko'rinadi.
  *
- * RAQAMLAR API DAN. Ulush FAQAT shu ro'yxat ichida hisoblanadi va
- * shunday yoziladi ("ro'yxatdagi ulush"): butun turkumga nisbatan
- * emas, chunki ro'yxat turkumning o'lchangan qismi, hammasi emas.
- * Rasm: `rasmUrl` kelsa rasm (0054, faqat ogʻir soʻrovda oʻlchangan
- * tovarlarda), kelmasa nomning bosh harfi — chiziqcha oʻrnida.
+ * ODDIY TILDA (nazoratchi, 2026-10-13: "mijoz tushunmaydi; bu
+ * maʼlumotlarni qayerdan olyapsan?"). Kartada: narx, sotuv — FAQAT
+ * oʻlchangan va noldan katta boʻlsa raqam bilan ("oxirgi 30 kunda ~74
+ * dona", qayerdan oʻlchangani bilan); aks holda halol izoh: qoldiq
+ * koʻrinmayapti / sotuv koʻrinmadi / hali oʻlchanmagan. Ilgari bunday
+ * tovarda "30 kunda: 0 dona · oʻlchandi" va "taklif: 1 dona" turardi.
+ * "Roʻyxatdagi ulush" olib tashlandi. Rasm: `rasmUrl` kelsa rasm (0054).
  */
 function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
   royxat: TovarQatori[];
@@ -921,7 +925,6 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
   rejim: KatalogRejimi;
   tr: Tr;
 }) {
-  const jami = royxat.reduce((s, t) => s + (t.nomzod.soldUnits30d ?? 0), 0);
   const faol = rejim.onToggle !== undefined && !rejim.band;
   return (
     <>
@@ -931,7 +934,7 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
           const id = n.productId;
           const bor = rejim.tanlangan.some((x) => String(x) === String(id));
           const sold = n.soldUnits30d;
-          const ulush = jami > 0 && sold !== null ? Math.round((100 * sold) / jami) : null;
+          const olchandi = n.sotuvManbasi === 'olchandi';
           const ogoh = t.bayroqlar.find((b) => b.severity !== 'note') ?? t.bayroqlar[0];
           /*
            * Reyting 0 — "baho yo'q", baho emas (SXEMA.md: sharhsiz
@@ -955,30 +958,21 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
                     {n.narxSom !== null && <span className={u.birlik}>{tr('soʻm', 'сум')}</span>}
                   </span>
                 </div>
-                <div className={u.katalogQatorlar}>
-                  <div className={u.katalogQator}>
-                    <span>{tr('30 kunda', 'За 30 дн')}: {sold === null ? '—' : `${son(sold)} ${tr('dona', 'шт')}`}</span>
-                    <span>{n.sotuvManbasi === 'olchandi' ? tr('oʻlchandi', 'измерено') : n.sotuvManbasi === 'taxmin' ? tr('taxmin', 'оценка') : '—'}</span>
-                  </div>
-                  <div className={u.katalogQator}>
-                    <span>{tr('roʻyxatdagi ulush', 'доля в списке')}</span>
-                    <span>{ulush === null ? '—' : `${ulush}%`}</span>
-                  </div>
-                  <div className={u.ulushIz}><i style={{ width: `${ulush ?? 0}%` }} /></div>
-                  <div className={u.katalogQator}>
-                    <span className={u.reyting}>
-                      {bahoYoq
-                        ? tr('baho yoʻq', 'нет оценки')
-                        : <><span className={u.yulduz}><Ikon nom="yulduz" o={14} /></span>{n.reyting}</>}
-                    </span>
-                    <span>{n.sharhSoni === null || n.sharhSoni === undefined ? '—' : `${son(n.sharhSoni)} ${tr('sharh', 'отз.')}`}</span>
-                  </div>
-                  {t.miqdor
-                    ? <div className={u.taklif}>{tr('taklif', 'предложение')}: {t.miqdor.dona} {tr('dona', 'шт')}</div>
-                    : t.miqdorSababi
-                      ? <div className={u.katalogIzoh}>{t.miqdorSababi}</div>
-                      : null}
-                </div>
+                <ul className={`${u.xulosalar} ${u.katalogXulosa}`}>
+                  {olchandi && sold !== null && sold > 0
+                    ? <Xulosa tur="yaxshi" hukm={tr(`Oxirgi 30 kunda ~${son(sold)} dona sotildi`, `За 30 дней продано ~${son(sold)} шт`)}
+                      izoh={tr(`oʻzimiz oʻlchadik: qoldiq kamayishidan, ${n.olchanganKun ?? '—'} kun`, `наш замер: по снижению остатка, ${n.olchanganKun ?? '—'} дн`)} />
+                    : n.qoldiq === 0
+                      ? <Xulosa tur="ogoh" hukm={tr('Uzumda hozir qoldiq koʻrinmayapti', 'На Uzum сейчас нет остатка')}
+                        izoh={tr('tugagan boʻlishi mumkin — sotuvini oʻlchab boʻlmadi', 'возможно, закончился — продажи не измерить')} />
+                      : olchandi && sold === 0
+                        ? <Xulosa tur="oddiy" hukm={tr('Oxirgi 30 kunda sotuv koʻrinmadi', 'За 30 дней продаж не видно')} izoh={tr('qoldiq kamaymadi', 'остаток не уменьшался')} />
+                        : <Xulosa tur="oddiy" hukm={tr('Sotuvi hali oʻlchanmagan', 'Продажи ещё не измерены')} izoh={tr('kuzatuv kunlari yetarli emas', 'мало дней наблюдения')} />}
+                  {bahoYoq
+                    ? <Xulosa tur="oddiy" hukm={tr('Hali baho yoʻq', 'Оценок пока нет')} izoh={tr('xaridorlar sharh yozmagan', 'покупатели не оставили отзывов')} />
+                    : <Xulosa tur="oddiy" hukm={tr(`Xaridorlar bahosi ${n.reyting}`, `Оценка покупателей ${n.reyting}`)}
+                      izoh={n.sharhSoni ? tr(`${son(n.sharhSoni)} ta sharh`, `${son(n.sharhSoni)} отзывов`) : tr('sharh soni nomaʼlum', 'число отзывов неизвестно')} />}
+                </ul>
                 {ogoh && (
                   <div className={u.katalogOgoh}>
                     <span className={u.ogohIkon}><Ikon nom="ogoh" o={15} /></span>

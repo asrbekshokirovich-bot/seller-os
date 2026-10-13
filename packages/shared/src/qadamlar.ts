@@ -282,7 +282,7 @@ export interface TovarNomzodi extends TovarToliq {
  * Kod barqaror, matn esa tafsilotli. Bot va kengaytma ham shu kodga
  * qarab oʻz matnini yozishi mumkin.
  */
-export type MiqdorSababKodi = 'olchanmagan' | 'kun-yetmadi';
+export type MiqdorSababKodi = 'olchanmagan' | 'kun-yetmadi' | 'sotilmagan';
 
 export interface TovarTavsiyasi {
   nomzod: TovarNomzodi;
@@ -388,6 +388,19 @@ function sotuvOlchovi(n: TovarNomzodi): {
         `Sotuv qoldiq farqidan hali oʻlchanmagan — ${kun === null ? 'necha kun oʻlchangani nomaʼlum' : `${kun} kun bor`}, ` +
         `${kerak} kun kerak. Koʻrsatilgan raqam Uzumning oʻz koʻrsatkichidan ` +
         'olingan taxmin: tartiblash uchun yetadi, miqdor hisoblash uchun emas.',
+    };
+  }
+  // Oʻlchangan, lekin NOL: qoldiq kamaymagan — yo xaridor yoʻq, yo tovar
+  // sotuvda yoʻq (qoldiq 0). Ikkalasida ham "1 dona oling" degan tavsiya
+  // asossiz: katalogda "30 kunda: 0 dona" va "taklif: 1 dona" turardi
+  // (nazoratchi, 2026-10-13).
+  if (n.soldUnits30d === 0) {
+    return {
+      son: null,
+      kod: 'sotilmagan',
+      sabab: n.qoldiq === 0
+        ? 'Uzumda hozir qoldiq koʻrinmayapti (tugagan boʻlishi mumkin) — sotuvini oʻlchab boʻlmadi.'
+        : 'Oxirgi 30 kunda sotuv koʻrinmadi (qoldiq kamaymadi) — partiya miqdorini tavsiya qilmayman.',
     };
   }
   return { son: n.soldUnits30d, sabab: null, kod: null };

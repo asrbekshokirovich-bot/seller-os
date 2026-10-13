@@ -1346,7 +1346,7 @@ export function keyingi(h: YolHolati): Keyingi {
         'tanlov', { variantlar: [QAYTA_URINISH, BOSHQA_YONALISH], otkazishMumkin: true }) };
     }
     return { tur: 'savol', savol: savol('tovarlar', 3,
-      'Birinchi partiyada aynan nima sotasiz? Bular shu yoʻnalishdagi tovarlar — bir nechtasini belgilang.',
+      'Qaysi tovarlarni sotmoqchisiz? Yoqqanlarini kartadagi «Tanlash» bilan belgilang (bir nechta boʻlishi mumkin), keyin «Davom etish».',
       'kopTanlov', {
         variantlar: tovarlar.map((t) => ({ qiymat: t.nomzod.productId, nom: t.nomzod.title })),
       }) };
@@ -2065,13 +2065,17 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     const ogoh = r.filter((t) => (t.bayroqlar?.length ?? 0) > 0).length;
     const baholanmadi = r.filter((t) => (t.baholanmadi?.length ?? 0) > 0).length;
     const olchangan = r.filter((t) => t.miqdor !== null).length;
-    return `${r.length} ta tovar roʻyxatga chiqdi: 8 ta tuzoq-filtrning hech biri ularni toʻxtatmadi`
-      + (ogoh ? `, ${ogoh} tasida ogohlantirish bor` : '')
-      + (baholanmadi ? `, ${baholanmadi} tasida ayrim filtrlar maʼlumot yetmagani uchun baholanmadi` : '')
-      + '.'
-      + (chiq ? ` ${chiq} tasi tuzoq sababli roʻyxatdan chiqarildi — sababi har birida yozilgan.` : '')
-      + (olchangan ? ` ${olchangan} tasida sotuv zaxira kamayishidan oʻlchangan — bu taxmin, Uzum sotuv sonini bermaydi.` : '')
-      + (olchangan < r.length ? ` ${r.length - olchangan} tasida sotuv hali oʻlchanmagan — miqdorni oʻzingiz yozasiz.` : '');
+    // Sodda til (nazoratchi, 2026-10-13): "tuzoq-filtr", "zaxira kamayishidan
+    // oʻlchangan" kabi gaplar yangi odamga tushunarsiz edi. Maʼno oʻsha:
+    // raqam qayerdan, nimasi taxmin, nimasi oʻlchanmagan — ochiq aytiladi.
+    return `Bu yoʻnalishdan Uzumdagi ${r.length} ta tovarni koʻrsatyapman. Har kartada: narx, oxirgi 30 kunda nechta sotilgani `
+      + '(oʻlchay olgan boʻlsak) va xaridorlar bahosi. Uzum sotuv sonini oshkor qilmaydi — sotuvni qoldiq kamayishidan oʻzimiz '
+      + 'oʻlchaymiz, shuning uchun u taxminiy.'
+      + (olchangan === 0 ? ' Bu tovarlarning sotuvini hali oʻlchay olmadik — miqdorni keyin oʻzingiz yozasiz.'
+        : olchangan < r.length ? ` ${r.length - olchangan} tasining sotuvi hali oʻlchanmagan.` : '')
+      + (ogoh ? ` ${ogoh} tasida ogohlantirish bor — kartada yozilgan.` : '')
+      + (chiq ? ` Yana ${chiq} ta xavfli tovarni (yopiq brend, soxta sharh va h.k.) roʻyxatdan chiqardim.` : '')
+      + (baholanmadi ? ` ${baholanmadi} tasida ayrim xavf tekshiruvlari maʼlumot yetmagani uchun qilinmadi.` : '');
   }
   if (harakat === 'qabul') {
     const n = natija as QabulQadamNatijasi;
