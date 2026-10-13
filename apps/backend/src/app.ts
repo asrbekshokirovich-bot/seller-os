@@ -17,6 +17,7 @@ import {
   KESH_ESKI_SOAT,
   demping,
   erkinJavobBer,
+  javobniBahola,
   odamlashtir,
   suhbatBoshdan,
   suhbatOqi,
@@ -466,6 +467,16 @@ export function build(): FastifyInstance {
     if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
     if (n.xato) return javob.code(401).send(n);
     return n;
+  });
+
+  // 👍/👎 — yordamchining erkin javobiga baho (Edge bilan bir xil, `baho.ts`).
+  app.post('/baho', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) {
+      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    }
+    const n = await javobniBahola(rpc, token, (request.body ?? {}) as Record<string, unknown>);
+    return javob.code(n.status).send(n.tana);
   });
 
   /**

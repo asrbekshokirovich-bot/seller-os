@@ -28,6 +28,7 @@ import {
   KESH_ESKI_SOAT,
   REJA_QADAMI,
   erkinJavobBer,
+  javobniBahola,
   odamlashtir,
   type ErkinSorov,
   suhbatBoshdan,
@@ -472,6 +473,17 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     if (n === null) return javob({ xato: 'baza javob bermadi' }, 503);
     if (n.xato) return javob(n, 401);
     return javob(n);
+  }
+
+  // 👍/👎 — yordamchining erkin javobiga baho (nazoratchi, 2026-10-13). Javob
+  // mijozning oʻz suhbatidan topiladi; matnga ishonilmaydi (`shared/baho.ts`).
+  if (yol === '/baho' && req.method === 'POST') {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+    const n = await javobniBahola(rpc, token, tana);
+    return javob(n.tana, n.status);
   }
 
   // B2 darvozasi holati — nechta odam "mantiqli" dedi.

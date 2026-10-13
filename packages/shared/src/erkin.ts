@@ -66,6 +66,26 @@ const JAVOBLAR: Record<string, TayyorJavob> = {
     uz: 'Hozircha savollaringizga shu chatda javob beraman. Har qadamda nima qilish kerakligini shu yerda koʻrsataman.',
     ru: 'Пока отвечаю на вопросы здесь, в чате. На каждом шаге покажу, что нужно сделать.',
   },
+  // Tayyor savol «Misol bilan tushuntirasizmi?» (nazoratchi, 2026-10-13). Raqam — faqat qadam raqamlari.
+  misol: {
+    uz: 'Masalan, siz kanstovar sotmoqchisiz. 2-qadamda Uzumdagi kanstovar yoʻnalishlarini «imkoniyat bahosi» bilan '
+      + 'koʻrasiz va bittasini tanlaysiz — masalan, bloknotlar. 3-qadamda shu yoʻnalishda koʻp sotilayotgan tovarlarni '
+      + 'koʻrib, birinchi partiyani belgilaysiz. 4-qadamda bitta tovar uchun Xitoyda qanchagacha toʻlash mumkinligini '
+      + '(chegara narx) hisoblaymiz, 5-qadamda 1688 dan oʻxshash takliflarni topamiz. Keyin buyurtma, rasmiylashtirish, '
+      + 'qabul, suratlar va Uzumga yuklash — har birida nima qilishni shu yerda koʻrsataman.',
+    ru: 'Например, вы хотите продавать канцтовары. На 2-м шаге увидите направления канцтоваров на Uzum с «оценкой '
+      + 'возможности» и выберете одно — например, блокноты. На 3-м шаге посмотрите товары, которые в этом направлении '
+      + 'хорошо продаются, и определите первую партию. На 4-м шаге посчитаем, сколько максимум можно платить в Китае '
+      + 'за единицу (предельная цена), на 5-м — найдём похожие предложения на 1688. Дальше заказ, оформление, приёмка, '
+      + 'фото и загрузка на Uzum — на каждом шаге покажу, что делать.',
+  },
+  // Maxfiylik sahifasidagi gap bilan bir xil (ism va telefon Gemini ga yuborilmaydi — `SHAXSIY_SAVOLLAR`).
+  maxfiylik: {
+    uz: 'Ism va telefon raqamingiz faqat siz bilan bogʻlanish uchun soʻraladi. Ular boshqa hech kimga berilmaydi va '
+      + 'sunʼiy intellektga (Gemini) yuborilmaydi. Batafsil — «Maxfiylik siyosati» sahifasida.',
+    ru: 'Имя и номер телефона нужны только для связи с вами. Они никому не передаются и не отправляются '
+      + 'искусственному интеллекту (Gemini). Подробнее — в «Политике конфиденциальности».',
+  },
 };
 
 /**
@@ -92,6 +112,9 @@ const KALITLAR: ReadonlyArray<[keyof typeof JAVOBLAR, RegExp | null, RegExp | nu
   // «kirish» yolgʻiz emas: "kabinetga kirish" — Uzum haqida, ZumSavdo haqida emas.
   ['kirish', null, /royxatdan|login|parol|akkaunt|saytga kirish|tizimga kirish|войти в|регистрац|аккаунт|пароль/u],
   ['aloqa', null, /operator|odam bilan|admin|aloqa|boglan|qongiroq|оператор|человек|связат|позвон/u],
+  // "Misol uchun 10 mln" — javob; faqat tushuntirishni soʻrasa ("misol bilan tushuntiring").
+  ['misol', null, /misol bilan|misolda tushuntir|misol keltir|на примере|приведи\p{L}* пример/u],
+  ['maxfiylik', null, /telefon raqamim|raqamim nima|raqamimni|telefonim|nomerim|malumotlarim|shaxsiy malumot|maxfiylik|номер телефона|мой номер|номер нужен|мои данные|конфиденц/u],
   ['xizmat', /zumsavdo/u, /bu nima|nima bu|nima qilasiz|nima qiladi|nimaga kerak|qanday ishlaydi|kimsiz|siz kim|что это|что за|как работает|кто вы|зачем/u],
 ];
 

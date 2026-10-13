@@ -800,12 +800,16 @@
   .pastki { flex-direction: column; }
 }
 
-@media (max-width: 420px) {
+/*
+ * «Suhbatga oʻtish» (2026-10-13, ilgari «Ustaga oʻtish») 2 harf uzun: 421 px da
+ * logotip matni bilan orasida 4 px qolardi — 440 px gacha matn yashirin.
+ */
+@media (max-width: 440px) {
   .logoMatn { display: none; }
 }
 
 /*
- * Ruscha "Перейти к Мастеру" uzunroq — 421–445 px da navni toshirardi
+ * Ruscha nav tugmasi (ilgari "Перейти к Мастеру") uzunroq — 421–445 px da navni toshirardi
  * (2026-10-04 oʻlchov): ruschada logotip matni 480 px dan torda yashirin.
  * `data-til` — server chizgan til (sahifa ildizida).
  */

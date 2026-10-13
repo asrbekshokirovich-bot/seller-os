@@ -13,7 +13,7 @@ import './globals.css';
  */
 export const metadata: Metadata = {
   metadataBase: new URL('https://zumsavdo.vercel.app'),
-  title: 'ZumSavdo — Usta',
+  title: 'ZumSavdo — Uzumda savdo yordamchisi',
   description: 'Uzumda nima sotishni raqamlar bilan tanlang.',
   openGraph: {
     type: 'website',

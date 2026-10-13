@@ -1274,6 +1274,80 @@
 /* Koʻp tanlovda «Davom etish» oʻngda, «Oʻtkazib yuborish» chapda. */
 .variantYakun .davom { margin-left: auto; }
 
+/*
+ * Tayyor savollar — savol pufagi ichida, javob tugmalaridan keyin
+ * (nazoratchi, 2026-10-13: «Nima soʻrashni oʻzi taklif qiladi»). Javob
+ * variantlaridan farqli: yumaloq, xira chiziqli — bular javob emas, savol.
+ */
+.tezSavollar {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  white-space: normal;
+}
+
+.tezYorliq {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--xira);
+}
+
+.tezSavol {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--chiziq);
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tezSavol:not(:disabled):hover {
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  color: var(--acc);
+}
+
+.tezSavol:disabled { opacity: 0.55; }
+
+/* 👍/👎 — yordamchining erkin javobi tagida. Bosilmaguncha xira (kulrang). */
+.baho {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  white-space: normal;
+}
+
+.bahoTugma {
+  width: 38px;
+  height: 32px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--chiziq);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.bahoTugma:not(:disabled):hover,
+.bahoTanlangan {
+  filter: none;
+  opacity: 1;
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  background: var(--acc10);
+}
+
+.bahoRahmat {
+  margin-left: 4px;
+  font-size: 13px;
+  color: var(--xira);
+}
+
 /* Savol pufagidagi «Oʻtkazib yuborish» — javob variantlari yonida, kichik. */
 .otkazishIchki {
   display: inline-flex;
