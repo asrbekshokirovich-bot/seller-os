@@ -68,10 +68,8 @@ const FAKT = {
 describe('soliqMatni / bankMatni — 7-qadam faktlaridan', () => {
   it('soliq: aylanma foizi, chegara, muddat, ijtimoiy soliq, misol hisobi, manba va ogohlantirish', () => {
     const m = soliqMatni(rasmiyFaktlari(faktlarniOqi(FAKT)))!;
-    expect(m).toMatch(/Aylanma soligʻi — sotuvdan 1 % \(yillik savdo 1 mlrd soʻmgacha boʻlsa\); bu rejim 31\.12\.2030 gacha/);
-    expect(m).toMatch(/Uzum komissiyasi chegirilmaydi/);
-    expect(m).toMatch(/Ijtimoiy soliq — har oy 440 000 soʻm, sotuv boʻlmasa ham, oyning 15-sanasigacha/);
-    expect(m).toMatch(/oyiga 5 000 000 soʻm sotsangiz: 440 000 \+ 50 000 = 490 000 soʻm/);
+    expect(m).toMatch(/^Soliq rasmiylashtirish shakliga bogʻliq\. Eng oddiy shakl — YATT; uning soligʻi ikki qism:\n• aylanma soligʻi — sotuvdan 1 % \(yillik savdo 1 mlrd soʻmgacha boʻlsa; bu rejim 31\.12\.2030 gacha\)\. U xaridor toʻlagan toʻliq narxdan hisoblanadi — Uzum komissiyasi chegirilmaydi\.\n• ijtimoiy soliq — har oy 440 000 soʻm, sotuv boʻlmasa ham, oyning 15-sanasigacha\.\n\n/);
+    expect(m).toMatch(/\n\nMasalan, oyiga 5 000 000 soʻm sotsangiz: 440 000 \+ 50 000 = 490 000 soʻm\.\n\n/);
     expect(m).toMatch(/Manba: PQ-247 12\.08\.2025 \(lex\.uz\/docs\/-7681520\) \(oʻlchandi 28\.09\.2026\)/);
     expect(m).toMatch(/soliq maslahati emas/);
   });
@@ -79,19 +77,17 @@ describe('soliqMatni / bankMatni — 7-qadam faktlaridan', () => {
   it('soliq: fakt yoʻq — null; faqat ijtimoiy — misolsiz (yarim hisob chiqmaydi)', () => {
     expect(soliqMatni(rasmiyFaktlari({}))).toBeNull();
     const faqat = soliqMatni(rasmiyFaktlari(faktlarniOqi({ 'bhm.som': Q(440_000), 'soliq.ijtimoiy_oy_bhm': Q(1) })))!;
-    expect(faqat).toMatch(/440 000 soʻm/);
-    expect(faqat).not.toMatch(/Masalan/);
-    expect(faqat).not.toMatch(/Aylanma/);
+    expect(faqat).toMatch(/uning soligʻi:\n• ijtimoiy soliq — har oy 440 000 soʻm/);
+    expect(faqat).not.toMatch(/Masalan|ikki qism|aylanma/);
   });
 
   it('bank: Uzum qoidasi, banklar qisqa izoh bilan — "[TASDIQ]" chatga chiqmaydi; sana', () => {
     const m = bankMatni(rasmiyFaktlari(faktlarniOqi(FAKT)))!;
     expect(m).toMatch(/^Ha, bank hisob raqami kerak: Uzum pulni faqat oʻz nomingizdagi biznes hisob raqamiga/);
     expect(m).toMatch(/5 tagacha hisob raqam/);
-    expect(m).toMatch(/\(hammasida hisob ochish bepul\)/);
-    expect(m).toMatch(/Kapitalbank \(Uzum Business ilovasi\) — onlayn ochiladi, 3 oy bepul, keyin paket; aksiyada boshqa bankka 0,1 %/);
-    expect(m).toMatch(/TBC Bank \(TBC Biznes\) — onlayn ochiladi, Basic — bepul/);
-    expect(m).toMatch(/Hamkorbank — ILK QADAM — 220 000\/oy \(aylanma 15 mln gacha\); hujjat ofisda; naqd 1 %/);
+    expect(m).toMatch(/\n\nTaqqoslangan banklar \(hammasida hisob ochish bepul\):\n• Kapitalbank \(Uzum Business ilovasi\): onlayn ochiladi; 3 oy bepul, keyin paket; aksiyada boshqa bankka 0,1 %\n/);
+    expect(m).toMatch(/\n• TBC Bank \(TBC Biznes\): onlayn ochiladi; Basic — bepul/);
+    expect(m).toMatch(/\n• Hamkorbank: ILK QADAM — 220 000\/oy \(aylanma 15 mln gacha\); hujjat ofisda; naqd 1 %\n\n/);
     expect(m).not.toMatch(/TASDIQ|PDF/);
     expect(m).toMatch(/28\.09\.2026 da bank saytlaridan/);
   });
@@ -137,16 +133,20 @@ describe('yonalishMalumoti — 2-qadam oʻlchovlaridan', () => {
 
   it('raqobat — chegaralar kartadagi bilan bir xil (30 / 60 %); sohada — faqat oʻsha soha', () => {
     const m = yonalishMalumoti(niyat('Raqobat kuchlimi?'), ROYXAT)!;
-    expect(m).toMatch(/Uzumda raqobati oʻlchangan 6 ta yoʻnalishdan 3 tasida bozor ochiq .* 1 tasida yirik doʻkonlar bor .* 2 tasida bozor bir necha doʻkon qoʻlida/);
+    expect(m).toMatch(/Uzumda raqobati oʻlchangan 6 ta yoʻnalishdan:\n• 3 tasida bozor ochiq — eng katta 3 doʻkon savdoning 30 % idan kamini oladi\n• 1 tasida yirik doʻkonlar bor \(30–60 %\)\n• 2 tasida bozor bir necha doʻkon qoʻlida \(60 % dan koʻp\) — u yerda yangi sotuvchiga qiyin\n\n/);
     expect(m).toMatch(/Masalan, bozor ochiq va bahosi yuqori: «Ruchkalar»/);
     const k = yonalishMalumoti(niyat('Kiyimda raqobat kuchlimi?'), ROYXAT)!;
-    expect(k).toMatch(/Kiyim va poyabzal sohasida raqobati oʻlchangan 3 ta yoʻnalishdan 2 tasida bozor ochiq/);
+    expect(k).toMatch(/Kiyim va poyabzal sohasida raqobati oʻlchangan 3 ta yoʻnalishdan:\n• 2 tasida bozor ochiq/);
   });
 
   it('raqobat chegaralari: 30 % — «yirik doʻkonlar bor», 60 % — «bir necha doʻkon qoʻlida» (kartadagi `<` bilan bir xil)', () => {
     const m = yonalishMalumoti(niyat('Raqobat kuchlimi?'), [Y(1, 'A', 'uy', 70, 1, 10, 30), Y(2, 'B', 'uy', 60, 1, 10, 60), Y(3, 'C', 'uy', 50, 1, 10, 29.6)])!;
-    expect(m).toMatch(/3 ta yoʻnalishdan 1 tasida bozor ochiq .* 1 tasida yirik doʻkonlar bor .* 1 tasida bozor bir necha doʻkon qoʻlida/);
+    expect(m).toMatch(/3 ta yoʻnalishdan:\n• 1 tasida bozor ochiq.*\n• 1 tasida yirik doʻkonlar bor.*\n• 1 tasida bozor bir necha doʻkon qoʻlida/);
     expect(m).toMatch(/Masalan, bozor ochiq va bahosi yuqori: «C»/);
+    // Soni 0 boʻlgan guruh aytilmaydi ("0 tasida … qiyin" chiqmaydi).
+    const ochiq = yonalishMalumoti(niyat('Raqobat kuchlimi?'), [Y(1, 'A', 'uy', 70, 1, 10, 10), Y(2, 'B', 'uy', 60, 1, 10, 20)])!;
+    expect(ochiq).toMatch(/2 ta yoʻnalishdan:\n• 2 tasida bozor ochiq/);
+    expect(ochiq).not.toMatch(/0 tasida|yirik|qoʻlida/);
   });
 
   it('raqobat — yoʻnalish tanlangan va savolda soha yoʻq: oʻsha yoʻnalishniki', () => {
@@ -158,14 +158,14 @@ describe('yonalishMalumoti — 2-qadam oʻlchovlaridan', () => {
 
   it('«Kiyim sotish osonmi?» — soha soni, baholari, eng yuqorilari va kiyimga tegishli Uzum fakti', () => {
     const m = yonalishMalumoti(niyat('Kiyim sotish osonmi?'), ROYXAT)!;
-    expect(m).toMatch(/^Kiyim va poyabzal sohasida 3 ta yoʻnalish kuzatiladi: 2 tasining imkoniyat bahosi «yaxshi» \(70 va undan yuqori\), 0 tasiniki «oʻrtacha»\./);
-    expect(m).toMatch(/Eng yuqorilari: «Krossovkalar»/);
+    expect(m).toMatch(/^Kiyim va poyabzal sohasida 3 ta yoʻnalish kuzatiladi: 2 tasining imkoniyat bahosi «yaxshi» \(70 va undan yuqori\)\. Eng yuqorilari:\n• «Krossovkalar»/);
+    expect(m).not.toMatch(/0 tasi/);
     expect(m).toMatch(/Yangi SKU’lar bepul saqlanadi: kiyim, poyabzal/);
   });
 
   it('«Krossovka sotish osonmi?» — tovar nomi boʻyicha oʻsha yoʻnalish', () => {
     const m = yonalishMalumoti(niyat('Krossovka sotish osonmi?'), ROYXAT)!;
-    expect(m).toMatch(/^Uzumda: «Krossovkalar» \(Kiyim va poyabzal\) — 74 ball/);
+    expect(m).toMatch(/^Uzumda «Krossovkalar» \(Kiyim va poyabzal\) — 74 ball/);
     expect(m).toMatch(/«Krossovkalar» bahosi «yaxshi»/);
   });
 

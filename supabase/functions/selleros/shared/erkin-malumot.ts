@@ -98,29 +98,42 @@ function somQisqa(x: number): string {
 /** Misol uchun oylik sotuv (7-qadam hujjatidagi misol bilan bir xil: docs/RASMIYLASHTIRISH-FAKTLAR.md, 3-boʻlim). */
 const MISOL_SOTUV_SOM = 5_000_000;
 
+/**
+ * Chatdagi koʻrinish: xatboshilar boʻsh qator bilan, roʻyxat — "• " qatorlar
+ * (pufak `white-space: pre-line`). Jonli oʻlchovda (2026-10-14) bank va soliq
+ * javobi bitta uzun gap boʻlib chiqdi — oʻqish qiyin edi.
+ */
+const xatboshilar = (q: ReadonlyArray<string | null>): string => q.filter(Boolean).join('\n\n');
+const qatorlar = (q: readonly string[]): string => q.map((x) => `• ${x}`).join('\n');
+
 /** «Soliq qancha?» — 7-qadam faktlaridan (YATT). Asosiy faktlar yoʻq — `null`. */
 export function soliqMatni(f: RasmiyFaktlar): string | null {
   const s = f.soliq;
   if (s.aylanmaFoiz === null && s.ijtimoiyOySom === null) return null;
-  const gaplar = ['Soliq rasmiylashtirish shakliga bogʻliq. Eng oddiy shakl — YATT; uning soligʻi:'];
+  const qismlar: string[] = [];
   if (s.aylanmaFoiz !== null) {
-    gaplar.push(`Aylanma soligʻi — sotuvdan ${String(s.aylanmaFoiz).replace('.', ',')} %`
-      + (s.aylanmaChegaraSom !== null ? ` (yillik savdo ${somQisqa(s.aylanmaChegaraSom)}gacha boʻlsa)` : '')
-      + (s.rejimTugaydi ? `; bu rejim ${sanaMatni(s.rejimTugaydi)} gacha` : '')
-      + '. U xaridor toʻlagan toʻliq narxdan hisoblanadi — Uzum komissiyasi chegirilmaydi.');
+    const shart = [
+      s.aylanmaChegaraSom !== null ? `yillik savdo ${somQisqa(s.aylanmaChegaraSom)}gacha boʻlsa` : null,
+      s.rejimTugaydi ? `bu rejim ${sanaMatni(s.rejimTugaydi)} gacha` : null,
+    ].filter(Boolean);
+    qismlar.push(`aylanma soligʻi — sotuvdan ${String(s.aylanmaFoiz).replace('.', ',')} %${shart.length ? ` (${shart.join('; ')})` : ''}. `
+      + 'U xaridor toʻlagan toʻliq narxdan hisoblanadi — Uzum komissiyasi chegirilmaydi.');
   }
   if (s.ijtimoiyOySom !== null) {
-    gaplar.push(`Ijtimoiy soliq — har oy ${minglik(s.ijtimoiyOySom)} soʻm, sotuv boʻlmasa ham`
+    qismlar.push(`ijtimoiy soliq — har oy ${minglik(s.ijtimoiyOySom)} soʻm, sotuv boʻlmasa ham`
       + (s.tolovKuni !== null ? `, oyning ${s.tolovKuni}-sanasigacha` : '') + '.');
   }
   const misol = oylikSoliq(s, MISOL_SOTUV_SOM);
-  if (misol.jamiSom !== null && misol.aylanmaSom !== null && misol.ijtimoiySom !== null) {
-    gaplar.push(`Masalan, oyiga ${minglik(MISOL_SOTUV_SOM)} soʻm sotsangiz: ${minglik(misol.ijtimoiySom)} + `
-      + `${minglik(misol.aylanmaSom)} = ${minglik(misol.jamiSom)} soʻm.`);
-  }
-  if (s.manba) gaplar.push(`Manba: ${s.manba}${s.olchandi ? ` (oʻlchandi ${sanaMatni(s.olchandi)})` : ''}.`);
-  gaplar.push('Bu soliq maslahati emas — aniq qoidani soliq organi yoki buxgalter tasdiqlaydi. 7-qadamda (Rasmiylashtirish) buni partiyangiz boʻyicha hisoblab beraman.');
-  return gaplar.join(' ');
+  return xatboshilar([
+    `Soliq rasmiylashtirish shakliga bogʻliq. Eng oddiy shakl — YATT; uning soligʻi${qismlar.length > 1 ? ' ikki qism' : ''}:\n${qatorlar(qismlar)}`,
+    misol.jamiSom !== null && misol.aylanmaSom !== null && misol.ijtimoiySom !== null
+      ? `Masalan, oyiga ${minglik(MISOL_SOTUV_SOM)} soʻm sotsangiz: ${minglik(misol.ijtimoiySom)} + ${minglik(misol.aylanmaSom)} = ${minglik(misol.jamiSom)} soʻm.`
+      : null,
+    [
+      s.manba ? `Manba: ${s.manba}${s.olchandi ? ` (oʻlchandi ${sanaMatni(s.olchandi)})` : ''}.` : null,
+      'Bu soliq maslahati emas — aniq qoidani soliq organi yoki buxgalter tasdiqlaydi. 7-qadamda (Rasmiylashtirish) buni partiyangiz boʻyicha hisoblab beraman.',
+    ].filter(Boolean).join(' '),
+  ]);
 }
 
 /** Bank izohidan chat uchun qisqasi: birinchi gap, ichki "[TASDIQ]" belgilarisiz. */
@@ -138,7 +151,7 @@ function izohQisqa(izoh: string | null): string | null {
 function bankSatri(b: BankQatori): string {
   const oylik = b.oylikSom === 0 ? 'oylik xizmat bepul' : b.oylikSom !== null ? `oylik ${minglik(b.oylikSom)} soʻm` : null;
   const qism = [b.onlayn === true ? 'onlayn ochiladi' : null, izohQisqa(b.izoh) ?? oylik].filter(Boolean);
-  return `${b.nom}${qism.length ? ` — ${qism.join(', ')}` : ''}`;
+  return `${b.nom}${qism.length ? `: ${qism.join('; ')}` : ''}`;
 }
 
 /** «Bank hisob raqami kerakmi?» — Uzum qoidasi va 7-qadamdagi bank roʻyxati. Roʻyxat yoʻq — `null`. */
@@ -147,13 +160,13 @@ export function bankMatni(f: RasmiyFaktlar): string | null {
   if (!b.length) return null;
   const bepul = b.every((x) => x.ochishSom === 0);
   const sana = b.map((x) => x.olchandi).filter((x): x is string => x !== null).sort().at(-1) ?? null;
-  return [
-    'Ha, bank hisob raqami kerak: Uzum pulni faqat oʻz nomingizdagi biznes hisob raqamiga oʻtkazadi — shaxsiy karta boʻlmaydi.',
-    ...uzumFakti('To‘lovlar', /hisob raqam/u),
-    `Taqqoslangan banklar${bepul ? ' (hammasida hisob ochish bepul)' : ''}: ${b.map(bankSatri).join('; ')}.`,
-    sana ? `Tariflar ${sanaMatni(sana)} da bank saytlaridan olingan — oʻzgargan boʻlishi mumkin, ochishdan oldin bankdan soʻrang.` : null,
-    '7-qadamda (Rasmiylashtirish) jadvalini toʻliq koʻrsataman; qaysi bank — tanlov sizniki.',
-  ].filter(Boolean).join(' ');
+  return xatboshilar([
+    ['Ha, bank hisob raqami kerak: Uzum pulni faqat oʻz nomingizdagi biznes hisob raqamiga oʻtkazadi — shaxsiy karta boʻlmaydi.',
+      ...uzumFakti('To‘lovlar', /hisob raqam/u)].join(' '),
+    `Taqqoslangan banklar${bepul ? ' (hammasida hisob ochish bepul)' : ''}:\n${qatorlar(b.map(bankSatri))}`,
+    [sana ? `Tariflar ${sanaMatni(sana)} da bank saytlaridan olingan — oʻzgargan boʻlishi mumkin, ochishdan oldin bankdan soʻrang.` : null,
+      '7-qadamda (Rasmiylashtirish) jadvalini toʻliq koʻrsataman; qaysi bank — tanlov sizniki.'].filter(Boolean).join(' '),
+  ]);
 }
 
 // ---------------------------------------------------------------- 2-qadam oʻlchovlari
@@ -190,7 +203,10 @@ function aralash(royxat: readonly Yonalish[], n: number): Yonalish[] {
 
 const YAKUN = '2-qadamda (Yoʻnalish) hammasini kartalarda raqamlari bilan koʻrasiz; tanlov — sizniki.';
 
-/** Raqobat manzarasi: eng katta 3 doʻkon ulushi boʻyicha (kartadagi chegaralar bilan bir xil: 30 va 60 %). */
+/**
+ * Raqobat manzarasi: eng katta 3 doʻkon ulushi boʻyicha (kartadagi chegaralar bilan bir
+ * xil: 30 va 60 %). Soni 0 boʻlgan guruh aytilmaydi ("0 tasida … qiyin" — jonli oʻlchov, 2026-10-14).
+ */
 function raqobatMatni(royxat: readonly Yonalish[], qayerda: string): string | null {
   const olchangan = royxat.filter((y) => y.dalil.top3Ulush !== null);
   if (!olchangan.length) return null;
@@ -198,13 +214,15 @@ function raqobatMatni(royxat: readonly Yonalish[], qayerda: string): string | nu
   const yirik = olchangan.filter((y) => y.dalil.top3Ulush! >= 30 && y.dalil.top3Ulush! < 60);
   const qolida = olchangan.length - ochiq.length - yirik.length;
   const misol = ochiq[0];
-  return [
-    `Bu yoʻnalishga bogʻliq — raqobat har xil. ${qayerda} raqobati oʻlchangan ${olchangan.length} ta yoʻnalishdan `
-      + `${ochiq.length} tasida bozor ochiq (eng katta 3 doʻkon savdoning 30 % idan kamini oladi), ${yirik.length} tasida `
-      + `yirik doʻkonlar bor (30–60 %), ${qolida} tasida bozor bir necha doʻkon qoʻlida (60 % dan koʻp) — u yerda yangi sotuvchiga qiyin.`,
+  return xatboshilar([
+    `Bu yoʻnalishga bogʻliq — raqobat har xil. ${qayerda} raqobati oʻlchangan ${olchangan.length} ta yoʻnalishdan:\n${qatorlar([
+      ochiq.length ? `${ochiq.length} tasida bozor ochiq — eng katta 3 doʻkon savdoning 30 % idan kamini oladi` : null,
+      yirik.length ? `${yirik.length} tasida yirik doʻkonlar bor (30–60 %)` : null,
+      qolida ? `${qolida} tasida bozor bir necha doʻkon qoʻlida (60 % dan koʻp) — u yerda yangi sotuvchiga qiyin` : null,
+    ].filter((x): x is string => x !== null))}`,
     misol ? `Masalan, bozor ochiq va bahosi yuqori: ${yonalishSatri(misol)}.` : null,
     'Har yoʻnalish kartasida raqobat alohida koʻrsatiladi.',
-  ].filter(Boolean).join(' ');
+  ]);
 }
 
 /**
@@ -227,26 +245,26 @@ export function yonalishMalumoti(
     if (!talab.length) return null;
     const qiyin = talab.filter((y) => y.dalil.top3Ulush !== null && y.dalil.top3Ulush >= 60);
     const oson = aralash(royxat, 3);
-    return [
+    return xatboshilar([
       `${sohada.length ? `${sohaNomlari} sohasida` : 'Uzumda'} xaridori eng koʻp yoʻnalishlar (Uzum katalogidagi oʻlchov boʻyicha): `
         + `${talab.map((y) => `«${y.name}»`).join(', ')}.`,
-      qiyin.length
+      (qiyin.length
         ? `Lekin xaridor koʻp joyda raqobat ham kuchli boʻlishi mumkin: masalan, «${qiyin[0]!.name}» da eng katta 3 doʻkon `
           + `savdoning ${Math.round(qiyin[0]!.dalil.top3Ulush!)} % ini oladi.`
-        : 'Lekin xaridor koʻp joyda raqobat ham kuchli boʻlishi mumkin.',
-      `Yangi sotuvchi uchun imkoniyat bahosi eng yuqorilari: ${oson.map((y) => `«${y.name}» — ${ball(y)} ball`).join(', ')}.`,
+        : 'Lekin xaridor koʻp joyda raqobat ham kuchli boʻlishi mumkin.')
+        + ` Yangi sotuvchi uchun imkoniyat bahosi eng yuqorilari: ${oson.map((y) => `«${y.name}» — ${ball(y)} ball`).join(', ')}.`,
       YAKUN,
-    ].join(' ');
+    ]);
   }
 
   if (niyat.tur === 'tavsiya') {
     const royxat = sohada.length ? sohada.slice(0, 3) : aralash(baholangan, 3);
-    return [
-      `Hozir ${sohada.length ? `${sohaNomlari} sohasida ` : ''}yangi sotuvchi uchun imkoniyat bahosi eng yuqori yoʻnalishlar: `
-        + `${royxat.map((y) => yonalishSatri(y)).join('; ')}.`,
+    return xatboshilar([
+      `Hozir ${sohada.length ? `${sohaNomlari} sohasida ` : ''}yangi sotuvchi uchun imkoniyat bahosi eng yuqori yoʻnalishlar:\n`
+        + qatorlar(royxat.map((y) => yonalishSatri(y))),
       'Baho qancha yuqori — boshlash shuncha osonroq. Lekin oʻzingiz tushunadigan sohadan boshlash ham muhim: sifatni tekshirish va xaridorga javob berish oson boʻladi.',
       YAKUN,
-    ].join(' ');
+    ]);
   }
 
   if (niyat.tur === 'raqobat') {
@@ -269,25 +287,28 @@ export function yonalishMalumoti(
     // Avval tovar nomi ("krossovka" → «Krossovkalar»), boʻlmasa soha ("kiyim").
     if (tovarda.length) {
       const eng = tovarda[0]!;
-      return [
-        `Uzumda: ${tovarda.slice(0, 3).map((y) => yonalishSatri(y)).join('; ')}.`,
-        `«${eng.name}» bahosi ${bahoNomi(ball(eng))}: baho qancha yuqori — boshlash shuncha osonroq.`,
-        'Bitta raqamga emas, xaridor, raqobat va ruxsat koʻrsatkichlariga birga qarang.',
+      const satrlar = tovarda.slice(0, 3).map((y) => yonalishSatri(y));
+      return xatboshilar([
+        satrlar.length === 1 ? `Uzumda ${satrlar[0]}.` : `Uzumda mos yoʻnalishlar:\n${qatorlar(satrlar)}`,
+        `«${eng.name}» bahosi ${bahoNomi(ball(eng))}: baho qancha yuqori — boshlash shuncha osonroq. `
+          + 'Bitta raqamga emas, xaridor, raqobat va ruxsat koʻrsatkichlariga birga qarang.',
         ...sohaFakti(eng.soha),
         YAKUN,
-      ].join(' ');
+      ]);
     }
     if (!sohada.length) return null;
     const yaxshi = sohada.filter((y) => ball(y) >= 70).length;
     const ortacha = sohada.filter((y) => ball(y) >= 50 && ball(y) < 70).length;
-    return [
-      `${sohaNomlari} sohasida ${sohada.length} ta yoʻnalish kuzatiladi: ${yaxshi} tasining imkoniyat bahosi «yaxshi» `
-        + `(70 va undan yuqori), ${ortacha} tasiniki «oʻrtacha».`,
-      `Eng yuqorilari: ${sohada.slice(0, 3).map((y) => yonalishSatri(y)).join('; ')}.`,
-      'Baho qancha yuqori — boshlash shuncha osonroq.',
-      ...niyat.sohalar.slice(0, 1).flatMap(sohaFakti),
+    const baholar = [
+      yaxshi ? `${yaxshi} tasining imkoniyat bahosi «yaxshi» (70 va undan yuqori)` : null,
+      ortacha ? `${ortacha} tasiniki «oʻrtacha» (50–69)` : null,
+    ].filter(Boolean);
+    return xatboshilar([
+      `${sohaNomlari} sohasida ${sohada.length} ta yoʻnalish kuzatiladi${baholar.length ? `: ${baholar.join(', ')}` : ' — hech birining bahosi 50 dan yuqori emas'}. `
+        + `Eng yuqorilari:\n${qatorlar(sohada.slice(0, 3).map((y) => yonalishSatri(y)))}`,
+      ['Baho qancha yuqori — boshlash shuncha osonroq.', ...niyat.sohalar.slice(0, 1).flatMap(sohaFakti)].join(' '),
       YAKUN,
-    ].join(' ');
+    ]);
   }
   return null;
 }

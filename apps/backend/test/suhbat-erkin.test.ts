@@ -434,6 +434,14 @@ describe('bazadagi raqam bilan javob va ruscha savol (jonli oʻlchov, 2026-10-14
     expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
   });
 
+  it('roʻyxatli (koʻp qatorli) javobdan keyin eslatma alohida xatboshida; ruscha izoh ham', async () => {
+    const kod = kodMalumot(async () => 'Taqqoslangan banklar:\n• A: bepul\n• B: bepul');
+    const r = await suhbatTurn({ rpc: soxtaBaza(BYUDJET_HOLATI).rpc, kod }, 'tok', { savolId: 'byudjet', matn: 'Bank hisob raqami kerakmi?' });
+    expect(r.xabarlar[1]!.matn).toMatch(/^Taqqoslangan banklar:\n• A: bepul\n• B: bepul\n\nHozirgi savol: «/);
+    const ru = await suhbatTurn({ rpc: soxtaBaza(BYUDJET_HOLATI).rpc, kod }, 'tok', { savolId: 'byudjet', matn: 'Нужен банковский счёт?' });
+    expect(ru.xabarlar[1]!.matn).toMatch(/^Подробный ответ пока есть только на узбекском:\n\nTaqqoslangan banklar:\n• A: bepul\n• B: bepul\n\nСейчас вопрос: «/);
+  });
+
   it('kod maʼlumot topmasa yoki yiqilsa — bilim bazasining umumiy javobi; oqim toʻxtamaydi', async () => {
     for (const f of [async () => null, async () => { throw new Error('baza'); }]) {
       const r = await suhbatTurn({ rpc: soxtaBaza(BYUDJET_HOLATI).rpc, kod: kodMalumot(f) }, 'tok', { savolId: 'byudjet', matn: 'Soliq qancha toʻlayman?' });
