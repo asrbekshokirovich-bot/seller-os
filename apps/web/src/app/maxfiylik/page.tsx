@@ -279,7 +279,10 @@ export default function Maxfiylik() {
             yozmang. Uchinchisi: 10-qadamda «Kartochka matnini yozib ber»
             bossangiz — tanlangan tovarlarning Uzumdagi va 1688 dagi nomi hamda
             yoʻnalish nomi yuboriladi (shaxsiy maʼlumot emas); kelgan matnni kod
-            Uzum qoidalari va raqamlar boʻyicha tekshiradi.
+            Uzum qoidalari va raqamlar boʻyicha tekshiradi. Hozircha Gemini ning
+            <strong>bepul darajasi</strong> ishlatiladi: Google shartlariga koʻra bepul
+            darajada yuborilgan matnlardan Google oʻz mahsulotlarini yaxshilash uchun
+            foydalanishi mumkin. Shuning uchun suhbatga shaxsiy maʼlumot yozmang.
           </li>
           <li>
             Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq. U

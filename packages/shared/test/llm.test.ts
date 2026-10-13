@@ -24,11 +24,11 @@ function soxtaFetch(javob: { status?: number; json: unknown }, yozuvlar: Yozuv[]
 const JAVOB = { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Salom! ' }, { text: 'Qancha pul ajratasiz?' }] } }] };
 
 describe('gemini soʻrovi', () => {
-  it('standart model — gemini-3.5-flash; harorat yuborilmaydi; oʻylash minimal (odamlashtir)', async () => {
+  it('standart model — gemini-3.8-flash; harorat yuborilmaydi; oʻylash minimal (odamlashtir)', async () => {
     const y: Yozuv[] = [];
     const r = await odamlashtir({ kalit: ' AIzaKALIT \n', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'Qancha pul ajratasiz?');
     expect(r).toBe('Salom! Qancha pul ajratasiz?');
-    expect(y[0]!.url).toContain('/models/gemini-3.5-flash:generateContent');
+    expect(y[0]!.url).toContain('/models/gemini-3.8-flash:generateContent');
     expect(y[0]!.sarlavha['x-goog-api-key']).toBe('AIzaKALIT');
     const gc = y[0]!.tana.generationConfig as Record<string, unknown>;
     expect(gc.temperature).toBeUndefined();
