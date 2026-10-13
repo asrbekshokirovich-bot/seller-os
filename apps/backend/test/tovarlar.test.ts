@@ -80,11 +80,15 @@ describe('3-qadam — tovarlar', () => {
       expect(r.royxat[0]!.miqdorSababKodi).toBe('olchanmagan');
     });
 
-    it('NOL sotuv — javob, miqdor 1 dona', () => {
-      // 0 oʻlchangani "sotilmaydi" degan JAVOB. `null` dan farqli.
+    it('NOL sotuv — javob ("sotilmagan"), lekin "1 dona oling" tavsiyasi YOʻQ (nazoratchi, 2026-10-13)', () => {
+      // 0 oʻlchangani "sotilmaydi" degan JAVOB — `null` (oʻlchanmagan) dan farqli kod.
+      // Lekin noldan partiya hisoblanmaydi: katalogda "taklif: 1 dona" turardi.
       const r = tovarlar([tovar({ soldUnits30d: 0 })], toza);
-      expect(r.royxat[0]!.miqdor?.dona).toBe(1);
-      expect(r.royxat[0]!.miqdorSababi).toBeNull();
+      expect(r.royxat[0]!.miqdor).toBeNull();
+      expect(r.royxat[0]!.miqdorSababKodi).toBe('sotilmagan');
+      expect(r.royxat[0]!.miqdorSababi).toMatch(/sotuv koʻrinmadi|qoldiq koʻrinmayapti/);
+      const tugagan = tovarlar([tovar({ soldUnits30d: 0, qoldiq: 0 })], toza);
+      expect(tugagan.royxat[0]!.miqdorSababi).toMatch(/qoldiq koʻrinmayapti/);
     });
   });
 

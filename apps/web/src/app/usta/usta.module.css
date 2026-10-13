@@ -700,6 +700,10 @@
 }
 
 .xulosaIkonYaxshi { background: var(--okBg); color: var(--ok); }
+
+/* Katalog kartasida xulosalar ixchamroq. */
+.katalogXulosa { margin-top: 12px; gap: 8px; }
+.katalogXulosa .xulosaQator { font-size: 13.5px; }
 .xulosaIkonOgoh { background: var(--ogohBg); color: var(--ogoh); }
 
 .statlar {
@@ -979,22 +983,6 @@
 }
 
 .yulduz { color: var(--ogoh); }
-
-.ulushIz {
-  height: 5px;
-  border-radius: 999px;
-  background: var(--chip);
-  overflow: hidden;
-}
-
-.ulushIz i {
-  display: block;
-  height: 100%;
-  background: var(--acc);
-  border-radius: 999px;
-}
-
-.taklif { font-weight: 600; }
 
 .katalogOgoh {
   margin-top: 12px;
