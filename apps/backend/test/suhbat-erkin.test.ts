@@ -291,6 +291,19 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
     expect(r.xabarlar[1]!.matn).toMatch(/Yoʻnalish qadamida koʻrsataman/);
   });
 
+  it('javobi bazada bor savol — LLM chaqirilmaydi (bepul limit tejaladi, 2026-10-13)', async () => {
+    const b = soxtaBaza(BYUDJET_HOLATI);
+    let chaqirildi = 0;
+    const r = await suhbatTurn(bogliq(b, async () => { chaqirildi++; return 'LLM javobi'; }), 'tok', { savolId: 'byudjet', matn: 'pul qachon tushadi?' });
+    expect(chaqirildi).toBe(0);
+    expect(r.xabarlar[1]!.matn).toMatch(/to‘lov jadvali/);
+    // Bazada yoʻq savol — LLM ga, faqat tegishli bilim bilan.
+    let bilim = '';
+    await suhbatTurn(bogliq(b, async (k) => { chaqirildi++; bilim = k.bilim; return 'Buni keyingi qadamda koʻrsataman.'; }), 'tok', { savolId: 'byudjet', matn: 'qancha kerak?' });
+    expect(chaqirildi).toBe(1);
+    expect(bilim).not.toMatch(/Uzum haqida faktlar/);
+  });
+
   it('LLM manbasiz raqam yozsa — sababi bilan BIR MARTA qayta soʻraladi; toʻgʻri javob ketadi', async () => {
     const b = soxtaBaza(BYUDJET_HOLATI);
     const kelganlar: ErkinSorov[] = [];

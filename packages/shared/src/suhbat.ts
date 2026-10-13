@@ -32,7 +32,7 @@ import { type AloqaJavoblari, type Keyingi, type KodHarakati, type YolHolati, bo
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
 import { tayyorJavob } from './erkin.js';
-import { YORDAMCHI_BILIMI } from './bilim.js';
+import { yordamchiBilimi } from './bilim.js';
 import { bilimJavobi, PUL_GAPI } from './bilim-javob.js';
 import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.js';
 import type { ProfilJavoblari } from './profil.js';
@@ -604,14 +604,20 @@ async function erkinJavob(
   const shablon = erkinShablon(s, matn, sabab, h);
   // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
   if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
-  const variantlar = s.variantlar.map((v) => v.nom);
   const tj = tayyorJavob(matn);
-  const tayyor = tj ? (ruschami(matn) ? tj.ru : tj.uz) : null;
+  // Javobi bazada bor savol (tayyor javob yoki `bilim-javob.ts`) — LLM CHAQIRILMAYDI
+  // (nazoratchi, 2026-10-13, "ha qil"): bepul Gemini limiti kunlik va kichik, u
+  // bazada javobi yoʻq savollarga qolsin. Bazaviy javob aniq va manbasi bilan.
+  if (tj || (!sabab && !ruschami(matn) && bilimJavobi(matn, s.id, h))) return shablon;
+  const variantlar = s.variantlar.map((v) => v.nom);
   const holat = mijozHolati(h, s.qadam);
   const tarix = suhbatTarixi(xabarlar, h);
-  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor, bilim: YORDAMCHI_BILIMI, holat, tarix };
+  // Bilim — asos va FAQAT savolga tegishli Uzum faktlari (`yordamchiBilimi`), hammasi emas.
+  const bilim = yordamchiBilimi(matn);
+  // Tayyor javobi bor savol bu yerga yetmaydi (yuqorida qaytdi) — LLM ga tayyor javob berilmaydi.
+  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: null, bilim, holat, tarix };
   // Raqam faqat savol, tugmalar, sabab, bilim, mijoz holati, suhbat va obunachining oʻz matnidan; kafolat — taqiq.
-  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, YORDAMCHI_BILIMI, tayyor ?? '', holat, tarix], sonlar: [] };
+  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, holat, tarix], sonlar: [] };
   let tuzat: string | null = null;
   for (let urinish = 0; urinish < 2; urinish++) {
     const taklif = await d.erkinLlm({ ...sorov, tuzat }).catch(() => null);

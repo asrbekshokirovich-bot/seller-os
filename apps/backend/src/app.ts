@@ -397,7 +397,10 @@ export function build(): FastifyInstance {
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null } }),
     ...(process.env.GEMINI_API_KEY
       ? {
-        llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m),
+        // Kod jumlasini qayta aytish — faqat `LLM_ODAMLASHTIR=1` (2026-10-13: bepul limit savollarga qoladi).
+        ...(process.env.LLM_ODAMLASHTIR === '1'
+          ? { llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m) }
+          : {}),
         erkinLlm: (k: ErkinSorov) =>
           erkinJavobBer({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, k),
       }

@@ -407,7 +407,12 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           // 9-qadam studiyasi: Cloudflare Worker manzili va imzo kaliti (docs/STUDIYA.md).
           studiya: { url: Deno.env.get('STUDIYA_URL') ?? null, kalit: Deno.env.get('STUDIYA_KALIT') ?? null } }),
       ...(kalit ? {
-        llm: (m: string) => odamlashtir({ kalit, model: Deno.env.get('LLM_MODEL') }, m),
+        // Kod jumlasini qayta aytish — FAQAT `LLM_ODAMLASHTIR=1` boʻlsa (nazoratchi, 2026-10-13):
+        // bepul Gemini limiti kunlik va kichik; har xabarni qayta aytish uni mijoz savoli
+        // kelmasidan sarflardi. Jumlalar oʻzi sodda yozilgan; limit savollarga qoladi.
+        ...(Deno.env.get('LLM_ODAMLASHTIR') === '1'
+          ? { llm: (m: string) => odamlashtir({ kalit, model: Deno.env.get('LLM_MODEL') }, m) }
+          : {}),
         // Obunachi javob oʻrniga boshqa narsa yozsa — menejer javobi (tekshiruv bilan).
         erkinLlm: (k: ErkinSorov) => erkinJavobBer({ kalit, model: Deno.env.get('LLM_MODEL') }, k),
       } : {}),
