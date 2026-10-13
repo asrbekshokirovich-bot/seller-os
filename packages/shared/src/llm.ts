@@ -14,12 +14,18 @@
  * kodda hech qachon turmaydi.
  *
  * Provayder: Gemini (bepul daraja, function calling shart emas — biz
- * asbob chaqirmaymiz). Model nomi env dan (`LLM_MODEL`); bo'lmasa `gemini-3.5-flash`.
+ * asbob chaqirmaymiz). Model nomi env dan (`LLM_MODEL`); bo'lmasa `gemini-3.8-flash`.
  *
  * 2.5 → 3.5 (2026-10-06): yangi kalit bilan `gemini-2.5-flash` 404 qaytardi —
  * "no longer available to new users"; Google yangi loyihalarga 3.5/3.8 ni
  * beradi. Gemini 3.x da harorat (temperature) oʻzgartirilmaydi — rasmiy
  * tavsiya: standart qiymat; "oʻylash" `thinkingLevel` bilan beriladi.
+ *
+ * 3.5 → 3.8 (2026-10-14): rasmiy modellar roʻyxatida `gemini-3.5-flash` yoʻq
+ * (faqat `gemini-3.5-flash-lite`); yangi loyihalarga «3.5 Flash-Lite yoki 3.8
+ * Flash» tavsiya qilinadi. Eski nom har soʻrovga 429 RESOURCE_EXHAUSTED
+ * qaytarardi (jonli jurnal, 40 savol sinovi) — AI umuman javob bermasdi.
+ * Bepul limit har model uchun alohida; `gemini-3.8-flash` — barqaror, eng yangi.
  *
  * Har yiqilish `null` qaytaradi va bu XATO EMAS: kalit yo'q, tarmoq
  * yo'q, model 429 dedi — hammasida oqim to'xtamaydi.
@@ -132,7 +138,7 @@ async function gemini(
   // Sirni nusxalashda qolgan boʻsh joy/yangi qator kalitni buzmasin.
   const kalit = s.kalit?.trim();
   if (!kalit || !matn.trim()) return null;
-  const model = s.model?.trim() || 'gemini-3.5-flash';
+  const model = s.model?.trim() || 'gemini-3.8-flash';
   const f = s.fetchFn ?? fetch;
   const nazorat = new AbortController();
   const t = setTimeout(() => nazorat.abort(), s.vaqtMs ?? 8_000);
@@ -162,7 +168,7 @@ async function gemini(
       // Sababi logda (masalan "API key not valid", "model not found") — Gemini xato
       // matnida kalit qaytmaydi; shunday boʻlsa ham 160 belgidan oshmaydi.
       const x = (await r.json().catch(() => null)) as { error?: { status?: string; message?: string } } | null;
-      console.warn(`llm ${belgi}: HTTP ${r.status} ${x?.error?.status ?? ''} ${String(x?.error?.message ?? '').slice(0, 160)}`);
+      console.warn(`llm ${belgi} (${model}): HTTP ${r.status} ${x?.error?.status ?? ''} ${String(x?.error?.message ?? '').slice(0, 160)}`);
       return null;
     }
     const j = (await r.json()) as {
