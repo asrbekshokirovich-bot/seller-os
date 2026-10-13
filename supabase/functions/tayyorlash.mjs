@@ -48,6 +48,7 @@ export const FAYLLAR = [
   ['packages/shared/src/yozuv.ts', 'shared/yozuv.ts'],
   ['packages/shared/src/tez-savollar.ts', 'shared/tez-savollar.ts'],
   ['packages/shared/src/baho.ts', 'shared/baho.ts'],
+  ['packages/shared/src/kartochka-matn.ts', 'shared/kartochka-matn.ts'],
   ['packages/shared/src/tarif.ts', 'shared/tarif.ts'],
   ['packages/shared/src/tolov.ts', 'shared/tolov.ts'],
   ['packages/shared/src/kpi.ts', 'shared/kpi.ts'],

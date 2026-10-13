@@ -487,6 +487,8 @@ describe('zanjir hech qayerda uzilmaydi', () => {
       const q = s.id === 'ism' ? 'Aziz Karimov' : s.id === 'telefon' ? '+998901234567'
         : s.id.startsWith('uzum_havola:') ? 'https://uzum.uz/uz/product/mening-quloqchinim-5001'
         : s.id === 'sotuv_holat' ? 'hisobot'
+        // «Kartochka matnini yozib ber» (birinchi tugma) — javob emas, savol qaytadi; zanjir uchun «Yaratdim».
+        : s.id === 'kartochka_yaratildi' ? 'yaratdim'
           : s.id.startsWith('signal:zaxira:') ? 'yoq'
             : s.turi === 'kopTanlov' ? [s.variantlar[0]!.qiymat]
               : s.variantlar.length ? s.variantlar[0]!.qiymat
@@ -1075,6 +1077,38 @@ function yuklashBoshi(): YolHolati {
   return natijaniYoz(h, 'studiya_yakun', STUDIYA_YAKUN);
 }
 
+describe('10-qadam — «Kartochka matnini yozib ber» (nazoratchi, 2026-10-13)', () => {
+  const M = { nomUz: 'Gel ruchka koʻk siyohli', nomRu: 'Гелевая ручка с синими чернилами', qisqaUz: 'q', qisqaRu: 'к', tavsifUz: 't', tavsifRu: 'т' };
+
+  it('javob emas: kod kartochka_matni, keyin savol qayta; qayta bosilsa — yangidan; «Yaratdim» — oldinga', () => {
+    let h = natijaniYoz(yuklashBoshi(), 'yuklash', YUKLASH);
+    h = javob(h, 'kartochka_yaratildi', 'matn');
+    expect(h.javoblar['kartochka_yaratildi']).toBeUndefined();
+    expect(h.javoblar['kartochka_matni']).toBe(1);
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'kartochka_matni', qadam: 10 });
+    h = natijaniYoz(h, 'kartochka_matni', { olchov_yoq: false, qatorlar: [], sorov: 1, izoh: '' });
+    expect(savolId(h)).toBe('kartochka_yaratildi');
+    h = javob(h, 'kartochka_yaratildi', 'matn');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'kartochka_matni', qadam: 10 });
+    h = natijaniYoz(h, 'kartochka_matni', { olchov_yoq: false, qatorlar: [], sorov: 2, izoh: '' });
+    expect(savolId(h)).toBe('kartochka_yaratildi');
+    h = javob(h, 'kartochka_yaratildi', 'yaratdim');
+    expect(savolId(h)).toBe('qadoq_tayyor');
+  });
+
+  it('chatdagi gap: hammasi yozildi / hech biri (qolip) / qisman', () => {
+    const q = (matn: typeof M | null) => ({ productId: 1, title: 'A', matn, muammolar: [] });
+    expect(tushuntir('kartochka_matni', { olchov_yoq: false, sorov: 1, izoh: '', qatorlar: [q(M), q(M)] }))
+      .toMatch(/^Kartochka matni tayyor: 2 ta tovar uchun .* VGT .* MXIK/);
+    expect(tushuntir('kartochka_matni', { olchov_yoq: false, sorov: 1, izoh: '', qatorlar: [q(null)] }))
+      .toMatch(/^Hozir kartochka matnini yoza olmadim .* qolip/);
+    expect(tushuntir('kartochka_matni', { olchov_yoq: false, sorov: 1, izoh: '', qatorlar: [q(M), q(null)] }))
+      .toMatch(/^Kartochka matni 1 ta tovar uchun tayyor; 1 tasiga/);
+    expect(tushuntir('kartochka_matni', { olchov_yoq: true, sabab: 'tanlangan tovar topilmadi', sorov: 1, izoh: '', qatorlar: [] }))
+      .toBe('Kartochka matnini yoza olmadim: tanlangan tovar topilmadi.');
+  });
+});
+
 describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
   it('kod yuklash → kartochka → qadoq → yetkazish → taymslot → topshirildi → kod yuklash_yakun → 11 "tez orada"', () => {
     let h = yuklashBoshi();
@@ -1085,7 +1119,7 @@ describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
     expect(k1.savol.id).toBe('kartochka_yaratildi');
     expect(k1.savol.qadam).toBe(10);
     expect(k1.savol.matn).toMatch(/Surat talabi: kamida 750×1000, vertikal 3:4, 5 MB gacha\. Kartochka qoidalari \(3 ta qoida\)/);
-    expect(k1.savol.variantlar.map((v) => v.qiymat)).toEqual(['yaratdim', 'keyin', 'boshqacha']);
+    expect(k1.savol.variantlar.map((v) => v.qiymat)).toEqual(['matn', 'yaratdim', 'keyin', 'boshqacha']);
     h = javob(h, 'kartochka_yaratildi', 'yaratdim');
     const k2 = keyingi(h);
     if (k2.tur !== 'savol') throw new Error(k2.tur);

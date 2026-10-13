@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ERKIN_KORSATMA, erkinJavobBer, odamlashtir } from '../src/llm';
+import { ERKIN_KORSATMA, erkinJavobBer, kartochkaYozBer, odamlashtir } from '../src/llm';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Record<string, string> }
 
@@ -75,5 +75,30 @@ describe('yordamchi feʼl-atvori (nazoratchi tanlovi, 2026-10-13)', () => {
     await erkinJavobBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) },
       { savol: 'S', variantlar: [], xabar: 'X', sabab: null, tayyor: 'Logistika — 5 250 soʻm', bilim: 'B' });
     expect(JSON.stringify(y[0]!.tana)).toMatch(/TAYYOR JAVOB \(maʼnosi va raqamlarini saqlab/);
+  });
+});
+
+describe('kartochka matni (10-qadam, 2026-10-13)', () => {
+  const javob = (t: string) => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: t }] } }] });
+  const M = { nom_uz: 'Gel ruchka koʻk siyohli', nom_ru: 'Гелевая ручка синяя', qisqa_uz: 'q', qisqa_ru: 'к', tavsif_uz: 't', tavsif_ru: 'т' };
+
+  it('JSON javob (``` bilan ham) — maydonlar; soʻrov JSON rejimida, manbalar bilan', async () => {
+    const y: Yozuv[] = [];
+    const r = await kartochkaYozBer({ kalit: 'K', fetchFn: soxtaFetch({ json: javob(`\`\`\`json\n${JSON.stringify(M)}\n\`\`\``) }, y) },
+      { namuna: 'Gel ruchka 0,5 mm', turkum: 'Ruchkalar', xitoy: '中性笔' });
+    expect(r).toEqual({ nomUz: M.nom_uz, nomRu: M.nom_ru, qisqaUz: 'q', qisqaRu: 'к', tavsifUz: 't', tavsifRu: 'т' });
+    const tana = y[0]!.tana as { generationConfig: Record<string, unknown>; contents: Array<{ parts: Array<{ text: string }> }> };
+    expect(tana.generationConfig.responseMimeType).toBe('application/json');
+    expect(tana.contents[0]!.parts[0]!.text).toMatch(/UZUMDAGI NAMUNA TOVAR NOMI: Gel ruchka 0,5 mm/);
+    expect(tana.contents[0]!.parts[0]!.text).toMatch(/1688 TAKLIFI NOMI \(xitoycha\): 中性笔/);
+  });
+
+  it('maydon yetishmasa yoki JSON buzuq — null (qolip koʻrsatiladi)', async () => {
+    const yoq = await kartochkaYozBer({ kalit: 'K', fetchFn: soxtaFetch({ json: javob(JSON.stringify({ ...M, nom_ru: '' })) }, []) },
+      { namuna: 'x', turkum: null, xitoy: null });
+    expect(yoq).toBeNull();
+    const buzuq = await kartochkaYozBer({ kalit: 'K', fetchFn: soxtaFetch({ json: javob('bu JSON emas') }, []) },
+      { namuna: 'x', turkum: null, xitoy: null });
+    expect(buzuq).toBeNull();
   });
 });

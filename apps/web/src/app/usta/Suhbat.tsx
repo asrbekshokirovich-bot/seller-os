@@ -858,6 +858,8 @@ function KodKartasi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: Kat
                     ? <StudiyaKartasi n={n as unknown as StudiyaQ} tr={tr} />
                     : x.savolId === 'yuklash'
                       ? <YuklashKartasi n={n as unknown as YuklashQ} tr={tr} />
+                      : x.savolId === 'kartochka_matni'
+                        ? <KartochkaMatniKartasi n={n as unknown as KartochkaMatniQ} tr={tr} />
                       : x.savolId === 'sotuv'
                         ? <SotuvKartasi n={n as unknown as SotuvQ} tr={tr} />
                         : x.savolId === 'hisobot'
@@ -1715,6 +1717,101 @@ interface YuklashQ {
  * va qoidalar, 0059), 2) qadoq va yorliq, 3) yetkazma va ombor (0058).
  * Fakt yoʻq — "faktda yoʻq", nol emas.
  */
+/** 10-qadam: kartochka matni (`kartochka-matn.ts`) — sahifaga keladigan qismi. */
+interface KartochkaMatniQ {
+  olchov_yoq?: boolean;
+  sabab?: string;
+  qatorlar?: Array<{
+    productId: number;
+    title: string;
+    matn: { nomUz: string; nomRu: string; qisqaUz: string; qisqaRu: string; tavsifUz: string; tavsifRu: string } | null;
+    muammolar: string[];
+  }>;
+  izoh?: string;
+}
+
+/**
+ * 10-qadam — «Kartochka matnini yozib ber» (nazoratchi, 2026-10-13): har tovar
+ * uchun nom, qisqa tavsif va tavsif (oʻzbek va rus), har biri nusxa tugmasi
+ * bilan. Matn yozilmagan tovarga — nega yozilmagani va qolip (toʻqilgan matn yoʻq).
+ */
+function KartochkaMatniKartasi({ n, tr }: { n: KartochkaMatniQ; tr: Tr }) {
+  const q = n.qatorlar ?? [];
+  return (
+    <div className={u.kartalar}>
+      {q.map((x) => (
+        <div key={x.productId} className={u.karta}>
+          <div className={`${u.kartaSarlavha} ${u.kartochkaSarlavha}`}>{x.title}</div>
+          {x.matn ? (
+            <>
+              <NusxaMaydon nom={tr('Nomi — oʻzbekcha', 'Название — на узбекском')} matn={x.matn.nomUz} tr={tr} />
+              <NusxaMaydon nom={tr('Nomi — ruscha', 'Название — на русском')} matn={x.matn.nomRu} tr={tr} />
+              <NusxaMaydon nom={tr('Qisqa tavsif — oʻzbekcha', 'Краткое описание — на узбекском')} matn={x.matn.qisqaUz} tr={tr} />
+              <NusxaMaydon nom={tr('Qisqa tavsif — ruscha', 'Краткое описание — на русском')} matn={x.matn.qisqaRu} tr={tr} />
+              <NusxaMaydon nom={tr('Tavsif — oʻzbekcha', 'Описание — на узбекском')} matn={x.matn.tavsifUz} tr={tr} />
+              <NusxaMaydon nom={tr('Tavsif — ruscha', 'Описание — на русском')} matn={x.matn.tavsifRu} tr={tr} />
+              <p className={u.kichikIzoh}>{tr('Uzum qoidalari bilan tekshirildi. Kabinetga qoʻyishdan oldin oʻqib chiqing.', 'Проверено по правилам Uzum. Перед публикацией прочитайте.')}</p>
+            </>
+          ) : (
+            <>
+              <Ogohlik>
+                {x.muammolar.length
+                  ? `${tr('Matn Uzum qoidalaridan oʻtmadi:', 'Текст не прошёл правила Uzum:')} ${x.muammolar.slice(0, 3).join('; ')}`
+                  : tr('Sunʼiy intellekt hozir matn yoza olmadi.', 'Сейчас не удалось написать текст.')}
+              </Ogohlik>
+              <p className={u.kichikIzoh}>
+                {tr(
+                  'Qolip: tovar turi + brend + model + muhim tavsif (kamida 3 soʻz), oʻzbek (lotin) va rus (kirill) tilida. Taqiqlangan: aksiya, chegirma, top, xit, «eng yaxshi», «eng arzon», emoji, KATTA HARFLAR, kontakt va havola. Raqamni (oʻlcham, dona) faqat tovarning oʻzidan yozing.',
+                  'Шаблон: тип товара + бренд + модель + важная характеристика (минимум 3 слова), на узбекском (латиница) и русском. Запрещено: акция, скидка, топ, хит, «лучший», «самый дешёвый», эмодзи, КАПС, контакты и ссылки. Цифры (размер, штуки) — только с самого товара.',
+                )}
+              </p>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Kartochka maydoni va nusxa tugmasi. Brauzer nusxaga ruxsat bermasa (kengaytma
+ * ramkasi, eski brauzer) — yolgʻon «Nusxalandi» emas: matn belgilanadi, odam
+ * oʻzi nusxa oladi (Ctrl+C yoki uzoq bosish).
+ */
+function NusxaMaydon({ nom, matn, tr }: { nom: string; matn: string; tr: Tr }) {
+  const [holat, setHolat] = useState<'yoq' | 'olindi' | 'belgilandi'>('yoq');
+  const matnRef = useRef<HTMLDivElement>(null);
+  const belgila = () => {
+    const el = matnRef.current;
+    const tanlov = typeof window !== 'undefined' ? window.getSelection() : null;
+    if (!el || !tanlov) return;
+    const oraliq = document.createRange();
+    oraliq.selectNodeContents(el);
+    tanlov.removeAllRanges();
+    tanlov.addRange(oraliq);
+    setHolat('belgilandi');
+  };
+  const nusxala = () => {
+    try {
+      navigator.clipboard.writeText(matn).then(() => { setHolat('olindi'); setTimeout(() => setHolat('yoq'), 2000); }, belgila);
+    } catch { belgila(); }
+  };
+  return (
+    <div className={u.nusxaMaydon}>
+      <div className={u.nusxaBosh}>
+        <span className={u.nusxaNom}>{nom}</span>
+        <button type="button" className={u.nusxaTugma} onClick={nusxala}>
+          <Ikon nom="nusxa" o={14} />
+          {holat === 'olindi' ? tr('Nusxalandi ✓', 'Скопировано ✓')
+            : holat === 'belgilandi' ? tr('Belgilandi — nusxa oling', 'Выделено — скопируйте')
+              : tr('Nusxa olish', 'Копировать')}
+        </button>
+      </div>
+      <div ref={matnRef} className={u.nusxaMatn}>{matn}</div>
+    </div>
+  );
+}
+
 function YuklashKartasi({ n, tr }: { n: YuklashQ; tr: Tr }) {
   const f = n.faktlar;
   const t = n.talablar;

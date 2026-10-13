@@ -261,7 +261,7 @@ export default function Maxfiylik() {
             keshida 30 kungacha turadi.
           </li>
           <li>
-            <strong>Google Gemini</strong> (ulangan boʻlsa) — ikki holatda.
+            <strong>Google Gemini</strong> (ulangan boʻlsa) — uch holatda.
             Birinchisi: yordamchi savolini tabiiyroq qilish uchun kod yozgan jumla
             yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
             Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
@@ -276,7 +276,10 @@ export default function Maxfiylik() {
             jumlasi ketadi. Sessiya kaliti yuborilmaydi. Ism-familiya va telefon
             savollari (ularga yozgan matningiz ham) Gemini ga umuman
             yuborilmaydi. Boshqa joyda suhbatga pasport kabi shaxsiy maʼlumot
-            yozmang.
+            yozmang. Uchinchisi: 10-qadamda «Kartochka matnini yozib ber»
+            bossangiz — tanlangan tovarlarning Uzumdagi va 1688 dagi nomi hamda
+            yoʻnalish nomi yuboriladi (shaxsiy maʼlumot emas); kelgan matnni kod
+            Uzum qoidalari va raqamlar boʻyicha tekshiradi.
           </li>
           <li>
             Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq. U

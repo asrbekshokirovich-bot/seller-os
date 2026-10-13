@@ -29,6 +29,12 @@
 import {
   arzonYol,
   chegaraNarxi,
+  kartochkaManbalari,
+  kartochkaManbaMatnlari,
+  kartochkaTekshir,
+  type KartochkaMatni,
+  type KartochkaMatniNatijasi,
+  type KartochkaQatori,
   faktlarniOqi,
   httpsManzilmi,
   kargoSomBirDona,
@@ -141,6 +147,11 @@ export interface XitoyBogliqligi {
   hozir?: () => Date;
   /** 9-qadam studiyasi: Cloudflare Worker (STUDIYA_URL) va imzo kaliti (STUDIYA_KALIT). `null` — ulanmagan. */
   studiya?: { url: string | null; kalit: string | null };
+  /**
+   * 10-qadam kartochka matni yozuvchisi (LLM, `kartochkaYozBer`). Yoʻq — ulanmagan:
+   * matn yozilmaydi, qolip koʻrsatiladi. Kirish — faqat tovar nomlari va yoʻnalish.
+   */
+  kartochkaLlm?: (k: { namuna: string; turkum: string | null; xitoy: string | null; tuzat?: string | null }) => Promise<KartochkaMatni | null>;
 }
 
 /**
@@ -950,6 +961,35 @@ export function suhbatKodHarakatlari(
         else if (q === 'keyin' || q === null) ishlar.push({ savolId: 'studiya_tayyor', tur: 'kutyapman', sabab: 'studiya: suratlar tanlovi', muddat: null });
       }
       return ochiqIshlarniYoz(rpc, xitoy.token, ishlar, j, IZOH);
+    },
+
+    /**
+     * 10-qadam — «Kartochka matnini yozib ber» (nazoratchi, 2026-10-13). Har tanlangan
+     * tovar uchun LLM matn yozadi (tovarlar parallel), kod Uzum qoidalari va raqam
+     * darvozasi bilan tekshiradi (`kartochkaTekshir`); oʻtmasa sababi bilan BIR MARTA
+     * qayta soʻraladi. Baribir oʻtmasa yoki LLM ulanmagan boʻlsa — matn yoʻq (qolip).
+     */
+    async kartochkaMatni(holat: YolHolati): Promise<KartochkaMatniNatijasi> {
+      const IZOH = 'Matnni sunʼiy intellekt yozdi, kod uni Uzum qoidalari (qoʻllanma 5.1) va raqamlar (faqat tovar nomlaridan) boʻyicha tekshirdi. Kabinetga qoʻyishdan oldin oʻqib chiqing: tovaringizga mos kelmagan gapni tuzating.';
+      const sorov = Number(holat.javoblar['kartochka_matni'] ?? 0) || 0;
+      const manbalar = kartochkaManbalari(holat);
+      if (manbalar.length === 0) return { olchov_yoq: true, sabab: 'tanlangan tovar topilmadi', qatorlar: [], sorov, izoh: IZOH };
+      const llm = xitoy?.kartochkaLlm ?? null;
+      const qatorlar = await Promise.all(manbalar.map(async (m): Promise<KartochkaQatori> => {
+        let muammolar: string[] = [];
+        if (llm) {
+          let tuzat: string | null = null;
+          for (let urinish = 0; urinish < 2; urinish++) {
+            const t = await llm({ namuna: m.namuna, turkum: m.turkum, xitoy: m.xitoy, tuzat }).catch(() => null);
+            if (!t) break;
+            muammolar = kartochkaTekshir(t, kartochkaManbaMatnlari(m));
+            if (muammolar.length === 0) return { productId: m.productId, title: m.namuna, matn: t, muammolar: [] };
+            tuzat = muammolar.join('; ');
+          }
+        }
+        return { productId: m.productId, title: m.namuna, matn: null, muammolar };
+      }));
+      return { olchov_yoq: false, qatorlar, sorov, izoh: IZOH };
     },
 
     /** 10-qadam — YUKLASH faktlari: kartochka qoidalari (0059) + omborga topshirish (0058). */

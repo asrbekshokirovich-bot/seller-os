@@ -44,3 +44,4 @@ export * from './hisobot.js';
 export * from './sotuv.js';
 export * from './xizmat.js';
 export * from './kartochka.js';
+export * from './kartochka-matn.js';

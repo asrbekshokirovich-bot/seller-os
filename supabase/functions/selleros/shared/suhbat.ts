@@ -80,6 +80,8 @@ export interface SuhbatBogliqliklari {
     yuklash: (holat: YolHolati) => Promise<unknown>;
     /** 10-qadam: kartochka, qadoq, yetkazma javoblari → ochiq ishlar. */
     yuklashYakun: (holat: YolHolati) => Promise<unknown>;
+    /** 10-qadam: «Kartochka matnini yozib ber» — har tovar uchun nom va tavsif (uz/ru), Uzum qoidalari bilan tekshirilgan. */
+    kartochkaMatni: (holat: YolHolati) => Promise<unknown>;
     /** 11-qadam: oʻz kartochkalarni kuzatuvga qoʻshish, oʻlchov va signallar. */
     sotuv: (holat: YolHolati) => Promise<unknown>;
     /** 12-qadam: oy hisoboti uchun faktlar va oʻlchovdan taxmin. */
@@ -419,6 +421,7 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
     if (harakat === 'studiya_yakun') return await d.kod.studiyaYakun(h);
     if (harakat === 'yuklash') return await d.kod.yuklash(h);
     if (harakat === 'yuklash_yakun') return await d.kod.yuklashYakun(h);
+    if (harakat === 'kartochka_matni') return await d.kod.kartochkaMatni(h);
     if (harakat === 'sotuv') return await d.kod.sotuv(h);
     if (harakat === 'hisobot') return await d.kod.hisobot(h);
     if (harakat === 'hisobot_hisob') return await d.kod.hisobotHisob(h);
