@@ -765,14 +765,14 @@ function BahoTugmalari({ matn, tr }: { matn: string; tr: Tr }) {
     }
   }
   return (
-    <div className={u.baho} role="group" aria-label={tr('Javob foydali boʻldimi?', 'Ответ был полезен?')}>
-      <button type="button" className={`${u.bahoTugma} ${baho === 'yaxshi' ? u.bahoTanlangan : ''}`}
+    <div className={u.javobBaho} role="group" aria-label={tr('Javob foydali boʻldimi?', 'Ответ был полезен?')}>
+      <button type="button" className={`${u.javobBahoTugma} ${baho === 'yaxshi' ? u.javobBahoTanlangan : ''}`}
         aria-pressed={baho === 'yaxshi'} aria-label={tr('Foydali', 'Полезно')} title={tr('Foydali', 'Полезно')}
         disabled={band} onClick={() => void bos('yaxshi')}>👍</button>
-      <button type="button" className={`${u.bahoTugma} ${baho === 'yomon' ? u.bahoTanlangan : ''}`}
+      <button type="button" className={`${u.javobBahoTugma} ${baho === 'yomon' ? u.javobBahoTanlangan : ''}`}
         aria-pressed={baho === 'yomon'} aria-label={tr('Foydali emas', 'Не полезно')} title={tr('Foydali emas', 'Не полезно')}
         disabled={band} onClick={() => void bos('yomon')}>👎</button>
-      {baho && <span className={u.bahoRahmat} role="status">{tr('Rahmat — bahongiz yozildi', 'Спасибо — оценка записана')}</span>}
+      {baho && <span className={u.javobBahoRahmat} role="status">{tr('Rahmat — bahongiz yozildi', 'Спасибо — оценка записана')}</span>}
     </div>
   );
 }
