@@ -403,6 +403,8 @@ export function build(): FastifyInstance {
           : {}),
         erkinLlm: (k: ErkinSorov) =>
           erkinJavobBer({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, k),
+        // AI birinchi — faqat `LLM_AVVAL=1` (Gemini toʻlovi yoqilgach; Edge bilan bir xil).
+        erkinAvval: process.env.LLM_AVVAL === '1',
       }
       : {}),
   });

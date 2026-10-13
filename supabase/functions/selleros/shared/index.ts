@@ -22,6 +22,7 @@ export * from './bilim.ts';
 export * from './bilim-javob.ts';
 export * from './uzum-bilim.ts';
 export * from './yordamchi.ts';
+export * from './yozuv.ts';
 export * from './filtrlar/nakrutka.ts';
 export * from './filtrlar/ogir.ts';
 export * from './filtrlar/mavsum.ts';

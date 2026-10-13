@@ -73,3 +73,39 @@ describe('natija sonlari — identifikator va sarlavha DALIL EMAS', () => {
     expect(s).toEqual([95000, 30]);
   });
 });
+
+describe('kirill va rus (2026-10-13: yordamchi mijoz tilida javob beradi)', () => {
+  const q = (s: string) => raqamlar(s).map((r) => r.qiymat);
+
+  it('kirill koʻpaytuvchilar va son-soʻzlar songa aylanadi', () => {
+    expect(q('10 млн сўм')).toEqual([10_000_000]);
+    expect(q('5 тысяч')).toEqual([5_000]);
+    expect(q('3 миллиона')).toEqual([3_000_000]);
+    expect(q('20 минг')).toEqual([20_000]);
+    expect(q('йигирма минг')).toEqual([20_000]);
+    expect(q('икки юз')).toEqual([200]);
+    expect(q('двадцать процентов')).toEqual([20]);
+    expect(q('двести пятьдесят тысяч')).toEqual([250_000]);
+    expect(q('полтора миллиона')).toEqual([1_500_000]);
+  });
+
+  it('manbasiz kirill raqam tutiladi; manbadagisi oʻtadi', () => {
+    expect(tekshir('Многие начинают с 25 млн.', { matnlar: ['Сколько денег?'] }).ok).toBe(false);
+    expect(tekshir('Комиссия — двадцать процентов.').ok).toBe(false);
+    expect(tekshir('Комиссия всего 5 процентов.').ok).toBe(false);
+    expect(tekshir('Логистика — 5 250 сўм.', { matnlar: ['Logistika yig‘imi: 1 litrgacha — 5 250 so‘m'] }).ok).toBe(true);
+    expect(tekshir('Вы указали 10 млн сум.', { matnlar: ['10 000 000 soʻm'] }).ok).toBe(true);
+  });
+
+  it('kafolat va vaʼda — oʻzbek kirill va ruscha ham', () => {
+    expect(tekshir('Даромад кафолатланади.').taqiq).toContain('kafolat');
+    expect(tekshir('Мы гарантируем продажи.').taqiq).toContain('kafolat');
+    expect(tekshir('Товар точно продастся.').ok).toBe(false);
+    expect(tekshir('Албатта сотилади.').ok).toBe(false);
+  });
+
+  it('oddiy ruscha gap yolgʻon son boʻlmaydi («он» — olmosh, «ўн» emas)', () => {
+    expect(q('Он сказал, что это хороший товар.')).toEqual([]);
+    expect(tekshir('Он сказал, что это хороший товар.').ok).toBe(true);
+  });
+});

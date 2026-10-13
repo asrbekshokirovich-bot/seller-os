@@ -45,6 +45,7 @@ export const FAYLLAR = [
   ['packages/shared/src/bilim-javob.ts', 'shared/bilim-javob.ts'],
   ['packages/shared/src/uzum-bilim.ts', 'shared/uzum-bilim.ts'],
   ['packages/shared/src/yordamchi.ts', 'shared/yordamchi.ts'],
+  ['packages/shared/src/yozuv.ts', 'shared/yozuv.ts'],
   ['packages/shared/src/tarif.ts', 'shared/tarif.ts'],
   ['packages/shared/src/tolov.ts', 'shared/tolov.ts'],
   ['packages/shared/src/kpi.ts', 'shared/kpi.ts'],

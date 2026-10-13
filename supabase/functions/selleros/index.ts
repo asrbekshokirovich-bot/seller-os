@@ -415,6 +415,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           : {}),
         // Obunachi javob oʻrniga boshqa narsa yozsa — menejer javobi (tekshiruv bilan).
         erkinLlm: (k: ErkinSorov) => erkinJavobBer({ kalit, model: Deno.env.get('LLM_MODEL') }, k),
+        // AI birinchi: bazada javobi bor savol ham LLM ga (doʻstona, batafsil, mijoz tilida).
+        // FAQAT `LLM_AVVAL=1` boʻlsa — nazoratchi Gemini toʻlovini yoqqach (2026-10-13).
+        erkinAvval: Deno.env.get('LLM_AVVAL') === '1',
       } : {}),
     };
     if (req.method === 'GET') {

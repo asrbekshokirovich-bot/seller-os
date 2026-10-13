@@ -324,3 +324,52 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
     expect(b.holat()!.javoblar['ism']).toBe('Ilhom Hakimi');
   });
 });
+
+describe('yordamchi asosi (nazoratchi tanlovi, 2026-10-13 kechqurun)', () => {
+  it('erkin javob belgilanadi: manba — baza / shablon / ai (👍/👎 shu xabarlarga)', async () => {
+    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'pul qachon tushadi?' });
+    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
+    const s = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'ertaga ob-havo qanday?' });
+    expect(s.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'shablon' });
+    const a = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async () => 'Buni keyingi qadamda aniq hisoblaymiz. Qancha pul bilan boshlaymiz?'),
+      'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
+    expect(a.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
+    // Obunachi xabari belgisiz qoladi.
+    expect(a.xabarlar[0]!.javob).toBeUndefined();
+  });
+
+  it('AI birinchi (LLM_AVVAL): bazada javobi bor savol ham LLM ga — bazaviy javob `tayyor`, raqamlari darvozadan oʻtadi', async () => {
+    let kelgan: ErkinSorov | null = null;
+    const d: SuhbatBogliqliklari = {
+      ...bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => {
+        kelgan = k;
+        return 'Logistika yigʻimi 1 litrgacha boʻlgan tovar uchun 5 250 soʻm.\n\nXavotir olmang, hammasini 4-qadamda birga hisoblaymiz.';
+      }),
+      erkinAvval: true,
+    };
+    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: 'logistika qancha turadi?' });
+    expect(kelgan!.tayyor).toMatch(/5 250/);
+    expect(r.xabarlar[1]!.matn).toMatch(/^Logistika yigʻimi/);
+    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
+  });
+
+  it('AI birinchi: LLM yiqilsa — bazaviy javob oʻzi ketadi', async () => {
+    const d: SuhbatBogliqliklari = { ...bogliq(soxtaBaza(BYUDJET_HOLATI), async () => null), erkinAvval: true };
+    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: 'logistika qancha turadi?' });
+    expect(r.xabarlar[1]!.matn).toMatch(/5 250/);
+    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
+  });
+
+  it('oʻzbek kirillda savol — lotinda tushuniladi, javob oʻzbekcha (ruscha emas)', async () => {
+    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'Пул қачон тушади?' });
+    expect(r.xabarlar[0]!.matn).toBe('Пул қачон тушади?');
+    expect(r.xabarlar[1]!.matn).toMatch(/to‘lov jadvali/);
+    expect(r.xabarlar[1]!.matn).not.toMatch(/Сейчас вопрос/);
+  });
+
+  it('oʻzbek kirillda tugma nomi («ҳа») — oʻsha variant tanlanadi', async () => {
+    const b = soxtaBaza(TAJRIBA_HOLATI);
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'ҳа' });
+    expect(b.holat()!.javoblar['uzum_dokoni']).toBe('sotyapman');
+  });
+});

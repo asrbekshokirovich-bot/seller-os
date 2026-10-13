@@ -22,6 +22,7 @@ export * from './bilim.js';
 export * from './bilim-javob.js';
 export * from './uzum-bilim.js';
 export * from './yordamchi.js';
+export * from './yozuv.js';
 export * from './filtrlar/nakrutka.js';
 export * from './filtrlar/ogir.js';
 export * from './filtrlar/mavsum.js';
