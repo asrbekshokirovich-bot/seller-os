@@ -55,6 +55,7 @@ import { SHAHARLAR } from './savollar.ts';
 import type { OylikSoliq, RasmiyFaktlar } from './rasmiy.ts';
 import type { QabulFaktlar, QadoqQoidasi } from './qabul.ts';
 import { STUDIYA_CHIQISH, type SuratNomzodi, type SuratTalablari } from './studiya.ts';
+import type { KartochkaMatniNatijasi } from './kartochka-matn.ts';
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.ts';
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.ts';
 import { matndanSon, valyutami } from './tekshiruv.ts';
@@ -94,13 +95,15 @@ export interface AloqaJavoblari {
   phone: string | null;
 }
 
-/** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi. */
+/** Kod bajaradigan harakat — deterministik hisob. LLM chaqirmaydi (istisno: `kartochka_matni` — LLM yozadi, kod tekshiradi). */
 export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun' | 'qabul' | 'qabul_yakun'
   | 'studiya' | 'studiya_yakun' | 'yuklash' | 'yuklash_yakun'
   | 'sotuv' | 'hisobot' | 'hisobot_hisob' | 'hisobot_yakun'
   | 'usta_fikri' | 'kurs'
   // 2-qadam: «Yana koʻrsatish» sahifasi va istalgan tovar nomi bilan qidiruv (2026-10-13).
-  | 'yonalish_yana' | 'yonalish_qidiruv';
+  | 'yonalish_yana' | 'yonalish_qidiruv'
+  // 10-qadam: «Kartochka matnini yozib ber» (2026-10-13, `kartochka-matn.ts`).
+  | 'kartochka_matni';
 
 /**
  * Chatga xabar yozmaydigan kod harakatlari: natija faqat keyingi savol
@@ -626,6 +629,12 @@ function studiyaNatija(h: YolHolati): StudiyaNatijasi | null {
   return n ?? null;
 }
 
+/** «Kartochka matnini yozib ber» necha marta bosilgan (10-qadam). */
+function kartochkaSorovi(h: YolHolati): number {
+  const n = Number(h.javoblar['kartochka_matni'] ?? 0);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 function yuklashNatija(h: YolHolati): YuklashNatijasi | null {
   const n = h.natijalar.yuklash as YuklashNatijasi | undefined;
   return n ?? null;
@@ -916,6 +925,8 @@ export const YANGI_OY: readonly SuhbatVarianti[] = [
   { qiymat: 'boshlaymiz', nom: 'Boshlaymiz' },
 ];
 export const KARTOCHKA_YARATILDI: readonly SuhbatVarianti[] = [
+  // Javob emas — kartochka matni yoziladi va savol qayta chiqadi (`yoz`, 2026-10-13).
+  { qiymat: 'matn', nom: 'Kartochka matnini yozib ber' },
   { qiymat: 'yaratdim', nom: 'Yaratdim' },
   { qiymat: 'keyin', nom: 'Keyinroq' },
   { qiymat: 'boshqacha', nom: 'Kabinet boshqacha' },
@@ -1015,7 +1026,7 @@ function kartochkaMatni(n: YuklashNatijasi): string {
   const t = n.talablar;
   const talab = t.minEni !== null && t.minBoyi !== null ? `kamida ${t.minEni}×${t.minBoyi}` : 'ruxsat faktda yoʻq';
   const qoidalar = t.kartochkaQoidalari.length ? `${t.kartochkaQoidalari.length} ta qoida` : 'qoidalar faktda yoʻq';
-  return `Uzum kabinetida har tovar uchun kartochka yarating: nom, tavsif, xususiyatlar, VGT (oʻlcham va vazn) va 9-qadam suratlari — birinchisi tovarning old tomoni. Surat talabi: ${talab}, ${t.nisbat ?? 'nisbat faktda yoʻq'}, ${t.maxMb !== null ? `${t.maxMb} MB gacha` : 'hajm faktda yoʻq'}. Kartochka qoidalari (${qoidalar}) yuqoridagi kartada. Yaratdingizmi?`;
+  return `Uzum kabinetida har tovar uchun kartochka yarating: nom, tavsif, xususiyatlar, VGT (oʻlcham va vazn) va 9-qadam suratlari — birinchisi tovarning old tomoni. Surat talabi: ${talab}, ${t.nisbat ?? 'nisbat faktda yoʻq'}, ${t.maxMb !== null ? `${t.maxMb} MB gacha` : 'hajm faktda yoʻq'}. Kartochka qoidalari (${qoidalar}) yuqoridagi kartada. Nom va tavsifni oʻzbek va rus tilida yozib berishimni xohlasangiz — «Kartochka matnini yozib ber» ni bosing. Yaratdingizmi?`;
 }
 
 const som = (x: number | null | undefined): string => (x === null || x === undefined ? 'oʻlchanmagan' : `${minglik(Math.round(x))} soʻm`);
@@ -1183,6 +1194,24 @@ function deklaratsiyaMatni(n: HisobotHisobNatijasi, shakl: unknown): string {
 }
 
 /** Ochiq ishlar yakuni — 8/9/10-qadamlar uchun bir xil jumla. */
+/**
+ * 10-qadam: kartochka matni (`kartochka-matn.ts`) — chatdagi gap; matnlarning oʻzi
+ * kartada (nusxa olish tugmalari bilan). Yozilmagan tovarga — qolip va qoidalar.
+ */
+function kartochkaMatniTushuntir(n: KartochkaMatniNatijasi): string {
+  if (n.olchov_yoq) return `Kartochka matnini yoza olmadim: ${n.sabab ?? 'sabab nomaʼlum'}.`;
+  const jami = n.qatorlar.length;
+  const yozildi = n.qatorlar.filter((q) => q.matn !== null).length;
+  const qolgan = ' VGT (oʻlcham va vazn), MXIK kodi, brend va rang/oʻlcham variantlarini kabinetda oʻzingiz toʻldirasiz.';
+  if (yozildi === jami) {
+    return `Kartochka matni tayyor: ${jami} ta tovar uchun nom, qisqa tavsif va tavsif — oʻzbek va rus tilida, Uzum qoidalari bilan tekshirildi. Pastda nusxa olib, kabinetga qoʻying.${qolgan}`;
+  }
+  if (yozildi === 0) {
+    return 'Hozir kartochka matnini yoza olmadim — sunʼiy intellekt ishlamadi yoki matn Uzum qoidalaridan oʻtmadi. Pastda har tovar uchun qolip va qoidalar bor: matnni shu qolip bilan yozing yoki «Kartochka matnini yozib ber» ni keyinroq yana bosing.';
+  }
+  return `Kartochka matni ${yozildi} ta tovar uchun tayyor; ${jami - yozildi} tasiga hozir yoza olmadim — ularga qolip va qoidalar pastda.${qolgan}`;
+}
+
 function ochiqIshlarMatni(n: QabulYakunNatijasi, bosqich: string): string {
   const y = n.yozildi ?? [];
   const royxat = y.map((x) => `${x.sabab}${x.muddat ? ` (${sanaMatni(x.muddat)} gacha)` : ''}`).join('; ');
@@ -1310,7 +1339,7 @@ const HARAKAT_QADAMI: Readonly<Record<KodHarakati, number>> = {
   yonalishlar: 2, tovarlar: 3, tannarx: 4, xitoy: 5, buyurtma: 6, ochiq_ish: 6, rasmiy: 7, rasmiy_yakun: 7,
   qabul: 8, qabul_yakun: 8, studiya: 9, studiya_yakun: 9, yuklash: 10, yuklash_yakun: 10,
   sotuv: 11, hisobot: 12, hisobot_hisob: 12, hisobot_yakun: 12,
-  usta_fikri: 4, kurs: 1, yonalish_yana: 2, yonalish_qidiruv: 2,
+  usta_fikri: 4, kurs: 1, yonalish_yana: 2, yonalish_qidiruv: 2, kartochka_matni: 10,
 };
 
 /**
@@ -1723,6 +1752,10 @@ export function keyingi(h: YolHolati): Keyingi {
   // raqamni beramiz. "Boshqacha" — tekshirish ishi (sayt oʻzgargan).
   const ykn = yuklashNatija(h);
   if (ykn === null) return { tur: 'kod', harakat: 'yuklash', qadam: 10 };
+  // «Kartochka matnini yozib ber» bosilgan, matn hali yozilmagan — kod (LLM + qoida tekshiruvi).
+  if (kartochkaSorovi(h) > ((h.natijalar.kartochka_matni as { sorov?: number } | undefined)?.sorov ?? 0)) {
+    return { tur: 'kod', harakat: 'kartochka_matni', qadam: 10 };
+  }
   if (!berilgan(h, 'kartochka_yaratildi')) {
     return { tur: 'savol', savol: savol('kartochka_yaratildi', 10, kartochkaMatni(ykn), 'tanlov', { variantlar: KARTOCHKA_YARATILDI, otkazishMumkin: true }) };
   }
@@ -1997,6 +2030,11 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
     return { holat: { javoblar: yangi, natijalar }, xato: null, profil: null };
   }
 
+  // «Kartochka matnini yozib ber» — javob emas: soʻrov sanogʻi oshadi, kod matn
+  // yozadi va «Yaratdingizmi?» savoli qayta chiqadi (qayta bosilsa — yangidan yoziladi).
+  if (s.id === 'kartochka_yaratildi' && qiymat === 'matn') {
+    return { holat: { ...h, javoblar: { ...h.javoblar, kartochka_matni: kartochkaSorovi(h) + 1 } }, xato: null, profil: null };
+  }
   // «Yana koʻrsatish» — yoʻnalish tanlanmaydi, navbatdagi sahifa chiqadi.
   if (s.id === 'yonalish' && qiymat === 'yana') {
     const yangi = { ...h.javoblar, yonalish_sahifa: yonalishSahifasi(h) + 1 };
@@ -2327,6 +2365,7 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
       + (f.manba ? ` Manba: ${f.manba}${f.olchandi ? ` (${sanaMatni(f.olchandi)})` : ''}.` : '');
   }
   if (harakat === 'yuklash_yakun') return ochiqIshlarMatni(natija as QabulYakunNatijasi, 'Yuklash');
+  if (harakat === 'kartochka_matni') return kartochkaMatniTushuntir(natija as KartochkaMatniNatijasi);
   if (harakat === 'sotuv') {
     const n = natija as SotuvNatijasi;
     if (n.olchov_yoq) return `Sotuv oʻlchovini oʻqiy olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Bu "sotuv yoʻq" degani EMAS.`;

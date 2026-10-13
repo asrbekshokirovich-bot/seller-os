@@ -25,6 +25,8 @@
  * yo'q, model 429 dedi — hammasida oqim to'xtamaydi.
  */
 
+import type { KartochkaMatni } from './kartochka-matn.ts';
+
 export interface LlmSozlama {
   kalit: string | null | undefined;
   model?: string | null | undefined;
@@ -98,8 +100,35 @@ export const ERKIN_KORSATMA = [
   '- Faqat javob matnini qaytar: markdown, sarlavha, yulduzcha, roʻyxat belgisi yoʻq.',
 ].join('\n');
 
-/** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). */
-async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low'): Promise<string | null> {
+/**
+ * Kartochka matni (10-qadam, «Kartochka matnini yozib ber»; nazoratchi,
+ * 2026-10-13). Javob — faqat JSON. Natija `kartochka-matn.ts` da Uzum
+ * qoidalari va raqam darvozasidan oʻtadi; oʻtmasa sababi bilan qayta soʻraladi.
+ */
+export const KARTOCHKA_KORSATMA = [
+  'Sen Uzum marketpleysi uchun tovar kartochkasi matnini yozasan. Sotuvchi tovarni Xitoydan (1688) olib kelib Uzumda',
+  'sotmoqchi. Senga yoʻnalish nomi, Uzumdagi oʻxshash (namuna) tovar nomi va 1688 taklifi nomi (xitoycha) beriladi.',
+  'Namuna nomini nusxalama — undan va 1688 nomidan tovar nima ekanini tushunib, oʻz matningni yoz.',
+  '',
+  'UZUM QOIDALARI (qoʻllanma 5.1):',
+  '- Nom sxemasi: tovar turi + brend + model + muhim tavsif; kamida 3 soʻz. Brend yoki model nomaʼlum boʻlsa — ularsiz',
+  'yoz, oʻylab topma.',
+  '- Har maydon ikki tilda: oʻzbek (lotin yozuvi) va rus (kirill).',
+  '- Taqiqlangan: aksiya, bepul, buyurtma berish, sotib olish, keshbek, yangilik/new, asl nusxa/original, sotuv/sale,',
+  'chegirma, trend, top, xit, «eng arzon», «eng yaxshi», «1-raqamli» va har qanday qiyosiy maqtov; emoji, KATTA HARFLAR,',
+  '«!!!»; sharh, reyting, buyurtmalar soni, kontakt, havola.',
+  '- Nomda faqat: harf, raqam, boʻsh joy va , . : ; - – ( ) / “ ” % x * belgilari («» ishlatma).',
+  '- Raqam (oʻlcham, hajm, dona, foiz) FAQAT berilgan nomlardan. Raqam yoki xususiyat nomaʼlum boʻlsa — yozma, oʻylab topma.',
+  '- Qisqa tavsif — 1 jumla. Tavsif — 3–5 jumla: tovar nima, kim uchun, qanday ishlatiladi. Vaʼda va kafolat yoʻq.',
+  '',
+  'JAVOB faqat JSON, izohsiz:',
+  '{"nom_uz": "...", "nom_ru": "...", "qisqa_uz": "...", "qisqa_ru": "...", "tavsif_uz": "...", "tavsif_ru": "..."}',
+].join('\n');
+
+/** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). `json` — javob JSON boʻlsin. */
+async function gemini(
+  s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low', json = false,
+): Promise<string | null> {
   // Sirni nusxalashda qolgan boʻsh joy/yangi qator kalitni buzmasin.
   const kalit = s.kalit?.trim();
   if (!kalit || !matn.trim()) return null;
@@ -122,6 +151,7 @@ async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: stri
           // ni bilmaydi (rad etadi) — ularga yuborilmaydi.
           generationConfig: {
             maxOutputTokens: 2048,
+            ...(json ? { responseMimeType: 'application/json' } : {}),
             ...(/^gemini-[12]\./.test(model) ? {} : { thinkingConfig: { thinkingLevel: fikr } }),
           },
         }),
@@ -184,4 +214,33 @@ export async function erkinJavobBer(
   ].filter(Boolean).join('\n');
   // Bilim va holat bilan javob uzunroq oʻylanadi — chegara 8 emas, 14 soniya.
   return gemini({ ...s, vaqtMs: s.vaqtMs ?? 14_000 }, ERKIN_KORSATMA, matn, 'erkin', 'low');
+}
+
+/**
+ * Kartochka matni (`kartochka-matn.ts`). `null` — ishlamadi yoki JSON buzuq:
+ * qolip koʻrsatiladi. Maydonlar faqat satr boʻlsa qabul qilinadi.
+ */
+export async function kartochkaYozBer(
+  s: LlmSozlama,
+  k: { namuna: string; turkum: string | null; xitoy: string | null; tuzat?: string | null },
+): Promise<KartochkaMatni | null> {
+  const matn = [
+    `YOʻNALISH (Uzum turkumi): ${k.turkum ?? 'nomaʼlum'}`,
+    `UZUMDAGI NAMUNA TOVAR NOMI: ${k.namuna}`,
+    `1688 TAKLIFI NOMI (xitoycha): ${k.xitoy ?? 'yoʻq'}`,
+    k.tuzat ? `OLDINGI MATNING QAYTARILDI: ${k.tuzat}. Shularsiz qayta yoz.` : null,
+  ].filter(Boolean).join('\n');
+  const javob = await gemini({ ...s, vaqtMs: s.vaqtMs ?? 20_000 }, KARTOCHKA_KORSATMA, matn, 'kartochka', 'low', true);
+  if (!javob) return null;
+  try {
+    const j = JSON.parse(javob.replace(/^```(?:json)?\s*|\s*```$/gu, '')) as Record<string, unknown>;
+    const m = {
+      nomUz: j.nom_uz, nomRu: j.nom_ru, qisqaUz: j.qisqa_uz, qisqaRu: j.qisqa_ru, tavsifUz: j.tavsif_uz, tavsifRu: j.tavsif_ru,
+    };
+    if (!Object.values(m).every((v) => typeof v === 'string' && v.trim())) return null;
+    return Object.fromEntries(Object.entries(m).map(([kk, v]) => [kk, (v as string).trim()])) as unknown as KartochkaMatni;
+  } catch {
+    console.warn('llm kartochka: JSON emas');
+    return null;
+  }
 }

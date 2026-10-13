@@ -152,6 +152,7 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       studiyaYakun: async () => YAKUN_N,
       yuklash: async () => YUKLASH_N,
       yuklashYakun: async () => YAKUN_N,
+      kartochkaMatni: async (h: YolHolati) => ({ olchov_yoq: false, qatorlar: [], sorov: Number(h.javoblar['kartochka_matni'] ?? 0), izoh: '' }),
       sotuv: async () => SOTUV_N,
       hisobot: async () => HISOBOT_N,
       hisobotHisob: async () => HISOBOT_HISOB_N,

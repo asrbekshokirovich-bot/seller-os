@@ -44,3 +44,4 @@ export * from './hisobot.ts';
 export * from './sotuv.ts';
 export * from './xizmat.ts';
 export * from './kartochka.ts';
+export * from './kartochka-matn.ts';

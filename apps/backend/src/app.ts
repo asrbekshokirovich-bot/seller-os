@@ -18,6 +18,7 @@ import {
   demping,
   erkinJavobBer,
   javobniBahola,
+  kartochkaYozBer,
   odamlashtir,
   suhbatBoshdan,
   suhbatOqi,
@@ -396,7 +397,10 @@ export function build(): FastifyInstance {
     tarifCheklovi: tarifCheklovi(),
     kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
-        studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null } }),
+        studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
+        ...(process.env.GEMINI_API_KEY
+          ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, k) }
+          : {}) }),
     ...(process.env.GEMINI_API_KEY
       ? {
         // Kod jumlasini qayta aytish — faqat `LLM_ODAMLASHTIR=1` (2026-10-13: bepul limit savollarga qoladi).

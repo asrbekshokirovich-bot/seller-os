@@ -1949,3 +1949,56 @@
   .yuborMatn { display: none; }
   .yubor { width: 44px; padding: 0; }
 }
+
+/* 10-qadam: kartochka matni (2026-10-13) — Uzum nomi uzun boʻladi: sarlavha kichikroq. */
+.kartochkaSarlavha {
+  font-family: var(--onest);
+  font-size: 15px;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.nusxaMaydon { margin-top: 14px; }
+
+.nusxaBosh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nusxaNom {
+  font-size: 12.5px;
+  color: var(--xira);
+}
+
+.nusxaTugma {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--chiziq);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.nusxaTugma:hover {
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  color: var(--acc);
+}
+
+.nusxaMatn {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--kart2);
+  box-shadow: inset 0 0 0 1px var(--chiziq);
+  font-size: 14.5px;
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
