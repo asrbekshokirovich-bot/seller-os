@@ -37,6 +37,7 @@ import { bilimJavobi, PUL_GAPI } from './bilim-javob.ts';
 import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.ts';
 import type { ProfilJavoblari } from './profil.ts';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.ts';
+import { ruschami, tushunishUchun } from './yozuv.ts';
 
 export interface SuhbatXabari {
   rol: 'obunachi' | 'menejer' | 'kod';
@@ -99,7 +100,23 @@ export interface SuhbatBogliqliklari {
    * javobi (LLM). `null` — ishlatilmadi, kod shabloni ketadi.
    */
   erkinLlm?: (k: ErkinSorov) => Promise<string | null>;
+  /**
+   * AI BIRINCHI (env `LLM_AVVAL=1`). Yoqilsa — javobi bazada bor savol ham
+   * LLM ga boradi: bazaviy javob unga `tayyor` boʻlib beriladi va u uni
+   * doʻstona, batafsil, mijoz tilida aytadi (nazoratchi, 2026-10-13). Oʻchiq
+   * boʻlsa — bazada javobi bor savolga LLM chaqirilmaydi (bepul limit
+   * tejaladi). Nazoratchi Gemini toʻlovini yoqqach yoqiladi.
+   */
+  erkinAvval?: boolean;
 }
+
+/**
+ * Erkin javob qayerdan: `ai` — LLM yozdi va darvozadan oʻtdi; `baza` —
+ * koddagi tayyor javob yoki bilim bazasi; `shablon` — umumiy gap (sabab,
+ * "hozir aniq javob bera olmayman"). Menejer xabarining `javob` ida
+ * `{erkin: true, manba}` boʻlib yoziladi — 👍/👎 bahosi shu xabarlarga.
+ */
+export type ErkinManba = 'ai' | 'baza' | 'shablon';
 
 /** Erkin xabar uchun LLM ga beriladigan narsa — faqat shu, boshqa maʼlumot yoʻq. */
 export interface ErkinSorov {
@@ -245,8 +262,9 @@ export async function suhbatTurn(
     // holda "60 kunlik" 60 dona boʻlib ketardi (tugma — 90 dona). Faqat raqam
     // ("30") — oʻsha son, tugma emas.
     const tugmaMatni = k0.savol.turi === 'tanlov' || (k0.savol.turi === 'son' && yozgan !== null && /\p{L}/u.test(yozgan));
+    // Oʻzbek kirillda yozsa ("ҳа", "йўқ") — tugma nomi lotinda: tushunish uchun lotinga oʻgiriladi.
     const tanlanganVariant = yozgan !== null && !savolBerdi && tugmaMatni
-      ? variantniTop(k0.savol.variantlar, yozgan) : undefined;
+      ? variantniTop(k0.savol.variantlar, tushunishUchun(yozgan)) : undefined;
     const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom);
     if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
       return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null, o.xabarlar ?? []);
@@ -455,9 +473,12 @@ const ERKIN_MAX = 500;
  *     adashmasin: "ismi", "hajmi", "rasmi", "jami", "nomi" — savol emas.
  *
  * Ism va telefon savolida faqat eski qat'iy qoida: ism "…mi" bilan tugashi mumkin.
+ *
+ * Oʻzbek kirill matni ("Бу нима?", "пул қачон тушади") avval lotinga
+ * oʻgiriladi — soʻroq soʻzlari va qoʻshimchalari lotinda tekshiriladi.
  */
 function savolmi(t: string, savolId: string | null = null): boolean {
-  const s = t.toLowerCase().replace(/[ʻʼ‘’`]/gu, "'");
+  const s = tushunishUchun(t).toLowerCase().replace(/[ʻʼ‘’`]/gu, "'");
   if (/[?？]\s*$/u.test(s)) return true;
   if (/^(nima|nimaga|nega|qanday|qancha|qachon|qayer\p{L}*|qaysi|kim|nechta|necha|что|как|почему|зачем|сколько|когда|где|какой|какая|какие)(\s|$)/iu.test(s)) return true;
   if (savolId !== null && SHAXSIY_SAVOLLAR.has(savolId)) return false;
@@ -534,9 +555,18 @@ function sababRu(sabab: string): string {
   return 'Ответ не подошёл.';
 }
 
-/** Obunachi rus tilida yozdimi (kirill harflari). */
-function ruschami(matn: string): boolean {
-  return /[\u0400-\u04FF]/u.test(matn);
+/** Erkin javob va uning manbasi (`ErkinManba`). */
+interface ErkinNatija { matn: string; manba: ErkinManba }
+
+/**
+ * Bazadagi javob (LLM siz): koddagi tayyor javob (`erkin.ts`) yoki bilim
+ * bazasi (`bilim-javob.ts`). `t` — tushunish uchun matn (oʻzbek kirill —
+ * lotinda). Rad etilgan javobda (sabab bor) bilim izlanmaydi: avval sabab.
+ */
+function bazaJavobi(t: string, ruscha: boolean, savolId: string, sabab: string | null, h: YolHolati | null): string | null {
+  const tj = tayyorJavob(t);
+  if (tj) return ruscha ? tj.ru : tj.uz;
+  return !sabab && !ruscha ? bilimJavobi(t, savolId, h) : null;
 }
 
 /**
@@ -544,49 +574,65 @@ function ruschami(matn: string): boolean {
  * keyin koʻp soʻraladigan savolga TAYYOR javob (`erkin.ts`), boʻlmasa
  * nega javob qabul qilinmagani, oxirida joriy savol. Variantlar va
  * «Oʻtkazib yuborish» qaytarilmaydi — ular pastda tugma boʻlib turibdi.
+ *
+ * Oʻzbek kirillda yozsa — lotinda tushuniladi va javob oʻzbekcha (lotin)
+ * chiqadi; ilgari kirill matnning hammasiga ruscha javob ketardi.
  */
-function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null, h: YolHolati | null = null): string {
+function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null, h: YolHolati | null = null): ErkinNatija {
   const ruscha = ruschami(matn);
+  const t = tushunishUchun(matn);
   // Salom — butun soʻz: "hisob…" "hi" bilan boshlanadi, lekin salomlashish emas.
-  const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)(?!\p{L})/iu.test(matn);
-  const tayyor = tayyorJavob(matn);
+  const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)(?!\p{L})/iu.test(t);
+  const tayyor = tayyorJavob(t);
   const savol = qisqaSavol(s.matn);
   // Bilimdan javob (`bilim-javob.ts`): LLM ishlamasa ham "ball nima?", "pul
   // qachon tushadi?" kabi savolga aniq javob — jonli sinovda (2026-10-13)
   // Gemini limiti tugab, 33 savoldan 22 tasiga "javob bera olmayman" chiqqan edi.
-  const bilim = !tayyor && !sabab && !ruscha ? bilimJavobi(matn, s.id, h) : null;
-  if (bilim) return [salom ? 'Vaalaykum assalom!' : null, bilim, `Hozirgi savol: «${savol}»`].filter(Boolean).join(' ');
+  const bilim = !tayyor && !sabab && !ruscha ? bilimJavobi(t, s.id, h) : null;
+  if (bilim) {
+    return { matn: [salom ? 'Vaalaykum assalom!' : null, bilim, `Hozirgi savol: «${savol}»`].filter(Boolean).join(' '), manba: 'baza' };
+  }
   // Byudjet savolida maslahat soʻradi ("80 mlnmi, 100 mlnmi?") — LLM boʻlmasa
   // ham umumiy maslahat (`bilim.ts`, raqamsiz); summalari tugma boʻlib chiqadi.
   // Faqat PUL haqidagi gapda: "kanstovar bilan kiyimdan qaysi biri osonroq?" ga pul maslahati
   // chiqib ketardi (jonli sinov, 2026-10-13).
-  if (s.id === 'byudjet' && !sabab && !tayyor && PUL_GAPI.test(matn.toLowerCase().replace(/[ʻʼ‘’`]/gu, "'"))) {
-    return ruscha
-      ? [salom ? 'Здравствуйте!' : null,
-        'Мой совет: не вкладывайте все деньги в первую партию — оставьте часть в запасе: пока товар приедет, продастся и '
-        + 'деньги вернутся, пройдёт время, а будут реклама, возвраты и непредвиденные расходы. Сколько нужно на старт, '
-        + 'покажу на следующем шаге для каждого направления.', `Сейчас вопрос: «${savol}»`].filter(Boolean).join(' ')
-      : [salom ? 'Vaalaykum assalom!' : null,
-        'Maslahatim: hamma pulni birinchi partiyaga tikmang — bir qismini zaxirada qoldiring: tovar kelib, sotilib, pul '
-        + 'qaytguncha vaqt oʻtadi, reklama, qaytgan tovar va kutilmagan xarajatlar ham chiqadi. Boshlash uchun qancha '
-        + 'kerakligini keyingi qadamda har yoʻnalish uchun koʻrsataman.', `Hozirgi savol: «${savol}»`].filter(Boolean).join(' ');
+  if (s.id === 'byudjet' && !sabab && !tayyor && PUL_GAPI.test(t.toLowerCase().replace(/[ʻʼ‘’`]/gu, "'"))) {
+    return {
+      manba: 'baza',
+      matn: ruscha
+        ? [salom ? 'Здравствуйте!' : null,
+          'Мой совет: не вкладывайте все деньги в первую партию — оставьте часть в запасе: пока товар приедет, продастся и '
+          + 'деньги вернутся, пройдёт время, а будут реклама, возвраты и непредвиденные расходы. Сколько нужно на старт, '
+          + 'покажу на следующем шаге для каждого направления.', `Сейчас вопрос: «${savol}»`].filter(Boolean).join(' ')
+        : [salom ? 'Vaalaykum assalom!' : null,
+          'Maslahatim: hamma pulni birinchi partiyaga tikmang — bir qismini zaxirada qoldiring: tovar kelib, sotilib, pul '
+          + 'qaytguncha vaqt oʻtadi, reklama, qaytgan tovar va kutilmagan xarajatlar ham chiqadi. Boshlash uchun qancha '
+          + 'kerakligini keyingi qadamda har yoʻnalish uchun koʻrsataman.', `Hozirgi savol: «${savol}»`].filter(Boolean).join(' '),
+    };
   }
+  const manba: ErkinManba = tayyor ? 'baza' : 'shablon';
   // Javob oʻtmagan boʻlsa — avval nega oʻtmagani, keyin (boʻlsa) tayyor javob:
   // obunachi javobi nega qabul qilinmaganini bilishi kerak.
   if (ruscha) {
-    return [
-      salom ? 'Здравствуйте!' : null,
-      sabab ? `Не получилось принять ответ: ${sababRu(sabab)}` : null,
-      tayyor ? tayyor.ru : sabab ? null : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
-      `Сейчас вопрос: «${savol}»`,
-    ].filter(Boolean).join(' ');
+    return {
+      manba,
+      matn: [
+        salom ? 'Здравствуйте!' : null,
+        sabab ? `Не получилось принять ответ: ${sababRu(sabab)}` : null,
+        tayyor ? tayyor.ru : sabab ? null : 'На этот вопрос сейчас точно не отвечу — я веду вас по шагам.',
+        `Сейчас вопрос: «${savol}»`,
+      ].filter(Boolean).join(' '),
+    };
   }
-  return [
-    salom ? 'Vaalaykum assalom!' : null,
-    sabab ? gap(sabab) : null,
-    tayyor ? tayyor.uz : sabab ? null : 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
-    `Hozirgi savol: «${savol}»`,
-  ].filter(Boolean).join(' ');
+  return {
+    manba,
+    matn: [
+      salom ? 'Vaalaykum assalom!' : null,
+      sabab ? gap(sabab) : null,
+      tayyor ? tayyor.uz : sabab ? null : 'Bu savolingizga hozir aniq javob bera olmayman — men sizni yoʻl boʻyicha olib boryapman.',
+      `Hozirgi savol: «${savol}»`,
+    ].filter(Boolean).join(' '),
+  };
 }
 
 /**
@@ -596,37 +642,44 @@ function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null
  * mijoz holati va oxirgi xabarlar (`yordamchi.ts`, shaxsiy maʼlumotsiz).
  * Raqam faqat shulardan: darvoza oʻtkazmasa — sababi bilan BIR MARTA qayta
  * soʻraladi (ilgari darrov "aniq javob bera olmayman" shabloni chiqardi).
+ *
+ * Javobi bazada bor savol: `erkinAvval` oʻchiq boʻlsa LLM chaqirilmaydi
+ * (bepul limit); yoqilgan boʻlsa bazaviy javob LLM ga `tayyor` boʻlib
+ * beriladi — u uni mijoz tilida, doʻstona va batafsil aytadi. LLM yiqilsa
+ * yoki darvozadan oʻtmasa — bazaviy javob oʻzi ketadi.
  */
 async function erkinJavob(
   d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null,
   h: YolHolati, xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>,
-): Promise<string> {
+): Promise<ErkinNatija> {
   const shablon = erkinShablon(s, matn, sabab, h);
   // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
   if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
-  const tj = tayyorJavob(matn);
-  // Javobi bazada bor savol (tayyor javob yoki `bilim-javob.ts`) — LLM CHAQIRILMAYDI
-  // (nazoratchi, 2026-10-13, "ha qil"): bepul Gemini limiti kunlik va kichik, u
-  // bazada javobi yoʻq savollarga qolsin. Bazaviy javob aniq va manbasi bilan.
-  if (tj || (!sabab && !ruschami(matn) && bilimJavobi(matn, s.id, h))) return shablon;
+  const t = tushunishUchun(matn);
+  const baza = bazaJavobi(t, ruschami(matn), s.id, sabab, h);
+  // Javobi bazada bor savol — AI birinchi rejimi oʻchiq boʻlsa LLM CHAQIRILMAYDI
+  // (nazoratchi, 2026-10-13, "ha qil"): bepul Gemini limiti kunlik va kichik,
+  // u bazada javobi yoʻq savollarga qolsin. Bazaviy javob aniq va manbasi bilan.
+  if (baza && !d.erkinAvval) return shablon;
   const variantlar = s.variantlar.map((v) => v.nom);
   const holat = mijozHolati(h, s.qadam);
   const tarix = suhbatTarixi(xabarlar, h);
   // Bilim — asos va FAQAT savolga tegishli Uzum faktlari (`yordamchiBilimi`), hammasi emas.
-  const bilim = yordamchiBilimi(matn);
-  // Tayyor javobi bor savol bu yerga yetmaydi (yuqorida qaytdi) — LLM ga tayyor javob berilmaydi.
-  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: null, bilim, holat, tarix };
-  // Raqam faqat savol, tugmalar, sabab, bilim, mijoz holati, suhbat va obunachining oʻz matnidan; kafolat — taqiq.
-  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, holat, tarix], sonlar: [] };
+  const bilim = yordamchiBilimi(t);
+  // LLM ga asl matn ketadi — mijoz yozuvida (lotin, kirill, rus) javob bersin.
+  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: baza, bilim, holat, tarix };
+  // Raqam faqat savol, tugmalar, sabab, bilim, bazaviy javob, mijoz holati, suhbat va obunachining
+  // oʻz matnidan; kafolat — taqiq.
+  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, baza ?? '', holat, tarix], sonlar: [] };
   let tuzat: string | null = null;
   for (let urinish = 0; urinish < 2; urinish++) {
     const taklif = await d.erkinLlm({ ...sorov, tuzat }).catch(() => null);
     if (!taklif) return shablon;
-    const t = tekshir(taklif, manba);
-    if (t.ok) return taklif;
+    const tk = tekshir(taklif, manba);
+    if (tk.ok) return { matn: taklif, manba: 'ai' };
     tuzat = [
-      t.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${t.dalilsiz.join(', ')}.` : null,
-      t.taqiq.length ? `taqiqlangan gap: ${t.taqiq.join(', ')}.` : null,
+      tk.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
+      tk.taqiq.length ? `taqiqlangan gap: ${tk.taqiq.join(', ')}.` : null,
     ].filter(Boolean).join(' ');
   }
   return shablon;
@@ -651,7 +704,8 @@ async function erkinXabar(
   }
   const yangi: SuhbatXabari[] = [
     { rol: 'obunachi', matn },
-    { rol: 'menejer', matn: javob, savolId: k0.savol.id },
+    // `javob` — bu erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
+    { rol: 'menejer', matn: javob.matn, savolId: k0.savol.id, javob: { erkin: true, manba: javob.manba } },
   ];
   const qadam = joriyQadam(holat);
   const y = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {

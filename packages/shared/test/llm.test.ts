@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { erkinJavobBer, odamlashtir } from '../src/llm';
+import { ERKIN_KORSATMA, erkinJavobBer, odamlashtir } from '../src/llm';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Record<string, string> }
 
@@ -57,5 +57,23 @@ describe('gemini soʻrovi', () => {
     expect(await odamlashtir({ kalit: 'K', fetchFn: soxtaFetch({ status: 404, json: { error: { status: 'NOT_FOUND', message: 'model' } } }, y) }, 'x')).toBeNull();
     expect(await odamlashtir({ kalit: 'K', fetchFn: soxtaFetch({ json: { candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [] } }] } }, y) }, 'x')).toBeNull();
     expect(await odamlashtir({ kalit: '', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'x')).toBeNull();
+  });
+});
+
+describe('yordamchi feʼl-atvori (nazoratchi tanlovi, 2026-10-13)', () => {
+  it('koʻrsatma: doʻstona, batafsil, oʻzi maslahat beradi, mijoz tili va yozuvi, bilmasa — umumiy maslahat, rostgoʻy', () => {
+    expect(ERKIN_KORSATMA).toMatch(/Doʻstona/);
+    expect(ERKIN_KORSATMA).toMatch(/Batafsil: 4–8 jumla/);
+    expect(ERKIN_KORSATMA).toMatch(/soʻramasa ham/);
+    expect(ERKIN_KORSATMA).toMatch(/oʻzbek kirill/);
+    expect(ERKIN_KORSATMA).toMatch(/aniq bilmayman.*umumiy maslahat/su);
+    expect(ERKIN_KORSATMA).toMatch(/odam emasman/);
+  });
+
+  it('bazaviy javob soʻrovga «maʼnosi va raqamlarini saqlab» deb qoʻshiladi', async () => {
+    const y: Yozuv[] = [];
+    await erkinJavobBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) },
+      { savol: 'S', variantlar: [], xabar: 'X', sabab: null, tayyor: 'Logistika — 5 250 soʻm', bilim: 'B' });
+    expect(JSON.stringify(y[0]!.tana)).toMatch(/TAYYOR JAVOB \(maʼnosi va raqamlarini saqlab/);
   });
 });

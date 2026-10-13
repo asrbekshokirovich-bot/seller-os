@@ -19,13 +19,24 @@
  * 20000): aks holda raqamni so'z bilan yozish darvozani chetlab
  * o'tish yo'li bo'lardi. Bu jonli o'lchangan teshik (zumsavdo,
  * 2026-09-22).
+ *
+ * KIRILL VA RUS (2026-10-13). Yordamchi endi mijoz yozgan tilda javob
+ * beradi (nazoratchi): oʻzbek kirill va rus. Darvoza faqat lotinni bilsa,
+ * "10 млн" 10 deb (erkin sanoq), "двадцать процентов" esa umuman son
+ * emas deb oʻqilardi — manbasiz raqam darvozadan oʻtib ketardi. Endi
+ * kirill koʻpaytuvchilar, oʻzbek kirill va rus son-soʻzlari, kirill
+ * birliklari va kafolat iboralari ham tanilad.
  */
 
-const KOP = new Map<string, number>([
-  ['ming', 1_000], ['mingta', 1_000],
-  ['mln', 1_000_000], ['million', 1_000_000],
-  ['mlrd', 1_000_000_000], ['milliard', 1_000_000_000],
-]);
+/** Raqamdan keyingi koʻpaytuvchi (lotin, oʻzbek kirill, rus). */
+function kopaytuvchi(soz: string | undefined): number | undefined {
+  if (!soz) return undefined;
+  const s = soz.toLowerCase();
+  if (/^(ming|минг|тыс)/u.test(s)) return 1_000;
+  if (/^(mln|million|млн|миллион)/u.test(s)) return 1_000_000;
+  if (/^(mlrd|milliard|млрд|миллиард)/u.test(s)) return 1_000_000_000;
+  return undefined;
+}
 
 const SOZ_BIR = new Map<string, number>([
   ['nol', 0], ['bir', 1], ['ikki', 2], ['uch', 3], ['tort', 4], ['besh', 5],
@@ -40,8 +51,63 @@ const SOZ_KOP = new Map<string, number>([
   ['milliard', 1_000_000_000], ['mlrd', 1_000_000_000],
 ]);
 
-/** Sondan keyingi DA'VO birligi: "3 qadam" sanoq, "3% komissiya" da'vo. */
-const DAVO_BIRLIK = /^[^0-9]{0,10}?(%|foiz|dona|so[\u02bb'\u2018\u2019]?m\b|som\b|usd|dollar|kg\b|gramm)/i;
+/** O\u02bbzbek kirill son-so\u02bbzlari (qo\u02bbshimchasiz). \u00ab\u044e\u0437\u00bb \u2014 lotindagi \u00abyuz\u00bb kabi ko\u02bbpaytiradi. */
+const KIR_SON = new Map<string, number>([
+  ['\u043d\u043e\u043b', 0], ['\u0431\u0438\u0440', 1], ['\u0438\u043a\u043a\u0438', 2], ['\u0443\u0447', 3], ['\u0442\u045e\u0440\u0442', 4], ['\u0442\u0443\u0440\u0442', 4], ['\u0431\u0435\u0448', 5], ['\u043e\u043b\u0442\u0438', 6], ['\u0435\u0442\u0442\u0438', 7],
+  ['\u0441\u0430\u043a\u043a\u0438\u0437', 8], ['\u0442\u045e\u049b\u049b\u0438\u0437', 9], ['\u0442\u0443\u043a\u043a\u0438\u0437', 9], ['\u045e\u043d', 10], ['\u0443\u043d', 10], ['\u0439\u0438\u0433\u0438\u0440\u043c\u0430', 20], ['\u045e\u0442\u0442\u0438\u0437', 30], ['\u0443\u0442\u0442\u0438\u0437', 30],
+  ['\u049b\u0438\u0440\u049b', 40], ['\u043a\u0438\u0440\u043a', 40], ['\u044d\u043b\u043b\u0438\u043a', 50], ['\u043e\u043b\u0442\u043c\u0438\u0448', 60], ['\u0435\u0442\u043c\u0438\u0448', 70], ['\u0441\u0430\u043a\u0441\u043e\u043d', 80], ['\u0442\u045e\u049b\u0441\u043e\u043d', 90], ['\u0442\u0443\u043a\u0441\u043e\u043d', 90],
+]);
+const KIR_KOP = new Map<string, number>([
+  ['\u044e\u0437', 100], ['\u043c\u0438\u043d\u0433', 1_000], ['\u043c\u0438\u043b\u043b\u0438\u043e\u043d', 1_000_000], ['\u043c\u043b\u043d', 1_000_000], ['\u043c\u0438\u043b\u043b\u0438\u0430\u0440\u0434', 1_000_000_000], ['\u043c\u043b\u0440\u0434', 1_000_000_000],
+]);
+
+/** Rus son-so\u02bbzlari (asosiy kelishiklar bilan) \u2014 hammasi qo\u02bbshiladi: \u00ab\u0434\u0432\u0435\u0441\u0442\u0438 \u043f\u044f\u0442\u044c\u0434\u0435\u0441\u044f\u0442\u00bb = 250. */
+const RU_SON = new Map<string, number>([
+  ['\u043d\u043e\u043b\u044c', 0], ['\u043e\u0434\u0438\u043d', 1], ['\u043e\u0434\u043d\u0430', 1], ['\u043e\u0434\u043d\u043e', 1], ['\u043e\u0434\u043d\u043e\u0433\u043e', 1], ['\u043e\u0434\u043d\u043e\u0439', 1], ['\u0434\u0432\u0430', 2], ['\u0434\u0432\u0435', 2], ['\u0434\u0432\u0443\u0445', 2],
+  ['\u0442\u0440\u0438', 3], ['\u0442\u0440\u0435\u0445', 3], ['\u0447\u0435\u0442\u044b\u0440\u0435', 4], ['\u0447\u0435\u0442\u044b\u0440\u0435\u0445', 4], ['\u043f\u044f\u0442\u044c', 5], ['\u043f\u044f\u0442\u0438', 5], ['\u0448\u0435\u0441\u0442\u044c', 6], ['\u0448\u0435\u0441\u0442\u0438', 6],
+  ['\u0441\u0435\u043c\u044c', 7], ['\u0441\u0435\u043c\u0438', 7], ['\u0432\u043e\u0441\u0435\u043c\u044c', 8], ['\u0432\u043e\u0441\u044c\u043c\u0438', 8], ['\u0434\u0435\u0432\u044f\u0442\u044c', 9], ['\u0434\u0435\u0432\u044f\u0442\u0438', 9], ['\u0434\u0435\u0441\u044f\u0442\u044c', 10], ['\u0434\u0435\u0441\u044f\u0442\u0438', 10],
+  ['\u043e\u0434\u0438\u043d\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 11], ['\u0434\u0432\u0435\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 12], ['\u0442\u0440\u0438\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 13], ['\u0447\u0435\u0442\u044b\u0440\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 14], ['\u043f\u044f\u0442\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 15],
+  ['\u0448\u0435\u0441\u0442\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 16], ['\u0441\u0435\u043c\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 17], ['\u0432\u043e\u0441\u0435\u043c\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 18], ['\u0434\u0435\u0432\u044f\u0442\u043d\u0430\u0434\u0446\u0430\u0442\u044c', 19],
+  ['\u0434\u0432\u0430\u0434\u0446\u0430\u0442\u044c', 20], ['\u0434\u0432\u0430\u0434\u0446\u0430\u0442\u0438', 20], ['\u0442\u0440\u0438\u0434\u0446\u0430\u0442\u044c', 30], ['\u0442\u0440\u0438\u0434\u0446\u0430\u0442\u0438', 30], ['\u0441\u043e\u0440\u043e\u043a', 40], ['\u0441\u043e\u0440\u043e\u043a\u0430', 40],
+  ['\u043f\u044f\u0442\u044c\u0434\u0435\u0441\u044f\u0442', 50], ['\u043f\u044f\u0442\u0438\u0434\u0435\u0441\u044f\u0442\u0438', 50], ['\u0448\u0435\u0441\u0442\u044c\u0434\u0435\u0441\u044f\u0442', 60], ['\u0448\u0435\u0441\u0442\u0438\u0434\u0435\u0441\u044f\u0442\u0438', 60], ['\u0441\u0435\u043c\u044c\u0434\u0435\u0441\u044f\u0442', 70], ['\u0441\u0435\u043c\u0438\u0434\u0435\u0441\u044f\u0442\u0438', 70],
+  ['\u0432\u043e\u0441\u0435\u043c\u044c\u0434\u0435\u0441\u044f\u0442', 80], ['\u0432\u043e\u0441\u044c\u043c\u0438\u0434\u0435\u0441\u044f\u0442\u0438', 80], ['\u0434\u0435\u0432\u044f\u043d\u043e\u0441\u0442\u043e', 90], ['\u0434\u0435\u0432\u044f\u043d\u043e\u0441\u0442\u0430', 90],
+  ['\u0441\u0442\u043e', 100], ['\u0441\u0442\u0430', 100], ['\u0434\u0432\u0435\u0441\u0442\u0438', 200], ['\u0434\u0432\u0443\u0445\u0441\u043e\u0442', 200], ['\u0442\u0440\u0438\u0441\u0442\u0430', 300], ['\u0442\u0440\u0435\u0445\u0441\u043e\u0442', 300], ['\u0447\u0435\u0442\u044b\u0440\u0435\u0441\u0442\u0430', 400],
+  ['\u043f\u044f\u0442\u044c\u0441\u043e\u0442', 500], ['\u043f\u044f\u0442\u0438\u0441\u043e\u0442', 500], ['\u0448\u0435\u0441\u0442\u044c\u0441\u043e\u0442', 600], ['\u0441\u0435\u043c\u044c\u0441\u043e\u0442', 700], ['\u0432\u043e\u0441\u0435\u043c\u044c\u0441\u043e\u0442', 800], ['\u0434\u0435\u0432\u044f\u0442\u044c\u0441\u043e\u0442', 900],
+  ['\u043f\u043e\u043b\u0442\u043e\u0440\u0430', 1.5], ['\u043f\u043e\u043b\u0442\u043e\u0440\u044b', 1.5],
+]);
+
+/** Rus ko\u02bbpaytuvchilari (so\u02bbz boshi bo\u02bbyicha: \u0442\u044b\u0441\u044f\u0447\u0430/\u0442\u044b\u0441\u044f\u0447\u0438/\u0442\u044b\u0441\u044f\u0447, \u043c\u0438\u043b\u043b\u0438\u043e\u043d/\u043c\u0438\u043b\u043b\u0438\u043e\u043d\u0430/\u043c\u0438\u043b\u043b\u0438\u043e\u043d\u043e\u0432\u2026). */
+function ruKop(w: string): number | undefined {
+  if (/^\u0442\u044b\u0441/u.test(w)) return 1_000;
+  if (/^(\u043c\u043b\u043d|\u043c\u0438\u043b\u043b\u0438\u043e\u043d)/u.test(w)) return 1_000_000;
+  if (/^(\u043c\u043b\u0440\u0434|\u043c\u0438\u043b\u043b\u0438\u0430\u0440\u0434)/u.test(w)) return 1_000_000_000;
+  return undefined;
+}
+
+/**
+ * Bitta so\u02bbzning son qiymati: `qosh` \u2014 qo\u02bbshiladi (bir, yigirma, \u0434\u0432\u0435\u0441\u0442\u0438),
+ * `yuz` \u2014 oldingisini 100 ga ko\u02bbpaytiradi (o\u02bbzbekcha \u00abikki yuz\u00bb), `kop` \u2014
+ * ming/million/milliard.
+ */
+function sozQiymati(tok: string): { tur: 'qosh' | 'yuz' | 'kop'; q: number } | null {
+  const w = sozNorm(tok);
+  if (SOZ_BIR.has(w)) return { tur: 'qosh', q: SOZ_BIR.get(w)! };
+  if (SOZ_ON.has(w)) return { tur: 'qosh', q: SOZ_ON.get(w)! };
+  if (SOZ_KOP.has(w)) return w === 'yuz' ? { tur: 'yuz', q: 100 } : { tur: 'kop', q: SOZ_KOP.get(w)! };
+  const k = tok.toLowerCase().replace(/\u0451/gu, '\u0435');
+  const kq = k.replace(/(\u043b\u0430\u0440\u0434\u0430\u043d|\u043b\u0430\u0440\u043d\u0438|\u043b\u0430\u0440\u0433\u0430|\u043b\u0430\u0440|\u0442\u0430|\u0434\u0430\u043d|\u0433\u0430|\u043d\u0438|\u0434\u0430|\u0434\u0438\u0440|\u0447\u0430|\u043b\u0430\u0431)$/u, '');
+  if (KIR_SON.has(kq)) return { tur: 'qosh', q: KIR_SON.get(kq)! };
+  if (KIR_KOP.has(kq)) return kq === '\u044e\u0437' ? { tur: 'yuz', q: 100 } : { tur: 'kop', q: KIR_KOP.get(kq)! };
+  if (RU_SON.has(k)) return { tur: 'qosh', q: RU_SON.get(k)! };
+  const rk = ruKop(k);
+  return rk !== undefined ? { tur: 'kop', q: rk } : null;
+}
+
+/**
+ * Sondan keyingi DA'VO birligi: "3 qadam" sanoq, "3% komissiya" da'vo.
+ * Kirill birliklari ham: "3 \u043f\u0440\u043e\u0446\u0435\u043d\u0442\u0430", "5 \u0441\u045e\u043c", "10 \u0434\u043e\u043d\u0430".
+ */
+const DAVO_BIRLIK = /^[^0-9]{0,10}?(%|foiz|\u0444\u043e\u0438\u0437|\u043f\u0440\u043e\u0446\u0435\u043d\u0442|dona|\u0434\u043e\u043d\u0430|\u0448\u0442\u0443\u043a|\u0448\u0442|so[\u02bb'\u2018\u2019]?m\b|som\b|\u0441\u045e\u043c|\u0441\u0443\u043c|usd|dollar|\u0434\u043e\u043b\u043b\u0430\u0440|kg\b|\u043a\u0433|gramm|\u0433\u0440\u0430\u043c\u043c)/iu;
 
 /** Ko'rinmas probel va tirelarni normallashtiradi. */
 export function tozala(s: string): string {
@@ -63,19 +129,20 @@ export function raqamlar(matn: string): Raqam[] {
   const s = tozala(matn);
   const chiqdi: Raqam[] = [];
 
-  const re = /(\d+(?:[ .,]\d{3})*(?:[.,]\d+)?)\s*(ming|mingta|mln|million|mlrd|milliard)?/gi;
+  // Ko\u02bbpaytuvchi: lotin, o\u02bbzbek kirill va rus ("10 mln", "10 \u043c\u043b\u043d", "5 \u0442\u044b\u0441\u044f\u0447", "3 \u043c\u0438\u043b\u043b\u0438\u043e\u043d\u0430").
+  const re = /(\d+(?:[ .,]\d{3})*(?:[.,]\d+)?)\s*(mingta|ming|mln|million|mlrd|milliard|\u043c\u0438\u043d\u0433|\u043c\u043b\u043d|\u043c\u0438\u043b\u043b\u0438\u043e\u043d\p{L}*|\u043c\u043b\u0440\u0434|\u043c\u0438\u043b\u043b\u0438\u0430\u0440\u0434\p{L}*|\u0442\u044b\u0441\p{L}*)?/giu;
   let m: RegExpExecArray | null;
   while ((m = re.exec(s)) !== null) {
     const raw = m[1]!.replace(/(?<=\d)[ .,](?=\d{3}\b)/g, '').replace(',', '.');
     let q = Number(raw);
     if (!Number.isFinite(q)) continue;
-    const kop = m[2] ? KOP.get(m[2].toLowerCase()) : undefined;
+    const kop = kopaytuvchi(m[2]);
     if (kop) q *= kop;
     chiqdi.push({ xom: m[0].trim(), qiymat: q, keyin: s.slice(re.lastIndex, re.lastIndex + 14) });
   }
 
-  // So'z bilan yozilgan sonlar. Oldidan raqam kelgan ketma-ketlik
-  // o'tkaziladi ("140 ming" ni yuqoridagi skaner oldi).
+  // So'z bilan yozilgan sonlar (lotin, o\u02bbzbek kirill, rus). Oldidan raqam
+  // kelgan ketma-ketlik o'tkaziladi ("140 ming" ni yuqoridagi skaner oldi).
   const toks = [...s.matchAll(/[\p{L}'\u2018\u2019\u02bb\u02bc]+/gu)];
   let i = 0;
   while (i < toks.length) {
@@ -83,14 +150,11 @@ export function raqamlar(matn: string): Raqam[] {
     const bosh = toks[i]!.index!;
     let oxir = bosh;
     while (j < toks.length) {
-      const w = sozNorm(toks[j]![0]);
-      if (SOZ_BIR.has(w)) joriy += SOZ_BIR.get(w)!;
-      else if (SOZ_ON.has(w)) joriy += SOZ_ON.get(w)!;
-      else if (SOZ_KOP.has(w)) {
-        const k = SOZ_KOP.get(w)!;
-        if (k === 100) joriy = (joriy || 1) * 100;
-        else { jami += (joriy || 1) * k; joriy = 0; }
-      } else break;
+      const v = sozQiymati(toks[j]![0]);
+      if (v === null) break;
+      if (v.tur === 'qosh') joriy += v.q;
+      else if (v.tur === 'yuz') joriy = (joriy || 1) * 100;
+      else { jami += (joriy || 1) * v.q; joriy = 0; }
       olindi = true;
       oxir = toks[j]!.index! + toks[j]![0].length;
       j++;
@@ -163,6 +227,12 @@ const TAQIQ: ReadonlyArray<{ re: RegExp; sabab: string }> = [
   { re: /\b(albatta|aniq)\s+(sotilad|foyda)/i, sabab: 'sotuvni aniq deb va\'da qildi' },
   { re: /\bdaromadingiz\s+bo[\u02bb'\u2018\u2019]?lad/i, sabab: 'daromadni va\'da qildi' },
   { re: /\b(100|yuz)\s*%\s*(ishonch|kafolat)/i, sabab: '100% ishonch' },
+  // O\u02bbzbek kirill va rus (2026-10-13: yordamchi mijoz tilida javob beradi). Kirillda `\b` ishlamaydi.
+  { re: /\u043a\u0430\u0444\u043e\u043b\u0430\u0442|\u0433\u0430\u0440\u0430\u043d\u0442/iu, sabab: 'kafolat' },
+  { re: /(\u0430\u043b\u0431\u0430\u0442\u0442\u0430|\u0430\u043d\u0438\u049b|\u0430\u043d\u0438\u043a)\s+(\u0441\u043e\u0442\u0438\u043b\u0430\u0434|\u0444\u043e\u0439\u0434\u0430)/iu, sabab: 'sotuvni aniq deb va\'da qildi' },
+  { re: /\u0434\u0430\u0440\u043e\u043c\u0430\u0434\u0438\u043d\u0433\u0438\u0437\s+\u0431[\u045e\u0443]\u043b\u0430\u0434/iu, sabab: 'daromadni va\'da qildi' },
+  { re: /(\u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e|\u0442\u043e\u0447\u043d\u043e|\u043d\u0430\u0432\u0435\u0440\u043d\u044f\u043a\u0430)\s+(\u043f\u0440\u043e\u0434\u0430|\u043f\u0440\u0438\u0431\u044b\u043b|\u0437\u0430\u0440\u0430\u0431\u043e\u0442\u0430|\u043e\u043a\u0443\u043f)/iu, sabab: 'sotuvni aniq deb va\'da qildi' },
+  { re: /(100|\u0441\u0442\u043e)\s*%\s*(\u0443\u0432\u0435\u0440\u0435\u043d|\u0433\u0430\u0440\u0430\u043d\u0442|\u0438\u0448\u043e\u043d\u0447)/iu, sabab: '100% ishonch' },
 ];
 
 export interface TekshiruvNatijasi {
