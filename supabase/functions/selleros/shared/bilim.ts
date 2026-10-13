@@ -13,7 +13,7 @@
  * manbasiz raqam yozilmaydi (QOIDALAR.md, 4-boʻlim).
  */
 
-import { ERKIN_BILIM } from './erkin.ts';
+import { erkinBilimi } from './erkin.ts';
 import { UZUM_BILIMI } from './uzum-bilim.ts';
 
 const QADAMLAR = [
@@ -76,9 +76,8 @@ export const MASLAHAT: readonly string[] = [
   'Qaror — mijozniki; ZumSavdo raqamlarni, manbasini va xavflarni koʻrsatadi.',
 ];
 
-/** Har savolda beriladigan asos: ZumSavdo, qadamlar, lugʻat, umumiy maslahatlar. */
+/** Har savolda beriladigan asos (ZumSavdo faktlaridan keyin): qadamlar, lugʻat, umumiy maslahatlar. */
 const ASOS = [
-  ERKIN_BILIM,
   'ZumSavdo qadamlari (har birida nima boʻladi):',
   ...QADAMLAR.map((q) => `- ${q}`),
   'Soʻzlar lugʻati (chatda va kartalarda shunday tushuniladi):',
@@ -120,8 +119,11 @@ const BOLIMLAR: ReadonlyArray<[RegExp, readonly string[]]> = [
  * Endi savol mavzusiga mos boʻlimlar va kalit soʻzi mos faktlar (18 tagacha).
  * Darvoza (`suhbat.ts`) ham shu matn bilan tekshiradi: LLM koʻrmagan raqamni
  * yozsa — tashlanadi.
+ *
+ * `tarifCheklovi` — saytda tarif cheklovi yoqilganmi (Edge env): oʻchiq boʻlsa
+ * faktda «hozir hamma qadam bepul» (`erkin.ts`), aks holda rejalar roʻyxati.
  */
-export function yordamchiBilimi(savol: string): string {
+export function yordamchiBilimi(savol: string, tarifCheklovi?: boolean): string {
   const t = norm(savol);
   const bolimlar = BOLIMLAR.filter(([re]) => re.test(t)).flatMap(([, b]) => b);
   const tanlangan = UZUM_BILIMI.filter((f) => bolimlar.some((b) => f.startsWith(`[${b}`)));
@@ -137,7 +139,8 @@ export function yordamchiBilimi(savol: string): string {
     .slice(0, 6)
     .map((x) => x.f);
   const uzum = [...tanlangan, ...qoshimcha].slice(0, 18);
+  const asos = `${erkinBilimi(tarifCheklovi)}\n${ASOS}`;
   return uzum.length
-    ? [ASOS, 'Uzum haqida faktlar (Uzum rasmiy manbalaridan; savolga tegishlilari):', ...uzum.map((q) => `- ${q}`)].join('\n')
-    : ASOS;
+    ? [asos, 'Uzum haqida faktlar (Uzum rasmiy manbalaridan; savolga tegishlilari):', ...uzum.map((q) => `- ${q}`)].join('\n')
+    : asos;
 }

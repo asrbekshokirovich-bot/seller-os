@@ -402,6 +402,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const kalit = Deno.env.get('GEMINI_API_KEY');
     const d = {
       rpc,
+      // Tarif cheklovi oʻchiq boʻlsa — «Bu bepulmi?» ga «hozir hamma qadam bepul» (rost holat).
+      tarifCheklovi: tarifCheklovi(),
       kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
         // 5-qadam: provayder kaliti env dan, sessiya — limit uchun.
         { kalit: Deno.env.get('XITOY_API_KEY') ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
