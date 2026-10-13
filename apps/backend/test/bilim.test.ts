@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { bilimJavobi, mijozHolati, suhbatTarixi, UZUM_BILIMI, YORDAMCHI_BILIMI, type YolHolati } from '@selleros/shared';
+import { bilimJavobi, mijozHolati, suhbatTarixi, UZUM_BILIMI, yordamchiBilimi, type YolHolati } from '@selleros/shared';
 
 describe('Uzum bilimi', () => {
   it('har fakt manbasi bilan; "kafolat" yoʻq (darvoza uni taqiqlaydi)', () => {
@@ -22,12 +22,19 @@ describe('Uzum bilimi', () => {
     expect(UZUM_BILIMI.some((f) => f.includes('MFO') && !f.includes('Aniq emas'))).toBe(false);
   });
 
-  it('yordamchiga hammasi bitta matnda: ZumSavdo, qadamlar, lugʻat, maslahat, Uzum', () => {
-    expect(YORDAMCHI_BILIMI).toMatch(/ZumSavdo qadamlari/);
-    expect(YORDAMCHI_BILIMI).toMatch(/Soʻzlar lugʻati/);
-    expect(YORDAMCHI_BILIMI).toMatch(/Umumiy maslahatlar/);
-    expect(YORDAMCHI_BILIMI).toMatch(/Uzum haqida faktlar/);
-    expect(YORDAMCHI_BILIMI).toMatch(/5 250 so‘m/);
+  it('yordamchiga: asos har doim; Uzum faktlari — FAQAT savolga tegishlisi (bepul limit tejaladi, 2026-10-13)', () => {
+    const log = yordamchiBilimi('logistika qancha turadi?');
+    expect(log).toMatch(/ZumSavdo qadamlari/);
+    expect(log).toMatch(/Soʻzlar lugʻati/);
+    expect(log).toMatch(/Umumiy maslahatlar/);
+    expect(log).toMatch(/5 250 so‘m/);
+    expect(log).not.toMatch(/To‘lov jadvallari/);
+    expect(yordamchiBilimi('pul qachon tushadi?')).toMatch(/To‘lov jadvallari/);
+    // Savolga aloqasi yoʻq — Uzum faktlari umuman yuborilmaydi.
+    expect(yordamchiBilimi('salom')).not.toMatch(/Uzum haqida faktlar/);
+    expect(yordamchiBilimi('logistika').length).toBeLessThan(UZUM_BILIMI.join(' ').length);
+    // Umumiy soʻzlar ("qancha", "kerak") fakt tortib kelmaydi.
+    expect(yordamchiBilimi('qancha kerak?')).not.toMatch(/Uzum haqida faktlar/);
   });
 });
 

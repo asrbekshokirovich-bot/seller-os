@@ -76,8 +76,8 @@ export const MASLAHAT: readonly string[] = [
   'Qaror — mijozniki; ZumSavdo raqamlarni, manbasini va xavflarni koʻrsatadi.',
 ];
 
-/** LLM ga beriladigan doimiy bilim (har erkin savolda). */
-export const YORDAMCHI_BILIMI = [
+/** Har savolda beriladigan asos: ZumSavdo, qadamlar, lugʻat, umumiy maslahatlar. */
+const ASOS = [
   ERKIN_BILIM,
   'ZumSavdo qadamlari (har birida nima boʻladi):',
   ...QADAMLAR.map((q) => `- ${q}`),
@@ -85,5 +85,58 @@ export const YORDAMCHI_BILIMI = [
   ...LUGAT.map((q) => `- ${q}`),
   'Umumiy maslahatlar (yangi sotuvchi uchun, raqamsiz):',
   ...MASLAHAT.map((q) => `- ${q}`),
-  ...(UZUM_BILIMI.length ? ['Uzum haqida faktlar (Uzum rasmiy manbalaridan):', ...UZUM_BILIMI.map((q) => `- ${q}`)] : []),
 ].join('\n');
+
+const norm = (t: string) => String(t ?? '').normalize('NFC').toLowerCase().replace(/[ʻʼ‘’`´]/gu, "'");
+
+/** Kalit soʻz sifatida yaramaydigan umumiy soʻzlar (5 harfli boshi). */
+const UMUMIY_SOZ: ReadonlySet<string> = new Set([
+  'kerak', 'qanch', 'qanda', 'uchun', 'bilan', 'mumki', "bo'la", "bo'li", "bo'ls", 'qilis', 'qilsa', 'haqid', 'qacho',
+  'qayer', 'nimag', 'tovar', 'uzumd', 'uzumg', 'uzumn', 'sotis', 'sotil', 'sotuv', 'pulim', 'menin', 'menga', 'sizga',
+  'iltim', 'salom', 'rahma', 'yaxsh', 'hamma', 'qaysi', 'boshl',
+]);
+
+/** Savol mavzusi → `uzum-bilim.ts` boʻlimlari (boʻlim nomining boshi). */
+const BOLIMLAR: ReadonlyArray<[RegExp, readonly string[]]> = [
+  [/ro'yxat|registr|регистр|kabinet|yatt|mchj|o'zini o'zi band|hujjat|sotuvchi bo'l|sotish uchun nima|ип\b|ооо/u, ['Kim sotishi', 'Ishni boshlash']],
+  [/fbo|fbs|dbs|ishlash model|o'z omborim/u, ['Ishlash modellari']],
+  [/komissiya|комисс/u, ['Komissiya']],
+  [/logistika|saqlash|логист|хранен/u, ['Logistika']],
+  [/pul|to'lov|tushadi|выплат|деньг/u, ['To‘lovlar']],
+  [/qaytar|brak|nuqson|возврат/u, ['Qaytarish']],
+  [/kartochka|surat|rasm|tavsif|mxik|ikpu|qqs|shtrix|карточк|фото/u, ['Tovar kartochkasi']],
+  [/sertifikat|markirovka|asl belgisi|ruxsat|сертиф|маркир/u, ['Sertifikat']],
+  [/ombor|topshir|taymslot|yetkazma|qadoq|склад|постав/u, ['Tovarni Uzum omboriga']],
+  [/reklama|aksiya|promokod|bust|реклам/u, ['Reklama']],
+  [/jarima|shtraf|blok|taqiq|штраф|запрещ/u, ['Yangi sotuvchi', 'Kim sotishi']],
+];
+
+/**
+ * LLM ga beriladigan bilim — asos va FAQAT savolga tegishli Uzum faktlari.
+ *
+ * Nazoratchi (2026-10-13, "ha qil"): bepul Gemini limiti kunlik va kichik —
+ * har savolda 92 faktning hammasini yuborish (~30 KB) uni tez yeb qoʻyardi.
+ * Endi savol mavzusiga mos boʻlimlar va kalit soʻzi mos faktlar (18 tagacha).
+ * Darvoza (`suhbat.ts`) ham shu matn bilan tekshiradi: LLM koʻrmagan raqamni
+ * yozsa — tashlanadi.
+ */
+export function yordamchiBilimi(savol: string): string {
+  const t = norm(savol);
+  const bolimlar = BOLIMLAR.filter(([re]) => re.test(t)).flatMap(([, b]) => b);
+  const tanlangan = UZUM_BILIMI.filter((f) => bolimlar.some((b) => f.startsWith(`[${b}`)));
+  // Boʻlim topilmasa ham — savoldagi soʻz (5 harfli boshi) faktda uchrasa. Umumiy
+  // soʻzlar ("qancha", "kerak", "uchun") hisobga olinmaydi: ular deyarli har faktda bor.
+  const sozlar = [...new Set(t.split(/[^\p{L}']+/u).filter((w) => w.length >= 5).map((w) => w.slice(0, 5)))]
+    .filter((w) => !UMUMIY_SOZ.has(w));
+  const qoshimcha = UZUM_BILIMI
+    .filter((f) => !tanlangan.includes(f))
+    .map((f) => ({ f, ball: sozlar.filter((w) => norm(f).includes(w)).length }))
+    .filter((x) => x.ball > 0)
+    .sort((a, b) => b.ball - a.ball)
+    .slice(0, 6)
+    .map((x) => x.f);
+  const uzum = [...tanlangan, ...qoshimcha].slice(0, 18);
+  return uzum.length
+    ? [ASOS, 'Uzum haqida faktlar (Uzum rasmiy manbalaridan; savolga tegishlilari):', ...uzum.map((q) => `- ${q}`)].join('\n')
+    : ASOS;
+}
