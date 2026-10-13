@@ -353,6 +353,24 @@ export interface TovarNomzodi extends TovarToliq {
   qoldiq: number | null;
   reyting: number | null;
   sharhSoni: number | null;
+  /** Uzum rasmi (`product.image_key` dan, 0054). Kalit yoʻq boʻlsa — yoʻq. */
+  rasmUrl?: string | null;
+}
+
+/**
+ * 2-qadam yoʻnalish kartasi uchun shu turkumdagi tovar rasmlari (nazoratchi,
+ * 2026-10-14: "mijoz rasm topib yuklaguncha zerikib qoladi — rasm bilan oʻzing
+ * top"). Mijoz hech narsa yuklamaydi: kartada Uzumda shu yoʻnalishda sotilayotgan
+ * tovarlar koʻrinadi. Eng koʻp sotilganlari oldin; faqat http(s) manzil; takrorsiz.
+ */
+export function turkumRasmlari(royxat: readonly TovarNomzodi[], n = 3): Array<{ url: string; nom: string }> {
+  const korilgan = new Set<string>();
+  return [...royxat]
+    .filter((t): t is TovarNomzodi & { rasmUrl: string } => typeof t.rasmUrl === 'string' && /^https?:\/\//iu.test(t.rasmUrl))
+    .sort((a, b) => (b.soldUnits30d ?? -1) - (a.soldUnits30d ?? -1))
+    .filter((t) => (korilgan.has(t.rasmUrl) ? false : (korilgan.add(t.rasmUrl), true)))
+    .slice(0, n)
+    .map((t) => ({ url: t.rasmUrl, nom: String(t.title ?? '').slice(0, 120) }));
 }
 
 /**
