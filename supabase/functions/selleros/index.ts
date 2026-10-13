@@ -30,6 +30,7 @@ import {
   erkinJavobBer,
   javobniBahola,
   kartochkaYozBer,
+  turkumRasmlari,
   odamlashtir,
   type ErkinSorov,
   suhbatBoshdan,
@@ -268,6 +269,20 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   //
   // Tuzoq filtrlari roʻyxatdan OLDIN ishlaydi: `block` bayrogʻli
   // tovar chiqmaydi, lekin `chiqarildi` da sababi bilan qaytadi.
+  // 2-qadam yoʻnalish kartasi: shu turkumda eng koʻp sotilayotgan 3 ta tovar rasmi
+  // (nazoratchi, 2026-10-14: mijoz rasm qidirmasin — tizim oʻzi koʻrsatsin). Ochiq
+  // Uzum rasmlari; tavsiya jurnali va tarif darvozasi yoʻq — bu koʻrinish, tavsiya emas.
+  if (yol === '/turkum-rasmlari') {
+    const turkumId = Number(new URL(req.url).searchParams.get('turkum'));
+    if (!Number.isInteger(turkumId) || turkumId <= 0) {
+      return javob({ xato: 'turkum — butun son boʻlishi kerak' }, 400);
+    }
+    // Kuzatuv namunasi turkumga 20 tagacha — hammasi olinib, sotuvi boʻyicha saralanadi.
+    const kesh = await rpc<TovarJavobi>('so_tovar_royxati', { p_category_external_id: turkumId, p_limit: 20 });
+    if (kesh === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    return javob({ olchov_yoq: false, rasmlar: turkumRasmlari(kesh.royxat ?? [], 3) });
+  }
+
   if (yol === '/tovarlar') {
     // Tarif darvozasi roʻyxatdan OLDIN: qadam yopiq boʻlsa
     // bazadan tovar tortishning maʼnosi yoʻq.

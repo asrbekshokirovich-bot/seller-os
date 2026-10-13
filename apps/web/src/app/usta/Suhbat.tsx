@@ -905,6 +905,49 @@ function Xulosa({ tur, hukm, izoh }: { tur: 'yaxshi' | 'ogoh' | 'oddiy'; hukm: s
  * maxsus ruxsat (kirish qismi), mavsum, pul. Nomaʼlum narsa "—" bilan emas —
  * umuman chiqmaydi; maʼlum boʻlsa — aytiladi.
  */
+interface TurkumRasmi { url: string; nom: string }
+
+/** Turkum rasmlari — sahifada bir turkum bir marta soʻraladi (kartalar qayta chizilsa ham). */
+const turkumRasmKeshi = new Map<number, Promise<TurkumRasmi[]>>();
+
+function turkumRasmlariniOl(id: number): Promise<TurkumRasmi[]> {
+  let p = turkumRasmKeshi.get(id);
+  if (!p) {
+    p = fetch(`/api/turkum-rasmlari?turkum=${id}`)
+      .then((r) => (r.ok ? r.json() as Promise<{ rasmlar?: unknown }> : null))
+      .then((j) => (Array.isArray(j?.rasmlar) ? (j.rasmlar as TurkumRasmi[]) : [])
+        .filter((x) => typeof x?.url === 'string' && /^https:\/\//u.test(x.url)).slice(0, 3))
+      .catch(() => []);
+    turkumRasmKeshi.set(id, p);
+  }
+  return p;
+}
+
+/**
+ * Yoʻnalish kartasida — Uzumda shu yoʻnalishda eng koʻp sotilayotgan 3 ta tovar
+ * rasmi (nazoratchi, 2026-10-14: "mijoz rasm topib yuklaguncha zerikib qoladi —
+ * rasm bilan oʻzing top"). Mijoz hech narsa yuklamaydi; yangi odam «Bloknotlar»
+ * nima ekanini koʻrib tushunadi. Rasm kelmasa — hech narsa chizilmaydi.
+ */
+function TurkumRasmlari({ id, tr }: { id: number; tr: Tr }) {
+  const [rasmlar, setRasmlar] = useState<TurkumRasmi[] | null>(null);
+  useEffect(() => {
+    let tirik = true;
+    void turkumRasmlariniOl(id).then((r) => { if (tirik) setRasmlar(r); });
+    return () => { tirik = false; };
+  }, [id]);
+  if (rasmlar !== null && rasmlar.length === 0) return null;
+  return (
+    <div className={u.turkumRasmlari}>
+      <span className={u.turkumRasmIzoh}>{tr('Uzumda shu yoʻnalishda sotilayotganlar:', 'Продаётся в этом направлении на Uzum:')}</span>
+      {(rasmlar ?? [null, null, null]).map((r, i) => (r
+        ? <img key={r.url} src={r.url} alt={r.nom} title={r.nom} loading="lazy" decoding="async" width={64} height={64} className={u.turkumRasm}
+          onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        : <span key={i} className={`${u.turkumRasm} ${u.turkumRasmBosh}`} aria-hidden="true" />))}
+    </div>
+  );
+}
+
 function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
   royxat: YonalishQatori[]; eskirgan: boolean; baholanmadi: number;
   bolish: { sabab: string } | null; tr: Tr;
@@ -939,6 +982,7 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
                 <span className={`${u.teg} ${u.tegNeytral}`}>{sohaTeg(y.soha)}</span>
               </div>
             </div>
+            <TurkumRasmlari id={y.categoryId} tr={tr} />
             {ball !== null && (
               <div className={u.baho}>
                 <div className={u.bahoQator}>

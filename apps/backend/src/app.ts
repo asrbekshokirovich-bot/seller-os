@@ -19,6 +19,7 @@ import {
   erkinJavobBer,
   javobniBahola,
   kartochkaYozBer,
+  turkumRasmlari,
   odamlashtir,
   suhbatBoshdan,
   suhbatOqi,
@@ -251,6 +252,15 @@ export function build(): FastifyInstance {
    * bayroqli tovar roʻyxatga umuman chiqmaydi, lekin `chiqarildi`
    * da sababi bilan qaytariladi — jimgina yoʻqolmaydi.
    */
+  /** 2-qadam yoʻnalish kartasi: turkumdagi 3 ta tovar rasmi (Edge bilan bir xil; jurnal yoʻq). */
+  app.get('/turkum-rasmlari', async (request, javob) => {
+    const turkumId = Number((request.query as { turkum?: string }).turkum);
+    if (!Number.isInteger(turkumId) || turkumId <= 0) return javob.code(400).send({ xato: 'turkum — butun son boʻlishi kerak' });
+    const kesh = await rpc<{ royxat: TovarNomzodi[] }>('so_tovar_royxati', { p_category_external_id: turkumId, p_limit: 20 });
+    if (kesh === null) return javob.code(503).send({ olchov_yoq: true, sabab: 'baza javob bermadi' });
+    return { olchov_yoq: false, rasmlar: turkumRasmlari(kesh.royxat ?? [], 3) };
+  });
+
   app.get('/tovarlar', async (request, javob) => {
     // Tarif darvozasi roʻyxatdan OLDIN: bepul rejada 3-qadam
     // yopiq boʻlsa, bazadan tovar tortishning maʼnosi yoʻq.

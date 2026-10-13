@@ -2006,3 +2006,29 @@
   overflow-wrap: anywhere;
   user-select: text;
 }
+
+/* 2-qadam: yoʻnalish kartasidagi tovar rasmlari (2026-10-14) — Uzumda shu yoʻnalishda sotilayotganlar. */
+.turkumRasmlari {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.turkumRasmIzoh {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--xira);
+}
+
+.turkumRasm {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--kart2);
+  box-shadow: inset 0 0 0 1px var(--chiziq);
+}
+
+.turkumRasmBosh { display: inline-block; }
