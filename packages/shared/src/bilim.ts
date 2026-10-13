@@ -93,7 +93,8 @@ const norm = (t: string) => String(t ?? '').normalize('NFC').toLowerCase().repla
 const UMUMIY_SOZ: ReadonlySet<string> = new Set([
   'kerak', 'qanch', 'qanda', 'uchun', 'bilan', 'mumki', "bo'la", "bo'li", "bo'ls", 'qilis', 'qilsa', 'haqid', 'qacho',
   'qayer', 'nimag', 'tovar', 'uzumd', 'uzumg', 'uzumn', 'sotis', 'sotil', 'sotuv', 'pulim', 'menin', 'menga', 'sizga',
-  'iltim', 'salom', 'rahma', 'yaxsh', 'hamma', 'qaysi', 'boshl',
+  'iltim', 'salom', 'rahma', 'yaxsh', 'hamma', 'qaysi', 'boshl', "to'g'", 'avval', 'birin', 'keyin', 'hozir', 'faqat',
+  'lekin', 'qilay',
 ]);
 
 /** Savol mavzusi → `uzum-bilim.ts` boʻlimlari (boʻlim nomining boshi). */

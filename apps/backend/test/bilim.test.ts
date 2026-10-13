@@ -85,6 +85,7 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
     ['mavsum yoki bir yillik sotuvni koʻrsata olasizmi?', 'tovarlar', /2026-yil avgustda/],
     ['dollarda yozsam boʻladimi?', 'byudjet', /«5000 \$» deb yozing/],
     ['10 mln yetadimi?', 'byudjet', /«Pulingiz yetadi»/],
+    ['qancha kerak?', 'byudjet', /«Pulingiz yetadi»/],
     ['nega sumka chiqyapti, men kanstovar dedimku', 'yonalish', /taqqoslash uchun/],
     ['men hech narsa bilmayman, qayerdan boshlayman?', 'uzum_dokoni', /12 qadamda olib boraman/],
     ['qaysi birini tanlasam yaxshi?', 'yonalish', /Kartalardagi «imkoniyat bahosi»ga qarang/],
