@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ERKIN_BILIM, tayyorJavob } from '../src/erkin';
+import { erkinBilimi, tayyorJavob } from '../src/erkin';
 import { TARIF_NARXI } from '../src/tolov';
 import { minglik } from '../src/fakt';
 
@@ -59,7 +59,18 @@ describe('tayyorJavob', () => {
   });
 
   it('LLM bilimida narxlar va qadamlar bor (raqam tekshiruvi ularni ruxsat qiladi)', () => {
-    expect(ERKIN_BILIM).toContain(minglik(TARIF_NARXI.pro!));
-    expect(ERKIN_BILIM).toMatch(/Hisobot/);
+    expect(erkinBilimi()).toContain(minglik(TARIF_NARXI.pro!));
+    expect(erkinBilimi()).toMatch(/Hisobot/);
+  });
+
+  it('tarif cheklovi OʻCHIQ — «hozir hamma qadamlar bepul», «1–2-qadam» deyilmaydi (2026-10-13)', () => {
+    expect(tayyorJavob('Bu bepulmi?', false)!.uz).toMatch(/^Hozir hamma qadamlar bepul ochiq/);
+    expect(tayyorJavob('Это бесплатно?', false)!.ru).toMatch(/^Сейчас все шаги открыты бесплатно/);
+    expect(tayyorJavob('Bu bepulmi?', false)!.uz).not.toMatch(/1–2-qadam/);
+    expect(erkinBilimi(false)).toMatch(/Hozir hamma qadamlar bepul ochiq/);
+    expect(erkinBilimi(false)).not.toMatch(/1–2-qadam/);
+    // Cheklov yoqilgan yoki nomaʼlum — rejalar roʻyxati.
+    expect(tayyorJavob('Bu bepulmi?', true)!.uz).toMatch(/^Tariflar: Bepul/);
+    expect(tayyorJavob('Bu bepulmi?')!.uz).toMatch(/^Tariflar: Bepul/);
   });
 });

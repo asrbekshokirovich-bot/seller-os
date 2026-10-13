@@ -391,3 +391,19 @@ describe('birinchi tashrif — salomlashish yoʻqolmaydi (tayyor savollar sinovi
     expect(r2.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
   });
 });
+
+describe('tarif cheklovi oʻchiq — «Bu bepulmi?» rost javob oladi (2026-10-13)', () => {
+  it('cheklov oʻchiq: «hozir hamma qadamlar bepul», LLM faktlarida ham; yoqilgan: rejalar roʻyxati', async () => {
+    let bilim = '';
+    const d: SuhbatBogliqliklari = {
+      ...bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => { bilim = k.bilim; return null; }),
+      tarifCheklovi: false, erkinAvval: true,
+    };
+    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: 'Bu bepulmi?' });
+    expect(r.xabarlar.at(-1)!.matn).toMatch(/Hozir hamma qadamlar bepul ochiq/);
+    expect(bilim).toMatch(/Hozir hamma qadamlar bepul ochiq/);
+    expect(bilim).not.toMatch(/1–2-qadam/);
+    const y = await suhbatTurn({ ...bogliq(soxtaBaza(BYUDJET_HOLATI)), tarifCheklovi: true }, 'tok', { savolId: 'byudjet', matn: 'Bu bepulmi?' });
+    expect(y.xabarlar.at(-1)!.matn).toMatch(/Tariflar: Bepul/);
+  });
+});

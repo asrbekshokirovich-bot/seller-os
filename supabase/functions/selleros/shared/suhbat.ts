@@ -108,6 +108,11 @@ export interface SuhbatBogliqliklari {
    * tejaladi). Nazoratchi Gemini toʻlovini yoqqach yoqiladi.
    */
   erkinAvval?: boolean;
+  /**
+   * Saytda tarif cheklovi yoqilganmi (Edge env). `false` — hamma qadam bepul ochiq:
+   * tarif haqidagi javob va LLM faktlari shuni aytadi («Bu bepulmi?», 2026-10-13).
+   */
+  tarifCheklovi?: boolean;
 }
 
 /**
@@ -563,8 +568,10 @@ interface ErkinNatija { matn: string; manba: ErkinManba }
  * bazasi (`bilim-javob.ts`). `t` — tushunish uchun matn (oʻzbek kirill —
  * lotinda). Rad etilgan javobda (sabab bor) bilim izlanmaydi: avval sabab.
  */
-function bazaJavobi(t: string, ruscha: boolean, savolId: string, sabab: string | null, h: YolHolati | null): string | null {
-  const tj = tayyorJavob(t);
+function bazaJavobi(
+  t: string, ruscha: boolean, savolId: string, sabab: string | null, h: YolHolati | null, tarifCheklovi?: boolean,
+): string | null {
+  const tj = tayyorJavob(t, tarifCheklovi);
   if (tj) return ruscha ? tj.ru : tj.uz;
   return !sabab && !ruscha ? bilimJavobi(t, savolId, h) : null;
 }
@@ -578,12 +585,14 @@ function bazaJavobi(t: string, ruscha: boolean, savolId: string, sabab: string |
  * Oʻzbek kirillda yozsa — lotinda tushuniladi va javob oʻzbekcha (lotin)
  * chiqadi; ilgari kirill matnning hammasiga ruscha javob ketardi.
  */
-function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null, h: YolHolati | null = null): ErkinNatija {
+function erkinShablon(
+  s: JoriySavol['savol'], matn: string, sabab: string | null, h: YolHolati | null = null, tarifCheklovi?: boolean,
+): ErkinNatija {
   const ruscha = ruschami(matn);
   const t = tushunishUchun(matn);
   // Salom — butun soʻz: "hisob…" "hi" bilan boshlanadi, lekin salomlashish emas.
   const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)(?!\p{L})/iu.test(t);
-  const tayyor = tayyorJavob(t);
+  const tayyor = tayyorJavob(t, tarifCheklovi);
   const savol = qisqaSavol(s.matn);
   // Bilimdan javob (`bilim-javob.ts`): LLM ishlamasa ham "ball nima?", "pul
   // qachon tushadi?" kabi savolga aniq javob — jonli sinovda (2026-10-13)
@@ -652,11 +661,11 @@ async function erkinJavob(
   d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null,
   h: YolHolati, xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>,
 ): Promise<ErkinNatija> {
-  const shablon = erkinShablon(s, matn, sabab, h);
+  const shablon = erkinShablon(s, matn, sabab, h, d.tarifCheklovi);
   // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
   if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
   const t = tushunishUchun(matn);
-  const baza = bazaJavobi(t, ruschami(matn), s.id, sabab, h);
+  const baza = bazaJavobi(t, ruschami(matn), s.id, sabab, h, d.tarifCheklovi);
   // Javobi bazada bor savol — AI birinchi rejimi oʻchiq boʻlsa LLM CHAQIRILMAYDI
   // (nazoratchi, 2026-10-13, "ha qil"): bepul Gemini limiti kunlik va kichik,
   // u bazada javobi yoʻq savollarga qolsin. Bazaviy javob aniq va manbasi bilan.
@@ -665,7 +674,7 @@ async function erkinJavob(
   const holat = mijozHolati(h, s.qadam);
   const tarix = suhbatTarixi(xabarlar, h);
   // Bilim — asos va FAQAT savolga tegishli Uzum faktlari (`yordamchiBilimi`), hammasi emas.
-  const bilim = yordamchiBilimi(t);
+  const bilim = yordamchiBilimi(t, d.tarifCheklovi);
   // LLM ga asl matn ketadi — mijoz yozuvida (lotin, kirill, rus) javob bersin.
   const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: baza, bilim, holat, tarix };
   // Raqam faqat savol, tugmalar, sabab, bilim, bazaviy javob, mijoz holati, suhbat va obunachining

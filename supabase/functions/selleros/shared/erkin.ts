@@ -7,7 +7,7 @@
  * maʼlumotdan yasaladi (tarif narxlari, qadamlar roʻyxati) — toʻqilmaydi
  * (QOIDALAR.md, 4-boʻlim). Mos javob yoʻq boʻlsa — `null`, taxmin yoʻq.
  *
- * LLM ham shu faktlarni oladi (`ERKIN_BILIM`): undan tashqari narsa
+ * LLM ham shu faktlarni oladi (`erkinBilimi`): undan tashqari narsa
  * yozsa yoki raqam qoʻshsa, tekshiruv uni tashlaydi (`suhbat.ts`).
  */
 
@@ -123,23 +123,44 @@ function norm(t: string): string {
   return t.toLowerCase().replace(/['‘’ʻʼ`]/gu, '').replace(/\s+/gu, ' ').trim();
 }
 
-/** Koʻp soʻraladigan savolga tayyor javob (oʻzbek va rus). Mos kelmasa — `null`. */
-export function tayyorJavob(matn: string): TayyorJavob | null {
+/**
+ * Tarif cheklovi OʻCHIQ boʻlsa (`tarifCheklovi() === false`, Edge env) — hamma qadam
+ * bepul ochiq. Ilgari «Bu bepulmi?» ga «Bepul — 1–2-qadam» deyilardi, holbuki
+ * saytda hamma qadam ochiq edi (jonli tekshiruv, 2026-10-13: `cheklov_yoqilgan:
+ * false`) — mijoz "2 qadamdan keyin pul soʻraladi" deb oʻylardi.
+ */
+const TARIF_OCHIQ: TayyorJavob = {
+  uz: `Hozir hamma qadamlar bepul ochiq — toʻlov soʻralmaydi. Keyinroq pullik rejalar boʻladi: Pro — ${PRO} soʻm/oy, `
+    + `Biznes — ${BIZNES} soʻm/oy; toʻlov (Payme, Click) hali ulanmagan. Batafsil: «Profilim» → «Rejalarni solishtirish».`,
+  ru: `Сейчас все шаги открыты бесплатно — оплата не нужна. Позже появятся платные тарифы: Pro — ${PRO} сум/мес, `
+    + `Бизнес — ${BIZNES} сум/мес; оплата (Payme, Click) ещё не подключена. Подробнее: «Мой профиль» → «Сравнить тарифы».`,
+};
+
+/**
+ * Koʻp soʻraladigan savolga tayyor javob (oʻzbek va rus). Mos kelmasa — `null`.
+ * `tarifCheklovi` — saytda tarif cheklovi yoqilganmi (Edge env); `false` boʻlsa
+ * tarif javobi «hozir hamma qadam bepul», nomaʼlum (`undefined`) — rejalar roʻyxati.
+ */
+export function tayyorJavob(matn: string, tarifCheklovi?: boolean): TayyorJavob | null {
   const t = norm(matn);
   const boshqa = BOSHQA_MAVZU.test(t);
   for (const [kalit, kuchli, kuchsiz] of KALITLAR) {
-    if (kuchli?.test(t) || (!boshqa && kuchsiz?.test(t))) return JAVOBLAR[kalit]!;
+    if (kuchli?.test(t) || (!boshqa && kuchsiz?.test(t))) {
+      return kalit === 'tarif' && tarifCheklovi === false ? TARIF_OCHIQ : JAVOBLAR[kalit]!;
+    }
   }
   return null;
 }
 
 /** LLM uchun faktlar — u faqat shulardan foydalanadi; raqamlari tekshiruvda ruxsat etiladi. */
-export const ERKIN_BILIM = [
-  'ZumSavdo haqida faktlar (faqat shulardan foydalan):',
-  `- ${JAVOBLAR.xizmat!.uz}`,
-  `- Qadamlar: ${SUHBAT_QADAMLARI.map((q) => `${q.n}. ${q.nom}`).join(', ')}.`,
-  `- ${JAVOBLAR.tarif!.uz}`,
-  `- ${JAVOBLAR.kirish!.uz}`,
-  `- ${JAVOBLAR.xitoy!.uz}`,
-  `- ${JAVOBLAR.kafolat!.uz}`,
-].join('\n');
+export function erkinBilimi(tarifCheklovi?: boolean): string {
+  return [
+    'ZumSavdo haqida faktlar (faqat shulardan foydalan):',
+    `- ${JAVOBLAR.xizmat!.uz}`,
+    `- Qadamlar: ${SUHBAT_QADAMLARI.map((q) => `${q.n}. ${q.nom}`).join(', ')}.`,
+    `- ${(tarifCheklovi === false ? TARIF_OCHIQ : JAVOBLAR.tarif!).uz}`,
+    `- ${JAVOBLAR.kirish!.uz}`,
+    `- ${JAVOBLAR.xitoy!.uz}`,
+    `- ${JAVOBLAR.kafolat!.uz}`,
+  ].join('\n');
+}

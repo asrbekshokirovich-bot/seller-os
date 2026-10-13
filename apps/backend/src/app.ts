@@ -393,6 +393,7 @@ export function build(): FastifyInstance {
   // SHART — ikkalasi ham `suhbatTurn` ni chaqiradi.
   const suhbatBogliq = (token: string) => ({
     rpc,
+    tarifCheklovi: tarifCheklovi(),
     kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null } }),
