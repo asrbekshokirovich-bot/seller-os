@@ -29,9 +29,10 @@
  *
  * ZAXIRA MODEL (2026-10-14): bepul darajada `gemini-3.8-flash` koʻp soʻrovga
  * 503 "high demand" qaytardi (5 savoldan 4 tasi javobsiz qoldi). 503 yoki 429
- * kelsa — oʻsha vaqt chegarasi ichida BIR MARTA zaxira model bilan qayta
- * soʻraladi (`LLM_ZAXIRA_MODEL`; boʻlmasa `gemini-3.5-flash-lite` — rasmiy
- * roʻyxatda bor, limiti alohida). Boshqa xatoda (kalit, 404) qayta soʻralmaydi.
+ * kelsa yoki asosiy model vaqtning 70 % ida ulgurmasa — oʻsha vaqt chegarasi
+ * ichida BIR MARTA zaxira model bilan qayta soʻraladi (`LLM_ZAXIRA_MODEL`;
+ * boʻlmasa `gemini-3.5-flash-lite` — rasmiy roʻyxatda bor, limiti alohida,
+ * tezroq). Boshqa xatoda (kalit, 404) qayta soʻralmaydi.
  *
  * Har yiqilish `null` qaytaradi va bu XATO EMAS: kalit yo'q, tarmoq
  * yo'q, model 429 dedi — hammasida oqim to'xtamaydi.
@@ -165,15 +166,27 @@ async function gemini(
   if (!kalit || !matn.trim()) return null;
   const model = s.model?.trim() || ASOSIY_MODEL;
   const zaxira = s.zaxiraModel === undefined || s.zaxiraModel === null ? ZAXIRA_MODEL : s.zaxiraModel.trim();
+  const zaxiraBor = Boolean(zaxira) && zaxira !== model;
+  const jami = s.vaqtMs ?? 8_000;
+  // Zaxira bor boʻlsa asosiy modelga vaqtning 70 % i: bepul darajada u 25 s ga ham ulgurmagan
+  // holatlar bor (jonli oʻlchov, 2026-10-14: 5 urinishdan 3 tasi AbortError) — qolgan vaqtda zaxira.
+  const boshi = Date.now();
+  const birinchi = await vaqtBilan(zaxiraBor ? Math.round(jami * 0.7) : jami,
+    (signal) => geminiSorov(s, kalit, model, korsatma, matn, belgi, fikr, json, signal));
+  if (typeof birinchi === 'string' || birinchi === null) return birinchi;
+  const qoldi = jami - (Date.now() - boshi);
+  if (!zaxiraBor || qoldi < jami * 0.1) return null;
+  console.warn(`llm ${belgi}: ${model} ${birinchi.status ? `HTTP ${birinchi.status}` : 'vaqt tugadi'} — zaxira ${zaxira}`);
+  const ikkinchi = await vaqtBilan(qoldi, (signal) => geminiSorov(s, kalit, zaxira, korsatma, matn, belgi, fikr, json, signal));
+  return typeof ikkinchi === 'string' ? ikkinchi : null;
+}
+
+/** `ish` ni `ms` gacha kutadi: tugasa — uning `signal` i bekor qilinadi (soʻrov uziladi). */
+async function vaqtBilan<T>(ms: number, ish: (signal: AbortSignal) => Promise<T>): Promise<T> {
   const nazorat = new AbortController();
-  const t = setTimeout(() => nazorat.abort(), s.vaqtMs ?? 8_000);
+  const t = setTimeout(() => nazorat.abort(), ms);
   try {
-    const birinchi = await geminiSorov(s, kalit, model, korsatma, matn, belgi, fikr, json, nazorat.signal);
-    if (typeof birinchi === 'string' || birinchi === null) return birinchi;
-    if (!zaxira || zaxira === model) return null;
-    console.warn(`llm ${belgi}: ${model} HTTP ${birinchi.status} — zaxira ${zaxira}`);
-    const ikkinchi = await geminiSorov(s, kalit, zaxira, korsatma, matn, belgi, fikr, json, nazorat.signal);
-    return typeof ikkinchi === 'string' ? ikkinchi : null;
+    return await ish(nazorat.signal);
   } finally {
     clearTimeout(t);
   }
@@ -181,7 +194,8 @@ async function gemini(
 
 /**
  * Bitta HTTP soʻrov. Matn — javob; `null` — yiqildi (qayta soʻralmaydi);
- * `{status}` — 503/429: model band yoki limiti tugagan, zaxira bilan soʻrash mumkin.
+ * `{status}` — 503/429 (model band yoki limiti tugagan) yoki `0` — vaqt tugadi:
+ * zaxira bilan soʻrash mumkin.
  */
 async function geminiSorov(
   s: LlmSozlama, kalit: string, model: string, korsatma: string, matn: string, belgi: string,
@@ -225,8 +239,9 @@ async function geminiSorov(
     if (!chiqdi) console.warn(`llm ${belgi}: boʻsh javob (${j.candidates?.[0]?.finishReason ?? 'nomzod yoʻq'})`);
     return chiqdi || null;
   } catch (e) {
-    console.warn(`llm ${belgi} (${model}): ${(e as Error)?.name ?? 'xato'}`);
-    return null;
+    const nomi = (e as Error)?.name ?? 'xato';
+    console.warn(`llm ${belgi} (${model}): ${nomi}`);
+    return nomi === 'AbortError' ? { status: 0 } : null;
   }
 }
 

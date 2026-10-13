@@ -617,8 +617,10 @@ function erkinShablon(
   // qachon tushadi?" kabi savolga aniq javob — jonli sinovda (2026-10-13)
   // Gemini limiti tugab, 33 savoldan 22 tasiga "javob bera olmayman" chiqqan edi.
   const bilim = !tayyor && !sabab ? (malumot ?? bilimJavobi(t, s.id, h)) : null;
+  // Xatboshili javob (roʻyxat, `erkin-malumot.ts`) — eslatma alohida xatboshida.
+  const ajrat = bilim?.includes('\n') ? '\n\n' : ' ';
   if (bilim && !ruscha) {
-    return { matn: [salom ? 'Vaalaykum assalom!' : null, bilim, `Hozirgi savol: «${savol}»`].filter(Boolean).join(' '), manba: 'baza' };
+    return { matn: `${[salom ? 'Vaalaykum assalom!' : null, bilim].filter(Boolean).join(' ')}${ajrat}Hozirgi savol: «${savol}»`, manba: 'baza' };
   }
   // Byudjet savolida maslahat soʻradi ("80 mlnmi, 100 mlnmi?") — LLM boʻlmasa
   // ham umumiy maslahat (`bilim.ts`, raqamsiz); summalari tugma boʻlib chiqadi.
@@ -643,8 +645,8 @@ function erkinShablon(
   if (bilim && ruscha) {
     return {
       manba: 'baza',
-      matn: [salom ? 'Здравствуйте!' : null, `Подробный ответ пока есть только на узбекском: ${bilim}`, `Сейчас вопрос: «${savol}»`]
-        .filter(Boolean).join(' '),
+      matn: `${[salom ? 'Здравствуйте!' : null, `Подробный ответ пока есть только на узбекском:${ajrat}${bilim}`].filter(Boolean).join(' ')}`
+        + `${ajrat}Сейчас вопрос: «${savol}»`,
     };
   }
   const manba: ErkinManba = tayyor ? 'baza' : 'shablon';

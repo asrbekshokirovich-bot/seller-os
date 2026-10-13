@@ -101,6 +101,41 @@ describe('zaxira model (2026-10-14: bepul darajada 503 "high demand")', () => {
     expect(y).toHaveLength(2);
   });
 
+  it('asosiy model vaqtning 70 % ida ulgurmasa — qolgan vaqtda zaxira (jonli oʻlchov, 2026-10-14: AbortError)', async () => {
+    const y: Yozuv[] = [];
+    const vaqtlar: number[] = [];
+    const boshi = Date.now();
+    const f = (async (url: string, init?: RequestInit) => {
+      y.push({ url, tana: JSON.parse(String(init?.body)), sarlavha: init?.headers as Record<string, string> });
+      if (y.length === 1) {
+        // Asosiy model "osilib qoladi" — faqat signal uzganda tugaydi.
+        return new Promise<Response>((_, rad) => init!.signal!.addEventListener('abort', () => {
+          vaqtlar.push(Date.now() - boshi);
+          rad(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+        }));
+      }
+      return new Response(JSON.stringify(JAVOB), { status: 200 });
+    }) as unknown as typeof fetch;
+    const r = await erkinJavobBer({ kalit: 'K', fetchFn: f, vaqtMs: 1_000 }, SOROV);
+    expect(r).toBe('Salom! Qancha pul ajratasiz?');
+    expect(y.map((x) => x.url.match(/models\/([^:]+):/)?.[1])).toEqual(['gemini-3.8-flash', 'gemini-3.5-flash-lite']);
+    // 70 % (700 ms) da uzildi — 1 000 ms gacha kutilmadi.
+    expect(vaqtlar[0]).toBeGreaterThanOrEqual(650);
+    expect(vaqtlar[0]).toBeLessThan(950);
+  });
+
+  it('zaxirasiz — asosiy model butun vaqtni oladi; vaqt tugasa null', async () => {
+    const vaqtlar: number[] = [];
+    const boshi = Date.now();
+    const f = (async (_url: string, init?: RequestInit) => new Promise<Response>((_, rad) => init!.signal!.addEventListener('abort', () => {
+      vaqtlar.push(Date.now() - boshi);
+      rad(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+    }))) as unknown as typeof fetch;
+    expect(await erkinJavobBer({ kalit: 'K', zaxiraModel: '', fetchFn: f, vaqtMs: 400 }, SOROV)).toBeNull();
+    expect(vaqtlar).toHaveLength(1);
+    expect(vaqtlar[0]).toBeGreaterThanOrEqual(380);
+  });
+
   it('boshqa xato (400, 404, kalit) — qayta soʻralmaydi', async () => {
     for (const status of [400, 403, 404, 500]) {
       const y: Yozuv[] = [];
