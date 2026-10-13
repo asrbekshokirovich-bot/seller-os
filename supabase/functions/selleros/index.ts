@@ -416,6 +416,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const token = req.headers.get('x-sessiya') ?? '';
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
     const kalit = Deno.env.get('GEMINI_API_KEY');
+    // Model env dan (`LLM_MODEL`); 503/429 da — zaxira model (`LLM_ZAXIRA_MODEL`, boʻlmasa `llm.ts` dagisi).
+    const llmSozlama = { kalit, model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL') };
     const d = {
       rpc,
       // Tarif cheklovi oʻchiq boʻlsa — «Bu bepulmi?» ga «hozir hamma qadam bepul» (rost holat).
@@ -426,16 +428,16 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           // 9-qadam studiyasi: Cloudflare Worker manzili va imzo kaliti (docs/STUDIYA.md).
           studiya: { url: Deno.env.get('STUDIYA_URL') ?? null, kalit: Deno.env.get('STUDIYA_KALIT') ?? null },
           // 10-qadam kartochka matni — Gemini (kalit boʻlmasa qolip). Faqat tovar nomlari ketadi.
-          ...(kalit ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer({ kalit, model: Deno.env.get('LLM_MODEL') }, k) } : {}) }),
+          ...(kalit ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}) }),
       ...(kalit ? {
         // Kod jumlasini qayta aytish — FAQAT `LLM_ODAMLASHTIR=1` boʻlsa (nazoratchi, 2026-10-13):
         // bepul Gemini limiti kunlik va kichik; har xabarni qayta aytish uni mijoz savoli
         // kelmasidan sarflardi. Jumlalar oʻzi sodda yozilgan; limit savollarga qoladi.
         ...(Deno.env.get('LLM_ODAMLASHTIR') === '1'
-          ? { llm: (m: string) => odamlashtir({ kalit, model: Deno.env.get('LLM_MODEL') }, m) }
+          ? { llm: (m: string) => odamlashtir(llmSozlama, m) }
           : {}),
         // Obunachi javob oʻrniga boshqa narsa yozsa — menejer javobi (tekshiruv bilan).
-        erkinLlm: (k: ErkinSorov) => erkinJavobBer({ kalit, model: Deno.env.get('LLM_MODEL') }, k),
+        erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama, k),
         // AI birinchi: bazada javobi bor savol ham LLM ga (doʻstona, batafsil, mijoz tilida).
         // FAQAT `LLM_AVVAL=1` boʻlsa — nazoratchi Gemini toʻlovini yoqqach (2026-10-13).
         erkinAvval: Deno.env.get('LLM_AVVAL') === '1',

@@ -407,3 +407,83 @@ describe('tarif cheklovi oʻchiq — «Bu bepulmi?» rost javob oladi (2026-10-1
     expect(y.xabarlar.at(-1)!.matn).toMatch(/Tariflar: Bepul/);
   });
 });
+
+describe('bazadagi raqam bilan javob va ruscha savol (jonli oʻlchov, 2026-10-14)', () => {
+  /** Kod: `erkinMalumot` — soxta; qolgani `KOD_YOQ` dagidek. */
+  function kodMalumot(f: NonNullable<SuhbatBogliqliklari['kod']['erkinMalumot']>): SuhbatBogliqliklari['kod'] {
+    return new Proxy({}, {
+      get: (_, nom) => (nom === 'erkinMalumot' ? f : (KOD_YOQ as Record<string | symbol, unknown>)[nom]),
+    }) as SuhbatBogliqliklari['kod'];
+  }
+
+  it('soliq savoli — kod bazadan javob beradi (manba: baza); LLM chaqirilmaydi; kodga savol turi va holat boradi', async () => {
+    const turlar: string[] = [];
+    let llm = 0;
+    const r = await suhbatTurn({
+      rpc: soxtaBaza(BYUDJET_HOLATI).rpc,
+      kod: kodMalumot(async (n, h) => {
+        turlar.push(n.tur);
+        expect(h.javoblar['qiziqish']).toEqual(['bilmayman']);
+        return 'YATT uchun aylanma soligʻi — 1 %.';
+      }),
+      erkinLlm: async () => { llm++; return 'x'; },
+    }, 'tok', { savolId: 'byudjet', matn: 'Soliq qancha toʻlayman?' });
+    expect(turlar).toEqual(['soliq']);
+    expect(llm).toBe(0);
+    expect(r.xabarlar[1]!.matn).toMatch(/^YATT uchun aylanma soligʻi — 1 %\. Hozirgi savol: «/);
+    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
+  });
+
+  it('kod maʼlumot topmasa yoki yiqilsa — bilim bazasining umumiy javobi; oqim toʻxtamaydi', async () => {
+    for (const f of [async () => null, async () => { throw new Error('baza'); }]) {
+      const r = await suhbatTurn({ rpc: soxtaBaza(BYUDJET_HOLATI).rpc, kod: kodMalumot(f) }, 'tok', { savolId: 'byudjet', matn: 'Soliq qancha toʻlayman?' });
+      expect(r.xato).toBeUndefined();
+      expect(r.xabarlar[1]!.matn).toMatch(/7-qadamda \(Rasmiylashtirish\) soliq foizi/);
+    }
+  });
+
+  it('tayyor javobi bor savol — kodga (bazaga) borilmaydi', async () => {
+    let chaqirildi = 0;
+    const r = await suhbatTurn({ rpc: soxtaBaza(BYUDJET_HOLATI).rpc, kod: kodMalumot(async () => { chaqirildi++; return 'X'; }) },
+      'tok', { savolId: 'byudjet', matn: 'ZumSavdo soliq hisoblaydimi?' });
+    expect(chaqirildi).toBe(0);
+    expect(r.xabarlar[1]!.matn).toMatch(/^ZumSavdo — Uzumda/);
+  });
+
+  it('ruscha savol, javobi faqat oʻzbekcha — LLM boʻlmasa izoh bilan oʻzbekchasi («точно не отвечу» emas)', async () => {
+    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'Какие документы нужны для продажи на Uzum?' });
+    expect(r.xabarlar[1]!.matn).toMatch(/^Подробный ответ пока есть только на узбекском: .*Hujjatlar: YaTT.* Сейчас вопрос: «/s);
+    expect(r.xabarlar[1]!.matn).not.toMatch(/точно не отвечу/);
+    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
+  });
+
+  it('ruscha savol, javobi faqat oʻzbekcha — LLM bor boʻlsa unga `tayyor` boʻlib boradi (rus tilida aytadi)', async () => {
+    let kelgan: ErkinSorov | null = null;
+    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => {
+      kelgan = k;
+      return 'Для продажи на Uzum нужны свидетельство ИП и паспорт. Сколько денег вы готовы вложить?';
+    }), 'tok', { savolId: 'byudjet', matn: 'Какие документы нужны для продажи на Uzum?' });
+    expect(kelgan!.tayyor).toMatch(/Hujjatlar: YaTT/);
+    expect(r.xabarlar[1]!.matn).toMatch(/^Для продажи на Uzum/);
+    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
+  });
+
+  it('ruscha savol, ruscha tayyor javobi bor — LLM chaqirilmaydi (bepul limit)', async () => {
+    let llm = 0;
+    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async () => { llm++; return 'x'; }), 'tok', { savolId: 'byudjet', matn: 'Что такое ZumSavdo?' });
+    expect(llm).toBe(0);
+    expect(r.xabarlar[1]!.matn).toMatch(/^ZumSavdo — помощник/);
+  });
+
+  it('AI birinchi: bazadagi raqam LLM ga `tayyor` boʻlib boradi, raqamlari darvozadan oʻtadi', async () => {
+    let kelgan: ErkinSorov | null = null;
+    const r = await suhbatTurn({
+      rpc: soxtaBaza(BYUDJET_HOLATI).rpc,
+      kod: kodMalumot(async () => 'Ijtimoiy soliq — har oy 440 000 soʻm.'),
+      erkinLlm: async (k) => { kelgan = k; return 'YATT boʻlsangiz, har oy 440 000 soʻm ijtimoiy soliq toʻlaysiz.'; },
+      erkinAvval: true,
+    }, 'tok', { savolId: 'byudjet', matn: 'Soliq qancha toʻlayman?' });
+    expect(kelgan!.tayyor).toBe('Ijtimoiy soliq — har oy 440 000 soʻm.');
+    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
+  });
+});

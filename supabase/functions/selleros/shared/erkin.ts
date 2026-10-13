@@ -44,13 +44,22 @@ const JAVOBLAR: Record<string, TayyorJavob> = {
     ru: `Путь из 12 шагов: ${SUHBAT_QADAMLARI.map((q) => `${q.n}. ${q.ru}`).join(', ')}. `
       + 'Текущий шаг виден в меню слева (на телефоне — под ☰).',
   },
+  // «1688 nima?» ga avval taʼrif (jonli oʻlchov, 2026-10-14: faqat 5-qadam tasvirlanardi).
   xitoy: {
-    uz: '5-qadamda tovaringiz rasmi boʻyicha 1688 dan oʻxshash takliflar qidiriladi: narxi soʻmga oʻgiriladi (CBU kursi) '
-      + 'va 4-qadamdagi chegara narx bilan solishtiriladi. Buyurtmani biz bermaymiz — 6-qadamda buyurtma varaqasi '
-      + 'tayyorlanadi, uni agentingizga yuborasiz.',
-    ru: 'На 5-м шаге по фото вашего товара ищутся похожие предложения на 1688: цена переводится в сумы (курс ЦБ) '
-      + 'и сравнивается с предельной ценой из 4-го шага. Заказ мы не оформляем — на 6-м шаге готовится лист заказа '
-      + 'для вашего агента.',
+    uz: '1688 — Xitoyning ulgurji savdo sayti: zavod va ulgurji sotuvchilar narxlari. 5-qadamda tovaringiz rasmi '
+      + 'boʻyicha 1688 dan oʻxshash takliflar qidiriladi: narxi soʻmga oʻgiriladi (CBU kursi) va 4-qadamdagi chegara '
+      + 'narx bilan solishtiriladi. Buyurtmani biz bermaymiz — 6-qadamda buyurtma varaqasi tayyorlanadi, uni '
+      + 'agentingizga yuborasiz.',
+    ru: '1688 — китайский оптовый сайт: цены заводов и оптовиков. На 5-м шаге по фото вашего товара ищутся похожие '
+      + 'предложения на 1688: цена переводится в сумы (курс ЦБ) и сравнивается с предельной ценой из 4-го шага. '
+      + 'Заказ мы не оформляем — на 6-м шаге готовится лист заказа для вашего агента.',
+  },
+  // «Siz odammisiz yoki robot?» — rostini aytadi (nazoratchi, 2026-10-13: «odam emasman»).
+  kim: {
+    uz: 'Men ZumSavdo dasturining yordamchisiman — odam emasman. Savollaringizga Uzum qoʻllanmasi va ZumSavdo '
+      + 'maʼlumotlari asosida javob beraman; bilmagan narsamni toʻqimayman. Hisob-kitobni dastur qiladi, qaror — sizniki.',
+    ru: 'Я помощник программы ZumSavdo — не человек. Отвечаю по руководству Uzum и данным ZumSavdo; чего не знаю — '
+      + 'не выдумываю. Расчёты делает программа, решение — за вами.',
   },
   kafolat: {
     uz: 'Foyda kafolatlanmaydi: raqamlar Uzum bazasidagi oʻlchov va taxmin, har birining manbasi koʻrsatiladi. Qaror — sizniki.',
@@ -105,6 +114,8 @@ const BOSHQA_MAVZU = /soli[qg]|bank|hisob raqam|uzum|logist|kargo|bojxona|ombor|
  * boshqa mavzu belgisi (`BOSHQA_MAVZU`) boʻlsa ishlamaydi.
  */
 const KALITLAR: ReadonlyArray<[keyof typeof JAVOBLAR, RegExp | null, RegExp | null]> = [
+  // "Odam bilan gaplashsam boʻladimi?" — bu emas (aloqa); faqat "siz odammisiz / botmisiz".
+  ['kim', /odammisiz|odam emasmisiz|tirik odam(mi)?siz|robotmisiz|siz robot|botmisiz|siz bot(?!\p{L})|suniy intellektmisiz|siz suniy intellekt|вы (бот|робот|человек)|ты (бот|робот|человек)|это (бот|робот)|живой человек/u, null],
   ['kafolat', /kafolat|гарант/u, /foyda (bo|qil|ol|kor)|daromad (bo|qil|ol|kor|qancha)|zarar (qil|bo|kor)|yutqaz|прибыл|заработ|убыт/u],
   ['tarif', /obuna|tarif|payme|click|подписк|тариф/u, /pullik|bepul|tolov|xizmat(ingiz)? narxi|оплат|платн|бесплатн/u],
   ['xitoy', /1688/u, /xitoy|китай/u],

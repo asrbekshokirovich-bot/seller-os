@@ -27,6 +27,12 @@
  * qaytarardi (jonli jurnal, 40 savol sinovi) — AI umuman javob bermasdi.
  * Bepul limit har model uchun alohida; `gemini-3.8-flash` — barqaror, eng yangi.
  *
+ * ZAXIRA MODEL (2026-10-14): bepul darajada `gemini-3.8-flash` koʻp soʻrovga
+ * 503 "high demand" qaytardi (5 savoldan 4 tasi javobsiz qoldi). 503 yoki 429
+ * kelsa — oʻsha vaqt chegarasi ichida BIR MARTA zaxira model bilan qayta
+ * soʻraladi (`LLM_ZAXIRA_MODEL`; boʻlmasa `gemini-3.5-flash-lite` — rasmiy
+ * roʻyxatda bor, limiti alohida). Boshqa xatoda (kalit, 404) qayta soʻralmaydi.
+ *
  * Har yiqilish `null` qaytaradi va bu XATO EMAS: kalit yo'q, tarmoq
  * yo'q, model 429 dedi — hammasida oqim to'xtamaydi.
  */
@@ -36,6 +42,8 @@ import type { KartochkaMatni } from './kartochka-matn.ts';
 export interface LlmSozlama {
   kalit: string | null | undefined;
   model?: string | null | undefined;
+  /** 503/429 da bir marta shu model bilan qayta soʻraladi. Berilmasa — `ZAXIRA_MODEL`; boʻsh satr — zaxirasiz. */
+  zaxiraModel?: string | null | undefined;
   /** Bir chaqiruv uchun chegara, ms. Edge Function vaqt chegarasi bor. */
   vaqtMs?: number;
   fetchFn?: typeof fetch;
@@ -131,17 +139,55 @@ export const KARTOCHKA_KORSATMA = [
   '{"nom_uz": "...", "nom_ru": "...", "qisqa_uz": "...", "qisqa_ru": "...", "tavsif_uz": "...", "tavsif_ru": "..."}',
 ].join('\n');
 
-/** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). `json` — javob JSON boʻlsin. */
+export const ASOSIY_MODEL = 'gemini-3.8-flash';
+/** Asosiy model band (503) yoki limiti tugagan (429) boʻlsa — shu bilan bir marta qayta. */
+export const ZAXIRA_MODEL = 'gemini-3.5-flash-lite';
+
+/**
+ * Model qoʻllaydigan fikr darajasi. Rasmiy jadval (ai.google.dev/gemini-api/docs/thinking,
+ * 2026-10-14): `gemini-3.8-flash` — faqat low/medium/high, `minimal` YOʻQ; Flash-Lite,
+ * 3.6 Flash va 3 Flash preview — minimal ham. Notanish modelga `minimal` oʻrniga `low`.
+ */
+function fikrDarajasi(model: string, fikr: 'minimal' | 'low'): 'minimal' | 'low' {
+  return fikr === 'minimal' && !/flash-lite|^gemini-3\.6-flash|^gemini-3-flash/.test(model) ? 'low' : fikr;
+}
+
+/**
+ * Gemini — bitta chaqiruv (503/429 da — zaxira model bilan yana bir marta, oʻsha
+ * vaqt chegarasi ichida). Yiqilsa `null` va logda faqat sababi (kalit ham, matn
+ * ham emas). `json` — javob JSON boʻlsin.
+ */
 async function gemini(
   s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low', json = false,
 ): Promise<string | null> {
   // Sirni nusxalashda qolgan boʻsh joy/yangi qator kalitni buzmasin.
   const kalit = s.kalit?.trim();
   if (!kalit || !matn.trim()) return null;
-  const model = s.model?.trim() || 'gemini-3.8-flash';
-  const f = s.fetchFn ?? fetch;
+  const model = s.model?.trim() || ASOSIY_MODEL;
+  const zaxira = s.zaxiraModel === undefined || s.zaxiraModel === null ? ZAXIRA_MODEL : s.zaxiraModel.trim();
   const nazorat = new AbortController();
   const t = setTimeout(() => nazorat.abort(), s.vaqtMs ?? 8_000);
+  try {
+    const birinchi = await geminiSorov(s, kalit, model, korsatma, matn, belgi, fikr, json, nazorat.signal);
+    if (typeof birinchi === 'string' || birinchi === null) return birinchi;
+    if (!zaxira || zaxira === model) return null;
+    console.warn(`llm ${belgi}: ${model} HTTP ${birinchi.status} — zaxira ${zaxira}`);
+    const ikkinchi = await geminiSorov(s, kalit, zaxira, korsatma, matn, belgi, fikr, json, nazorat.signal);
+    return typeof ikkinchi === 'string' ? ikkinchi : null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * Bitta HTTP soʻrov. Matn — javob; `null` — yiqildi (qayta soʻralmaydi);
+ * `{status}` — 503/429: model band yoki limiti tugagan, zaxira bilan soʻrash mumkin.
+ */
+async function geminiSorov(
+  s: LlmSozlama, kalit: string, model: string, korsatma: string, matn: string, belgi: string,
+  fikr: 'minimal' | 'low', json: boolean, signal: AbortSignal,
+): Promise<string | null | { status: number }> {
+  const f = s.fetchFn ?? fetch;
   try {
     const r = await f(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -153,15 +199,15 @@ async function gemini(
           contents: [{ role: 'user', parts: [{ text: matn }] }],
           // Ichki fikr tokenlari ham `maxOutputTokens` ga kiradi — chegara kichik
           // boʻlsa javob matni boʻsh qoladi. Fikr darajasi: qayta aytish —
-          // `minimal` (tez), erkin javob — `low`. 2.x modellar `thinkingLevel`
-          // ni bilmaydi (rad etadi) — ularga yuborilmaydi.
+          // `minimal` (tez; model qoʻllamasa `low`), erkin javob — `low`. 2.x modellar
+          // `thinkingLevel` ni bilmaydi (rad etadi) — ularga yuborilmaydi.
           generationConfig: {
             maxOutputTokens: 2048,
             ...(json ? { responseMimeType: 'application/json' } : {}),
-            ...(/^gemini-[12]\./.test(model) ? {} : { thinkingConfig: { thinkingLevel: fikr } }),
+            ...(/^gemini-[12]\./.test(model) ? {} : { thinkingConfig: { thinkingLevel: fikrDarajasi(model, fikr) } }),
           },
         }),
-        signal: nazorat.signal,
+        signal,
       },
     );
     if (!r.ok) {
@@ -169,7 +215,7 @@ async function gemini(
       // matnida kalit qaytmaydi; shunday boʻlsa ham 160 belgidan oshmaydi.
       const x = (await r.json().catch(() => null)) as { error?: { status?: string; message?: string } } | null;
       console.warn(`llm ${belgi} (${model}): HTTP ${r.status} ${x?.error?.status ?? ''} ${String(x?.error?.message ?? '').slice(0, 160)}`);
-      return null;
+      return r.status === 503 || r.status === 429 ? { status: r.status } : null;
     }
     const j = (await r.json()) as {
       candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
@@ -181,8 +227,6 @@ async function gemini(
   } catch (e) {
     console.warn(`llm ${belgi} (${model}): ${(e as Error)?.name ?? 'xato'}`);
     return null;
-  } finally {
-    clearTimeout(t);
   }
 }
 

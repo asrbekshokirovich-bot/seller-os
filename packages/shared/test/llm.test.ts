@@ -23,8 +23,19 @@ function soxtaFetch(javob: { status?: number; json: unknown }, yozuvlar: Yozuv[]
 
 const JAVOB = { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Salom! ' }, { text: 'Qancha pul ajratasiz?' }] } }] };
 
+/** Har chaqiruvga navbatdagi javob (oxirgisi takrorlanadi). */
+function ketmaKet(javoblar: Array<{ status?: number; json: unknown }>, yozuvlar: Yozuv[]): typeof fetch {
+  return (async (url: string, init?: RequestInit) => {
+    yozuvlar.push({ url, tana: JSON.parse(String(init?.body)), sarlavha: init?.headers as Record<string, string> });
+    const j = javoblar[Math.min(yozuvlar.length - 1, javoblar.length - 1)]!;
+    return new Response(JSON.stringify(j.json), { status: j.status ?? 200 });
+  }) as unknown as typeof fetch;
+}
+
+const BAND = { status: 503, json: { error: { status: 'UNAVAILABLE', message: 'high demand' } } };
+
 describe('gemini soʻrovi', () => {
-  it('standart model — gemini-3.8-flash; harorat yuborilmaydi; oʻylash minimal (odamlashtir)', async () => {
+  it('standart model — gemini-3.8-flash; harorat yuborilmaydi; u minimal ni qoʻllamaydi — low (odamlashtir)', async () => {
     const y: Yozuv[] = [];
     const r = await odamlashtir({ kalit: ' AIzaKALIT \n', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'Qancha pul ajratasiz?');
     expect(r).toBe('Salom! Qancha pul ajratasiz?');
@@ -32,8 +43,14 @@ describe('gemini soʻrovi', () => {
     expect(y[0]!.sarlavha['x-goog-api-key']).toBe('AIzaKALIT');
     const gc = y[0]!.tana.generationConfig as Record<string, unknown>;
     expect(gc.temperature).toBeUndefined();
-    expect(gc.thinkingConfig).toEqual({ thinkingLevel: 'minimal' });
+    expect(gc.thinkingConfig).toEqual({ thinkingLevel: 'low' });
     expect(gc.maxOutputTokens).toBeGreaterThanOrEqual(2048);
+  });
+
+  it('Flash-Lite minimal ni qoʻllaydi — odamlashtirda minimal ketadi', async () => {
+    const y: Yozuv[] = [];
+    await odamlashtir({ kalit: 'K', model: 'gemini-3.5-flash-lite', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'x');
+    expect((y[0]!.tana.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({ thinkingLevel: 'minimal' });
   });
 
   it('erkin javob — oʻylash low', async () => {
@@ -45,9 +62,9 @@ describe('gemini soʻrovi', () => {
 
   it('LLM_MODEL bilan boshqa model; 2.x modelga thinkingLevel yuborilmaydi (u uni rad etadi)', async () => {
     const y: Yozuv[] = [];
-    await odamlashtir({ kalit: 'K', model: 'gemini-3.8-flash', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'x');
+    await odamlashtir({ kalit: 'K', model: 'gemini-3.6-flash', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'x');
     await odamlashtir({ kalit: 'K', model: 'gemini-2.5-flash', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'x');
-    expect(y[0]!.url).toContain('/models/gemini-3.8-flash:');
+    expect(y[0]!.url).toContain('/models/gemini-3.6-flash:');
     expect((y[0]!.tana.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({ thinkingLevel: 'minimal' });
     expect((y[1]!.tana.generationConfig as Record<string, unknown>).thinkingConfig).toBeUndefined();
   });
@@ -57,6 +74,51 @@ describe('gemini soʻrovi', () => {
     expect(await odamlashtir({ kalit: 'K', fetchFn: soxtaFetch({ status: 404, json: { error: { status: 'NOT_FOUND', message: 'model' } } }, y) }, 'x')).toBeNull();
     expect(await odamlashtir({ kalit: 'K', fetchFn: soxtaFetch({ json: { candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [] } }] } }, y) }, 'x')).toBeNull();
     expect(await odamlashtir({ kalit: '', fetchFn: soxtaFetch({ json: JAVOB }, y) }, 'x')).toBeNull();
+  });
+});
+
+describe('zaxira model (2026-10-14: bepul darajada 503 "high demand")', () => {
+  const SOROV = { savol: 'S', variantlar: [], xabar: 'X', sabab: null, tayyor: null, bilim: 'B' };
+
+  it('503 — bir marta gemini-3.5-flash-lite bilan qayta; uning javobi qaytadi', async () => {
+    const y: Yozuv[] = [];
+    const r = await erkinJavobBer({ kalit: 'K', fetchFn: ketmaKet([BAND, { json: JAVOB }], y) }, SOROV);
+    expect(r).toBe('Salom! Qancha pul ajratasiz?');
+    expect(y.map((x) => x.url.match(/models\/([^:]+):/)?.[1])).toEqual(['gemini-3.8-flash', 'gemini-3.5-flash-lite']);
+    expect(JSON.stringify(y[1]!.tana)).toBe(JSON.stringify(y[0]!.tana));
+  });
+
+  it('429 (limit tugadi) — ham zaxira bilan', async () => {
+    const y: Yozuv[] = [];
+    const r = await erkinJavobBer({ kalit: 'K', fetchFn: ketmaKet([{ status: 429, json: {} }, { json: JAVOB }], y) }, SOROV);
+    expect(r).not.toBeNull();
+    expect(y).toHaveLength(2);
+  });
+
+  it('zaxira ham band — null; ikki martadan ortiq soʻralmaydi', async () => {
+    const y: Yozuv[] = [];
+    expect(await erkinJavobBer({ kalit: 'K', fetchFn: ketmaKet([BAND], y) }, SOROV)).toBeNull();
+    expect(y).toHaveLength(2);
+  });
+
+  it('boshqa xato (400, 404, kalit) — qayta soʻralmaydi', async () => {
+    for (const status of [400, 403, 404, 500]) {
+      const y: Yozuv[] = [];
+      expect(await erkinJavobBer({ kalit: 'K', fetchFn: ketmaKet([{ status, json: {} }, { json: JAVOB }], y) }, SOROV)).toBeNull();
+      expect(y).toHaveLength(1);
+    }
+  });
+
+  it('LLM_ZAXIRA_MODEL boʻsh — zaxirasiz; asosiy model zaxira bilan bir xil — qayta soʻralmaydi; boshqa zaxira — oʻsha', async () => {
+    const a: Yozuv[] = [];
+    await erkinJavobBer({ kalit: 'K', zaxiraModel: '', fetchFn: ketmaKet([BAND, { json: JAVOB }], a) }, SOROV);
+    expect(a).toHaveLength(1);
+    const b: Yozuv[] = [];
+    await erkinJavobBer({ kalit: 'K', model: 'gemini-3.5-flash-lite', fetchFn: ketmaKet([BAND, { json: JAVOB }], b) }, SOROV);
+    expect(b).toHaveLength(1);
+    const c: Yozuv[] = [];
+    await erkinJavobBer({ kalit: 'K', zaxiraModel: ' gemini-3.6-flash ', fetchFn: ketmaKet([BAND, { json: JAVOB }], c) }, SOROV);
+    expect(c[1]!.url).toContain('/models/gemini-3.6-flash:');
   });
 });
 
