@@ -1,18 +1,20 @@
 {
   "izoh": [
     "4-tuzoq: sunʼiy sotuv (nakrutka) fiksturasi.",
-    "Bazadan olingan haqiqiy oʻlchovlar: tovar_sotuvi + product_census.",
-    "`kirish` — NakrutkaKirishi formati: {soldUnits30d, sotuvManbasi, reviews, rating}.",
-    "sharh/sotuv nisbati oraligi: [0.25, 4.0] × (soldUnits30d × 0.08).",
+    "Bazadan olingan haqiqiy oʻlchovlar: tovar_sotuvi + product_observation (jami sharh) + product_daily (shu 30 kunda qoʻshilgan sharh).",
+    "`kirish` — NakrutkaKirishi formati: {soldUnits30d, sotuvManbasi, reviews, rating, sharhOsishi30k?}.",
+    "sharh/sotuv nisbati oraligʻi: [0.25, 4.0] × (soldUnits30d × 0.08); kutilgan sharh 8 dan kam (sotuv < 100) — baholanmaydi.",
+    "SHARH VA SOTUV BIR OYNADAN (2026-10-13): `sharhOsishi30k` boʻlsa — ikkala tomon ham u bilan; faqat jami sharh boʻlsa — faqat \"juda kam\" tomoni, \"juda koʻp\" — baholanmadi.",
+    "Eski qoida JAMI sharhni 30 KUNLIK sotuv bilan solishtirardi va yillab sotilgan tovarlarga (Bref, Always) \"oʻta koʻp sharh\" derdi — eski musbat qatorlarning hammasi shunday edi; ular endi \"baholanmadi\" (kichik sotuv), Bref ning 2026-10-13 holati esa — `null`.",
     "`expect: null` — nisbat normal, filtr bayroq QOʻYMASLIGI kerak.",
-    "`expect: 'baholanmadi'` — maʼlumot yetishmaydi (taxmin, null, yoki sotuv=0).",
+    "`expect: 'baholanmadi'` — maʼlumot yetishmaydi (taxmin, null, sotuv=0, sotuv < 100, yoki \"juda koʻp\" uchun 30 kunlik sharh yoʻq).",
     "`expect: 'fake_sales'` — nisbat normaldan tashqarida."
   ],
   "elementlar": [
     {
       "platform": "uzum",
       "external_id": 41723,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Tish choʻtkasi ROCS Pro Gold Edition Soft 5940",
       "kirish": {
         "soldUnits30d": 2,
@@ -20,12 +22,12 @@
         "reviews": 21,
         "rating": 4.5
       },
-      "note": "sharh/sotuv = 21/(2×0.08) = 131.3 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 21/(2×0.08) = 131.2; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 42973,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Bref Power Active Lavanda hojatxona bloki, 3x50 g",
       "kirish": {
         "soldUnits30d": 36,
@@ -33,12 +35,12 @@
         "reviews": 1197,
         "rating": 4.9
       },
-      "note": "sharh/sotuv = 1197/(36×0.08) = 415.6 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 1197/(36×0.08) = 415.6; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 23299,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Lablar uchun blesk Luxivisage pIn up ultra matt, ton 39",
       "kirish": {
         "soldUnits30d": 14,
@@ -46,12 +48,12 @@
         "reviews": 5,
         "rating": 5
       },
-      "note": "sharh/sotuv = 5/(14×0.08) = 4.46 — chegaradan chiqdi"
+      "note": "2026-09-01 holati: sharh/sotuv = 5/(14×0.08) = 4.5; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 50602,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Tozalash vositasi gel Чистин, 750 g",
       "kirish": {
         "soldUnits30d": 3,
@@ -59,12 +61,12 @@
         "reviews": 71,
         "rating": 4.8
       },
-      "note": "sharh/sotuv = 71/(3×0.08) = 295.8 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 71/(3×0.08) = 295.8; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 15673,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Havo xushboʻylagich Do-Re-Mi Sharqiy motivlar, 350 ml",
       "kirish": {
         "soldUnits30d": 3,
@@ -72,12 +74,12 @@
         "reviews": 47,
         "rating": 4.9
       },
-      "note": "sharh/sotuv = 47/(3×0.08) = 195.8 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 47/(3×0.08) = 195.8; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 2455,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Qoʻl va tirsaklar uchun MUMIYE Revitalizatsiyalovchi, 150 g",
       "kirish": {
         "soldUnits30d": 2,
@@ -85,12 +87,12 @@
         "reviews": 26,
         "rating": 4.9
       },
-      "note": "sharh/sotuv = 26/(2×0.08) = 162.5 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 26/(2×0.08) = 162.5; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 108328,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Vileda Style System almashtiriladigan nasadka, mikrofiber",
       "kirish": {
         "soldUnits30d": 1,
@@ -98,12 +100,12 @@
         "reviews": 25,
         "rating": 4.9
       },
-      "note": "sharh/sotuv = 25/(1×0.08) = 312.5 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 25/(1×0.08) = 312.5; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 126672,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Kundalik prokladkalar Always Long Fresh Scent, 24dona",
       "kirish": {
         "soldUnits30d": 27,
@@ -111,12 +113,12 @@
         "reviews": 623,
         "rating": 4.9
       },
-      "note": "sharh/sotuv = 623/(27×0.08) = 288.4 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 623/(27×0.08) = 288.4; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 13665,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Guashi Gamma Klassik, 16 rang, 20 ml",
       "kirish": {
         "soldUnits30d": 23,
@@ -124,12 +126,12 @@
         "reviews": 11,
         "rating": 5
       },
-      "note": "sharh/sotuv = 11/(23×0.08) = 5.98 — chegaradan chiqdi"
+      "note": "2026-09-01 holati: sharh/sotuv = 11/(23×0.08) = 6.0; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 248923,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Gigienik prokladkalar Dielux, 60 dona",
       "kirish": {
         "soldUnits30d": 7,
@@ -137,12 +139,12 @@
         "reviews": 237,
         "rating": 4.8
       },
-      "note": "sharh/sotuv = 237/(7×0.08) = 423.2 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 237/(7×0.08) = 423.2; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 20782,
-      "expect": "fake_sales",
+      "expect": "baholanmadi",
       "title": "Havo xushboʻylagich DO-RE-MI Premium, anor, 330 ml",
       "kirish": {
         "soldUnits30d": 1,
@@ -150,12 +152,12 @@
         "reviews": 6,
         "rating": 4.8
       },
-      "note": "sharh/sotuv = 6/(1×0.08) = 75 — oʻta koʻp sharh"
+      "note": "2026-09-01 holati: sharh/sotuv = 6/(1×0.08) = 75.0; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoida \"oʻta koʻp sharh\" derdi: jami sharh 30 kunlik sotuv bilan solishtirilgan edi."
     },
     {
       "platform": "uzum",
       "external_id": 13261,
-      "expect": null,
+      "expect": "baholanmadi",
       "title": "Guash Gamma Multiki 6 rang, 20 ml",
       "kirish": {
         "soldUnits30d": 12,
@@ -163,7 +165,7 @@
         "reviews": 3,
         "rating": 5
       },
-      "note": "sharh/sotuv = 3/(12×0.08) = 3.13 — normal oraliqda [0.25, 4.0]"
+      "note": "2026-09-01 holati: sharh/sotuv = 3/(12×0.08) = 3.1; sotuv 100 donadan kam — nisbat baholanmaydi. Eski qoidada normal edi."
     },
     {
       "platform": "uzum",
@@ -333,6 +335,295 @@
         "rating": 0
       },
       "note": "sotuv=0 — nisbat hisoblanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2101029,
+      "expect": "fake_sales",
+      "title": "Now atir, Erkaklar uchun atir, Now Rave Lattafa, Now atir, 10 ml,",
+      "kirish": {
+        "soldUnits30d": 2291,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": null
+      },
+      "note": "2026-10-13: jami sharh 0, 30 kunda 2 291 dona \"sotildi\" — qoldiq olib qoʻyilgan boʻlishi mumkin (jami sharh bilan \"juda kam\")"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1642496,
+      "expect": "fake_sales",
+      "title": "Sovutgich Shivaki HS-137RN",
+      "kirish": {
+        "soldUnits30d": 225,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": null
+      },
+      "note": "2026-10-13: jami sharh 0, 30 kunda 225 dona (eng katta qoldiq 250) — jami sharh bilan \"juda kam\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2025953,
+      "expect": "fake_sales",
+      "title": "MOLFIX bolalar tagliklari",
+      "kirish": {
+        "soldUnits30d": 199,
+        "sotuvManbasi": "olchandi",
+        "reviews": 0,
+        "rating": null
+      },
+      "note": "2026-10-13: jami sharh 0, 30 kunda 199 dona (eng katta qoldiq 200) — jami sharh bilan \"juda kam\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 3090012,
+      "expect": "fake_sales",
+      "title": "OnCloud futbolka erkaklar uchun, erkaklar kiyimlari",
+      "kirish": {
+        "soldUnits30d": 8026,
+        "sotuvManbasi": "olchandi",
+        "reviews": 18,
+        "rating": 4.6,
+        "sharhOsishi30k": 16
+      },
+      "note": "2026-10-13: 8 026 dona, shu 30 kunda 16 sharh (kutilgani ~642) — \"juda kam\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2964158,
+      "expect": "fake_sales",
+      "title": "Metall keks qolipi, pech uchun pishiriq idishi, 42x25x7 sm va 38x23x7 sm DB-5-328",
+      "kirish": {
+        "soldUnits30d": 7842,
+        "sotuvManbasi": "olchandi",
+        "reviews": 12,
+        "rating": 4.8,
+        "sharhOsishi30k": 9
+      },
+      "note": "2026-10-13: 7 842 dona, shu 30 kunda 9 sharh (kutilgani ~627) — \"juda kam\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 3164988,
+      "expect": "fake_sales",
+      "title": "XUPING Ayollar va qizlar uchun taqinchoqlar to'plami",
+      "kirish": {
+        "soldUnits30d": 4483,
+        "sotuvManbasi": "olchandi",
+        "reviews": 28,
+        "rating": 4.7,
+        "sharhOsishi30k": 21
+      },
+      "note": "2026-10-13: 4 483 dona, shu 30 kunda 21 sharh (kutilgani ~359) — \"juda kam\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 3092684,
+      "expect": "fake_sales",
+      "title": "Erkaklar charm mokasinlari",
+      "kirish": {
+        "soldUnits30d": 1890,
+        "sotuvManbasi": "olchandi",
+        "reviews": 29,
+        "rating": 4.1,
+        "sharhOsishi30k": 12
+      },
+      "note": "2026-10-13: 1 890 dona, shu 30 kunda 12 sharh (kutilgani ~151) — \"juda kam\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2404020,
+      "expect": "fake_sales",
+      "title": "HP X66 / HP M10 simli optik sichqoncha",
+      "kirish": {
+        "soldUnits30d": 948,
+        "sotuvManbasi": "olchandi",
+        "reviews": 9,
+        "rating": 4.3,
+        "sharhOsishi30k": 2
+      },
+      "note": "2026-10-13: 948 dona, shu 30 kunda 2 sharh (kutilgani ~76) — \"juda kam\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2352839,
+      "expect": "fake_sales",
+      "title": "Bolgarka Keczz 850/950/1050Vt, 125 mm",
+      "kirish": {
+        "soldUnits30d": 181,
+        "sotuvManbasi": "olchandi",
+        "reviews": 568,
+        "rating": 4.8,
+        "sharhOsishi30k": 60
+      },
+      "note": "2026-10-13: 181 dona, shu 30 kunda 60 sharh (kutilgani ~14, 4.1×) — \"juda koʻp\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1659259,
+      "expect": "fake_sales",
+      "title": "Erkaklar va ayollar uchun uniseks krossovkalar, yoz-bahor-kuz-qish uchun, 39-44 o'lchamda",
+      "kirish": {
+        "soldUnits30d": 101,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1384,
+        "rating": 4.7,
+        "sharhOsishi30k": 43
+      },
+      "note": "2026-10-13: 101 dona, shu 30 kunda 43 sharh (kutilgani ~8, 5.3×) — \"juda koʻp\""
+    },
+    {
+      "platform": "uzum",
+      "external_id": 42973,
+      "expect": null,
+      "title": "Bref Power Active Lavanda hojatxona bloki, hojatxonani tozalash vositasi, 3x50 g",
+      "kirish": {
+        "soldUnits30d": 128,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1233,
+        "rating": 4.9,
+        "sharhOsishi30k": 21
+      },
+      "note": "2026-10-13: Bref: jami 1 233 sharh (eski qoidada \"oʻta koʻp\"), lekin shu 30 kunda 21 sharh, kutilgani ~10 — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 442179,
+      "expect": null,
+      "title": "Ayollar uchun uzuk",
+      "kirish": {
+        "soldUnits30d": 531,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1974,
+        "rating": 4.9,
+        "sharhOsishi30k": 76
+      },
+      "note": "2026-10-13: jami 1 974 sharh, shu 30 kunda 76 (kutilgani ~42) — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 926472,
+      "expect": null,
+      "title": "Yuz uchun konsiler, tonal korrektor",
+      "kirish": {
+        "soldUnits30d": 271,
+        "sotuvManbasi": "olchandi",
+        "reviews": 881,
+        "rating": 4.6,
+        "sharhOsishi30k": 59
+      },
+      "note": "2026-10-13: jami 881 sharh, shu 30 kunda 59 (kutilgani ~22) — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 799723,
+      "expect": null,
+      "title": "Strazli olmos mozaika aksessuarlari, nasadkali dasta",
+      "kirish": {
+        "soldUnits30d": 135,
+        "sotuvManbasi": "olchandi",
+        "reviews": 1495,
+        "rating": 4.7,
+        "sharhOsishi30k": 20
+      },
+      "note": "2026-10-13: jami 1 495 sharh, shu 30 kunda 20 (kutilgani ~11) — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 1169784,
+      "expect": null,
+      "title": "Ultra yumshoq tukli tish cho'tkasi, plastik qutida, sezuvchan tishlar uchun",
+      "kirish": {
+        "soldUnits30d": 100,
+        "sotuvManbasi": "olchandi",
+        "reviews": 775,
+        "rating": 4.8,
+        "sharhOsishi30k": 17
+      },
+      "note": "2026-10-13: aynan 100 dona — chegarada baholanadi; shu 30 kunda 17 sharh (kutilgani 8) — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2870639,
+      "expect": null,
+      "title": "Tozalash va yuvish uchun mikrofibradan ko‘p martalik rulonli salfetkalar, 50, 20 dona",
+      "kirish": {
+        "soldUnits30d": 3616,
+        "sotuvManbasi": "olchandi",
+        "reviews": 996,
+        "rating": 4.9,
+        "sharhOsishi30k": 545
+      },
+      "note": "2026-10-13: 3 616 dona, shu 30 kunda 545 sharh (kutilgani ~289) — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 3203335,
+      "expect": null,
+      "title": "Krop top kofta, longsliv, uzun yengli, ayollar uchun, 95% xb",
+      "kirish": {
+        "soldUnits30d": 2211,
+        "sotuvManbasi": "olchandi",
+        "reviews": 180,
+        "rating": 4.8,
+        "sharhOsishi30k": 152
+      },
+      "note": "2026-10-13: 2 211 dona, shu 30 kunda 152 sharh (kutilgani ~177) — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2302909,
+      "expect": null,
+      "title": "IDC geometriya, geometriya kitobi, geometriya darsligi, imtihonga tayyorgarlik",
+      "kirish": {
+        "soldUnits30d": 623,
+        "sotuvManbasi": "olchandi",
+        "reviews": 75,
+        "rating": 5,
+        "sharhOsishi30k": 14
+      },
+      "note": "2026-10-13: 623 dona, shu 30 kunda 14 sharh (kutilgani ~50, 0.28×) — chegara ichida"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2427090,
+      "expect": null,
+      "title": "Dekorativ Liana – 2.3–2.5 m, Realistik Ko‘rinish",
+      "kirish": {
+        "soldUnits30d": 177,
+        "sotuvManbasi": "olchandi",
+        "reviews": 47,
+        "rating": 4.7,
+        "sharhOsishi30k": 7
+      },
+      "note": "2026-10-13: 177 dona, shu 30 kunda 7 sharh (kutilgani ~14) — normal"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 2160806,
+      "expect": "baholanmadi",
+      "title": "Ayollar uchun sovg'a to'plami, bilaguzuk va soat",
+      "kirish": {
+        "soldUnits30d": 144,
+        "sotuvManbasi": "olchandi",
+        "reviews": 512,
+        "rating": 4.7
+      },
+      "note": "2026-10-13: jami 512 sharh, 144 dona — 30 kunlik sharh berilmagan: \"juda koʻp\" jami bilan baholanmaydi"
+    },
+    {
+      "platform": "uzum",
+      "external_id": 287787,
+      "expect": "baholanmadi",
+      "title": "Bolalar uchun rivojlantiradigan musiqiy o'yinchoq rul, katta, sport, plastikdan",
+      "kirish": {
+        "soldUnits30d": 101,
+        "sotuvManbasi": "olchandi",
+        "reviews": 730,
+        "rating": 4.7
+      },
+      "note": "2026-10-13: jami 730 sharh, 101 dona — 30 kunlik sharh berilmagan: \"juda koʻp\" jami bilan baholanmaydi"
     }
   ]
 }

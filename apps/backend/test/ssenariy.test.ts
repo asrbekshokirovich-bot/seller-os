@@ -27,8 +27,8 @@ const YONALISHLAR = {
 const TOVARLAR = {
   olchov_yoq: false,
   royxat: [
-    { nomzod: { productId: 100, title: 'Quloqchin A', rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg' }, miqdor: { dona: 30, hisob: 'oyiga ~600 · 5% · 30 kun = 30' } },
-    { nomzod: { productId: 200, title: 'Quloqchin B' }, miqdor: null, miqdorSababi: 'Sotuv hali oʻlchanmagan.' },
+    { nomzod: { productId: 100, title: 'Quloqchin A', rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg', soldUnits30d: 600, sotuvManbasi: 'olchandi' as const, qoldiq: 40 }, miqdor: { dona: 30, hisob: 'oyiga ~600 · 5% · 30 kun = 30' } },
+    { nomzod: { productId: 200, title: 'Quloqchin B', soldUnits30d: null, sotuvManbasi: null, qoldiq: 12 }, miqdor: null, miqdorSababi: 'Sotuv hali oʻlchanmagan.' },
   ],
   chiqarildi: [{ title: 'Brend X', sabab: 'yopiq brend' }],
 };
@@ -1619,13 +1619,31 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
   it('F14: tovarlar xulosasi — "8 ta tuzoq-filtrdan oʻtdi" emas; oʻlchanmagan va baholanmagan sanaladi', () => {
     const m = tushuntir('tovarlar', { ...TOVARLAR, royxat: [...TOVARLAR.royxat,
       { nomzod: { productId: 300, title: 'C' }, miqdor: null, miqdorSababi: 'Sotuv hali oʻlchanmagan.', baholanmadi: [{ filtr: 'nakrutka', missing: ['sharhSoni'] }], bayroqlar: [] }] });
-    expect(m).toMatch(/^Bu yoʻnalishdan Uzumdagi 3 ta tovarni koʻrsatyapman/);
+    expect(m).toMatch(/^Bu yoʻnalishdan Uzumdagi 3 ta tovarni koʻrsatyapman — sotilayotganlari tepada/);
     expect(m).not.toMatch(/tuzoq-filtrdan oʻtdi|tuzoq-filtrning/);
-    expect(m).toMatch(/1 tasida ayrim xavf tekshiruvlari maʼlumot yetmagani uchun qilinmadi/);
-    expect(m).toMatch(/2 tasining sotuvi hali oʻlchanmagan/);
+    expect(m).toMatch(/1 tasida ayrim xavf tekshiruvlarini maʼlumot yetmagani uchun qila olmadim/);
+    expect(m).toMatch(/Shu 3 tadan: 1 tasining sotuvi oʻlchandi, 2 tasining sotuvini hali oʻlchab ulgurmadik\./);
     expect(m).toMatch(/Yana 1 ta xavfli tovarni/);
-    // Raqam qayerdan — ochiq: Uzum bermaydi, oʻzimiz oʻlchaymiz, taxminiy.
-    expect(m).toMatch(/Uzum sotuv sonini oshkor qilmaydi/);
+    // Raqam qayerdan — ochiq: Uzum bermaydi, oʻzimiz oʻlchaymiz, taxminiy;
+    // mavsum va yil boʻyicha nega yoʻq (nazoratchi, 2026-10-13).
+    expect(m).toMatch(/Uzum nechta sotilganini koʻrsatmaydi/);
+    expect(m).toMatch(/qoldigʻini kuniga 3 marta tekshiramiz/);
+    expect(m).toMatch(/2026-yil avgustda boshlaganmiz: mavsum va yil boʻyicha sotuv hali yoʻq, faqat oxirgi 30 kun/);
+  });
+
+  it('F14b: xabardagi sonlar kartadagi toifalar bilan bir xil (jonli sinov, 2026-10-13)', () => {
+    // Ilgari: "17 tasining sotuvi hali oʻlchanmagan", kartalarda esa 15 tasida
+    // "qoldiq koʻrinmayapti", 2 tasida "sotuv koʻrinmadi".
+    const q = (productId: number, soldUnits30d: number | null, qoldiq: number | null) =>
+      ({ nomzod: { productId, title: String(productId), soldUnits30d, sotuvManbasi: 'olchandi' as const, qoldiq }, miqdor: null,
+        baholanmadi: [{ filtr: 'heavy', missing: ['weightG'] }], bayroqlar: [] });
+    const m = tushuntir('tovarlar', { olchov_yoq: false, chiqarildi: [],
+      royxat: [q(1, 53, 4), q(2, 0, 1), q(3, 0, 0), q(4, 0, 0)] });
+    expect(m).toMatch(/Shu 4 tadan: 1 tasining sotuvi oʻlchandi, 1 tasida 30 kunda sotuv boʻlmadi, 2 tasi Uzumda hozir tugagan\./);
+    expect(m).not.toMatch(/Qancha olishni keyin/);
+    expect(m).toMatch(/Hammasida ayrim xavf tekshiruvlarini/);
+    const hechBiri = tushuntir('tovarlar', { olchov_yoq: false, chiqarildi: [], royxat: [q(3, 0, 0)] });
+    expect(hechBiri).toMatch(/Shu 1 tadan: 1 tasi Uzumda hozir tugagan\. Qancha olishni keyin oʻzingiz yozasiz\./);
   });
 
   it('F15: komissiya sotuvdan katta — sof manfiy (zarar) koʻrsatiladi, 0 emas', () => {

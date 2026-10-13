@@ -284,6 +284,47 @@ export interface TovarNomzodi extends TovarToliq {
  */
 export type MiqdorSababKodi = 'olchanmagan' | 'kun-yetmadi' | 'sotilmagan';
 
+/**
+ * Katalog kartasidagi sotuv holati. Xabar (`ssenariy.ts`, `tovarlar`
+ * izohi) va karta (sahifa) BIR XIL toifani ishlatadi — xabardagi son
+ * kartalarga mos kelsin. Ilgari xabar "17 tasining sotuvi hali
+ * oʻlchanmagan" derdi, kartalarda esa 15 tasida "qoldiq koʻrinmayapti",
+ * 2 tasida "sotuv koʻrinmadi" turardi (jonli sinov, 2026-10-13).
+ *
+ *   sotildi      — oʻlchangan va noldan katta: "oxirgi 30 kunda ~N dona"
+ *   tugagan      — oxirgi tekshiruvda Uzumda qoldiq 0: sotuvni oʻlchab boʻlmaydi
+ *   sotilmadi    — oʻlchandi, qoldiq bor, lekin kamaymadi
+ *   olchanmagan  — kuzatuv kunlari yetmadi yoki faqat taxmin bor
+ */
+export type SotuvToifasi = 'sotildi' | 'tugagan' | 'sotilmadi' | 'olchanmagan';
+
+export function sotuvToifasi(n: {
+  soldUnits30d: number | null;
+  sotuvManbasi: 'olchandi' | 'taxmin' | null;
+  qoldiq?: number | null;
+}): SotuvToifasi {
+  const olchandi = n.sotuvManbasi === 'olchandi';
+  if (olchandi && n.soldUnits30d !== null && n.soldUnits30d > 0) return 'sotildi';
+  if (n.qoldiq === 0) return 'tugagan';
+  if (olchandi && n.soldUnits30d === 0) return 'sotilmadi';
+  return 'olchanmagan';
+}
+
+/**
+ * Katalog tartibi uchun oʻrin (kichigi tepada).
+ *
+ * Nazoratchi (2026-10-13): katalogdagi 20 tovarning 15 tasi Uzumda
+ * tugagan edi va ular aralash turardi. Endi: oʻlchab sotilganlari
+ * tepada; "sharh juda kam" bayrogʻi borlari (sotuv raqami shubhali —
+ * TUZOQLAR.md §4: "roʻyxatda pastga tushadi") ulardan keyin; keyin hali
+ * oʻlchanmaganlari, sotilmaganlari; tugaganlari — eng pastda.
+ */
+function katalogOrni(t: TovarTavsiyasi): number {
+  const toifa = sotuvToifasi(t.nomzod);
+  if (toifa === 'sotildi') return t.bayroqlar.some((b) => b.kind === 'fake_sales') ? 1 : 0;
+  return { olchanmagan: 2, sotilmadi: 3, tugagan: 4 }[toifa];
+}
+
 export interface TovarTavsiyasi {
   nomzod: TovarNomzodi;
   /** Nechta olish. `null` — hisoblab boʻlmadi. */
@@ -364,6 +405,14 @@ export function tovarlar(
       baholanmadi,
     });
   }
+
+  // Bir oʻrinda: koʻp sotilgani, keyin sharhi koʻpi (Uzumda uzoq va koʻp
+  // sotilgan) tepada. `sort` barqaror — tenglarda bazadagi tartib qoladi.
+  const sotuvi = (t: TovarTavsiyasi) => (sotuvToifasi(t.nomzod) === 'sotildi' ? t.nomzod.soldUnits30d ?? 0 : 0);
+  royxat.sort((a, b) =>
+    katalogOrni(a) - katalogOrni(b)
+    || sotuvi(b) - sotuvi(a)
+    || (b.nomzod.sharhSoni ?? -1) - (a.nomzod.sharhSoni ?? -1));
 
   return { royxat, chiqarildi };
 }

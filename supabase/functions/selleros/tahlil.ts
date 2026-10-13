@@ -65,6 +65,7 @@ export function tovarniTekshir(
     soldUnits30d: t.soldUnits30d,
     sotuvManbasi: t.sotuvManbasi ?? null,
     reviews: t.sharhSoni ?? null,
+    sharhOsishi30k: t.sharhOsishi30k ?? null,
     rating: t.reyting ?? null,
   }));
 

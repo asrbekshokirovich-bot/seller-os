@@ -107,8 +107,14 @@ export interface Baholanmadi {
  * aylanmaydi — bu farq QOIDALAR.md 4-qoidasining oʻzagi.
  */
 export interface TovarToliq extends TovarHolati {
-  /** 4-tuzoq. Sharhlar soni. */
+  /** 4-tuzoq. Sharhlar soni — jami (tovar Uzumga chiqqandan beri). */
   sharhSoni?: number | null;
+  /**
+   * 4-tuzoq. Sotuv bilan BIR OYNADA (oxirgi 30 kun) qoʻshilgan sharhlar.
+   * `so_tovar_royxati` hali bermaydi (0064 kutilmoqda) — berilmasa
+   * "sharh juda koʻp" tomoni baholanmaydi, `nakrutka.ts` ga qarang.
+   */
+  sharhOsishi30k?: number | null;
   /** 4-tuzoq. Sotuv raqami qayerdan — taxminda filtr baholamaydi. */
   sotuvManbasi?: 'olchandi' | 'taxmin' | null;
   /** 4-tuzoq. Reyting, 0–5. */

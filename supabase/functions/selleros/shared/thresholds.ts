@@ -66,6 +66,17 @@ export const THRESHOLDS = {
      */
     expectedReviewRate: 0.08,
     reviewRateTolerance: 4,
+    /**
+     * Kutilgan sharh shundan kam boʻlsa nisbat baholanmaydi — sotuv
+     * ~100 donadan kam (8 / 0,08).
+     *
+     * Kichik sonlarda nisbat tasodifga bogʻliq: 2 ta sotuvda "odatda ~0
+     * sharh", 1 ta sharh esa "6 barobar koʻp". Oʻlchandi 2026-10-13:
+     * 30 kunda 25 donadan kam sotilgan 306 tovarning 277 tasi (90 %)
+     * eski qoidada "sharh juda koʻp" bayrogʻini olardi. λ = 8 da halol
+     * tovarning tasodifan "sharh juda kam" (≤ 1) chiqishi ~0,3 %.
+     */
+    minExpectedReviews: 8,
   },
 
   /** 6-tuzoq: monopoliya. */
