@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { kirilmi, lotinga, ozbekKirilmi, ruschami, tushunishUchun } from '../src/yozuv';
+import { kirillUlushi, kirilmi, lotinga, ozbekKirilmi, ruschami, tushunishUchun, yozuvi } from '../src/yozuv';
 
 describe('yozuv — oʻzbek kirill', () => {
   it('oʻzbek kirill, rus va lotin farqlanadi', () => {
@@ -30,6 +30,15 @@ describe('yozuv — oʻzbek kirill', () => {
     expect(lotinga('Шаҳар')).toBe('Shahar');
     expect(lotinga('маъно')).toBe('maʼno');
     expect(lotinga('uzum.uz 10 млн')).toBe('uzum.uz 10 mln');
+  });
+
+  it('yozuvi va kirill ulushi — javob mijoz tilidami (jonli oʻlchov, 2026-10-14)', () => {
+    expect(yozuvi('Какие документы нужны?')).toBe('ru');
+    expect(yozuvi('Пул қачон тушади?')).toBe('uz-kirill');
+    expect(yozuvi('Pul qachon tushadi?')).toBe('uz');
+    expect(kirillUlushi('Для продажи на Uzum нужен паспорт')).toBeGreaterThan(0.5);
+    expect(kirillUlushi('Uzumda savdo qilish uchun YATT guvohnomasi kerak')).toBe(0);
+    expect(kirillUlushi('123 — 5 250')).toBe(0);
   });
 
   it('tushunish uchun: faqat oʻzbek kirill oʻgiriladi, ruscha va lotin — oʻzicha', () => {

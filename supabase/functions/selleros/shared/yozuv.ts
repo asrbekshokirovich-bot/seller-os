@@ -37,6 +37,24 @@ export function ruschami(matn: string): boolean {
   return kirilmi(matn) && !ozbekKirilmi(matn);
 }
 
+/** Mijoz yozgan til va yozuv — javob shunda boʻlishi kerak. */
+export type Yozuv = 'uz' | 'uz-kirill' | 'ru';
+
+export function yozuvi(matn: string): Yozuv {
+  return ruschami(matn) ? 'ru' : ozbekKirilmi(matn) ? 'uz-kirill' : 'uz';
+}
+
+/**
+ * Harflarning qancha qismi kirill (0..1); harf yoʻq — 0. Rus yoki kirill savolga
+ * LLM lotincha javob yozsa — shu bilan ushlanadi (jonli oʻlchov, 2026-10-14:
+ * «Какие документы нужны…» ga oʻzbekcha javob keldi).
+ */
+export function kirillUlushi(matn: string): number {
+  const harflar = String(matn ?? '').match(/\p{L}/gu) ?? [];
+  if (!harflar.length) return 0;
+  return harflar.filter((h) => /[Ѐ-ӿ]/u.test(h)).length / harflar.length;
+}
+
 const HARF: Readonly<Record<string, string>> = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ё: 'yo', ж: 'j', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm',
   н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'x', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sh',

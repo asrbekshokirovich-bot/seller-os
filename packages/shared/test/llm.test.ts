@@ -167,6 +167,20 @@ describe('yordamchi feʼl-atvori (nazoratchi tanlovi, 2026-10-13)', () => {
     expect(ERKIN_KORSATMA).toMatch(/odam emasman/);
   });
 
+  it('javob tili: rus yoki kirill savolda aniq aytiladi; lotin savolda — qoʻshilmaydi (2026-10-14)', async () => {
+    const matnlar: string[] = [];
+    for (const til of ['ru', 'uz-kirill', 'uz', undefined] as const) {
+      const y: Yozuv[] = [];
+      await erkinJavobBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) },
+        { savol: 'S', variantlar: [], xabar: 'X', sabab: null, tayyor: 'oʻzbekcha', bilim: 'B', ...(til ? { til } : {}) });
+      matnlar.push((y[0]!.tana as { contents: Array<{ parts: Array<{ text: string }> }> }).contents[0]!.parts[0]!.text);
+    }
+    expect(matnlar[0]).toMatch(/JAVOB TILI: rus tili\. Butun javobni faqat rus tilida yoz/);
+    expect(matnlar[1]).toMatch(/JAVOB TILI: oʻzbek tili, KIRILL yozuvida/);
+    expect(matnlar[2]).not.toMatch(/JAVOB TILI/);
+    expect(matnlar[3]).not.toMatch(/JAVOB TILI/);
+  });
+
   it('bazaviy javob soʻrovga «maʼnosi va raqamlarini saqlab» deb qoʻshiladi', async () => {
     const y: Yozuv[] = [];
     await erkinJavobBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) },
