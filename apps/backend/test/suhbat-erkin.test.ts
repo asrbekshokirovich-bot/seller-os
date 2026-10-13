@@ -284,6 +284,13 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
     expect(b.holat()!.javoblar['byudjet']).toBe(som);
   });
 
+  it('byudjet savolida pulga aloqasiz savol — pul maslahati emas (jonli sinov, 2026-10-13)', async () => {
+    const b = soxtaBaza(BYUDJET_HOLATI);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: 'kanstovar bilan kiyimdan qaysi biri osonroq?' });
+    expect(r.xabarlar[1]!.matn).not.toMatch(/^Maslahatim: hamma pulni/);
+    expect(r.xabarlar[1]!.matn).toMatch(/Yoʻnalish qadamida koʻrsataman/);
+  });
+
   it('LLM manbasiz raqam yozsa — sababi bilan BIR MARTA qayta soʻraladi; toʻgʻri javob ketadi', async () => {
     const b = soxtaBaza(BYUDJET_HOLATI);
     const kelganlar: ErkinSorov[] = [];
