@@ -36,7 +36,7 @@ const QADAMLAR = [
   '12. Hisobot — oy hisoboti: sotuv, komissiya, soliq.',
 ];
 
-const LUGAT = [
+export const LUGAT: readonly string[] = [
   'Imkoniyat bahosi (ball) — 100 ballik baho: xaridor qanchalik koʻp (boshqa yoʻnalishlarga nisbatan), bozorda yangi '
     + 'sotuvchiga joy bormi (eng katta 3 doʻkon ulushi va sotuvchilar soni), maxsus ruxsat kerakmi (sertifikat, '
     + 'markirovka) va hozir mavsummi. Baho qancha yuqori — boshlash shuncha osonroq. 70 dan yuqori — «yaxshi», 50 dan — «oʻrtacha», undan past — «past».',
@@ -63,7 +63,7 @@ const LUGAT = [
     + '(kargo qimmat), qisqa trend, monopol bozor.',
 ];
 
-const MASLAHAT = [
+export const MASLAHAT: readonly string[] = [
   'Hamma pulni birinchi partiyaga tikmang — bir qismini zaxirada qoldiring: tovar kelib, sotilib, pul qaytguncha '
     + 'vaqt oʻtadi; reklama, qaytgan yoki nuqsonli tovar, ikkinchi partiya va kutilmagan xarajatlar chiqadi.',
   'Birinchi partiyani kichikroq oling: qanday sotilishini koʻrib, keyin koʻpaytiring.',

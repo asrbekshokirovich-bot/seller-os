@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { mijozHolati, suhbatTarixi, UZUM_BILIMI, YORDAMCHI_BILIMI, type YolHolati } from '@selleros/shared';
+import { bilimJavobi, mijozHolati, suhbatTarixi, UZUM_BILIMI, YORDAMCHI_BILIMI, type YolHolati } from '@selleros/shared';
 
 describe('Uzum bilimi', () => {
   it('har fakt manbasi bilan; "kafolat" yoʻq (darvoza uni taqiqlaydi)', () => {
@@ -58,5 +58,39 @@ describe('mijoz holati va suhbat — shaxsiy maʼlumotsiz', () => {
     expect(t).not.toMatch(/Aziz|Karimov|998901234567/);
     expect(t).toMatch(/Yordamchi: Rahmat, …! Oldin savdo qilganmisiz\?/);
     expect(t).toMatch(/Mijoz: bozorda sotganman/);
+  });
+});
+
+describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini limiti tugagan)', () => {
+  const ROYXAT = { olchov_yoq: false, royxat: [
+    { categoryId: 1, name: 'Ruchkalar', soha: 'kanstovar', yetadi: true, optimalKirishSom: null, ball: { value: 70, breakdown: [] }, dalil: { talabOlchovi: 1, sotuvchiSoni: 120, top3Ulush: 25 } },
+    { categoryId: 2, name: 'Bloknotlar', soha: 'kanstovar', yetadi: true, optimalKirishSom: null, ball: { value: 70, breakdown: [] }, dalil: { talabOlchovi: 1, sotuvchiSoni: 80, top3Ulush: 40 } },
+  ] };
+  const H: YolHolati = { javoblar: { qiziqish: ['kanstovar'], byudjet: 80_000_000 }, natijalar: { yonalishlar: ROYXAT } };
+
+  it.each([
+    ['ball nima degani?', 'yonalish', /Imkoniyat bahosi \(ball\)/],
+    ['bozor ochiq degani nima?', 'yonalish', /«Bozor ochiq» — eng katta 3 doʻkon/],
+    ['pul qachon tushadi?', 'tovarlar', /to‘lov jadvali bo‘yicha avtomatik.*\(Manba: Uzum qoʻllanmasi/],
+    ['sertifikat kerakmi?', 'tovarlar', /Sertifikatlar/],
+    ['Uzumga qanday roʻyxatdan oʻtaman?', 'tovarlar', /seller\.uzum\.uz\/seller\/signup/],
+    ['komissiya qancha?', 'tovarlar', /Komissiya — Uzum har sotuvdan/],
+    ['mavsum yoki bir yillik sotuvni koʻrsata olasizmi?', 'tovarlar', /2026-yil avgustda/],
+    ['dollarda yozsam boʻladimi?', 'byudjet', /«5000 \$» deb yozing/],
+    ['10 mln yetadimi?', 'byudjet', /«Pulingiz yetadi»/],
+    ['nega sumka chiqyapti, men kanstovar dedimku', 'yonalish', /taqqoslash uchun/],
+    ['men hech narsa bilmayman, qayerdan boshlayman?', 'uzum_dokoni', /12 qadamda olib boraman/],
+  ])('«%s» (%s)', (matn, savolId, kutilgan) => {
+    expect(bilimJavobi(matn, savolId, H)).toMatch(kutilgan);
+  });
+
+  it('ekrandagi kartalar tilga olinsa — ularning maʼlumoti (solishtirish)', () => {
+    const j = bilimJavobi('ruchkalar bilan bloknotlarning farqi nima?', 'yonalish', H);
+    expect(j).toMatch(/^Kartalardagi maʼlumot: «Ruchkalar» \(Kanstovar va kitob\) — 70 ball/);
+    expect(j).toMatch(/«Bloknotlar»/);
+  });
+
+  it('mos mavzu yoʻq — null (toʻqilmaydi)', () => {
+    expect(bilimJavobi('ertaga ob-havo qanday', 'yonalish', H)).toBeNull();
   });
 });

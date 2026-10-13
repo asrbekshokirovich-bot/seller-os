@@ -19,6 +19,7 @@ export * from './tekshiruv.js';
 export * from './tanishuv.js';
 export * from './erkin.js';
 export * from './bilim.js';
+export * from './bilim-javob.js';
 export * from './uzum-bilim.js';
 export * from './yordamchi.js';
 export * from './filtrlar/nakrutka.js';

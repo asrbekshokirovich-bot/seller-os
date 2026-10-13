@@ -33,6 +33,7 @@ import { natijaSonlari, tekshir } from './tekshiruv.ts';
 import { minglik } from './fakt.ts';
 import { tayyorJavob } from './erkin.ts';
 import { YORDAMCHI_BILIMI } from './bilim.ts';
+import { bilimJavobi } from './bilim-javob.ts';
 import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.ts';
 import type { ProfilJavoblari } from './profil.ts';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.ts';
@@ -544,12 +545,17 @@ function ruschami(matn: string): boolean {
  * nega javob qabul qilinmagani, oxirida joriy savol. Variantlar va
  * «Oʻtkazib yuborish» qaytarilmaydi — ular pastda tugma boʻlib turibdi.
  */
-function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null): string {
+function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null, h: YolHolati | null = null): string {
   const ruscha = ruschami(matn);
   // Salom — butun soʻz: "hisob…" "hi" bilan boshlanadi, lekin salomlashish emas.
   const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)(?!\p{L})/iu.test(matn);
   const tayyor = tayyorJavob(matn);
   const savol = qisqaSavol(s.matn);
+  // Bilimdan javob (`bilim-javob.ts`): LLM ishlamasa ham "ball nima?", "pul
+  // qachon tushadi?" kabi savolga aniq javob — jonli sinovda (2026-10-13)
+  // Gemini limiti tugab, 33 savoldan 22 tasiga "javob bera olmayman" chiqqan edi.
+  const bilim = !tayyor && !sabab && !ruscha ? bilimJavobi(matn, s.id, h) : null;
+  if (bilim) return [salom ? 'Vaalaykum assalom!' : null, bilim, `Hozirgi savol: «${savol}»`].filter(Boolean).join(' ');
   // Byudjet savolida maslahat soʻradi ("80 mlnmi, 100 mlnmi?") — LLM boʻlmasa
   // ham umumiy maslahat (`bilim.ts`, raqamsiz); summalari tugma boʻlib chiqadi.
   if (s.id === 'byudjet' && !sabab && !tayyor) {
@@ -593,7 +599,7 @@ async function erkinJavob(
   d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null,
   h: YolHolati, xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>,
 ): Promise<string> {
-  const shablon = erkinShablon(s, matn, sabab);
+  const shablon = erkinShablon(s, matn, sabab, h);
   // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
   if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
   const variantlar = s.variantlar.map((v) => v.nom);
