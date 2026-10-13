@@ -91,8 +91,9 @@ describe('2-qadam — yo\'nalishlar', () => {
 describe('byudjet bo\'lish taklifi', () => {
   it('byudjet ancha katta bo\'lsa taklif beriladi', () => {
     const n = yonalishlar(
-      [turkum({ categoryId: 1, optimalKirishSom: 2_000_000 }),
-       turkum({ categoryId: 2, optimalKirishSom: 2_000_000 })],
+      // Nomlari har xil: bir xil nomli turkumlardan faqat bittasi qoladi (2026-10-13).
+      [turkum({ categoryId: 1, name: 'Sinov 1', optimalKirishSom: 2_000_000 }),
+       turkum({ categoryId: 2, name: 'Sinov 2', optimalKirishSom: 2_000_000 })],
       10_000_000, null, 6);   // 5 barobar
     expect(n.bolishTaklifi).not.toBeNull();
     expect(n.bolishTaklifi!.nechta).toBeGreaterThanOrEqual(2);
@@ -101,7 +102,7 @@ describe('byudjet bo\'lish taklifi', () => {
 
   it('byudjet mos bo\'lsa taklif yo\'q', () => {
     const n = yonalishlar(
-      [turkum({ categoryId: 1 }), turkum({ categoryId: 2 })],
+      [turkum({ categoryId: 1, name: 'Sinov 1' }), turkum({ categoryId: 2, name: 'Sinov 2' })],
       5_000_000, null, 6);   // 1 barobar
     expect(n.bolishTaklifi).toBeNull();
   });
@@ -113,8 +114,8 @@ describe('byudjet bo\'lish taklifi', () => {
 
   it('taklif MAJBURIY emas — ro\'yxat baribir to\'liq qoladi', () => {
     const n = yonalishlar(
-      [turkum({ categoryId: 1, optimalKirishSom: 1_000_000 }),
-       turkum({ categoryId: 2, optimalKirishSom: 1_000_000 })],
+      [turkum({ categoryId: 1, name: 'Sinov 1', optimalKirishSom: 1_000_000 }),
+       turkum({ categoryId: 2, name: 'Sinov 2', optimalKirishSom: 1_000_000 })],
       10_000_000, null, 6);
     expect(n.royxat.length).toBe(2);
   });

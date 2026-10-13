@@ -101,3 +101,11 @@ describe('2-qadam roʻyxati: aralash (nazoratchi, 2026-10-13)', () => {
     expect(yonalishlar(NOMZODLAR, null, null, 6, ['yoq-soha']).qiziqishlar).toEqual([]);
   });
 });
+
+describe('bir xil nomli turkumlar', () => {
+  it('faqat eng yuqori baholisi qoladi (tugmada «Atirlar», «Atirlar» chiqmasin)', () => {
+    const r = yonalishlar([nomzod(1, 'Atirlar', 900), nomzod(2, 'Atirlar', 500), nomzod(3, 'Sumkalar', 800)], null, null, 6);
+    const hammasi = [...r.royxat, ...(r.keyingilar ?? [])];
+    expect(hammasi.filter((y) => y.name === 'Atirlar').map((y) => y.categoryId)).toEqual([1]);
+  });
+});

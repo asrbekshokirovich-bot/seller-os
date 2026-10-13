@@ -259,7 +259,18 @@ export function yonalishBaholari(
   baholangan.sort((a, b) =>
     (b.ball.value as number) - (a.ball.value as number) || a.categoryId - b.categoryId);
 
-  return { baholangan, baholanmadi };
+  // Bir xil nomli turkumlar (Uzumda «Sumkalar», «Atirlar» bir necha boʻlimda
+  // bor) — faqat eng yuqori baholisi: jonli sinovda (2026-10-13) tugmalarda
+  // «Atirlar», «Atirlar» yonma-yon chiqdi, mijoz farqini bilolmaydi.
+  const korilgan = new Set<string>();
+  const yagona = baholangan.filter((y) => {
+    const nom = y.name.trim().toLowerCase();
+    if (korilgan.has(nom)) return false;
+    korilgan.add(nom);
+    return true;
+  });
+
+  return { baholangan: yagona, baholanmadi };
 }
 
 /**

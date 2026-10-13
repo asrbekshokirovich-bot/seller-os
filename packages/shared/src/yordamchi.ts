@@ -23,7 +23,7 @@ export const SHAXSIY_SAVOLLAR: ReadonlySet<string> = new Set(['ism', 'telefon'])
 const guruh = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/gu, ' ');
 
 /** Yoʻnalish kartasidagi gaplar — LLM "nega bu yoʻnalish?" ga shu bilan javob beradi. */
-function yonalishSatri(y: Yonalish): string {
+export function yonalishSatri(y: Yonalish): string {
   const qism = (p: string) => y.ball?.breakdown?.find((b) => b.part === p && b.used)?.score ?? null;
   const qismlar = [
     qism('talab') !== null ? `xaridor balli ${Math.round(qism('talab')!)}/100` : null,
@@ -51,6 +51,18 @@ function tovarSatri(t: TovarTavsiyasi): string {
   return `«${String(n.title).slice(0, 70)}» — ${narx}, ${sotuv}${baho}${ogoh}`;
 }
 
+/** Chatda koʻrsatilgan yoʻnalishlar (birinchi sahifa, «Yana koʻrsatish», qidiruv) — takrorsiz, 14 tagacha. */
+export function ekrandagiYonalishlar(h: YolHolati): Yonalish[] {
+  const yn = h.natijalar.yonalishlar as { royxat?: Yonalish[]; keyingilar?: Yonalish[] } | undefined;
+  if (!yn?.royxat?.length) return [];
+  const sahifa = Number(h.javoblar['yonalish_sahifa'] ?? 0) || 0;
+  const qidiruv = (h.natijalar.yonalish_qidiruv as { royxat?: Yonalish[] } | undefined)?.royxat ?? [];
+  const korilgan = new Set<number>();
+  return [...yn.royxat, ...(yn.keyingilar ?? []).slice(0, sahifa * 6), ...qidiruv]
+    .filter((y) => (korilgan.has(y.categoryId) ? false : (korilgan.add(y.categoryId), true)))
+    .slice(0, 14);
+}
+
 /**
  * Mijoz holati — LLM uchun qisqa matn. Faqat holatdagi javoblar va kod
  * natijalaridan; hech narsa hisoblanmaydi.
@@ -76,15 +88,8 @@ export function mijozHolati(h: YolHolati, qadam: number): string {
   }
 
   const yn = h.natijalar.yonalishlar as { royxat?: Yonalish[]; keyingilar?: Yonalish[] } | undefined;
-  if (yn?.royxat?.length) {
-    const sahifa = Number(j['yonalish_sahifa'] ?? 0) || 0;
-    const qidiruv = (h.natijalar.yonalish_qidiruv as { royxat?: Yonalish[] } | undefined)?.royxat ?? [];
-    const korilgan = new Set<number>();
-    const ekranda = [...yn.royxat, ...(yn.keyingilar ?? []).slice(0, sahifa * 6), ...qidiruv]
-      .filter((y) => (korilgan.has(y.categoryId) ? false : (korilgan.add(y.categoryId), true)))
-      .slice(0, 14);
-    s.push('- Ekrandagi yoʻnalishlar:', ...ekranda.map((y) => `  · ${yonalishSatri(y)}`));
-  }
+  const ekranda = ekrandagiYonalishlar(h);
+  if (ekranda.length) s.push('- Ekrandagi yoʻnalishlar:', ...ekranda.map((y) => `  · ${yonalishSatri(y)}`));
   const tanlangan = Number(j['yonalish']);
   if (Number.isInteger(tanlangan) && tanlangan > 0) {
     const nom = [...(yn?.royxat ?? []), ...(yn?.keyingilar ?? []),

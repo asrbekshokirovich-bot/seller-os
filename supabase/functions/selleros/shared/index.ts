@@ -19,6 +19,7 @@ export * from './tekshiruv.ts';
 export * from './tanishuv.ts';
 export * from './erkin.ts';
 export * from './bilim.ts';
+export * from './bilim-javob.ts';
 export * from './uzum-bilim.ts';
 export * from './yordamchi.ts';
 export * from './filtrlar/nakrutka.ts';
