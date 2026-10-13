@@ -402,6 +402,10 @@ export function build(): FastifyInstance {
   //
   // Bu uch Edge Function dagi `/suhbat` bilan BIR XIL javob berishi
   // SHART — ikkalasi ham `suhbatTurn` ni chaqiradi.
+  // Model env dan (`LLM_MODEL`); 503/429 da — zaxira model (`LLM_ZAXIRA_MODEL`; Edge bilan bir xil).
+  const llmSozlama = () => ({
+    kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL,
+  });
   const suhbatBogliq = (token: string) => ({
     rpc,
     tarifCheklovi: tarifCheklovi(),
@@ -409,16 +413,15 @@ export function build(): FastifyInstance {
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
         ...(process.env.GEMINI_API_KEY
-          ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, k) }
+          ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(), k) }
           : {}) }),
     ...(process.env.GEMINI_API_KEY
       ? {
         // Kod jumlasini qayta aytish — faqat `LLM_ODAMLASHTIR=1` (2026-10-13: bepul limit savollarga qoladi).
         ...(process.env.LLM_ODAMLASHTIR === '1'
-          ? { llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m) }
+          ? { llm: (m: string) => odamlashtir(llmSozlama(), m) }
           : {}),
-        erkinLlm: (k: ErkinSorov) =>
-          erkinJavobBer({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, k),
+        erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama(), k),
         // AI birinchi — faqat `LLM_AVVAL=1` (Gemini toʻlovi yoqilgach; Edge bilan bir xil).
         erkinAvval: process.env.LLM_AVVAL === '1',
       }

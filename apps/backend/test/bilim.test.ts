@@ -103,6 +103,37 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
     expect(j).toMatch(/«Bloknotlar»/);
   });
 
+  // Jonli oʻlchov (2026-10-14): 40 ta birinchi savoldan 15 tasi javobsiz, 3 tasi boshqa mavzuga ketgan edi.
+  it.each([
+    ['Uzum omboriga qanday topshiraman?', /Fulfilment markazi: Toshkent/],
+    ['Kartochkaga qanday rasm kerak?', /750×1000.*9-qadamda \(Studiya\)/su],
+    ['Bojxona toʻlovi qancha?', /raqam bilan ayta olmayman.*customs\.uz/su],
+    ['Xitoydan tovar necha kunda keladi?', /Aniq kunini ayta olmayman.*kargo kompaniyasidan soʻrang/su],
+    ['Xitoydan tovar qancha vaqtda keladi?', /Aniq kunini ayta olmayman/],
+    ['Sifatsiz tovar kelsa nima qilaman?', /8-qadamda \(Qabul\).*2 500 so‘m/su],
+    ['Soliq qancha toʻlayman?', /7-qadamda \(Rasmiylashtirish\) soliq foizi.*soliq va yuridik masalalarda maslahat bermaydi/su],
+    ['Daromad soligʻi qancha?', /7-qadamda \(Rasmiylashtirish\) soliq foizi/],
+    ['Bank hisob raqami kerakmi?', /Bank hisob raqami ham kerak.*5 tagacha hisob raqam/su],
+    ['Kiyim sotish osonmi?', /Buni taxmin bilan aytmayman/],
+    ['Uzumda eng koʻp nima sotiladi?', /xaridor qanchalik koʻpligi va raqobat raqam bilan/],
+    ['Raqobat kuchlimi?', /«Bozor ochiq» — eng katta 3 doʻkon.*har yoʻnalish kartasida/su],
+    ['Qancha vaqtda pul topaman?', /^Aniq muddatni vaʼda qilmayman.*10 kundan ko‘p.*2 haftada bir marta/su],
+    ['Uzumda doʻkon ochish bepulmi?', /^Uzumning haqi sotuvdan olinadi: Komissiya va logistika yig‘imi faqat sotilgan.*Yangi SKU/su],
+    ['Uzumda savdo qilish osonmi?', /tayyorgarligingizga bogʻliq/],
+    ['Pul necha kunda tushadi?', /to‘lov jadvali bo‘yicha avtomatik/],
+    ['Сколько стоит доставка на склад Uzum?', /Fulfilment markazi.*Logistika yig‘imi \(01\.06\.2026/su],
+    ['Какие документы нужны для продажи на Uzum?', /Hujjatlar: YaTT/],
+  ])('yangi mavzu: «%s»', (matn, kutilgan) => {
+    expect(bilimJavobi(matn, 'byudjet', H)).toMatch(kutilgan);
+  });
+
+  it('chalgʻitadigan soʻzlar: "rasmiylashtirish" rasm emas; "bepul" dagi "pul" — byudjet maslahati emas; tovar kelishi — pul topish emas', () => {
+    expect(bilimJavobi('Rasmiylashtirish qanday boʻladi?', 'byudjet', H) ?? '').not.toMatch(/750×1000/);
+    expect(bilimJavobi('Uzumda doʻkon ochish bepulmi?', 'byudjet', H)).not.toMatch(/hamma pulni/);
+    expect(bilimJavobi('Xitoydan tovar qancha vaqtda keladi?', 'byudjet', H)).not.toMatch(/vaʼda qilmayman/);
+    expect(bilimJavobi('Odam bilan gaplashsam boʻladimi?', 'byudjet', H) ?? '').not.toMatch(/odam emasman/);
+  });
+
   it('mos mavzu yoʻq — null (toʻqilmaydi); pul haqidagi "qaysi biri" soha maslahatiga tushmaydi', () => {
     expect(bilimJavobi('ertaga ob-havo qanday', 'yonalish', H)).toBeNull();
     expect(bilimJavobi('80 mln yoki 100 mln, qaysi biri yaxshi?', 'byudjet', H)).toBeNull();

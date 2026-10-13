@@ -25,6 +25,7 @@ export * from './yordamchi.ts';
 export * from './yozuv.ts';
 export * from './tez-savollar.ts';
 export * from './baho.ts';
+export * from './erkin-malumot.ts';
 export * from './filtrlar/nakrutka.ts';
 export * from './filtrlar/ogir.ts';
 export * from './filtrlar/mavsum.ts';

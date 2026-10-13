@@ -98,6 +98,10 @@ import {
   qidiruvMos,
   sohaniTop,
   BILMAYMAN,
+  bankMatni,
+  soliqMatni,
+  yonalishMalumoti,
+  type MalumotNiyati,
   type NomzodJavobi,
   type ObunaXom,
   type ProfilJavoblari,
@@ -686,6 +690,27 @@ export function suhbatKodHarakatlari(
     async kurs() {
       const usd = xitoy ? await kursniOl(xitoy.fetch, 'USD').catch(() => null) : null;
       return usd === null ? { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null } : { olchov_yoq: false, usd };
+    },
+
+    /**
+     * Erkin savolga bazadagi raqam bilan javob (`erkin-malumot.ts`, 2026-10-14):
+     * soliq va bank — 7-qadam faktlaridan (0057), qolgani — 2-qadam yoʻnalish
+     * oʻlchovlaridan (oʻsha ball, oʻsha kesh). Maʼlumot yoʻq — `null`: chatda
+     * bilim bazasining umumiy javobi chiqadi, raqam toʻqilmaydi.
+     */
+    async erkinMalumot(niyat: MalumotNiyati, holat: YolHolati): Promise<string | null> {
+      if (niyat.tur === 'soliq' || niyat.tur === 'bank') {
+        const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...RASMIY_KALITLARI] });
+        if (xom === null) return null;
+        const f = rasmiyFaktlari(faktlarniOqi(xom));
+        return niyat.tur === 'soliq' ? soliqMatni(f) : bankMatni(f);
+      }
+      const kesh = await rpc<NomzodJavobi>('so_yonalish_nomzodlari', {});
+      if (!kesh?.royxat?.length) return null;
+      const b = holat.javoblar['byudjet'];
+      const { baholangan } = yonalishBaholari(kesh.royxat, typeof b === 'number' ? b : null, null, hozirgiOy());
+      const tanlangan = Number(holat.javoblar['yonalish']);
+      return yonalishMalumoti(niyat, baholangan, Number.isInteger(tanlangan) && tanlangan > 0 ? tanlangan : null);
     },
 
     async ochiqIsh(holat: YolHolati): Promise<OchiqIshNatijasi> {

@@ -52,6 +52,20 @@ describe('tayyorJavob', () => {
     expect(tayyorJavob('obunani bank kartasi bilan toʻlasa boʻladimi?')?.uz).toMatch(/Payme/);
   });
 
+  it('«Siz odammisiz?» — rostini aytadi; "odam bilan gaplashsam" — aloqa; "robot changyutgich" — bu emas (2026-10-14)', () => {
+    for (const t of ['Siz odammisiz yoki robot?', 'robotmisiz?', 'siz botmisiz', 'sunʼiy intellektmisiz?']) {
+      expect(tayyorJavob(t)?.uz, t).toMatch(/^Men ZumSavdo dasturining yordamchisiman — odam emasman/);
+    }
+    expect(tayyorJavob('Вы бот или человек?')?.ru).toMatch(/^Я помощник программы ZumSavdo — не человек/);
+    expect(tayyorJavob('Odam bilan gaplashsam boʻladimi?')?.uz).toMatch(/chatda/);
+    expect(tayyorJavob('Robot changyutgich sotsam boʻladimi?')?.uz ?? '').not.toMatch(/odam emasman/);
+  });
+
+  it('«1688 nima?» — avval taʼrif, keyin 5-qadam (jonli oʻlchov, 2026-10-14)', () => {
+    expect(tayyorJavob('1688 nima?')?.uz).toMatch(/^1688 — Xitoyning ulgurji savdo sayti: zavod va ulgurji sotuvchilar narxlari\. 5-qadamda/);
+    expect(tayyorJavob('что такое 1688?')?.ru).toMatch(/^1688 — китайский оптовый сайт/);
+  });
+
   it('tovar narxi — tarif EMAS; salom va boshqa — null', () => {
     expect(tayyorJavob('tovar narxi qancha?')).toBeNull();
     expect(tayyorJavob('salom')).toBeNull();

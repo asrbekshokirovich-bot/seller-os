@@ -38,6 +38,7 @@ import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.js';
 import type { ProfilJavoblari } from './profil.js';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.js';
 import { ruschami, tushunishUchun } from './yozuv.js';
+import { malumotNiyati, type MalumotNiyati } from './erkin-malumot.js';
 
 export interface SuhbatXabari {
   rol: 'obunachi' | 'menejer' | 'kod';
@@ -94,6 +95,12 @@ export interface SuhbatBogliqliklari {
     ustaFikri: (holat: YolHolati) => Promise<unknown>;
     /** 1-qadam: dollar kursi (CBU) — byudjet tugmalari va dollarni soʻmga oʻgirish. Hech qachon otmaydi. */
     kurs: (holat: YolHolati) => Promise<unknown>;
+    /**
+     * Erkin savolga bazadagi raqam bilan javob (`erkin-malumot.ts`, 2026-10-14):
+     * soliq, bank, eng koʻp sotiladigan, «X sotish osonmi», raqobat. Maʼlumot
+     * yoʻq — `null` (bilim bazasining javobi ketadi). Berilmasa — ishlatilmaydi.
+     */
+    erkinMalumot?: (niyat: MalumotNiyati, holat: YolHolati) => Promise<string | null>;
   };
   /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
   llm?: (matn: string) => Promise<string | null>;
@@ -567,16 +574,22 @@ function sababRu(sabab: string): string {
 interface ErkinNatija { matn: string; manba: ErkinManba }
 
 /**
- * Bazadagi javob (LLM siz): koddagi tayyor javob (`erkin.ts`) yoki bilim
- * bazasi (`bilim-javob.ts`). `t` — tushunish uchun matn (oʻzbek kirill —
- * lotinda). Rad etilgan javobda (sabab bor) bilim izlanmaydi: avval sabab.
+ * Bazadagi javob (LLM siz): koddagi tayyor javob (`erkin.ts`), bazadagi
+ * raqam (`erkin-malumot.ts`, `malumot`) yoki bilim bazasi (`bilim-javob.ts`).
+ * `t` — tushunish uchun matn (oʻzbek kirill — lotinda). Rad etilgan javobda
+ * (sabab bor) bilim izlanmaydi: avval sabab. Raqam va bilim — oʻzbekcha:
+ * rus savolida `tarjimaKerak` — LLM uni rus tilida aytadi (2026-10-14:
+ * ilgari rus savoliga bilim umuman izlanmasdi, "точно не отвечу" chiqardi).
  */
 function bazaJavobi(
   t: string, ruscha: boolean, savolId: string, sabab: string | null, h: YolHolati | null, tarifCheklovi?: boolean,
-): string | null {
+  malumot: string | null = null,
+): { matn: string; tarjimaKerak: boolean } | null {
   const tj = tayyorJavob(t, tarifCheklovi);
-  if (tj) return ruscha ? tj.ru : tj.uz;
-  return !sabab && !ruscha ? bilimJavobi(t, savolId, h) : null;
+  if (tj) return { matn: ruscha ? tj.ru : tj.uz, tarjimaKerak: false };
+  if (sabab) return null;
+  const uz = malumot ?? bilimJavobi(t, savolId, h);
+  return uz ? { matn: uz, tarjimaKerak: ruscha } : null;
 }
 
 /**
@@ -587,9 +600,12 @@ function bazaJavobi(
  *
  * Oʻzbek kirillda yozsa — lotinda tushuniladi va javob oʻzbekcha (lotin)
  * chiqadi; ilgari kirill matnning hammasiga ruscha javob ketardi.
+ *
+ * `malumot` — bazadagi raqam bilan javob (`erkin-malumot.ts`), boʻlsa bilimdan oldin.
  */
 function erkinShablon(
   s: JoriySavol['savol'], matn: string, sabab: string | null, h: YolHolati | null = null, tarifCheklovi?: boolean,
+  malumot: string | null = null,
 ): ErkinNatija {
   const ruscha = ruschami(matn);
   const t = tushunishUchun(matn);
@@ -600,8 +616,8 @@ function erkinShablon(
   // Bilimdan javob (`bilim-javob.ts`): LLM ishlamasa ham "ball nima?", "pul
   // qachon tushadi?" kabi savolga aniq javob — jonli sinovda (2026-10-13)
   // Gemini limiti tugab, 33 savoldan 22 tasiga "javob bera olmayman" chiqqan edi.
-  const bilim = !tayyor && !sabab && !ruscha ? bilimJavobi(t, s.id, h) : null;
-  if (bilim) {
+  const bilim = !tayyor && !sabab ? (malumot ?? bilimJavobi(t, s.id, h)) : null;
+  if (bilim && !ruscha) {
     return { matn: [salom ? 'Vaalaykum assalom!' : null, bilim, `Hozirgi savol: «${savol}»`].filter(Boolean).join(' '), manba: 'baza' };
   }
   // Byudjet savolida maslahat soʻradi ("80 mlnmi, 100 mlnmi?") — LLM boʻlmasa
@@ -620,6 +636,15 @@ function erkinShablon(
           'Maslahatim: hamma pulni birinchi partiyaga tikmang — bir qismini zaxirada qoldiring: tovar kelib, sotilib, pul '
           + 'qaytguncha vaqt oʻtadi, reklama, qaytgan tovar va kutilmagan xarajatlar ham chiqadi. Boshlash uchun qancha '
           + 'kerakligini keyingi qadamda har yoʻnalish uchun koʻrsataman.', `Hozirgi savol: «${savol}»`].filter(Boolean).join(' '),
+    };
+  }
+  // Rus savoli, javob faqat oʻzbekcha bor (LLM rus tilida aytolmadi) — "javob yoʻq" emas,
+  // izoh bilan oʻzbekchasi: rasmiy raqam va manba baribir foydali (2026-10-14).
+  if (bilim && ruscha) {
+    return {
+      manba: 'baza',
+      matn: [salom ? 'Здравствуйте!' : null, `Подробный ответ пока есть только на узбекском: ${bilim}`, `Сейчас вопрос: «${savol}»`]
+        .filter(Boolean).join(' '),
     };
   }
   const manba: ErkinManba = tayyor ? 'baza' : 'shablon';
@@ -659,30 +684,37 @@ function erkinShablon(
  * (bepul limit); yoqilgan boʻlsa bazaviy javob LLM ga `tayyor` boʻlib
  * beriladi — u uni mijoz tilida, doʻstona va batafsil aytadi. LLM yiqilsa
  * yoki darvozadan oʻtmasa — bazaviy javob oʻzi ketadi.
+ *
+ * Bazadagi raqam bilan javob (`erkin-malumot.ts`, 2026-10-14) — tayyor javob
+ * boʻlmasa, savol turi mos kelsa (soliq, bank, eng koʻp sotiladigan, «X sotish
+ * osonmi», raqobat) — kod bazadan oʻqiydi; LLM ga ham `tayyor` boʻlib beriladi.
  */
 async function erkinJavob(
   d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null,
   h: YolHolati, xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>,
 ): Promise<ErkinNatija> {
-  const shablon = erkinShablon(s, matn, sabab, h, d.tarifCheklovi);
+  const t = tushunishUchun(matn);
+  const niyat = !sabab && d.kod.erkinMalumot && !tayyorJavob(t, d.tarifCheklovi) ? malumotNiyati(t) : null;
+  const malumot = niyat ? await d.kod.erkinMalumot!(niyat, h).catch(() => null) : null;
+  const shablon = erkinShablon(s, matn, sabab, h, d.tarifCheklovi, malumot);
   // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
   if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
-  const t = tushunishUchun(matn);
-  const baza = bazaJavobi(t, ruschami(matn), s.id, sabab, h, d.tarifCheklovi);
+  const baza = bazaJavobi(t, ruschami(matn), s.id, sabab, h, d.tarifCheklovi, malumot);
   // Javobi bazada bor savol — AI birinchi rejimi oʻchiq boʻlsa LLM CHAQIRILMAYDI
   // (nazoratchi, 2026-10-13, "ha qil"): bepul Gemini limiti kunlik va kichik,
   // u bazada javobi yoʻq savollarga qolsin. Bazaviy javob aniq va manbasi bilan.
-  if (baza && !d.erkinAvval) return shablon;
+  // Rus savoliga javob faqat oʻzbekcha boʻlsa — LLM uni rus tilida aytadi (mijoz tilida).
+  if (baza && !d.erkinAvval && !baza.tarjimaKerak) return shablon;
   const variantlar = s.variantlar.map((v) => v.nom);
   const holat = mijozHolati(h, s.qadam);
   const tarix = suhbatTarixi(xabarlar, h);
   // Bilim — asos va FAQAT savolga tegishli Uzum faktlari (`yordamchiBilimi`), hammasi emas.
   const bilim = yordamchiBilimi(t, d.tarifCheklovi);
   // LLM ga asl matn ketadi — mijoz yozuvida (lotin, kirill, rus) javob bersin.
-  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: baza, bilim, holat, tarix };
+  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: baza?.matn ?? null, bilim, holat, tarix };
   // Raqam faqat savol, tugmalar, sabab, bilim, bazaviy javob, mijoz holati, suhbat va obunachining
   // oʻz matnidan; kafolat — taqiq.
-  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, baza ?? '', holat, tarix], sonlar: [] };
+  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, baza?.matn ?? '', holat, tarix], sonlar: [] };
   let tuzat: string | null = null;
   for (let urinish = 0; urinish < 2; urinish++) {
     const taklif = await d.erkinLlm({ ...sorov, tuzat }).catch(() => null);
