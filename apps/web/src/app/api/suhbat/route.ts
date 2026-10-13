@@ -12,6 +12,12 @@
 
 import { apigaSessiya, sozlanganmi } from '@/lib/sessiya';
 
+/**
+ * Erkin savolga AI javobi 25 s gacha kutiladi (`llm.ts`), darvozadan oʻtmasa —
+ * yana bir urinish; kartochka matni 30 s. Vositachi undan oldin uzilmasin.
+ */
+export const maxDuration = 60;
+
 export async function GET(request: Request): Promise<Response> {
   if (!sozlanganmi()) return javob({ xato: 'API manzili sozlanmagan' }, 503);
   try {
