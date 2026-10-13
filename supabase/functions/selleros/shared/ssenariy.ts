@@ -1325,7 +1325,7 @@ export function keyingi(h: YolHolati): Keyingi {
     // qayta urinib koʻramiz" deyilardi, lekin hech narsa qayta urinmasdi.
     return { tur: 'savol', savol: savol('yonalish', 2,
       yonalishlar.length
-        ? 'Ball boʻyicha baholangan yoʻnalishlar shular — yuqorisi birinchi turibdi. Qaysi birini olamiz?'
+        ? 'Qaysi yoʻnalishda boshlaymiz? Eng yaxshisi tepada — lekin oʻzingizga yaqinini tanlasangiz ham boʻladi.'
         : `Yoʻnalishlarni hozir koʻrsata olmayman: ${yn.sabab ?? 'oʻlchov yoʻq'}. «Qayta urinish» ni bosing.`,
       'tanlov', {
         variantlar: yonalishlar.length ? yonalishlar.map((y) => ({ qiymat: y.categoryId, nom: y.name })) : [QAYTA_URINISH],
@@ -2036,16 +2036,21 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     // "hali aytib boʻlmaydi" boʻlib qolmaydi (QOIDALAR.md, 4-boʻlim).
     const yetmaydi = n.royxat.filter((y) => y.yetadi === false).length;
     const ball = eng.ball?.value ?? null;
-    const byudjet = yetadi
-      ? `${yetadi} tasiga byudjetingiz yetadi${yetmaydi ? `, ${yetmaydi} tasiga yetmaydi` : ''}.`
+    // Sodda til (nazoratchi, 2026-10-13): birinchi marta kirgan odam "ball",
+    // "ulush", "byudjet: —" ni tushunmay chiqib ketmasin. Baho nima ekani
+    // shu yerda bir marta aytiladi; kartalarda — oddiy xulosalar (sahifa).
+    const pul = yetadi
+      ? `Pulingiz ${yetadi} tasiga yetadi${yetmaydi ? `, ${yetmaydi} tasiga yetmasligi mumkin` : ''}.`
       : yetmaydi === n.royxat.length
-        ? 'Byudjetingiz bu yoʻnalishlarning hech biriga tavsiya etilgan kirish summasiga yetmaydi.'
+        ? 'Pulingiz bu yoʻnalishlarning birortasiga ham tavsiya etilgan boshlash summasiga yetmaydi.'
         : yetmaydi
-          ? `${yetmaydi} tasiga byudjetingiz yetmaydi, qolganlari uchun hali aytib boʻlmaydi.`
-          : 'Byudjet yetadimi — hali aytib boʻlmaydi.';
-    return `${n.royxat.length} ta yoʻnalish baholandi. Eng yuqori ball — "${eng.name}"${ball !== null ? `, ${ball} ball` : ''}. `
-      + byudjet
-      + ' Tanlov sizniki: ball tartib beradi, qaror bermaydi.';
+          ? `Pulingiz ${yetmaydi} tasiga yetmasligi mumkin, qolganlari uchun hali aytib boʻlmaydi.`
+          : 'Qancha pul ketishi tovar tanlangach aniq boʻladi.';
+    return `Uzumda hozir nima yaxshi sotilayotganini tekshirdim — sizga ${n.royxat.length} ta yoʻnalish. `
+      + 'Har biriga 100 ballik «imkoniyat bahosi» berdim: xaridor qanchalik koʻp va bozorda yangi sotuvchiga joy bormi. '
+      + `Baho qancha yuqori — boshlash shuncha osonroq. Eng yaxshisi — «${eng.name}»${ball !== null ? ` (${Math.round(ball)} ball)` : ''}. `
+      + pul
+      + ' Tanlov sizniki.';
   }
   if (harakat === 'tovarlar') {
     const n = natija as TovarlarNatijasi;

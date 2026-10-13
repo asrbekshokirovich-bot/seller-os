@@ -346,7 +346,10 @@ describe("2-qadam — Yo'nalish", () => {
     expect(m).toMatch(/2 ta yoʻnalish/);
     expect(m).toMatch(/Quloqchinlar/);
     expect(m).toMatch(/72 ball/);
-    expect(m).toMatch(/1 tasiga byudjetingiz yetadi/);
+    expect(m).toMatch(/Pulingiz 1 tasiga yetadi/);
+    // Sodda til: baho nima ekani aytiladi, "ball tartib beradi" kabi gap yoʻq (nazoratchi, 2026-10-13).
+    expect(m).toMatch(/100 ballik «imkoniyat bahosi»/);
+    expect(m).not.toMatch(/baholandi|qaror bermaydi/);
   });
 });
 
@@ -1422,10 +1425,10 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
   it('F2: byudjet hech biriga yetmasa — "hali aytib boʻlmaydi" DEMAYDI; savol "byudjetingiz bilan boshlash mumkin" demaydi', () => {
     const yetmaydi = { ...YONALISHLAR, royxat: YONALISHLAR.royxat.map((y) => ({ ...y, yetadi: false })) };
     const m = tushuntir('yonalishlar', yetmaydi);
-    expect(m).toMatch(/Byudjetingiz bu yoʻnalishlarning hech biriga tavsiya etilgan kirish summasiga yetmaydi\./);
+    expect(m).toMatch(/Pulingiz bu yoʻnalishlarning birortasiga ham tavsiya etilgan boshlash summasiga yetmaydi\./);
     expect(m).not.toMatch(/hali aytib boʻlmaydi/);
-    expect(tushuntir('yonalishlar', { ...YONALISHLAR, royxat: YONALISHLAR.royxat.map((y) => ({ ...y, yetadi: null })) })).toMatch(/Byudjet yetadimi — hali aytib boʻlmaydi/);
-    expect(tushuntir('yonalishlar', YONALISHLAR)).toMatch(/1 tasiga byudjetingiz yetadi, 1 tasiga yetmaydi\./);
+    expect(tushuntir('yonalishlar', { ...YONALISHLAR, royxat: YONALISHLAR.royxat.map((y) => ({ ...y, yetadi: null })) })).toMatch(/Qancha pul ketishi tovar tanlangach aniq boʻladi\./);
+    expect(tushuntir('yonalishlar', YONALISHLAR)).toMatch(/Pulingiz 1 tasiga yetadi, 1 tasiga yetmasligi mumkin\./);
     const k = keyingi(natijaniYoz(tanishuvTugadi(), 'yonalishlar', yetmaydi));
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.matn).not.toMatch(/Byudjetingiz bilan boshlash mumkin/);
