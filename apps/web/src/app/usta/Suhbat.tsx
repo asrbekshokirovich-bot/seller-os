@@ -931,18 +931,22 @@ function turkumRasmlariniOl(id: number): Promise<TurkumRasmi[]> {
  */
 function TurkumRasmlari({ id, tr }: { id: number; tr: Tr }) {
   const [rasmlar, setRasmlar] = useState<TurkumRasmi[] | null>(null);
+  // Yuklanmagan rasmlar: buzilgani yashirinadi; hammasi buzilsa — butun qator (yozuv ham).
+  const [buzilgan, setBuzilgan] = useState<ReadonlySet<string>>(new Set());
   useEffect(() => {
     let tirik = true;
     void turkumRasmlariniOl(id).then((r) => { if (tirik) setRasmlar(r); });
     return () => { tirik = false; };
   }, [id]);
-  if (rasmlar !== null && rasmlar.length === 0) return null;
+  const korinadi = rasmlar?.filter((r) => !buzilgan.has(r.url)) ?? null;
+  if (korinadi !== null && korinadi.length === 0) return null;
   return (
     <div className={u.turkumRasmlari}>
       <span className={u.turkumRasmIzoh}>{tr('Uzumda shu yoʻnalishda sotilayotganlar:', 'Продаётся в этом направлении на Uzum:')}</span>
-      {(rasmlar ?? [null, null, null]).map((r, i) => (r
-        ? <img key={r.url} src={r.url} alt={r.nom} title={r.nom} loading="lazy" decoding="async" width={64} height={64} className={u.turkumRasm}
-          onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+      {(korinadi ?? [null, null, null]).map((r, i) => (r
+        // Uzum CDN begona Referer bilan rasm bermaydi (katalogdagidek) — `no-referrer`.
+        ? <img key={r.url} src={r.url} alt={r.nom} title={r.nom} loading="lazy" decoding="async" width={64} height={64} className={u.turkumRasm} referrerPolicy="no-referrer"
+          onError={() => setBuzilgan((b) => new Set(b).add(r.url))} />
         : <span key={i} className={`${u.turkumRasm} ${u.turkumRasmBosh}`} aria-hidden="true" />))}
     </div>
   );
