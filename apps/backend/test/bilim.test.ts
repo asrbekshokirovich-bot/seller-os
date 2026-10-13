@@ -80,6 +80,10 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
     ['10 mln yetadimi?', 'byudjet', /«Pulingiz yetadi»/],
     ['nega sumka chiqyapti, men kanstovar dedimku', 'yonalish', /taqqoslash uchun/],
     ['men hech narsa bilmayman, qayerdan boshlayman?', 'uzum_dokoni', /12 qadamda olib boraman/],
+    ['qaysi birini tanlasam yaxshi?', 'yonalish', /Kartalardagi «imkoniyat bahosi»ga qarang/],
+    ['qaysi tovarni tanlay?', 'tovarlar', /Yakuniy tanlov — sizniki/],
+    ['kanstovar uzumda yuradimi?', 'qiziqish', /Buni taxmin bilan aytmayman/],
+    ['qaysi soha yaxshi?', 'qiziqish', /«Bilmayman» ni bosing — keyingi qadamda hamma sohadan/],
   ])('«%s» (%s)', (matn, savolId, kutilgan) => {
     expect(bilimJavobi(matn, savolId, H)).toMatch(kutilgan);
   });
