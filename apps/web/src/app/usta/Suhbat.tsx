@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -278,7 +278,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    * (boshlangʻich savol) va `qadam: 1` qaytaradi — ilgari mijoz ularni
    * qoʻllab, 8-qadamdagi odamni 1-qadamga otib yuborardi (audit, 2026-10-05).
    */
-  async function yubor(tana: Record<string, unknown>, jim = false): Promise<void> {
+  async function yubor(tana: Record<string, unknown>, jim = false, qoralamaQolsin = false): Promise<void> {
     const mening = avlod.current;
     if (!jim) { bandQil(true); setXato(null); }
     try {
@@ -331,7 +331,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         almashtir: tana.boshdan === true,
         tozala: tana.boshdan === true,
         javobKetdi: Object.prototype.hasOwnProperty.call(tana, 'javob'),
-        matnKetdi: typeof tana.matn === 'string',
+        matnKetdi: typeof tana.matn === 'string' && !qoralamaQolsin,
       });
     } finally {
       if (!jim) bandQil(false);
@@ -342,6 +342,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   // Yozilgan matn: server javob sifatida oʻqiydi ("10 mln" ham) yoki erkin xabar
   // deb menejer javob beradi ("salom", "bu nima?") — chatda ikkalasi ham qoladi.
   const matnYubor = (savolId: string, t: string) => void yubor({ savolId, matn: t });
+  // Tayyor savol (bosiladi): yozilgan savol kabi ketadi, lekin pastdagi qoralama oʻchmaydi.
+  const tezSoroq = (savolId: string, t: string) => void yubor({ savolId, matn: t }, false, true);
 
   // Eng soʻnggi `yubor` — taymer va effektlar eski yopilmani chaqirmasin.
   const yuborRef = useRef(yubor);
@@ -466,15 +468,35 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       tanlangan={tanlangan} setTanlangan={setTanlangan} javobBer={javobBer}
       yozishga={() => kiritishRef.current?.focus()} tr={tr} />
   );
+  /*
+   * Tayyor savollar (nazoratchi, 2026-10-13: «Nima soʻrashni oʻzi taklif
+   * qiladi») — savol pufagining ichida, javob tugmalaridan keyin. Bosilgani
+   * yozilgan savol kabi ketadi va roʻyxatdan tushadi. Rus interfeysida —
+   * faqat ruscha javobi borlari (`tez-savollar.ts`).
+   */
+  const soralgan = new Set(xabarlar.filter((x) => x.rol === 'obunachi').map((x) => x.matn));
+  const tez = savol === null ? [] : tezSavollar(savol.id)
+    .map((s) => (til === 'ru' ? s.ru : s.uz))
+    .filter((s): s is string => !!s && !soralgan.has(s));
+  const tezJsx = savol !== null && tez.length > 0 && (
+    <div className={u.tezSavollar} role="group" aria-label={tr('Tayyor savollar', 'Готовые вопросы')}>
+      <span className={u.tezYorliq}>{tr('Savolingiz boʻlsa, bosing:', 'Есть вопрос? Нажмите:')}</span>
+      {tez.map((s) => (
+        <button key={s} type="button" className={u.tezSavol} disabled={band} onClick={() => tezSoroq(savol.id, s)}>{s}</button>
+      ))}
+    </div>
+  );
+  const ilova = tugmalar || tezJsx ? <>{tugmalar}{tezJsx}</> : null;
   // Savol oqimda turgan boʻlsa (server yozgan) — tugmalar oʻsha pufakka; boʻlmasa — pastdagi savol pufagiga.
-  const tugmaPufagi = tugmalar && !savolKorsat ? xabarlar.length - 1 : -1;
+  const tugmaPufagi = ilova && !savolKorsat ? xabarlar.length - 1 : -1;
 
   const yonPanel = (
     <>
       <div className={u.belgi}>
         <span className={u.nishon} aria-hidden="true">Z</span>
         <span className={u.nom}>ZumSavdo</span>
-        <span className={u.nomUsta}>Usta</span>
+        {/* Nazoratchi (2026-10-13): yordamchining nomi — «ZumSavdo yordamchisi» («Usta» emas). */}
+        <span className={u.nomUsta}>{tr('yordamchisi', 'помощник')}</span>
       </div>
 
       {/* Holat kelmagan boʻlsa (ulanib boʻlmadi) — oʻchirib boʻlmaydi: odam yoʻlini koʻrmay turib oʻchirib qoʻymasin. */}
@@ -574,11 +596,11 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                     band,
                   }
                   : undefined}
-                ilova={i === tugmaPufagi ? tugmalar : undefined}
+                ilova={i === tugmaPufagi ? ilova : undefined}
               />
             ))}
             {savolKorsat && savol && (
-              <div className={`${u.pufak} ${u.ai}${tugmalar ? ` ${u.savolPufak}` : ''}`}><Havolali matn={savol.matn} />{tugmalar}</div>
+              <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`}><Havolali matn={savol.matn} />{ilova}</div>
             )}
             {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={tezOrada.matn} /></div>}
             {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
@@ -705,10 +727,54 @@ function XabarPufagi({ x, tr, katalog, xitoy, ilova }: {
 }) {
   if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
   if (x.rol === 'menejer') {
-    return <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`}><Havolali matn={x.matn} />{ilova}</div>;
+    // Erkin javob (savolga javob, `{erkin: true, manba}`) — tagida 👍/👎.
+    const erkin = (x.javob as { erkin?: unknown } | null | undefined)?.erkin === true;
+    return (
+      <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`}>
+        <Havolali matn={x.matn} />
+        {erkin && <BahoTugmalari matn={x.matn} tr={tr} />}
+        {ilova}
+      </div>
+    );
   }
   // «Boshidan boshlash» belgisi bu yerga yetmaydi (`songgiSuhbat`): yangi suhbat — chiziqsiz.
   return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} />;
+}
+
+/**
+ * 👍/👎 — yordamchi javobiga baho (nazoratchi, 2026-10-13: "Ha, boʻlsin").
+ * Server javobni mijozning oʻz suhbatidan topadi (`/api/baho`). Bosilgani
+ * belgilanadi; fikr oʻzgarsa ikkinchisini bosish mumkin (hisobda oxirgisi).
+ * Xatoda belgilanmaydi — keyin yana bosish mumkin.
+ */
+function BahoTugmalari({ matn, tr }: { matn: string; tr: Tr }) {
+  const [baho, setBaho] = useState<'yaxshi' | 'yomon' | null>(null);
+  const [band, setBand] = useState(false);
+  async function bos(b: 'yaxshi' | 'yomon') {
+    if (band || b === baho) return;
+    setBand(true);
+    try {
+      const r = await fetch('/api/baho', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
+        body: JSON.stringify({ matn, baho: b }),
+      });
+      if (r.ok) setBaho(b);
+    } catch { /* tarmoq — belgilanmaydi, yana bosish mumkin */ } finally {
+      setBand(false);
+    }
+  }
+  return (
+    <div className={u.baho} role="group" aria-label={tr('Javob foydali boʻldimi?', 'Ответ был полезен?')}>
+      <button type="button" className={`${u.bahoTugma} ${baho === 'yaxshi' ? u.bahoTanlangan : ''}`}
+        aria-pressed={baho === 'yaxshi'} aria-label={tr('Foydali', 'Полезно')} title={tr('Foydali', 'Полезно')}
+        disabled={band} onClick={() => void bos('yaxshi')}>👍</button>
+      <button type="button" className={`${u.bahoTugma} ${baho === 'yomon' ? u.bahoTanlangan : ''}`}
+        aria-pressed={baho === 'yomon'} aria-label={tr('Foydali emas', 'Не полезно')} title={tr('Foydali emas', 'Не полезно')}
+        disabled={band} onClick={() => void bos('yomon')}>👎</button>
+      {baho && <span className={u.bahoRahmat} role="status">{tr('Rahmat — bahongiz yozildi', 'Спасибо — оценка записана')}</span>}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------ kod kartalari */

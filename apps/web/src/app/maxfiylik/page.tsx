@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-12';
+const YANGILANDI = '2026-10-13';
 
 export default function Maxfiylik() {
   return (
@@ -98,7 +98,7 @@ export default function Maxfiylik() {
             <code>x-sessiya</code> sarlavhasi bilan qoʻshadi.
           </li>
           <li>
-            Usta sahifasi kalitni shu panel varagʻi yopilguncha brauzer
+            Suhbat sahifasi kalitni shu panel varagʻi yopilguncha brauzer
             xotirasida ham saqlaydi (<code>sessionStorage</code>): panel ichida
             boshqa sahifaga oʻtib qaytsangiz ham suhbat oʻsha qoladi. Varaq
             yopilganda u yerdan oʻchadi.
@@ -135,8 +135,8 @@ export default function Maxfiylik() {
                 <td>
                   Profil: byudjet (soʻmda yoki dollarda aytilgan boʻlsa — dollar
                   summasi ham), Uzumda doʻkoningiz bormi va yuk keladigan
-                  shahar — hozirgi suhbat shu uchtasini yozadi. Ustaning
-                  oldingi shaklida (2026-09-25 gacha) yana soʻralgan: tajriba
+                  shahar — hozirgi suhbat shu uchtasini yozadi. Avvalgi
+                  anketa shaklida (2026-09-25 gacha) yana soʻralgan: tajriba
                   sohalari, oila ishi, qiziqish, pulning bogʻlanishi, haftasiga
                   necha soat, onlayn tajriba, Xitoydan tovar keltirganmisiz,
                   sertifikat tajribasi, risk munosabati
@@ -157,7 +157,7 @@ export default function Maxfiylik() {
               </tr>
               <tr>
                 <td>
-                  Usta suhbati: savol-javoblar (oʻzingiz yozgan erkin xabarlar
+                  Yordamchi bilan suhbat: savol-javoblar (oʻzingiz yozgan erkin xabarlar
                   ham), qaysi qadamdasiz va har qadamda kod hisoblagan natija
                   (yoʻnalish, tovar, 1688 takliflari, varaqa, suratlar roʻyxati)
                 </td>
@@ -165,8 +165,16 @@ export default function Maxfiylik() {
               </tr>
               <tr>
                 <td>
-                  Usta haqidagi fikr: «mantiqli / mantiqsiz» belgisi va izoh
+                  Yordamchi maslahati haqidagi fikr: «mantiqli / mantiqsiz» belgisi va izoh
                   matni — suhbatda 4-qadamdan keyin soʻraladi, ixtiyoriy
+                </td>
+                <td><code>events</code></td>
+              </tr>
+              <tr>
+                <td>
+                  Yordamchi javoblariga bahongiz (👍 / 👎), bossangiz: qaysi javobga
+                  (xabar raqami) va javob qayerdan — sunʼiy intellektmi yoki tayyor
+                  bilim bazasimi. Javob matni qayta yozilmaydi — u suhbatda bor
                 </td>
                 <td><code>events</code></td>
               </tr>
@@ -258,9 +266,12 @@ export default function Maxfiylik() {
             yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
             Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
             va h.k.) va u javob sifatida qabul qilinmasa —{' '}
-            <strong>oʻzingiz yozgan matn</strong> (500 belgigacha), joriy savol va
-            uning variantlari hamda mahsulot haqidagi tayyor faktlar yuboriladi:
-            javobni Gemini soʻzlaydi. Ikkala holatda ham javobni kod tekshiradi —
+            <strong>oʻzingiz yozgan matn</strong> (500 belgigacha; bosilgan tayyor
+            savol ham shunday), joriy savol va uning variantlari, mahsulot va Uzum
+            haqidagi tayyor faktlar, suhbatdagi holatingiz (qaysi qadam, boshlash
+            puli, qiziqqan sohangiz, ekrandagi yoʻnalish va tovarlar) va oxirgi
+            xabarlar — ism-familiya va telefonsiz — yuboriladi: javobni Gemini
+            soʻzlaydi. Ikkala holatda ham javobni kod tekshiradi —
             yangi raqam yoki kafolat soʻzi boʻlsa, u tashlanadi va kodning oʻz
             jumlasi ketadi. Sessiya kaliti yuborilmaydi. Ism-familiya va telefon
             savollari (ularga yozgan matningiz ham) Gemini ga umuman

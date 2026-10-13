@@ -702,7 +702,13 @@ async function erkinXabar(
       .map((x) => ({ qiymat: x.som, nom: x.usd !== null ? byudjetMatni(x.som, x.usd) : mlnMatni(x.som) }));
     if (qoshimcha.length) k1 = { ...k0, savol: { ...k0.savol, variantlar: [...qoshimcha, ...k0.savol.variantlar] } };
   }
+  // Joriy savol jurnalda hali yoʻq boʻlsa — avval savolning oʻzi yoziladi. Birinchi
+  // tashrifda savol `keyingi` dan chiziladi, jurnalga esa POST da tushadi: birinchi
+  // savolda tayyor savol bosilsa, salomlashish matni chatdan yoʻqolardi (tayyor
+  // savollar sinovi, 2026-10-13). Endi chatda: savol → mijoz savoli → javob.
+  const savolBor = songgiSuhbat(xabarlar).some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);
   const yangi: SuhbatXabari[] = [
+    ...(savolBor ? [] : [{ rol: 'menejer' as const, matn: k0.savol.matn, savolId: k0.savol.id }]),
     { rol: 'obunachi', matn },
     // `javob` — bu erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
     { rol: 'menejer', matn: javob.matn, savolId: k0.savol.id, javob: { erkin: true, manba: javob.manba } },

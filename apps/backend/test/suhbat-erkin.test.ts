@@ -16,12 +16,16 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  suhbatTurn,
+  boshlangichHolat, keyingi, suhbatTurn,
   type ErkinSorov, type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
-function soxtaBaza(boshlangich: YolHolati | null = null) {
-  const jurnal: Array<{ rol: string; matn: string }> = [];
+function soxtaBaza(boshlangich: YolHolati | null = null, { savolYozilgan = true } = {}) {
+  // Joriy savol jurnalda bor — hayotda u oldingi turnda yozilgan. Birinchi tashrifda
+  // (`savolYozilgan: false`) yoʻq: erkin javob oldidan savolning oʻzi yoziladi.
+  const k = keyingi(boshlangich ?? boshlangichHolat());
+  const jurnal: Array<{ rol: string; matn: string; savolId?: string }> =
+    savolYozilgan && k.tur === 'savol' ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id }] : [];
   let holat: YolHolati | null = boshlangich;
   let yozuvlar = 0;
   const rpc = async <T>(nom: string, arg: unknown): Promise<T | null> => {
@@ -79,7 +83,8 @@ describe('erkin xabar', () => {
     if (r.keyingi.tur !== 'savol') throw new Error();
     expect(r.keyingi.savol.id).toBe('byudjet');
     expect(b.holat()?.javoblar['byudjet']).toBeUndefined();
-    expect(b.jurnal.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    // Jurnal: (avval yozilgan savol) + obunachi matni + menejer javobi.
+    expect(b.jurnal.map((x) => x.rol)).toEqual(['menejer', 'obunachi', 'menejer']);
   });
 
   it('savol ("bu nima?") — javob sifatida OLINMAYDI, menejer javob beradi', async () => {
@@ -371,5 +376,18 @@ describe('yordamchi asosi (nazoratchi tanlovi, 2026-10-13 kechqurun)', () => {
     const b = soxtaBaza(TAJRIBA_HOLATI);
     await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'ҳа' });
     expect(b.holat()!.javoblar['uzum_dokoni']).toBe('sotyapman');
+  });
+});
+
+describe('birinchi tashrif — salomlashish yoʻqolmaydi (tayyor savollar sinovi, 2026-10-13)', () => {
+  it('jurnalda joriy savol yoʻq boʻlsa — erkin javob oldidan savolning oʻzi yoziladi; keyingi safar qayta yozilmaydi', async () => {
+    const b = soxtaBaza(null, { savolYozilgan: false });
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Bu bepulmi?' });
+    expect(r.xabarlar.map((x) => x.rol)).toEqual(['menejer', 'obunachi', 'menejer']);
+    expect(r.xabarlar[0]).toMatchObject({ savolId: 'ism' });
+    expect(r.xabarlar[0]!.matn).toMatch(/^Assalomu alaykum! Men ZumSavdo yordamchingizman/);
+    expect(r.xabarlar[0]!.javob).toBeUndefined();
+    const r2 = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'ZumSavdo nima qiladi?' });
+    expect(r2.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
   });
 });

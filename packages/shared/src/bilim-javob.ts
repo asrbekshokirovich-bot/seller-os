@@ -39,7 +39,7 @@ function uzum(bolim: string, filtr: RegExp | null = null, nechta = 2): string[] 
 }
 
 interface Mavzu {
-  /** Faqat shu savol(lar)da (masalan, byudjet) — boʻlmasa hamma joyda. */
+  /** Faqat shu savol(lar)da (masalan, byudjet; `miqdor:123` — `miqdor`) — boʻlmasa hamma joyda. */
   savol?: string | readonly string[];
   re: RegExp;
   /** Matnda shu boʻlsa — bu mavzu emas (masalan, pul haqidagi "qaysi biri"). */
@@ -56,7 +56,7 @@ const MAVZULAR: readonly Mavzu[] = [
     javob: () => ['Ha: masalan «5000 $» deb yozing — Markaziy bank kursi bilan soʻmga oʻgiraman.'] },
   { savol: 'byudjet', re: /yetadimi|yetarlimi|yetarli|kam emasmi|qancha kerak|qancha pul kerak|qanchadan boshla|сколько нужно|хватит/u,
     javob: () => ['Qancha kerakligi yoʻnalish va tovarga bogʻliq: keyingi qadamda har yoʻnalish uchun «Pulingiz yetadi» yoki «yetmasligi mumkin» deb koʻrsataman.', MASLAHAT[0]!] },
-  { savol: 'qiziqish', re: /qaysi .*(yaxshi|tanla|oson|foydali|qulay)|qaysi biri|maslahat|nima sotsam/u,
+  { savol: 'qiziqish', re: /qaysi .*(yaxshi|tanla|oson|foydali|qulay)|qaysi biri|maslahat|nima sotsam|bilmasam|bilmayman/u,
     javob: () => [MASLAHAT[2]!, 'Bilmasangiz «Bilmayman» ni bosing — keyingi qadamda hamma sohadan eng yuqori baholi yoʻnalishlarni koʻrsataman, raqamlari bilan.'] },
   // Kartalar hali yoʻq qadamlarda soha/tovar solishtirish ("kanstovar bilan kiyimdan qaysi biri
   // osonroq?") — pul haqidagi "qaysi biri" (80 mln yoki 100 mln) bu yerga tushmaydi.
@@ -64,7 +64,7 @@ const MAVZULAR: readonly Mavzu[] = [
     javob: () => [MASLAHAT[2]!, 'Qaysi biri osonroq ekanini raqam bilan Yoʻnalish qadamida koʻrsataman: har yoʻnalishda xaridor qanchalik koʻpligi va raqobat chiqadi.'] },
   { savol: 'yonalish', re: /nega .*(sumka|krossovka|quloqchin|kiyim|boshqa)|men .*dedim|faqat .*(kerak|chiqar)/u,
     javob: () => ['Roʻyxatda siz tanlagan sohadan 4 ta va boshqa sohalardan eng yuqori baholi 2 ta yoʻnalish koʻrsatiladi — taqqoslash uchun. Faqat oʻz sohangiz kerak boʻlsa — pastga uning nomini yozing (masalan: kanstovar) yoki «Yana koʻrsatish» ni bosing.'] },
-  { re: /qayerdan boshla|nimadan boshla|hech narsa(ni)? bilmayman|nima qilishim kerak|qanday boshla/u,
+  { re: /qayerdan boshla|nimadan boshla|hech narsa(ni)? bilmayman|nima qilishim kerak|qanday boshla|tajriba(m|si)? yo'q|tajribasiz/u,
     javob: () => ['Hech narsa bilmasangiz ham boʻladi: men sizni 12 qadamda olib boraman — yoʻnalish va tovar tanlash, narxini hisoblash, Xitoydan topish, rasmiylashtirish va Uzumga chiqarishgacha. Hozir faqat pastdagi savolga javob bering, qolganini birga qilamiz.'] },
   { re: /(^|[^\p{L}])ball|imkoniyat baho|baho nima|baho degani/u, javob: () => [lugat('Imkoniyat bahosi')] },
   { re: /bozor ochiq|top.?3|ulush|yirik do'kon|bir necha do'kon/u, javob: () => [lugat('«Bozor ochiq»')] },
@@ -73,6 +73,9 @@ const MAVZULAR: readonly Mavzu[] = [
   { re: /30 kun|sotildi degani|sotuv soni|qayerdan ol|qayerdan bil|откуда/u, javob: () => [lugat('Oxirgi 30 kunlik sotuv')] },
   { re: /tugagan|qoldiq/u,
     javob: () => [lugat('«Uzumda hozir tugagan»'), 'Bunday tovarga talab boʻlishi mumkin, lekin sotuvini oʻlchab boʻlmagan — bitta raqamga emas, boshqa kartalar bilan solishtirib qaror qiling.'] },
+  // Tayyor savol «Nechta olishim kerak?» (miqdor savoli, 2026-10-13) — raqamsiz: son tugmalarda.
+  { savol: ['miqdor', 'partiya_miqdor'], re: /nechta ol|qancha ol(ay|ish|sam)|partiya(ni)? (qancha|nechta)|nechta (dona|buyurtma)/u,
+    javob: () => ['Birinchi partiya miqdori faqat oʻlchangan sotuvdan hisoblanadi: tugmalarda necha kunlik zaxira ekani yozilgan.', MASLAHAT[1]!, MASLAHAT[6]!] },
   { re: /tannarx|себестоим/u, javob: () => [lugat('Tannarx')] },
   { re: /chegara narx/u, javob: () => [lugat('Chegara narx')] },
   { re: /foyda|daromad|marja|прибыл|заработ/u,
@@ -121,8 +124,10 @@ function tilgaOlingan(t: string, h: YolHolati | null): Yonalish[] {
 export function bilimJavobi(matn: string, savolId: string, h: YolHolati | null = null): string | null {
   const t = norm(matn);
   if (!t) return null;
+  // `miqdor:123` kabi idlar — oldingi qismi boʻyicha.
+  const id = savolId.split(':')[0] ?? savolId;
   const birinchi = MAVZULAR
-    .filter((m) => !m.savol || (typeof m.savol === 'string' ? m.savol === savolId : m.savol.includes(savolId)))
+    .filter((m) => !m.savol || (typeof m.savol === 'string' ? m.savol === id : m.savol.includes(id)))
     .find((m) => m.re.test(t) && !m.emas?.test(t));
   // Savolga xos (byudjet, yoʻnalish) mavzu — birinchi; keyin tilga olingan kartalar; keyin umumiy mavzular.
   if (birinchi?.savol) return birinchi.javob().filter(Boolean).join(' ');

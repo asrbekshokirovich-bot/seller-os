@@ -207,7 +207,7 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
           <nav className={b.navOng} aria-label={tr('Asosiy', 'Главное')}>
             <Havola className={b.navHavola} href="#yol">{tr('Yoʻl', 'Путь')}</Havola>
             <MavzuTugma mavzu={mavzu} tanla={mavzuniTanla} tr={tr} />
-            <Havola className={b.ustaga} href="/usta">{tr('Ustaga oʻtish', 'Перейти к Мастеру')}</Havola>
+            <Havola className={b.ustaga} href="/usta">{tr('Suhbatga oʻtish', 'Перейти в чат')}</Havola>
           </nav>
         </div>
       </header>
@@ -322,8 +322,8 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
             <h2 className={b.ctaSarlavha}>{tr('Yoʻlni byudjetingiz boshlaydi.', 'Путь начинается с вашего бюджета.')}</h2>
             <p className={b.ctaMatn}>
               {tr(
-                'Ikki savol — byudjet va Uzumdagi doʻkoningiz. Keyin Usta yoʻnalish va tovarni Uzum bazasidan, raqamlar bilan tanlaydi.',
-                'Два вопроса — бюджет и ваш магазин на Uzum. Затем Мастер подберёт направление и товар по базе Uzum, с цифрами.',
+                'Bir necha oddiy savol — tajribangiz, qiziqishingiz va byudjetingiz. Keyin yordamchi yoʻnalish va tovarni Uzum bazasidan, raqamlar bilan taklif qiladi.',
+                'Несколько простых вопросов — опыт, интересы и бюджет. Затем помощник предложит направление и товар по базе Uzum, с цифрами.',
               )}
             </p>
           </div>
@@ -422,8 +422,8 @@ function PulOqimi({ mp, tr, mlnB, jonli = false }: { mp: number; tr: Tr; mlnB: s
       </div>
       <p className={b.oqimOst}>
         {tr(
-          'Raqamlar misol. Oʻz tovaringiz uchun — Ustada, 4-qadam: har qator manbasi bilan.',
-          'Цифры — пример. Для вашего товара — в Мастере, шаг 4: каждая строка с источником.',
+          'Raqamlar misol. Oʻz tovaringiz uchun — suhbatda, 4-qadam: har qator manbasi bilan.',
+          'Цифры — пример. Для вашего товара — в чате, шаг 4: каждая строка с источником.',
         )}
       </p>
     </div>

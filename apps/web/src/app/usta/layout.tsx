@@ -9,7 +9,7 @@
 import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
-  title: 'ZumSavdo — Usta',
+  title: 'ZumSavdo — Yordamchi',
   description: 'Uzumda nima sotishni raqamlar bilan tanlang.',
 };
 

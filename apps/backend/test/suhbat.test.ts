@@ -245,11 +245,11 @@ describe('suhbatTurn', () => {
   it('ism bitta soʻz yoki telefon notoʻgʻri — qayta soʻraladi, sababi aytiladi, holat oʻzgarmaydi', async () => {
     const b = soxtaBaza();
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Aziz' });
-    expect(r.xabarlar[1]!.matn).toMatch(/Ism va familiyangizni birga yozing/);
+    expect(r.xabarlar.at(-1)!.matn).toMatch(/Ism va familiyangizni birga yozing/);
     expect(b.holat()?.javoblar['ism']).toBeUndefined();
     const b2 = soxtaBaza({ javoblar: { ism: 'Aziz Karimov' }, natijalar: {} });
     const r2 = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'telefon', matn: '12345' });
-    expect(r2.xabarlar[1]!.matn).toMatch(/\+998 90 123 45 67/);
+    expect(r2.xabarlar.at(-1)!.matn).toMatch(/\+998 90 123 45 67/);
     expect(b2.holat()!.javoblar['telefon']).toBeUndefined();
   });
 
