@@ -248,6 +248,31 @@ export function byudjetniOqi(matn: string, usdKurs: number | null): ByudjetJavob
   return { som: Math.round(x.qiymat), usd: null };
 }
 
+/**
+ * Matndagi hamma summa soʻmda (takrorsiz, kichigi oldin) — mijoz "80 mln
+ * bilan boshlasammikan yoki 100 mln bilanmi?" deb maslahat soʻrasa, ular
+ * javobdan keyin TUGMA boʻlib chiqadi: bittasini bossa — oʻsha summa bilan
+ * boshlanadi (nazoratchi sinovi, 2026-10-13). Birligi yozilmagan kichik son
+ * ("70") va yevro olinmaydi — taxmin yoʻq (`byudjetniOqi` bilan bir xil).
+ */
+export function byudjetSummalari(matn: string, usdKurs: number | null): ByudjetJavobi[] {
+  const s = tozala(String(matn ?? '')).normalize('NFC');
+  const chiqdi: ByudjetJavobi[] = [];
+  for (const x of summalar(s).filter((y) => !pulEmasmi(s, y))) {
+    if (x.pul === 'eur' || !(x.qiymat > 0)) continue;
+    if (x.pul === 'usd') {
+      if (usdKurs !== null && usdKurs > 0 && x.qiymat <= 10_000_000) chiqdi.push({ som: Math.round(x.qiymat * usdKurs), usd: x.qiymat });
+      continue;
+    }
+    if (x.pul === null && x.kop === 1 && x.qiymat < 100_000) continue;
+    if (x.qiymat <= 1e12) chiqdi.push({ som: Math.round(x.qiymat), usd: null });
+  }
+  return chiqdi
+    .filter((a, i) => chiqdi.findIndex((b) => b.som === a.som) === i)
+    .sort((a, b) => a.som - b.som)
+    .slice(0, 3);
+}
+
 /** `12 650 000` → `12,7 mln soʻm`; milliondan kam — guruhlangan soʻm. */
 export function mlnMatni(som: number): string {
   if (som >= 1e6) return `${String(Math.round(som / 1e5) / 10).replace('.', ',')} mln soʻm`;

@@ -103,8 +103,8 @@ const HISOBOT_YAKUN_N = { olchov_yoq: false, yozildi: [], reja: ['«Quloqchin A�
 const TANISH = { ism: 'Aziz Karimov', telefon: '+998901234567' };
 /** CBU dollar kursi — 1-qadamning jim kod harakati. */
 const KURS_N = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
-/** Tanishuv byudjet savoligacha yetgan: ism, telefon, tajriba, kurs. */
-const BYUDJETGACHA: YolHolati = { javoblar: { ...TANISH, uzum_dokoni: 'yoq' }, natijalar: { kurs: KURS_N } };
+/** Tanishuv byudjet savoligacha yetgan: ism, telefon, tajriba, qiziqish («Bilmayman»), kurs. */
+const BYUDJETGACHA: YolHolati = { javoblar: { ...TANISH, uzum_dokoni: 'yoq', qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS_N } };
 const TELEFON_SAVOLI = 'Aziz, telefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.';
 const TAJRIBA_SAVOLI = 'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.';
 /** Telefon savoli turgan holat — javobidan keyin tajriba savoli (LLM odamlashtiradi). */
@@ -136,6 +136,7 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
     rpc: b.rpc,
     kod: {
       yonalishlar: async () => YONALISHLAR,
+      yonalishQidiruv: async (soz: string, n: number) => ({ soz, n, olchov_yoq: false, nomzod_soni: 300, topildi: 0, royxat: [] }),
       tovarlar: async () => TOVARLAR,
       tannarx: async () => ({ hisoblandi: true }),
       // Birinchi chaqiruv yurishni boshlaydi (kutilmoqda), tekshiruvda tugaydi.
@@ -206,7 +207,7 @@ describe('eskiSavolsiz — oxiridagi javobsiz eski savol', () => {
 });
 
 describe('suhbatTurn', () => {
-  it('tanishuv (nazoratchi, 2026-10-12): ism → telefon → tajriba → byudjet; kurs jim, profil yoziladi', async () => {
+  it('tanishuv (nazoratchi, 2026-10-12/13): ism → telefon → tajriba → qiziqish → byudjet; kurs jim, profil yoziladi', async () => {
     const b = soxtaBaza();
     const d = bogliq(b);
     const r1 = await suhbatTurn(d, 'tok', { savolId: 'ism', matn: 'mening ismim aziz karimov' });
@@ -220,9 +221,13 @@ describe('suhbatTurn', () => {
     if (r2.keyingi.tur !== 'savol') throw new Error();
     expect(r2.keyingi.savol.id).toBe('uzum_dokoni');
 
+    const r3q = await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    if (r3q.keyingi.tur !== 'savol') throw new Error();
+    expect(r3q.keyingi.savol.id).toBe('qiziqish');
     // Dollar kursi — jim kod harakati: chatda kod xabari yoʻq, natija holatda.
-    const r3 = await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    const r3 = await suhbatTurn(d, 'tok', { savolId: 'qiziqish', javob: ['kanstovar', 'bolalar'] });
     expect(r3.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    expect(r3.xabarlar[0]!.matn).toBe('Kanstovar va kitob, Bolalar tovarlari');
     expect(b.holat()!.natijalar.kurs).toEqual(KURS_N);
     if (r3.keyingi.tur !== 'savol') throw new Error();
     expect(r3.keyingi.savol.id).toBe('byudjet');
@@ -276,7 +281,8 @@ describe('suhbatTurn', () => {
     const b = soxtaBaza({ javoblar: { ...TANISH }, natijalar: {} });
     const d = bogliq(b);
     d.kod.kurs = async () => ({ olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
-    const r = await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    await suhbatTurn(d, 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    const r = await suhbatTurn(d, 'tok', { savolId: 'qiziqish', javob: null });
     if (r.keyingi.tur !== 'savol') throw new Error();
     expect(r.keyingi.savol.variantlar).toHaveLength(4);
     expect(r.keyingi.savol.matn).toMatch(/dollar kursini hozir ololmadim/);
@@ -397,6 +403,7 @@ describe('suhbatTurn', () => {
       { savolId: 'ism', javob: 'Aziz Karimov' },
       { savolId: 'telefon', javob: '+998 90 123 45 67' },
       { savolId: 'uzum_dokoni', javob: 'yoq' },
+      { savolId: 'qiziqish', javob: ['bilmayman'] },
       { savolId: 'byudjet', javob: 10_000_000 },
       { savolId: 'yonalish', javob: 11 },
       { savolId: 'tovarlar', javob: [100] },

@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 import {
   boshlangichHolat, deklaratsiyaQadamlari, faktlarniOqi, hisobotFaktlari, javobniQabulQil, joriyQadam, keyingi,
   kutilayotganHarakat, natijaniYoz, oyHisobi, qabulFaktlari, rasmiyFaktlari, SHAHARLAR, sotuvTovarlari, SUHBAT_QADAMLARI,
-  suratTalablari, tushuntir, yiqilganNatija, type KodHarakati, type YolHolati,
+  suratTalablari, tushuntir, yiqilganNatija, yonalishYanaNatija, type KodHarakati, type YolHolati,
 } from '@selleros/shared';
 
 const YONALISHLAR = {
@@ -177,11 +177,12 @@ describe('ssenariy — 12 qadam', () => {
 /** CBU dollar kursi — 1-qadamning jim kod harakati (`kurs`). */
 const KURS = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
 
-/** Byudjet savoligacha: ism, telefon, tajriba ("yoʻq"), dollar kursi. */
+/** Byudjet savoligacha: ism, telefon, tajriba ("yoʻq"), qiziqish («Bilmayman»), dollar kursi. */
 function byudjetgacha(tajriba: unknown = 'yoq'): YolHolati {
   let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
   h = javob(h, 'telefon', '+998901234567');
   h = javob(h, 'uzum_dokoni', tajriba);
+  h = javob(h, 'qiziqish', ['bilmayman']);
   return natijaniYoz(h, 'kurs', KURS);
 }
 
@@ -207,7 +208,7 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
     expect(m).not.toMatch(/kafolat|albatta|foyda/i);
   });
 
-  it('tartib: ism → telefon (ism bilan murojaat) → tajriba → dollar kursi (kod) → byudjet', () => {
+  it('tartib: ism → telefon (ism bilan murojaat) → tajriba → qiziqish → dollar kursi (kod) → byudjet', () => {
     let h = javob(boshlangichHolat(), 'ism', 'aziz karimov');
     expect(h.javoblar['ism']).toBe('Aziz Karimov');
     const kt = keyingi(h);
@@ -218,6 +219,14 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
     expect(h.javoblar['telefon']).toBe('+998931234567');
     expect(savolId(h)).toBe('uzum_dokoni');
     h = javob(h, 'uzum_dokoni', 'yoq');
+    // Qiziqish (nazoratchi, 2026-10-13): koʻp tanlov, «Bilmayman» va oʻtkazish mumkin.
+    const kq = keyingi(h);
+    if (kq.tur !== 'savol') throw new Error(kq.tur);
+    expect(kq.savol).toMatchObject({ id: 'qiziqish', qadam: 1, turi: 'kopTanlov', otkazishMumkin: true });
+    expect(kq.savol.variantlar.map((v) => v.qiymat)).toEqual(
+      ['kiyim', 'gozallik', 'uy', 'bolalar', 'elektronika', 'kanstovar', 'aksessuar', 'sport', 'avto', 'bilmayman']);
+    h = javob(h, 'qiziqish', ['kanstovar', 'bolalar']);
+    expect(h.javoblar['qiziqish']).toEqual(['kanstovar', 'bolalar']);
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'kurs', qadam: 1 });
     expect(tushuntir('kurs', KURS)).toBe('');
     h = natijaniYoz(h, 'kurs', KURS);
@@ -259,7 +268,7 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
     let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
     h = javob(h, 'telefon', '+998901234567');
     expect(savolId(javob(h, 'uzum_dokoni', 'sotyapman'))).toBe('dokon_nomi');
-    expect(keyingi(javob(h, 'uzum_dokoni', 'boshqa'))).toEqual({ tur: 'kod', harakat: 'kurs', qadam: 1 });
+    expect(savolId(javob(h, 'uzum_dokoni', 'boshqa'))).toBe('qiziqish');
   });
 
   it('byudjet tugmalari ANIQ son: soʻmda va dollarda (kurs bilan); kurs boʻlmasa — faqat soʻm', () => {
@@ -267,8 +276,8 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([5_000_000, 10_000_000, 30_000_000, 70_000_000, 6_325_000, 12_650_000, 37_950_000, 63_250_000]);
     expect(k.savol.matn).toMatch(/Soʻmda yoki dollarda/);
-    const kursSiz = natijaniYoz(javob(javob(javob(boshlangichHolat(), 'ism', 'Aziz Karimov'), 'telefon', '901234567'), 'uzum_dokoni', 'yoq'),
-      'kurs', { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
+    const kursSiz = natijaniYoz(javob(javob(javob(javob(boshlangichHolat(), 'ism', 'Aziz Karimov'), 'telefon', '901234567'), 'uzum_dokoni', 'yoq'),
+      'qiziqish', null), 'kurs', { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
     const k2 = keyingi(kursSiz);
     if (k2.tur !== 'savol') throw new Error(k2.tur);
     expect(k2.savol.variantlar).toHaveLength(4);
@@ -1743,5 +1752,97 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
     expect(ke.savol.matn).not.toMatch(/x is undefined/);
     // "skreyper" — ichki soʻz, obunachiga chiqmaydi.
     expect(tushuntir('sotuv', { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: { ...OZ, holat: 'kutilmoqda' as const } }] })).not.toMatch(/skreyper/);
+  });
+});
+
+describe('2-qadam — qiziqish, aralash roʻyxat, «Yana koʻrsatish», qidiruv (nazoratchi, 2026-10-13)', () => {
+  const y = (categoryId: number, name: string, soha: string, ball: number) => ({ categoryId, name, soha, yetadi: null, ball: { value: ball } });
+  const BIRINCHI = [y(1, 'Ruchkalar', 'kanstovar', 70), y(2, 'Bloknotlar', 'kanstovar', 70), y(3, 'Daftar', 'kanstovar', 55),
+    y(4, 'Penallar', 'kanstovar', 65), y(5, 'Sumkalar', 'aksessuar', 78), y(6, 'Krossovkalar', 'kiyim', 76)];
+  const IKKINCHI = [y(7, 'Qalamlar', 'kanstovar', 52), y(8, 'Stikerlar', 'kanstovar', 67), y(9, 'Romanlar', 'kanstovar', 60),
+    y(10, 'Bloklar', 'kanstovar', 50), y(11, 'Atirlar', 'gozallik', 74), y(12, 'Sochiqlar', 'uy', 66)];
+  const ARALASH = { olchov_yoq: false, nomzod_soni: 300, qiziqishlar: ['kanstovar'], royxat: BIRINCHI, keyingilar: IKKINCHI };
+
+  /** Tanishuv tugagan (qiziqish — kanstovar), yoʻnalish roʻyxati chiqqan holat. */
+  function royxatda(): YolHolati {
+    let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
+    h = javob(h, 'telefon', '+998901234567');
+    h = javob(h, 'uzum_dokoni', 'Bozorda kanstovar sotganman');
+    h = javob(h, 'qiziqish', 'kanstovar sotmoqchiman');
+    h = javob(natijaniYoz(h, 'kurs', KURS), 'byudjet', 10_000_000);
+    return natijaniYoz(h, 'yonalishlar', ARALASH);
+  }
+
+  it('qiziqish: oʻzi yozsa — soha topiladi; «Bilmayman» boshqalari bilan tashlanadi; topilmasa — sababi', () => {
+    const h = royxatda();
+    expect(h.javoblar['qiziqish']).toEqual(['kanstovar']);
+    const tajribada = javob(javob(javob(boshlangichHolat(), 'ism', 'Aziz Karimov'), 'telefon', '901234567'), 'uzum_dokoni', 'yoq');
+    expect(javob(tajribada, 'qiziqish', ['bilmayman', 'kiyim']).javoblar['qiziqish']).toEqual(['kiyim']);
+    expect(javobniQabulQil(tajribada, 'qiziqish', 'salom').xato).toMatch(/soha nomini yozing/);
+    // Oʻtkazib yuborsa — null, roʻyxat hamma sohadan.
+    expect(javob(tajribada, 'qiziqish', null).javoblar['qiziqish']).toBeNull();
+  });
+
+  it('tugmalar — koʻrsatilgan kartalar va «Yana koʻrsatish»; oʻzi yozsa boʻladi (qidiruv)', () => {
+    const k = keyingi(royxatda());
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([1, 2, 3, 4, 5, 6, 'yana']);
+    expect(k.savol.erkin).toBe(true);
+    expect(k.savol.matn).toMatch(/«Yana koʻrsatish» ni bosing yoki pastga tovar nomini yozing/);
+  });
+
+  it('«Yana koʻrsatish» — yoʻnalish tanlanmaydi, navbatdagi sahifa kod xabari boʻlib chiqadi', () => {
+    let h = javob(royxatda(), 'yonalish', 'yana');
+    expect(h.javoblar['yonalish']).toBeUndefined();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yonalish_yana', qadam: 2 });
+    const n = yonalishYanaNatija(h);
+    expect(n).toEqual({ sahifa: 1, royxat: IKKINCHI, qolgan: 0 });
+    expect(tushuntir('yonalish_yana', n)).toBe('Yana 6 ta yoʻnalish. Takliflar shu — boshqasini pastga tovar nomini yozib qidiring.');
+    h = natijaniYoz(h, 'yonalish_yana', n);
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    // Ikkala sahifa ham tanlanadi; navbat tugadi — «Yana koʻrsatish» yoʻq.
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(javob(h, 'yonalish', 8).javoblar['yonalish']).toBe(8);
+  });
+
+  it('pastga yozilgan tovar nomi — qidiruv; topilgani tanlanadi; bir xil soʻz ham qayta qidiriladi', () => {
+    let h = javob(royxatda(), 'yonalish', 'atir');
+    expect(h.javoblar['yonalish_qidiruv']).toEqual({ soz: 'atir', n: 1 });
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yonalish_qidiruv', qadam: 2 });
+    const topildi = { soz: 'atir', n: 1, olchov_yoq: false, nomzod_soni: 300, topildi: 1, royxat: [y(77, 'Atirlar', 'gozallik', 74)] };
+    expect(tushuntir('yonalish_qidiruv', topildi)).toBe('«atir» boʻyicha 1 ta yoʻnalish topdim:');
+    h = natijaniYoz(h, 'yonalish_qidiruv', topildi);
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([1, 2, 3, 4, 5, 6, 77, 'yana']);
+    expect(javob(h, 'yonalish', 77).javoblar['yonalish']).toBe(77);
+    // Bir xil soʻz yana — yangi qidiruv (n: 2).
+    expect(keyingi(javob(h, 'yonalish', 'atir'))).toEqual({ tur: 'kod', harakat: 'yonalish_qidiruv', qadam: 2 });
+    const yoq = { soz: 'traktor', n: 2, olchov_yoq: false, nomzod_soni: 300, topildi: 0, royxat: [] };
+    expect(tushuntir('yonalish_qidiruv', yoq)).toMatch(/^«traktor» boʻyicha kuzatayotgan 300 ta yoʻnalishimizdan mosi topilmadi/);
+  });
+
+  it('roʻyxatda yoʻq raqam — rad (qidiruv faqat matn bilan)', () => {
+    expect(javobniQabulQil(royxatda(), 'yonalish', 999).xato).toMatch(/variantlardan/);
+  });
+
+  it('xabar: qiziqish boʻyicha nechta, boshqa sohalardan nechta; «faqat boshlangʻich taklif»', () => {
+    const m = tushuntir('yonalishlar', ARALASH);
+    expect(m).toMatch(/Siz tanlagan soha \(Kanstovar va kitob\) boʻyicha 4 ta va boshqa sohalardan 2 ta yoʻnalish\./);
+    expect(m).toMatch(/Eng yuqorisi — «Sumkalar» \(78 ball\)/);
+    expect(m).toMatch(/Bu faqat boshlangʻich taklif: Uzumdagi 300 ta yoʻnalishni kuzatyapman\. Boshqalarini «Yana koʻrsatish» bilan koʻring yoki pastga tovar nomini yozing\./);
+    const hamma = tushuntir('yonalishlar', { ...ARALASH, qiziqishlar: [], keyingilar: [] });
+    expect(hamma).toMatch(/Hamma sohadan 6 ta yoʻnalish — har biri boshqa sohadan\./);
+    expect(hamma).toMatch(/Boshqasini qidirish uchun pastga tovar nomini yozing/);
+  });
+
+  it('eski suhbat: roʻyxat qiziqishsiz chiqqan — qiziqish soʻraladi, javobdan keyin roʻyxat qayta hisoblanadi', () => {
+    const eski: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', uzum_dokoni: 'yoq', byudjet: 10_000_000 },
+      natijalar: { kurs: KURS, yonalishlar: YONALISHLAR } };
+    expect(savolId(eski)).toBe('qiziqish');
+    const h = javob(eski, 'qiziqish', ['kiyim']);
+    expect(h.natijalar.yonalishlar).toBeUndefined();
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yonalishlar', qadam: 2 });
   });
 });

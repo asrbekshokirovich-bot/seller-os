@@ -36,6 +36,14 @@ Yo'nalish, tovar, miqdor — deterministik ball + filtrlar. Bir xil kirish →
 har doim bir xil javob. LLM o'zi tovar tavsiya qilmaydi va SQL yozmaydi —
 faqat tayyor funksiyalarni chaqiradi.
 
+*Yumshatildi (nazoratchi qarori, 2026-10-13):* mijoz savol bersa yoki
+tushunmasa, yordamchi (LLM) **aniq javob va umumiy maslahat** beradi —
+"80 mln bilan boshlaymi yoki 100 mi?" kabi savol javobsiz qolmasin. Chegarasi:
+ball, roʻyxat, miqdor va har raqam baribir KODDAN (LLM hisoblamaydi, raqamni
+faqat bilim, mijoz holati va suhbatdan oladi — `tekshiruv.ts` darvozasi);
+roʻyxatda yoʻq tovarni oʻzidan taklif qilmaydi; foyda vaʼda qilmaydi; qaror
+mijozda qoladi. Bilim — `bilim.ts`, `uzum-bilim.ts` (manbasi bilan).
+
 **Sirlar faqat `env` da.**
 Kodda, logda, testda, commit xabarida — hech qachon. `.env` gitignore da.
 

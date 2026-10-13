@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { oyNomi, REJA_QADAMI, sanaMatni, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -715,6 +715,8 @@ function XabarPufagi({ x, tr, katalog, xitoy, ilova }: {
 
 interface YonalishQatori {
   categoryId: number; name: string;
+  /** Soha (`soha.ts`) — kartadagi belgi; eski natijalarda yoʻq. */
+  soha?: string;
   /** `breakdown` — qism ballari (talab, raqobat, kirish, mavsum…): kartadagi oddiy xulosalar shundan. */
   ball: { value: number | null; breakdown?: Array<{ part: string; score: number | null; used: boolean }> };
   yetadi: boolean | null;
@@ -771,7 +773,8 @@ function KodKartasi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: Kat
     );
   }
   const karta = olchovYoq ? null
-    : x.savolId === 'yonalishlar'
+    // «Yana koʻrsatish» sahifasi va qidiruv natijasi ham — oʻsha yoʻnalish kartalari (2026-10-13).
+    : x.savolId === 'yonalishlar' || x.savolId === 'yonalish_yana' || x.savolId === 'yonalish_qidiruv'
       ? <Yonalishlar royxat={(n.royxat as YonalishQatori[] | undefined) ?? []} eskirgan={n.kesh_eskirgan === true} baholanmadi={Number(n.baholanmadi ?? 0)} bolish={(n.bolishTaklifi as { sabab: string } | null | undefined) ?? null} tr={tr} />
       : x.savolId === 'tovarlar'
         ? <TovarKatalogi royxat={(n.royxat as TovarQatori[] | undefined) ?? []} chiqarildi={(n.chiqarildi as Array<{ title: string; sabab: string }> | undefined) ?? []} rejim={katalog ?? { tanlangan: [], band: true }} tr={tr} />
@@ -838,6 +841,15 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
   royxat: YonalishQatori[]; eskirgan: boolean; baholanmadi: number;
   bolish: { sabab: string } | null; tr: Tr;
 }) {
+  // Aralash roʻyxatda (qiziqish + boshqa sohalar) tartib — oʻrin emas: belgi
+  // eng yuqori baholi kartada, har kartada — sohasi (2026-10-13).
+  const engYuqori = royxat.length > 1
+    ? royxat.reduce((m, y, i) => ((y.ball.value ?? -1) > (royxat[m]!.ball.value ?? -1) ? i : m), 0)
+    : -1;
+  const sohaTeg = (id: string | undefined) => {
+    const s = SAVDO_SOHALARI.find((x) => x.id === id);
+    return s ? tr(s.nom, s.ru) : tr('Boshqa', 'Другое');
+  };
   return (
     <div className={u.kartalar}>
       {eskirgan && <p className={u.kichikIzoh}>{tr('Raqamlar kechagi — bugun hali yangilanmagan.', 'Цифры вчерашние — сегодня ещё не обновлены.')}</p>}
@@ -854,9 +866,10 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
           <div key={y.categoryId} className={u.karta}>
             <div className={u.kartaBoshi}>
               <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{y.name}</div></div>
-              <span className={`${u.teg} ${i === 0 ? u.tegYaxshi : u.tegNeytral}`}>
-                {i === 0 ? tr('Eng yaxshi tanlov', 'Лучший выбор') : tr(`${i + 1}-oʻrin`, `${i + 1}-е место`)}
-              </span>
+              <div className={u.kartaTeglar}>
+                {i === engYuqori && <span className={`${u.teg} ${u.tegYaxshi}`}>{tr('Eng yuqori baho', 'Лучшая оценка')}</span>}
+                <span className={`${u.teg} ${u.tegNeytral}`}>{sohaTeg(y.soha)}</span>
+              </div>
             </div>
             {ball !== null && (
               <div className={u.baho}>
@@ -2071,7 +2084,9 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
         {savol.erkin && !kop && !raqamli && (
           <button type="button" className={u.variantBoshqa} onClick={yozishga}>
             <span><Ikon nom="plyus" o={16} /></span>
-            {savol.id === 'shahar' ? tr('Boshqa shahar — pastda yozing', 'Другой город — напишите ниже') : tr('Boshqa javob — pastda yozing', 'Другой ответ — напишите ниже')}
+            {savol.id === 'shahar' ? tr('Boshqa shahar — pastda yozing', 'Другой город — напишите ниже')
+              : savol.id === 'yonalish' ? tr('Boshqa yoʻnalish qidirish — pastda yozing', 'Найти другое направление — напишите ниже')
+                : tr('Boshqa javob — pastda yozing', 'Другой ответ — напишите ниже')}
           </button>
         )}
       </div>
@@ -2200,6 +2215,9 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
         placeholder={savol.id === 'ism' ? tr('Ism va familiya — masalan: Aziz Karimov', 'Имя и фамилия — например: Азиз Каримов')
           : savol.id === 'telefon' ? '+998 90 123 45 67'
             : savol.id === 'byudjet' ? tr('Oʻzim yozaman: masalan, 70 mln yoki 5000 $', 'Своя сумма: например, 70 млн или 5000 $')
+              // 2-qadam: pastga yozilgan tovar nomi — qidiruv (2026-10-13).
+              : savol.id === 'yonalish' && savol.erkin ? tr('Tovar nomini yozing — masalan: ruchka', 'Напишите товар — например: ручка')
+              : savol.id === 'qiziqish' ? tr('Yoki sohani yozing — masalan: kanstovar', 'Или напишите сферу — например: канцтовары')
               : savol.turi === 'son'
                 ? tr('Oʻzim yozaman: aniq son', 'Своё число')
                 : ochiqJavob ? tr('Oʻzim yozaman', 'Свой ответ') : tr('Savolingiz boʻlsa — yozing', 'Есть вопрос — напишите')}
