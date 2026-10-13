@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { oyNomi, REJA_QADAMI, songgiSuhbat, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { oyNomi, REJA_QADAMI, sanaMatni, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -731,10 +731,13 @@ interface TovarQatori {
     qoldiq?: number | null;
     /** `so_tovar_royxati.rasmUrl` (0054) — kalit oʻlchangan tovarda; boʻlmasa harf turadi. */
     rasmUrl?: string | null;
+    /** Uzum sahifasidagi «N kishi shu hafta sotib oldi» (0064); `olchandi` — oʻsha oʻlchov vaqti. */
+    xaridorYozuvi?: number | null;
+    olchandi?: string | null;
   };
   miqdor: { dona: number; hisob: string } | null;
   miqdorSababi: string | null;
-  bayroqlar: Array<{ kind: string; severity: string; reason: string }>;
+  bayroqlar: Array<{ kind: string; severity: string; reason: string; evidence?: Record<string, unknown> }>;
 }
 interface TannarxQatori {
   productId: number; title: string; sotuvNarxiSom: number | null; miqdor: number | null;
@@ -918,6 +921,9 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
  * koʻrinmayapti / sotuv koʻrinmadi / hali oʻlchanmagan. Ilgari bunday
  * tovarda "30 kunda: 0 dona · oʻlchandi" va "taklif: 1 dona" turardi.
  * "Roʻyxatdagi ulush" olib tashlandi. Rasm: `rasmUrl` kelsa rasm (0054).
+ * Toifa (`sotuvToifasi`) va tartib (sotilganlar tepada) — shared, kod
+ * xabaridagi sonlar bilan bir xil. Oʻlchov yoʻq kartada — Uzumning oʻz
+ * yozuvi, sanasi bilan va "biz tekshira olmaymiz" deb (0064 qoʻllangach).
  */
 function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
   royxat: TovarQatori[];
@@ -933,8 +939,12 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
           const n = t.nomzod;
           const id = n.productId;
           const bor = rejim.tanlangan.some((x) => String(x) === String(id));
-          const sold = n.soldUnits30d;
-          const olchandi = n.sotuvManbasi === 'olchandi';
+          const sold = n.soldUnits30d ?? 0;
+          // Xabardagi sonlar bilan bir xil toifa (`sotuvToifasi`, shared).
+          const toifa = sotuvToifasi(n);
+          // "Sharh juda kam" — qoldiq kamaydi, lekin bu sotuv emasdir (sotuvchi
+          // qoldiqni olib qoʻygan boʻlishi mumkin): "sotildi ✓" deyilmaydi.
+          const shubhali = t.bayroqlar.some((b) => b.kind === 'fake_sales' && Number(b.evidence?.nisbat) < 1);
           const ogoh = t.bayroqlar.find((b) => b.severity !== 'note') ?? t.bayroqlar[0];
           /*
            * Reyting 0 — "baho yo'q", baho emas (SXEMA.md: sharhsiz
@@ -959,15 +969,24 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
                   </span>
                 </div>
                 <ul className={`${u.xulosalar} ${u.katalogXulosa}`}>
-                  {olchandi && sold !== null && sold > 0
-                    ? <Xulosa tur="yaxshi" hukm={tr(`Oxirgi 30 kunda ~${son(sold)} dona sotildi`, `За 30 дней продано ~${son(sold)} шт`)}
-                      izoh={tr(`oʻzimiz oʻlchadik: qoldiq kamayishidan, ${n.olchanganKun ?? '—'} kun`, `наш замер: по снижению остатка, ${n.olchanganKun ?? '—'} дн`)} />
-                    : n.qoldiq === 0
+                  {toifa === 'sotildi'
+                    ? shubhali
+                      ? <Xulosa tur="ogoh" hukm={tr(`30 kunda qoldiq ~${son(sold)} dona kamaydi`, `За 30 дней остаток уменьшился на ~${son(sold)} шт`)}
+                        izoh={tr('lekin sharh juda kam — bu haqiqiy sotuv boʻlmasligi mumkin', 'но отзывов очень мало — возможно, это не продажи')} />
+                      : <Xulosa tur="yaxshi" hukm={tr(`Oxirgi 30 kunda ~${son(sold)} dona sotildi`, `За 30 дней продано ~${son(sold)} шт`)}
+                        izoh={tr(`oʻzimiz oʻlchadik: qoldiq kamayishidan, ${n.olchanganKun ?? '—'} kun`, `наш замер: по снижению остатка, ${n.olchanganKun ?? '—'} дн`)} />
+                    : toifa === 'tugagan'
                       ? <Xulosa tur="ogoh" hukm={tr('Uzumda hozir qoldiq koʻrinmayapti', 'На Uzum сейчас нет остатка')}
                         izoh={tr('tugagan boʻlishi mumkin — sotuvini oʻlchab boʻlmadi', 'возможно, закончился — продажи не измерить')} />
-                      : olchandi && sold === 0
+                      : toifa === 'sotilmadi'
                         ? <Xulosa tur="oddiy" hukm={tr('Oxirgi 30 kunda sotuv koʻrinmadi', 'За 30 дней продаж не видно')} izoh={tr('qoldiq kamaymadi', 'остаток не уменьшался')} />
                         : <Xulosa tur="oddiy" hukm={tr('Sotuvi hali oʻlchanmagan', 'Продажи ещё не измерены')} izoh={tr('kuzatuv kunlari yetarli emas', 'мало дней наблюдения')} />}
+                  {/* Oʻz oʻlchovimiz yoʻq boʻlsa — Uzumning oʻz yozuvi, UZUMNIKI deb va sanasi bilan (0064). */}
+                  {toifa !== 'sotildi' && typeof n.xaridorYozuvi === 'number' && n.xaridorYozuvi > 0 && (
+                    <Xulosa tur="oddiy" hukm={tr(`Uzum sahifasida: «${son(n.xaridorYozuvi)} kishi shu hafta sotib oldi»`, `На странице Uzum: «${son(n.xaridorYozuvi)} человек купили на этой неделе»`)}
+                      izoh={tr(`Uzumning oʻz yozuvi${n.olchandi ? ` (${sanaMatni(n.olchandi)} holati)` : ''} — biz uni tekshira olmaymiz`,
+                        `надпись самого Uzum${n.olchandi ? ` (на ${sanaMatni(n.olchandi)})` : ''} — мы её не проверяем`)} />
+                  )}
                   {bahoYoq
                     ? <Xulosa tur="oddiy" hukm={tr('Hali baho yoʻq', 'Оценок пока нет')} izoh={tr('xaridorlar sharh yozmagan', 'покупатели не оставили отзывов')} />
                     : <Xulosa tur="oddiy" hukm={tr(`Xaridorlar bahosi ${n.reyting}`, `Оценка покупателей ${n.reyting}`)}

@@ -48,6 +48,7 @@
 import type { ProfilJavoblari } from './profil.ts';
 import type { XitoyTovar } from './xitoy.ts';
 import { minglik, type KargoStavkasi } from './fakt.ts';
+import { sotuvToifasi, type SotuvToifasi } from './qadamlar.ts';
 import type { Kurs } from './kurs.ts';
 import { SHAHARLAR } from './savollar.ts';
 import type { OylikSoliq, RasmiyFaktlar } from './rasmiy.ts';
@@ -255,7 +256,11 @@ interface YonalishlarNatijasi {
   sabab?: string;
 }
 interface TovarQisqa {
-  nomzod: { productId: number; title: string; narxSom?: number | null; rasmUrl?: string | null };
+  nomzod: {
+    productId: number; title: string; narxSom?: number | null; rasmUrl?: string | null;
+    /** Kod xabari kartadagi bilan bir xil sotuv toifasini sanashi uchun (`sotuvToifasi`). */
+    soldUnits30d?: number | null; sotuvManbasi?: 'olchandi' | 'taxmin' | null; qoldiq?: number | null;
+  };
   miqdor: { dona: number; hisob: string } | null;
   miqdorSababi?: string | null;
   /** Roʻyxatda qolgan (bloklamaydigan) tuzoq bayroqlari — ogohlantirish. */
@@ -2064,18 +2069,37 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     const chiq = n.chiqarildi?.length ?? 0;
     const ogoh = r.filter((t) => (t.bayroqlar?.length ?? 0) > 0).length;
     const baholanmadi = r.filter((t) => (t.baholanmadi?.length ?? 0) > 0).length;
-    const olchangan = r.filter((t) => t.miqdor !== null).length;
-    // Sodda til (nazoratchi, 2026-10-13): "tuzoq-filtr", "zaxira kamayishidan
-    // oʻlchangan" kabi gaplar yangi odamga tushunarsiz edi. Maʼno oʻsha:
-    // raqam qayerdan, nimasi taxmin, nimasi oʻlchanmagan — ochiq aytiladi.
-    return `Bu yoʻnalishdan Uzumdagi ${r.length} ta tovarni koʻrsatyapman. Har kartada: narx, oxirgi 30 kunda nechta sotilgani `
-      + '(oʻlchay olgan boʻlsak) va xaridorlar bahosi. Uzum sotuv sonini oshkor qilmaydi — sotuvni qoldiq kamayishidan oʻzimiz '
-      + 'oʻlchaymiz, shuning uchun u taxminiy.'
-      + (olchangan === 0 ? ' Bu tovarlarning sotuvini hali oʻlchay olmadik — miqdorni keyin oʻzingiz yozasiz.'
-        : olchangan < r.length ? ` ${r.length - olchangan} tasining sotuvi hali oʻlchanmagan.` : '')
+    // Kartadagi bilan BIR XIL toifa (`sotuvToifasi`): ilgari xabar "17 tasining
+    // sotuvi hali oʻlchanmagan" derdi, kartalarda esa 15 tasida "qoldiq
+    // koʻrinmayapti", 2 tasida "sotuv koʻrinmadi" turardi (jonli, 2026-10-13).
+    const toifa = r.map((t) => sotuvToifasi({
+      soldUnits30d: t.nomzod.soldUnits30d ?? null,
+      sotuvManbasi: t.nomzod.sotuvManbasi ?? null,
+      qoldiq: t.nomzod.qoldiq ?? null,
+    }));
+    const soni = (x: SotuvToifasi) => toifa.filter((y) => y === x).length;
+    const holatlar = [
+      soni('sotildi') ? `${soni('sotildi')} tasining sotuvi oʻlchandi` : '',
+      soni('olchanmagan') ? `${soni('olchanmagan')} tasining sotuvini hali oʻlchab ulgurmadik` : '',
+      soni('sotilmadi') ? `${soni('sotilmadi')} tasida 30 kunda sotuv boʻlmadi` : '',
+      soni('tugagan') ? `${soni('tugagan')} tasi Uzumda hozir tugagan` : '',
+    ].filter(Boolean);
+    // Sodda til (nazoratchi, 2026-10-13: "mijoz tushunmaydi; bu maʼlumotlarni
+    // qayerdan olyapsan? oxirgi 30 kun, mavsum, yil"). Raqam qayerdan, nimasi
+    // taxmin va nega mavsum/yil yoʻq — ochiq aytiladi. Kuzatuv 2026-yil
+    // avgustda boshlangan (selleros 24-avgust, perepis 17-avgust): Uzum sotuv
+    // tarixini bermaydi — u kunma-kun yigʻiladi.
+    return `Bu yoʻnalishdan Uzumdagi ${r.length} ta tovarni koʻrsatyapman — sotilayotganlari tepada.\n\n`
+      + 'Raqamlar qayerdan: Uzum nechta sotilganini koʻrsatmaydi. Biz har tovarning qoldigʻini kuniga 3 marta tekshiramiz — '
+      + 'qoldiq kamaygani sotuv boʻladi, shuning uchun bu son taxminiy. Kuzatuvni 2026-yil avgustda boshlaganmiz: '
+      + 'mavsum va yil boʻyicha sotuv hali yoʻq, faqat oxirgi 30 kun.\n\n'
+      + `Shu ${r.length} tadan: ${holatlar.join(', ')}.`
+      + (soni('sotildi') === 0 ? ' Qancha olishni keyin oʻzingiz yozasiz.' : '')
       + (ogoh ? ` ${ogoh} tasida ogohlantirish bor — kartada yozilgan.` : '')
       + (chiq ? ` Yana ${chiq} ta xavfli tovarni (yopiq brend, soxta sharh va h.k.) roʻyxatdan chiqardim.` : '')
-      + (baholanmadi ? ` ${baholanmadi} tasida ayrim xavf tekshiruvlari maʼlumot yetmagani uchun qilinmadi.` : '');
+      + (baholanmadi
+        ? ` ${baholanmadi === r.length ? 'Hammasida' : `${baholanmadi} tasida`} ayrim xavf tekshiruvlarini maʼlumot yetmagani uchun qila olmadim.`
+        : '');
   }
   if (harakat === 'qabul') {
     const n = natija as QabulQadamNatijasi;

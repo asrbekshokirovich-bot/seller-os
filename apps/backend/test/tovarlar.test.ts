@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { THRESHOLDS, tovarlar, type Flag, type TovarNomzodi } from '@selleros/shared';
+import { sotuvToifasi, THRESHOLDS, tovarlar, type Flag, type TovarNomzodi } from '@selleros/shared';
 
 function tovar(u: Partial<TovarNomzodi> = {}): TovarNomzodi {
   return {
@@ -146,5 +146,42 @@ describe('3-qadam — tovarlar', () => {
 
   it('boʻsh kirish — boʻsh natija, xato emas', () => {
     expect(tovarlar([], toza)).toEqual({ royxat: [], chiqarildi: [] });
+  });
+
+  describe('katalog: sotuv toifasi va tartib (nazoratchi, 2026-10-13)', () => {
+    it('toifa — karta va xabar uchun bitta', () => {
+      expect(sotuvToifasi(tovar({ soldUnits30d: 53 }))).toBe('sotildi');
+      // Qoldiq 0 — "sotilmadi" emas, "tugagan": sotib boʻlmaydi.
+      expect(sotuvToifasi(tovar({ soldUnits30d: 0, qoldiq: 0 }))).toBe('tugagan');
+      expect(sotuvToifasi(tovar({ soldUnits30d: 0, qoldiq: 1 }))).toBe('sotilmadi');
+      expect(sotuvToifasi(tovar({ soldUnits30d: 2296, sotuvManbasi: 'taxmin', qoldiq: 5 }))).toBe('olchanmagan');
+      expect(sotuvToifasi(tovar({ soldUnits30d: null, sotuvManbasi: null, qoldiq: null }))).toBe('olchanmagan');
+      // Oʻlchab sotilgan boʻlsa, hozirgi qoldiq 0 boʻlsa ham — sotildi.
+      expect(sotuvToifasi(tovar({ soldUnits30d: 12, qoldiq: 0 }))).toBe('sotildi');
+    });
+
+    it('sotilganlar tepada (koʻpi oldin), tugaganlar eng pastda', () => {
+      const r = tovarlar([
+        tovar({ productId: 1, soldUnits30d: 0, qoldiq: 0, sharhSoni: 370 }),
+        tovar({ productId: 2, soldUnits30d: 3 }),
+        tovar({ productId: 3, soldUnits30d: 0, qoldiq: 1 }),
+        tovar({ productId: 4, soldUnits30d: null, sotuvManbasi: null, sharhSoni: 5 }),
+        tovar({ productId: 5, soldUnits30d: 53 }),
+        tovar({ productId: 6, soldUnits30d: null, sotuvManbasi: null, sharhSoni: 50 }),
+      ], toza);
+      expect(r.royxat.map((t) => t.nomzod.productId)).toEqual([5, 2, 6, 4, 3, 1]);
+    });
+
+    it('"sharh juda kam" bayrogʻi borlari — toza sotilganlardan keyin', () => {
+      // TUZOQLAR.md §4: "roʻyxatda pastga tushadi". 800 000 dona "sotuv"
+      // (qoldiq olib qoʻyilgan) katalog tepasida turmasin.
+      const shubhali: Flag = { kind: 'fake_sales', severity: 'warn', reason: 'sharh juda kam', evidence: { nisbat: 0 } };
+      const r = tovarlar([
+        tovar({ productId: 1, soldUnits30d: 800_000 }),
+        tovar({ productId: 2, soldUnits30d: 53 }),
+        tovar({ productId: 3, soldUnits30d: null, sotuvManbasi: null }),
+      ], (t) => ({ bayroqlar: t.productId === 1 ? [shubhali] : [], baholanmadi: [] }));
+      expect(r.royxat.map((t) => t.nomzod.productId)).toEqual([2, 1, 3]);
+    });
   });
 });
