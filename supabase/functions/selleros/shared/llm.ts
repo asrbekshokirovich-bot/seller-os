@@ -179,7 +179,7 @@ async function gemini(
     if (!chiqdi) console.warn(`llm ${belgi}: boʻsh javob (${j.candidates?.[0]?.finishReason ?? 'nomzod yoʻq'})`);
     return chiqdi || null;
   } catch (e) {
-    console.warn(`llm ${belgi}: ${(e as Error)?.name ?? 'xato'}`);
+    console.warn(`llm ${belgi} (${model}): ${(e as Error)?.name ?? 'xato'}`);
     return null;
   } finally {
     clearTimeout(t);
@@ -218,8 +218,9 @@ export async function erkinJavobBer(
     k.tuzat ? `OLDINGI JAVOBING QAYTARILDI: ${k.tuzat} Shusiz qayta yoz.` : null,
     `ODAM YOZDI: ${k.xabar}`,
   ].filter(Boolean).join('\n');
-  // Bilim va holat bilan javob uzunroq oʻylanadi — chegara 8 emas, 14 soniya.
-  return gemini({ ...s, vaqtMs: s.vaqtMs ?? 14_000 }, ERKIN_KORSATMA, matn, 'erkin', 'low');
+  // Bilim va holat bilan batafsil javob uzunroq oʻylanadi — chegara 25 soniya. 14 s da bepul
+  // darajadagi `gemini-3.8-flash` ikki marta javobga ulgurmadi (jonli jurnal, 2026-10-14: AbortError).
+  return gemini({ ...s, vaqtMs: s.vaqtMs ?? 25_000 }, ERKIN_KORSATMA, matn, 'erkin', 'low');
 }
 
 /**
@@ -236,7 +237,7 @@ export async function kartochkaYozBer(
     `1688 TAKLIFI NOMI (xitoycha): ${k.xitoy ?? 'yoʻq'}`,
     k.tuzat ? `OLDINGI MATNING QAYTARILDI: ${k.tuzat}. Shularsiz qayta yoz.` : null,
   ].filter(Boolean).join('\n');
-  const javob = await gemini({ ...s, vaqtMs: s.vaqtMs ?? 20_000 }, KARTOCHKA_KORSATMA, matn, 'kartochka', 'low', true);
+  const javob = await gemini({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, KARTOCHKA_KORSATMA, matn, 'kartochka', 'low', true);
   if (!javob) return null;
   try {
     const j = JSON.parse(javob.replace(/^```(?:json)?\s*|\s*```$/gu, '')) as Record<string, unknown>;
