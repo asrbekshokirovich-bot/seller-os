@@ -39,6 +39,7 @@
  */
 
 import type { KartochkaMatni } from './kartochka-matn.js';
+import type { Yozuv } from './yozuv.js';
 
 export interface LlmSozlama {
   kalit: string | null | undefined;
@@ -263,6 +264,8 @@ export async function erkinJavobBer(
     tarix?: string;
     /** Oldingi urinish darvozadan oʻtmagan boʻlsa — nima uchun (qayta yozish uchun). */
     tuzat?: string | null;
+    /** Mijoz yozgan til/yozuv: rus yoki kirill boʻlsa — aniq aytiladi (TAYYOR JAVOB oʻzbekcha boʻlsa ham). */
+    til?: Yozuv;
   },
 ): Promise<string | null> {
   const matn = [
@@ -275,6 +278,9 @@ export async function erkinJavobBer(
     k.sabab ? `ODAMNING JAVOBI QABUL QILINMADI: ${k.sabab}` : null,
     k.tayyor ? `TAYYOR JAVOB (maʼnosi va raqamlarini saqlab, oʻz soʻzing bilan batafsil ayt): ${k.tayyor}` : null,
     k.tuzat ? `OLDINGI JAVOBING QAYTARILDI: ${k.tuzat} Shusiz qayta yoz.` : null,
+    // Jonli oʻlchov (2026-10-14): ruscha savolga, TAYYOR JAVOB oʻzbekcha boʻlgani uchun, oʻzbekcha javob keldi.
+    k.til === 'ru' ? 'JAVOB TILI: rus tili. Butun javobni faqat rus tilida yoz — FAKTLAR va TAYYOR JAVOB oʻzbekcha boʻlsa ham, maʼnosini rus tilida ayt.' : null,
+    k.til === 'uz-kirill' ? 'JAVOB TILI: oʻzbek tili, KIRILL yozuvida. Butun javobni kirill harflarida yoz.' : null,
     `ODAM YOZDI: ${k.xabar}`,
   ].filter(Boolean).join('\n');
   // Bilim va holat bilan batafsil javob uzunroq oʻylanadi — chegara 25 soniya. 14 s da bepul

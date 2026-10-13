@@ -37,7 +37,7 @@ import { bilimJavobi, PUL_GAPI } from './bilim-javob.js';
 import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.js';
 import type { ProfilJavoblari } from './profil.js';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.js';
-import { ruschami, tushunishUchun } from './yozuv.js';
+import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.js';
 import { malumotNiyati, type MalumotNiyati } from './erkin-malumot.js';
 
 export interface SuhbatXabari {
@@ -152,6 +152,8 @@ export interface ErkinSorov {
   tarix?: string;
   /** Oldingi javob darvozadan oʻtmadi — nima uchun (bir marta qayta yoziladi). */
   tuzat?: string | null;
+  /** Mijoz yozgan til/yozuv — javob shunda (`yozuv.ts`). */
+  til?: Yozuv;
 }
 
 export interface SuhbatJavobi {
@@ -712,20 +714,24 @@ async function erkinJavob(
   const tarix = suhbatTarixi(xabarlar, h);
   // Bilim — asos va FAQAT savolga tegishli Uzum faktlari (`yordamchiBilimi`), hammasi emas.
   const bilim = yordamchiBilimi(t, d.tarifCheklovi);
-  // LLM ga asl matn ketadi — mijoz yozuvida (lotin, kirill, rus) javob bersin.
-  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: baza?.matn ?? null, bilim, holat, tarix };
+  // LLM ga asl matn ketadi — mijoz yozuvida (lotin, kirill, rus) javob bersin; til aniq aytiladi.
+  const til = yozuvi(matn);
+  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: baza?.matn ?? null, bilim, holat, tarix, til };
   // Raqam faqat savol, tugmalar, sabab, bilim, bazaviy javob, mijoz holati, suhbat va obunachining
   // oʻz matnidan; kafolat — taqiq.
   const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, baza?.matn ?? '', holat, tarix], sonlar: [] };
   let tuzat: string | null = null;
   for (let urinish = 0; urinish < 2; urinish++) {
-    const taklif = await d.erkinLlm({ ...sorov, tuzat }).catch(() => null);
+    const taklif: string | null = await d.erkinLlm({ ...sorov, tuzat }).catch(() => null);
     if (!taklif) return shablon;
     const tk = tekshir(taklif, manba);
-    if (tk.ok) return { matn: taklif, manba: 'ai' };
+    // Rus yoki kirill savolga lotincha javob — mijoz tilida emas (jonli oʻlchov, 2026-10-14).
+    const tilMos: boolean = til === 'uz' || kirillUlushi(taklif) >= 0.5;
+    if (tk.ok && tilMos) return { matn: taklif, manba: 'ai' };
     tuzat = [
       tk.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
       tk.taqiq.length ? `taqiqlangan gap: ${tk.taqiq.join(', ')}.` : null,
+      tilMos ? null : til === 'ru' ? 'javob rus tilida emas — butun javobni rus tilida yoz.' : 'javob kirill yozuvida emas — butun javobni oʻzbek kirill yozuvida yoz.',
     ].filter(Boolean).join(' ');
   }
   return shablon;

@@ -472,8 +472,28 @@ describe('bazadagi raqam bilan javob va ruscha savol (jonli oʻlchov, 2026-10-14
       return 'Для продажи на Uzum нужны свидетельство ИП и паспорт. Сколько денег вы готовы вложить?';
     }), 'tok', { savolId: 'byudjet', matn: 'Какие документы нужны для продажи на Uzum?' });
     expect(kelgan!.tayyor).toMatch(/Hujjatlar: YaTT/);
+    expect(kelgan!.til).toBe('ru');
     expect(r.xabarlar[1]!.matn).toMatch(/^Для продажи на Uzum/);
     expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
+  });
+
+  it('ruscha savolga LLM oʻzbekcha yozsa — sababi bilan qayta soʻraladi (jonli oʻlchov, 2026-10-14)', async () => {
+    const kelganlar: ErkinSorov[] = [];
+    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => {
+      kelganlar.push(k);
+      return kelganlar.length === 1
+        ? 'Uzumda savdo qilish uchun YATT guvohnomasi va pasport kerak boʻladi.'
+        : 'Для продажи на Uzum нужны свидетельство ИП и паспорт.';
+    }), 'tok', { savolId: 'byudjet', matn: 'Какие документы нужны для продажи на Uzum?' });
+    expect(kelganlar).toHaveLength(2);
+    expect(kelganlar[1]!.tuzat).toMatch(/javob rus tilida emas/);
+    expect(r.xabarlar[1]!.matn).toMatch(/^Для продажи на Uzum/);
+    // Oʻzbek lotin savolga — til tekshirilmaydi (lotin javob — toʻgʻri).
+    const lotin: ErkinSorov[] = [];
+    await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => { lotin.push(k); return 'Buni keyingi qadamda koʻrsataman.'; }),
+      'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
+    expect(lotin).toHaveLength(1);
+    expect(lotin[0]!.til).toBe('uz');
   });
 
   it('ruscha savol, ruscha tayyor javobi bor — LLM chaqirilmaydi (bepul limit)', async () => {
