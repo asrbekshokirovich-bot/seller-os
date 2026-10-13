@@ -51,6 +51,8 @@ const MAVZULAR: readonly Mavzu[] = [
     javob: () => ['Ha: masalan «5000 $» deb yozing — Markaziy bank kursi bilan soʻmga oʻgiraman.'] },
   { savol: 'byudjet', re: /yetadimi|yetarlimi|yetarli|kam emasmi|хватит/u,
     javob: () => ['Qancha kerakligi yoʻnalish va tovarga bogʻliq: keyingi qadamda har yoʻnalish uchun «Pulingiz yetadi» yoki «yetmasligi mumkin» deb koʻrsataman.', MASLAHAT[0]!] },
+  { savol: 'qiziqish', re: /qaysi .*(yaxshi|tanla)|qaysi biri|maslahat|nima sotsam/u,
+    javob: () => [MASLAHAT[2]!, 'Bilmasangiz «Bilmayman» ni bosing — keyingi qadamda hamma sohadan eng yuqori baholi yoʻnalishlarni koʻrsataman, raqamlari bilan.'] },
   { savol: 'yonalish', re: /nega .*(sumka|krossovka|quloqchin|kiyim|boshqa)|men .*dedim|faqat .*(kerak|chiqar)/u,
     javob: () => ['Roʻyxatda siz tanlagan sohadan 4 ta va boshqa sohalardan eng yuqori baholi 2 ta yoʻnalish koʻrsatiladi — taqqoslash uchun. Faqat oʻz sohangiz kerak boʻlsa — pastga uning nomini yozing (masalan: kanstovar) yoki «Yana koʻrsatish» ni bosing.'] },
   { re: /qayerdan boshla|nimadan boshla|hech narsa(ni)? bilmayman|nima qilishim kerak|qanday boshla/u,
@@ -83,8 +85,11 @@ const MAVZULAR: readonly Mavzu[] = [
   { re: /taqiqlan|sotish mumkin emas|sotib bo'lmaydi|запрещ/u, javob: () => uzum('Kim sotishi', /^Sotish taqiqlangan/u, 1) },
   { re: /(^|[^\p{L}])(fbo|fbs|dbs)([^\p{L}]|$)|ishlash model/u, javob: () => uzum('Ishlash modellari', null, 3) },
   { re: /omborga|ombor qayerda|fulfilment|склад/u, javob: () => uzum('Tovarni Uzum omboriga', null, 2) },
-  { re: /qaysi(sini|birini)? tanla|qaysi biri yaxshi|qaysi soha yaxshi|nima sotsam|nimani sotsam|что лучше/u,
+  { re: /qaysi( biri| birini|sini| \p{L}+ni)? tanla|qaysi biri yaxshi|qaysi soha yaxshi|nima sotsam|nimani sotsam|что лучше/u,
     javob: () => ['Kartalardagi «imkoniyat bahosi»ga qarang: baho qancha yuqori — boshlash shuncha osonroq.', MASLAHAT[2]!, 'Yakuniy tanlov — sizniki.'] },
+  // "kanstovar Uzumda yuradimi?" — taxmin bilan "ha" yoki "yoʻq" deyilmaydi: raqam keyingi qadamda.
+  { re: /yuradimi|sotiladimi|talab bormi|xaridor bormi|o'tadimi|ketadimi/u,
+    javob: () => ['Buni taxmin bilan aytmayman: Yoʻnalish qadamida har yoʻnalish uchun xaridor qanchalik koʻpligi va raqobat raqam bilan chiqadi. Sohani tanlang — shu sohadagi eng yuqori baholilarini koʻrsataman.'] },
 ];
 
 /** Savolda tilga olingan, ekrandagi yoʻnalishlar ("ruchkalar bilan bloknotlarning farqi") — nomining birinchi soʻzi boʻyicha. */
