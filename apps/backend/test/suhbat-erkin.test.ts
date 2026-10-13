@@ -144,7 +144,7 @@ describe('erkin xabar', () => {
 
   it('LLM oʻzidan RAQAM qoʻshsa — shablon ketadi', async () => {
     const b = soxtaBaza(BYUDJET_HOLATI);
-    const r = await suhbatTurn(bogliq(b, async () => 'Koʻpchilik 25 mln bilan boshlaydi.'), 'tok', { savolId: 'byudjet', matn: 'qancha kerak?' });
+    const r = await suhbatTurn(bogliq(b, async () => 'Koʻpchilik 25 mln bilan boshlaydi.'), 'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
     expect(r.xabarlar[1]!.matn).not.toMatch(/25 mln/);
   });
 
@@ -299,7 +299,7 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
     expect(r.xabarlar[1]!.matn).toMatch(/to‘lov jadvali/);
     // Bazada yoʻq savol — LLM ga, faqat tegishli bilim bilan.
     let bilim = '';
-    await suhbatTurn(bogliq(b, async (k) => { chaqirildi++; bilim = k.bilim; return 'Buni keyingi qadamda koʻrsataman.'; }), 'tok', { savolId: 'byudjet', matn: 'qancha kerak?' });
+    await suhbatTurn(bogliq(b, async (k) => { chaqirildi++; bilim = k.bilim; return 'Buni keyingi qadamda koʻrsataman.'; }), 'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
     expect(chaqirildi).toBe(1);
     expect(bilim).not.toMatch(/Uzum haqida faktlar/);
   });
@@ -312,7 +312,7 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
       return kelganlar.length === 1
         ? 'Koʻpchilik 25 mln bilan boshlaydi.'
         : 'Boshlash uchun qancha kerakligini keyingi qadamda har yoʻnalish uchun koʻrsataman. Qancha pul bilan boshlaymiz?';
-    }), 'tok', { savolId: 'byudjet', matn: 'qancha kerak?' });
+    }), 'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
     expect(kelganlar).toHaveLength(2);
     expect(kelganlar[1]!.tuzat).toMatch(/25 mln/);
     expect(r.xabarlar[1]!.matn).toMatch(/^Boshlash uchun qancha kerakligini keyingi qadamda/);

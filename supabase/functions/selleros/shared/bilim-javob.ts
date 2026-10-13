@@ -54,7 +54,7 @@ export const PUL_GAPI = /\d|mln|million|ming|so'm|(^|[^\p{L}])som([^\p{L}]|$)|do
 const MAVZULAR: readonly Mavzu[] = [
   { savol: 'byudjet', re: /dollar|\$|долл|usd/u,
     javob: () => ['Ha: masalan «5000 $» deb yozing — Markaziy bank kursi bilan soʻmga oʻgiraman.'] },
-  { savol: 'byudjet', re: /yetadimi|yetarlimi|yetarli|kam emasmi|хватит/u,
+  { savol: 'byudjet', re: /yetadimi|yetarlimi|yetarli|kam emasmi|qancha kerak|qancha pul kerak|qanchadan boshla|сколько нужно|хватит/u,
     javob: () => ['Qancha kerakligi yoʻnalish va tovarga bogʻliq: keyingi qadamda har yoʻnalish uchun «Pulingiz yetadi» yoki «yetmasligi mumkin» deb koʻrsataman.', MASLAHAT[0]!] },
   { savol: 'qiziqish', re: /qaysi .*(yaxshi|tanla|oson|foydali|qulay)|qaysi biri|maslahat|nima sotsam/u,
     javob: () => [MASLAHAT[2]!, 'Bilmasangiz «Bilmayman» ni bosing — keyingi qadamda hamma sohadan eng yuqori baholi yoʻnalishlarni koʻrsataman, raqamlari bilan.'] },
