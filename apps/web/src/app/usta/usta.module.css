@@ -628,6 +628,80 @@
 .tegNeytral { background: var(--chip); color: var(--xira); }
 .tegYomon { background: var(--acc1a); color: var(--acc); }
 
+/*
+ * 2-qadam kartasi — oddiy tilda (nazoratchi, 2026-10-13): «imkoniyat bahosi»
+ * chizigʻi va belgili xulosalar (✓ yaxshi, ! eʼtibor, • oʻrtacha).
+ */
+.baho { margin-top: 14px; }
+
+.bahoQator {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--xira);
+}
+
+.bahoQator b {
+  font-size: 14.5px;
+  color: var(--matn);
+  white-space: nowrap;
+}
+
+.bahoChiziq {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  overflow: hidden;
+}
+
+.bahoChiziq i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--acc);
+}
+
+.xulosalar {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.xulosaQator {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--xira);
+}
+
+.xulosaQator b { color: var(--matn); font-weight: 600; }
+
+.xulosaIkon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--xira);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.xulosaIkonYaxshi { background: var(--okBg); color: var(--ok); }
+.xulosaIkonOgoh { background: var(--ogohBg); color: var(--ogoh); }
+
 .statlar {
   margin-top: 18px;
   display: grid;

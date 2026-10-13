@@ -715,7 +715,8 @@ function XabarPufagi({ x, tr, katalog, xitoy, ilova }: {
 
 interface YonalishQatori {
   categoryId: number; name: string;
-  ball: { value: number | null };
+  /** `breakdown` — qism ballari (talab, raqobat, kirish, mavsum…): kartadagi oddiy xulosalar shundan. */
+  ball: { value: number | null; breakdown?: Array<{ part: string; score: number | null; used: boolean }> };
   yetadi: boolean | null;
   optimalKirishSom: number | null;
   dalil: { talabOlchovi: number | null; sotuvchiSoni: number | null; top3Ulush: number | null };
@@ -802,31 +803,99 @@ function KodKartasi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: Kat
 
 const raqam = (q: number | null | undefined) => (q === null || q === undefined ? '—' : son(q));
 
+/** Imkoniyat bahosi soʻzda (100 ballik): 70 dan — yaxshi, 50 dan — oʻrtacha. */
+function bahoSozi(ball: number, tr: Tr): string {
+  return ball >= 70 ? tr('yaxshi', 'хорошо') : ball >= 50 ? tr('oʻrtacha', 'средне') : tr('past', 'низко');
+}
+
+/** Karta xulosasi: belgi (✓ yaxshi, ! eʼtibor, • oʻrtacha), qisqa hukm va oddiy izoh. */
+function Xulosa({ tur, hukm, izoh }: { tur: 'yaxshi' | 'ogoh' | 'oddiy'; hukm: string; izoh: string }) {
+  return (
+    <li className={u.xulosaQator}>
+      <span className={`${u.xulosaIkon} ${tur === 'yaxshi' ? u.xulosaIkonYaxshi : tur === 'ogoh' ? u.xulosaIkonOgoh : ''}`} aria-hidden="true">
+        {tur === 'yaxshi' ? <Ikon nom="belgi" o={14} q={3} /> : tur === 'ogoh' ? '!' : '•'}
+      </span>
+      <span><b>{hukm}</b> — {izoh}</span>
+    </li>
+  );
+}
+
+/**
+ * 2-qadam: yoʻnalishlar — birinchi marta kirgan odam ham tushunadigan qilib
+ * (nazoratchi, 2026-10-13: "ball, ulush, byudjet: — nima? — tushunmay chiqib
+ * ketmasin"). Har kartada: oʻrin, «imkoniyat bahosi» (100 ballik, chiziq va
+ * soʻz bilan) va oddiy xulosalar — xaridor (talab qismi, boshqa yoʻnalishlarga
+ * nisbatan), bozor ochiqmi (eng katta 3 doʻkon ulushi va sotuvchilar soni),
+ * maxsus ruxsat (kirish qismi), mavsum, pul. Nomaʼlum narsa "—" bilan emas —
+ * umuman chiqmaydi; maʼlum boʻlsa — aytiladi.
+ */
 function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
   royxat: YonalishQatori[]; eskirgan: boolean; baholanmadi: number;
   bolish: { sabab: string } | null; tr: Tr;
 }) {
   return (
     <div className={u.kartalar}>
-      {eskirgan && <p className={u.kichikIzoh}>{tr('Kesh 24 soatdan eski — raqamlar kechagi.', 'Кэш старше 24 часов — цифры вчерашние.')}</p>}
-      {royxat.map((y) => (
-        <div key={y.categoryId} className={u.karta}>
-          <div className={u.kartaBoshi}>
-            <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{y.name}</div></div>
-            <span className={`${u.teg} ${y.yetadi === true ? u.tegYaxshi : y.yetadi === false ? u.tegYomon : u.tegNeytral}`}>
-              {y.yetadi === true ? tr('byudjet yetadi', 'бюджета хватит') : y.yetadi === false ? tr('byudjet yetmaydi', 'бюджета не хватит') : tr('byudjet: —', 'бюджет: —')}
-            </span>
+      {eskirgan && <p className={u.kichikIzoh}>{tr('Raqamlar kechagi — bugun hali yangilanmagan.', 'Цифры вчерашние — сегодня ещё не обновлены.')}</p>}
+      {royxat.map((y, i) => {
+        const ball = y.ball.value;
+        const qism = (p: string) => y.ball.breakdown?.find((b) => b.part === p && b.used)?.score ?? null;
+        const talab = qism('talab');
+        const kirish = qism('kirish');
+        const mavsum = qism('mavsum');
+        const top3 = y.dalil.top3Ulush;
+        const sotuvchi = y.dalil.sotuvchiSoni;
+        const sotuvchiMatn = sotuvchi !== null ? tr(`${raqam(sotuvchi)} ta sotuvchi`, `${raqam(sotuvchi)} продавцов`) : null;
+        return (
+          <div key={y.categoryId} className={u.karta}>
+            <div className={u.kartaBoshi}>
+              <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{y.name}</div></div>
+              <span className={`${u.teg} ${i === 0 ? u.tegYaxshi : u.tegNeytral}`}>
+                {i === 0 ? tr('Eng yaxshi tanlov', 'Лучший выбор') : tr(`${i + 1}-oʻrin`, `${i + 1}-е место`)}
+              </span>
+            </div>
+            {ball !== null && (
+              <div className={u.baho}>
+                <div className={u.bahoQator}>
+                  <span>{tr('Imkoniyat bahosi', 'Оценка возможности')}</span>
+                  <b>{Math.round(ball)} / 100 · {bahoSozi(ball, tr)}</b>
+                </div>
+                <div className={u.bahoChiziq} aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, ball))}%` }} /></div>
+              </div>
+            )}
+            <ul className={u.xulosalar}>
+              {talab !== null && (talab >= 67
+                ? <Xulosa tur="yaxshi" hukm={tr('Xaridor koʻp', 'Покупателей много')} izoh={tr('boshqa yoʻnalishlarga nisbatan xarid koʻp.', 'покупают больше, чем в других направлениях.')} />
+                : talab >= 34
+                  ? <Xulosa tur="oddiy" hukm={tr('Xaridor oʻrtacha', 'Покупателей средне')} izoh={tr('xarid boshqa yoʻnalishlar oʻrtasida.', 'спрос на среднем уровне среди направлений.')} />
+                  : <Xulosa tur="ogoh" hukm={tr('Xaridor kam', 'Покупателей мало')} izoh={tr('boshqa yoʻnalishlarga nisbatan xarid kam.', 'покупают меньше, чем в других направлениях.')} />)}
+              {top3 !== null && (top3 < 30
+                ? <Xulosa tur="yaxshi" hukm={tr('Bozor ochiq', 'Рынок открыт')}
+                  izoh={tr(`${sotuvchiMatn ? `${sotuvchiMatn} bor, lekin ` : ''}bozorni hech kim egallamagan: eng katta 3 doʻkon savdoning atigi ${top3}% ini oladi. Yangi sotuvchiga joy bor.`,
+                    `${sotuvchiMatn ? `${sotuvchiMatn}, но ` : ''}рынок никто не захватил: у трёх крупнейших магазинов всего ${top3}% продаж. Новичку есть место.`)} />
+                : top3 < 60
+                  ? <Xulosa tur="oddiy" hukm={tr('Yirik doʻkonlar bor', 'Есть крупные магазины')}
+                    izoh={tr(`eng katta 3 doʻkon savdoning ${top3}% ini oladi${sotuvchiMatn ? ` (jami ${sotuvchiMatn})` : ''}.`,
+                      `у трёх крупнейших магазинов ${top3}% продаж${sotuvchiMatn ? ` (всего ${sotuvchiMatn})` : ''}.`)} />
+                  : <Xulosa tur="ogoh" hukm={tr('Bozor bir necha doʻkon qoʻlida', 'Рынок в руках нескольких магазинов')}
+                    izoh={tr(`eng katta 3 doʻkon savdoning ${top3}% ini oladi — yangi sotuvchiga qiyin.`, `у трёх крупнейших магазинов ${top3}% продаж — новичку трудно.`)} />)}
+              {kirish !== null && kirish < 90 && (
+                <Xulosa tur="ogoh" hukm={tr('Ruxsat kerak boʻlishi mumkin', 'Может понадобиться разрешение')}
+                  izoh={tr('sertifikat yoki markirovka talab qilinadi — vaqt va xarajat qoʻshiladi.', 'нужен сертификат или маркировка — добавятся время и расходы.')} />
+              )}
+              {mavsum !== null && mavsum < 70 && (
+                <Xulosa tur="ogoh" hukm={tr('Hozir mavsumi emas', 'Сейчас не сезон')} izoh={tr('bu oylarda xarid odatdagidan kam.', 'в эти месяцы покупают меньше обычного.')} />
+              )}
+              {y.yetadi !== null && (y.yetadi
+                ? <Xulosa tur="yaxshi" hukm={tr('Pulingiz yetadi', 'Денег хватит')}
+                  izoh={y.optimalKirishSom !== null ? tr(`boshlash uchun taxminan ${raqam(y.optimalKirishSom)} soʻm kerak.`, `для старта нужно примерно ${raqam(y.optimalKirishSom)} сум.`) : tr('tavsiya etilgan boshlash summasiga yetadi.', 'хватает на рекомендуемый старт.')} />
+                : <Xulosa tur="ogoh" hukm={tr('Pulingiz yetmasligi mumkin', 'Денег может не хватить')}
+                  izoh={y.optimalKirishSom !== null ? tr(`boshlash uchun taxminan ${raqam(y.optimalKirishSom)} soʻm kerak.`, `для старта нужно примерно ${raqam(y.optimalKirishSom)} сум.`) : tr('tavsiya etilgan boshlash summasidan kam.', 'меньше рекомендуемой суммы для старта.')} />)}
+            </ul>
           </div>
-          <div className={u.statlar}>
-            <Stat nom={tr('Ball', 'Балл')} q={y.ball.value === null ? '—' : String(y.ball.value)} />
-            <Stat nom={tr('Sotuvchilar', 'Продавцы')} q={raqam(y.dalil.sotuvchiSoni)} />
-            <Stat nom={tr('Top-3 ulushi', 'Доля топ-3')} q={y.dalil.top3Ulush === null ? '—' : `${y.dalil.top3Ulush}%`} />
-            <Stat nom={tr('Optimal kirish', 'Оптимальный вход')} q={y.optimalKirishSom === null ? '—' : `${raqam(y.optimalKirishSom)} ${tr('soʻm', 'сум')}`} />
-          </div>
-        </div>
-      ))}
+        );
+      })}
       {bolish && <p className={u.kichikIzoh}>{bolish.sabab}</p>}
-      {baholanmadi > 0 && <p className={u.kichikIzoh}>{tr(`${baholanmadi} ta nomzod baholanmadi — maʼlumot yetmadi.`, `${baholanmadi} кандидатов не оценены — не хватило данных.`)}</p>}
+      {baholanmadi > 0 && <p className={u.kichikIzoh}>{tr(`Yana ${baholanmadi} ta yoʻnalishni baholab boʻlmadi — maʼlumot yetmadi.`, `Ещё ${baholanmadi} направлений не удалось оценить — не хватило данных.`)}</p>}
     </div>
   );
 }
