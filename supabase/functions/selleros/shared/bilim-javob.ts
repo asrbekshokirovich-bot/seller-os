@@ -39,11 +39,16 @@ function uzum(bolim: string, filtr: RegExp | null = null, nechta = 2): string[] 
 }
 
 interface Mavzu {
-  /** Faqat shu savolda (masalan, byudjet) — boʻlmasa hamma joyda. */
-  savol?: string;
+  /** Faqat shu savol(lar)da (masalan, byudjet) — boʻlmasa hamma joyda. */
+  savol?: string | readonly string[];
   re: RegExp;
+  /** Matnda shu boʻlsa — bu mavzu emas (masalan, pul haqidagi "qaysi biri"). */
+  emas?: RegExp;
   javob: () => string[];
 }
+
+/** Pul haqidagi gap: summa, mln, soʻm, dollar — byudjet maslahati (`suhbat.ts`) uchun. */
+export const PUL_GAPI = /\d|mln|million|ming|so'm|(^|[^\p{L}])som([^\p{L}]|$)|dollar|\$|pul|summa|byudjet|млн|сум|долл|деньг/u;
 
 /** Tartib muhim: aniqrogʻi oldin. */
 const MAVZULAR: readonly Mavzu[] = [
@@ -51,8 +56,12 @@ const MAVZULAR: readonly Mavzu[] = [
     javob: () => ['Ha: masalan «5000 $» deb yozing — Markaziy bank kursi bilan soʻmga oʻgiraman.'] },
   { savol: 'byudjet', re: /yetadimi|yetarlimi|yetarli|kam emasmi|хватит/u,
     javob: () => ['Qancha kerakligi yoʻnalish va tovarga bogʻliq: keyingi qadamda har yoʻnalish uchun «Pulingiz yetadi» yoki «yetmasligi mumkin» deb koʻrsataman.', MASLAHAT[0]!] },
-  { savol: 'qiziqish', re: /qaysi .*(yaxshi|tanla)|qaysi biri|maslahat|nima sotsam/u,
+  { savol: 'qiziqish', re: /qaysi .*(yaxshi|tanla|oson|foydali|qulay)|qaysi biri|maslahat|nima sotsam/u,
     javob: () => [MASLAHAT[2]!, 'Bilmasangiz «Bilmayman» ni bosing — keyingi qadamda hamma sohadan eng yuqori baholi yoʻnalishlarni koʻrsataman, raqamlari bilan.'] },
+  // Kartalar hali yoʻq qadamlarda soha/tovar solishtirish ("kanstovar bilan kiyimdan qaysi biri
+  // osonroq?") — pul haqidagi "qaysi biri" (80 mln yoki 100 mln) bu yerga tushmaydi.
+  { savol: ['uzum_dokoni', 'byudjet'], re: /qaysi .*(yaxshi|tanla|oson|foydali|qulay)|qaysi biri|nima sotsam/u, emas: PUL_GAPI,
+    javob: () => [MASLAHAT[2]!, 'Qaysi biri osonroq ekanini raqam bilan Yoʻnalish qadamida koʻrsataman: har yoʻnalishda xaridor qanchalik koʻpligi va raqobat chiqadi.'] },
   { savol: 'yonalish', re: /nega .*(sumka|krossovka|quloqchin|kiyim|boshqa)|men .*dedim|faqat .*(kerak|chiqar)/u,
     javob: () => ['Roʻyxatda siz tanlagan sohadan 4 ta va boshqa sohalardan eng yuqori baholi 2 ta yoʻnalish koʻrsatiladi — taqqoslash uchun. Faqat oʻz sohangiz kerak boʻlsa — pastga uning nomini yozing (masalan: kanstovar) yoki «Yana koʻrsatish» ni bosing.'] },
   { re: /qayerdan boshla|nimadan boshla|hech narsa(ni)? bilmayman|nima qilishim kerak|qanday boshla/u,
@@ -112,9 +121,14 @@ function tilgaOlingan(t: string, h: YolHolati | null): Yonalish[] {
 export function bilimJavobi(matn: string, savolId: string, h: YolHolati | null = null): string | null {
   const t = norm(matn);
   if (!t) return null;
-  const birinchi = MAVZULAR.filter((m) => !m.savol || m.savol === savolId).find((m) => m.re.test(t));
+  const birinchi = MAVZULAR
+    .filter((m) => !m.savol || (typeof m.savol === 'string' ? m.savol === savolId : m.savol.includes(savolId)))
+    .find((m) => m.re.test(t) && !m.emas?.test(t));
   // Savolga xos (byudjet, yoʻnalish) mavzu — birinchi; keyin tilga olingan kartalar; keyin umumiy mavzular.
   if (birinchi?.savol) return birinchi.javob().filter(Boolean).join(' ');
+  // Byudjet savolida summa aytilgan ("80 mln yoki 100 mln, qaysi biri yaxshi?") — bu
+  // umumiy mavzu emas: byudjet maslahati javob beradi (`suhbat.ts`), summalar tugma boʻladi.
+  if (savolId === 'byudjet' && /\d|mln|million|ming|so'm|dollar|\$|млн|сум|долл/u.test(t)) return null;
   const kartalar = tilgaOlingan(t, h);
   if (kartalar.length) {
     return `Kartalardagi maʼlumot: ${kartalar.map((y) => yonalishSatri(y)).join('; ')}. `

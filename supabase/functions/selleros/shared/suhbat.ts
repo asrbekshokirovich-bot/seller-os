@@ -33,7 +33,7 @@ import { natijaSonlari, tekshir } from './tekshiruv.ts';
 import { minglik } from './fakt.ts';
 import { tayyorJavob } from './erkin.ts';
 import { YORDAMCHI_BILIMI } from './bilim.ts';
-import { bilimJavobi } from './bilim-javob.ts';
+import { bilimJavobi, PUL_GAPI } from './bilim-javob.ts';
 import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.ts';
 import type { ProfilJavoblari } from './profil.ts';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.ts';
@@ -558,7 +558,9 @@ function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null
   if (bilim) return [salom ? 'Vaalaykum assalom!' : null, bilim, `Hozirgi savol: «${savol}»`].filter(Boolean).join(' ');
   // Byudjet savolida maslahat soʻradi ("80 mlnmi, 100 mlnmi?") — LLM boʻlmasa
   // ham umumiy maslahat (`bilim.ts`, raqamsiz); summalari tugma boʻlib chiqadi.
-  if (s.id === 'byudjet' && !sabab && !tayyor) {
+  // Faqat PUL haqidagi gapda: "kanstovar bilan kiyimdan qaysi biri osonroq?" ga pul maslahati
+  // chiqib ketardi (jonli sinov, 2026-10-13).
+  if (s.id === 'byudjet' && !sabab && !tayyor && PUL_GAPI.test(matn.toLowerCase().replace(/[ʻʼ‘’`]/gu, "'"))) {
     return ruscha
       ? [salom ? 'Здравствуйте!' : null,
         'Мой совет: не вкладывайте все деньги в первую партию — оставьте часть в запасе: пока товар приедет, продастся и '

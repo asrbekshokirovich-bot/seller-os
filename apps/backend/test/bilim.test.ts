@@ -84,6 +84,7 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
     ['qaysi tovarni tanlay?', 'tovarlar', /Yakuniy tanlov — sizniki/],
     ['kanstovar uzumda yuradimi?', 'qiziqish', /Buni taxmin bilan aytmayman/],
     ['qaysi soha yaxshi?', 'qiziqish', /«Bilmayman» ni bosing — keyingi qadamda hamma sohadan/],
+    ['kanstovar bilan kiyimdan qaysi biri osonroq?', 'byudjet', /raqam bilan Yoʻnalish qadamida koʻrsataman/],
   ])('«%s» (%s)', (matn, savolId, kutilgan) => {
     expect(bilimJavobi(matn, savolId, H)).toMatch(kutilgan);
   });
@@ -94,7 +95,8 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
     expect(j).toMatch(/«Bloknotlar»/);
   });
 
-  it('mos mavzu yoʻq — null (toʻqilmaydi)', () => {
+  it('mos mavzu yoʻq — null (toʻqilmaydi); pul haqidagi "qaysi biri" soha maslahatiga tushmaydi', () => {
     expect(bilimJavobi('ertaga ob-havo qanday', 'yonalish', H)).toBeNull();
+    expect(bilimJavobi('80 mln yoki 100 mln, qaysi biri yaxshi?', 'byudjet', H)).toBeNull();
   });
 });
