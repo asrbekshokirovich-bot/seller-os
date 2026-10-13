@@ -27,12 +27,15 @@
  */
 
 import { type AloqaJavoblari, type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat, JIM_HARAKATLAR,
-  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, uzumDokoniBormi, yiqilganNatija } from './ssenariy.js';
+  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, usdKursi, uzumDokoniBormi, yiqilganNatija,
+  yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
-import { ERKIN_BILIM, tayyorJavob } from './erkin.js';
+import { tayyorJavob } from './erkin.js';
+import { YORDAMCHI_BILIMI } from './bilim.js';
+import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.js';
 import type { ProfilJavoblari } from './profil.js';
-import { byudjetMatni, telefonKorinishi } from './tanishuv.js';
+import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.js';
 
 export interface SuhbatXabari {
   rol: 'obunachi' | 'menejer' | 'kod';
@@ -45,6 +48,12 @@ export interface SuhbatBogliqliklari {
   rpc: <T>(nom: string, arg: unknown) => Promise<T | null>;
   kod: {
     yonalishlar: (profil: Partial<ProfilJavoblari>, holat: YolHolati) => Promise<unknown>;
+    /**
+     * 2-qadam: istalgan tovar yoki yoʻnalish nomi boʻyicha qidiruv (2026-10-13).
+     * Natijada `soz` va `n` HAR DOIM boʻlsin — `keyingi()` shu bilan qidiruv
+     * bajarilganini biladi (aks holda harakat takrorlanaverardi).
+     */
+    yonalishQidiruv: (soz: string, n: number, profil: Partial<ProfilJavoblari>, holat: YolHolati) => Promise<unknown>;
     tovarlar: (categoryId: number, holat: YolHolati) => Promise<unknown>;
     tannarx: (holat: YolHolati) => Promise<unknown>;
     /** 5-qadam: 1688 rasm-qidiruvi (provayder, kesh, limit, kurs). */
@@ -103,8 +112,14 @@ export interface ErkinSorov {
   sabab: string | null;
   /** Koʻp soʻraladigan savolga koddagi tayyor javob (`erkin.ts`), boʻlmasa `null`. */
   tayyor: string | null;
-  /** ZumSavdo haqida faktlar — LLM faqat shulardan foydalanadi. */
+  /** ZumSavdo va Uzum haqida faktlar, lugʻat, umumiy maslahatlar (`bilim.ts`). */
   bilim: string;
+  /** Mijoz holati: qadam, pul, qiziqish, ekrandagi kartalar — shaxsiy maʼlumotsiz (`yordamchi.ts`). */
+  holat?: string;
+  /** Oxirgi xabarlar — shaxsiy maʼlumotsiz. */
+  tarix?: string;
+  /** Oldingi javob darvozadan oʻtmadi — nima uchun (bir marta qayta yoziladi). */
+  tuzat?: string | null;
 }
 
 export interface SuhbatJavobi {
@@ -223,7 +238,7 @@ export async function suhbatTurn(
     // yoʻl holati oʻzgarmaydi. Eskirgan savolId — avvalgidek navbat xatosi.
     const yozgan = kirish.javob === undefined && typeof kirish.matn === 'string' && kirish.matn.trim()
       ? kirish.matn.trim() : null;
-    const savolBerdi = yozgan !== null && savolmi(yozgan);
+    const savolBerdi = yozgan !== null && savolmi(yozgan, k0.savol.id);
     // Tanlov savolida variant nomini yozsa ("ha", "yoʻq") — oʻsha variant.
     // Son savolida ham tugma matnini yozsa ("60 kunlik") — oʻsha tugma: aks
     // holda "60 kunlik" 60 dona boʻlib ketardi (tugma — 90 dona). Faqat raqam
@@ -233,7 +248,7 @@ export async function suhbatTurn(
       ? variantniTop(k0.savol.variantlar, yozgan) : undefined;
     const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom);
     if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
-      return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null);
+      return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null, o.xabarlar ?? []);
     }
     if (q === null || q.xato) {
       return { xato: q?.xato ?? 'javob qabul qilinmadi', xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false };
@@ -343,6 +358,12 @@ export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Prom
   return { xabarlar: savol, keyingi: k, qadam: 1, yozildi: true };
 }
 
+/** 1-qadam qiziqishi (sohalar) — `null`: soʻralmagan yoki oʻtkazib yuborilgan. */
+function qiziqishlari(h: YolHolati): string[] | null {
+  const q = h.javoblar['qiziqish'];
+  return Array.isArray(q) ? q.map(String) : null;
+}
+
 async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati): Promise<unknown> {
   try {
     if (harakat === 'yonalishlar') {
@@ -350,7 +371,16 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
       return await d.kod.yonalishlar({
         budgetUzs: typeof b === 'number' ? b : null,
         hasUzumShop: uzumDokoniBormi(h.javoblar['uzum_dokoni']),
+        interest: qiziqishlari(h),
       }, h);
+    }
+    // «Yana koʻrsatish» — bazasiz: navbat birinchi hisobda tayyor.
+    if (harakat === 'yonalish_yana') return yonalishYanaNatija(h);
+    if (harakat === 'yonalish_qidiruv') {
+      const q = yonalishQidiruvi(h);
+      if (q === null) return { olchov_yoq: true, sabab: 'qidiruv soʻzi yoʻq', soz: '', n: 0 };
+      const b = h.javoblar['byudjet'];
+      return await d.kod.yonalishQidiruv(q.soz, q.n, { budgetUzs: typeof b === 'number' ? b : null, interest: qiziqishlari(h) }, h);
     }
     if (harakat === 'kurs') return await d.kod.kurs(h);
     if (harakat === 'tovarlar') return await d.kod.tovarlar(Number(h.javoblar['yonalish']), h);
@@ -401,11 +431,8 @@ async function odamlashtirTekshirib(d: SuhbatBogliqliklari, kodJumla: string, ya
 
 // ------------------------------------------------------------ erkin xabar
 
-/**
- * Shaxsiy maʼlumot soʻraladigan savollar (nazoratchi, 2026-10-12): ular va ularga
- * yozilgan matn LLM ga (Gemini) YUBORILMAYDI — maxfiylik sahifasi shuni aytadi.
- */
-const SHAXSIY_SAVOLLAR: ReadonlySet<string> = new Set(['ism', 'telefon']);
+// Shaxsiy maʼlumot soʻraladigan savollar (ism, telefon) — `yordamchi.ts` dagi
+// `SHAXSIY_SAVOLLAR`: ular va ularga yozilgan matn LLM ga YUBORILMAYDI.
 
 type JoriySavol = Extract<Keyingi, { tur: 'savol' }>;
 
@@ -413,13 +440,29 @@ type JoriySavol = Extract<Keyingi, { tur: 'savol' }>;
 const ERKIN_MAX = 500;
 
 /**
- * Savolmi: "?" bilan tugaydi yoki soʻroq soʻzidan boshlanadi ("bu nima?",
- * "qanday ishlaydi", "сколько стоит"). Matn turidagi savolda (doʻkon nomi)
- * shunday matn javob sifatida yozilib ketmasin.
+ * Savolmi — javob emas, savol yoki maslahat soʻrovi.
+ *
+ * Ilgari faqat "?" bilan tugagan yoki soʻroq soʻzidan boshlangan gap savol
+ * edi. Nazoratchi sinovida (2026-10-13) "100 mln pulim bor birinchi 80 mln
+ * boshlasammikan yoki 100 mln bilan nima maslahat berasan" savol deb
+ * tanilmadi: chat gapdagi oxirgi summani olib "100 mln bilan boshlaymiz"
+ * dedi, maslahat soʻrovi javobsiz qoldi. Endi yana:
+ *   - "?" gapning istalgan joyida;
+ *   - maslahat va tushunmaslik iboralari (maslahat, qaysi biri, tushunmadim…);
+ *   - soʻroq qoʻshimchasi: -mikan/-mikin; undoshdan keyingi -mi ("kerakmi",
+ *     "bormi", "boshlasammi") va "-dimi" ("boʻladimi"). Egalik "-i" bilan
+ *     adashmasin: "ismi", "hajmi", "rasmi", "jami", "nomi" — savol emas.
+ *
+ * Ism va telefon savolida faqat eski qat'iy qoida: ism "…mi" bilan tugashi mumkin.
  */
-function savolmi(t: string): boolean {
-  if (/[?？]\s*$/u.test(t)) return true;
-  return /^(nima|nimaga|nega|qanday|qancha|qachon|qayer|qaysi|kim|что|как|почему|зачем|сколько|когда|где|какой|какая|какие)(\s|$)/iu.test(t);
+function savolmi(t: string, savolId: string | null = null): boolean {
+  const s = t.toLowerCase().replace(/[ʻʼ‘’`]/gu, "'");
+  if (/[?？]\s*$/u.test(s)) return true;
+  if (/^(nima|nimaga|nega|qanday|qancha|qachon|qayer\p{L}*|qaysi|kim|nechta|necha|что|как|почему|зачем|сколько|когда|где|какой|какая|какие)(\s|$)/iu.test(s)) return true;
+  if (savolId !== null && SHAXSIY_SAVOLLAR.has(savolId)) return false;
+  if (/[?？]/u.test(s)) return true;
+  if (/maslahat|nima deysiz|nima qilay|nima qilsam|nima qilish kerak|qaysi biri|qaysi birini|qanday qilib|tushunmadim|tushunmayapman|tushuntir|nima degani|nimani anglatadi|aytib bering|посовет|подскаж|что лучше|не понял|не понимаю|объясни/u.test(s)) return true;
+  return /\p{L}{2,}(mik[ai]n|[bdgkqlmnrtyxzh']mi|dimi)(?!\p{L})|(to'g'ri|yaxshi|foydali|xavfli)mi(?!\p{L})|(^|\s)mi(?!\p{L})/u.test(s);
 }
 
 /**
@@ -507,6 +550,19 @@ function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null
   const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)(?!\p{L})/iu.test(matn);
   const tayyor = tayyorJavob(matn);
   const savol = qisqaSavol(s.matn);
+  // Byudjet savolida maslahat soʻradi ("80 mlnmi, 100 mlnmi?") — LLM boʻlmasa
+  // ham umumiy maslahat (`bilim.ts`, raqamsiz); summalari tugma boʻlib chiqadi.
+  if (s.id === 'byudjet' && !sabab && !tayyor) {
+    return ruscha
+      ? [salom ? 'Здравствуйте!' : null,
+        'Мой совет: не вкладывайте все деньги в первую партию — оставьте часть в запасе: пока товар приедет, продастся и '
+        + 'деньги вернутся, пройдёт время, а будут реклама, возвраты и непредвиденные расходы. Сколько нужно на старт, '
+        + 'покажу на следующем шаге для каждого направления.', `Сейчас вопрос: «${savol}»`].filter(Boolean).join(' ')
+      : [salom ? 'Vaalaykum assalom!' : null,
+        'Maslahatim: hamma pulni birinchi partiyaga tikmang — bir qismini zaxirada qoldiring: tovar kelib, sotilib, pul '
+        + 'qaytguncha vaqt oʻtadi, reklama, qaytgan tovar va kutilmagan xarajatlar ham chiqadi. Boshlash uchun qancha '
+        + 'kerakligini keyingi qadamda har yoʻnalish uchun koʻrsataman.', `Hozirgi savol: «${savol}»`].filter(Boolean).join(' ');
+  }
   // Javob oʻtmagan boʻlsa — avval nega oʻtmagani, keyin (boʻlsa) tayyor javob:
   // obunachi javobi nega qabul qilinmaganini bilishi kerak.
   if (ruscha) {
@@ -525,27 +581,60 @@ function erkinShablon(s: JoriySavol['savol'], matn: string, sabab: string | null
   ].filter(Boolean).join(' ');
 }
 
-/** Menejer javobi: LLM (tekshiruv bilan) yoki shablon. */
-async function erkinJavob(d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null): Promise<string> {
+/**
+ * Menejer javobi: LLM (tekshiruv bilan) yoki shablon.
+ *
+ * LLM endi mijozni "koʻradi" (nazoratchi, 2026-10-13): bilim (`bilim.ts`),
+ * mijoz holati va oxirgi xabarlar (`yordamchi.ts`, shaxsiy maʼlumotsiz).
+ * Raqam faqat shulardan: darvoza oʻtkazmasa — sababi bilan BIR MARTA qayta
+ * soʻraladi (ilgari darrov "aniq javob bera olmayman" shabloni chiqardi).
+ */
+async function erkinJavob(
+  d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null,
+  h: YolHolati, xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>,
+): Promise<string> {
   const shablon = erkinShablon(s, matn, sabab);
   // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
   if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
   const variantlar = s.variantlar.map((v) => v.nom);
   const tj = tayyorJavob(matn);
   const tayyor = tj ? (ruschami(matn) ? tj.ru : tj.uz) : null;
-  const taklif = await d.erkinLlm({ savol: s.matn, variantlar, xabar: matn, sabab, tayyor, bilim: ERKIN_BILIM }).catch(() => null);
-  if (!taklif) return shablon;
-  // Raqam faqat savol, variantlar, sabab, faktlar va obunachining oʻz matnidan; kafolat — taqiq.
-  const t = tekshir(taklif, { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, ERKIN_BILIM, tayyor ?? ''], sonlar: [] });
-  return t.ok ? taklif : shablon;
+  const holat = mijozHolati(h, s.qadam);
+  const tarix = suhbatTarixi(xabarlar, h);
+  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor, bilim: YORDAMCHI_BILIMI, holat, tarix };
+  // Raqam faqat savol, tugmalar, sabab, bilim, mijoz holati, suhbat va obunachining oʻz matnidan; kafolat — taqiq.
+  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, YORDAMCHI_BILIMI, tayyor ?? '', holat, tarix], sonlar: [] };
+  let tuzat: string | null = null;
+  for (let urinish = 0; urinish < 2; urinish++) {
+    const taklif = await d.erkinLlm({ ...sorov, tuzat }).catch(() => null);
+    if (!taklif) return shablon;
+    const t = tekshir(taklif, manba);
+    if (t.ok) return taklif;
+    tuzat = [
+      t.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${t.dalilsiz.join(', ')}.` : null,
+      t.taqiq.length ? `taqiqlangan gap: ${t.taqiq.join(', ')}.` : null,
+    ].filter(Boolean).join(' ');
+  }
+  return shablon;
 }
 
 /** Erkin xabarni chatga yozadi: holat va qadam oʻzgarmaydi. */
 async function erkinXabar(
   d: SuhbatBogliqliklari, token: string, holat: YolHolati, k0: JoriySavol, yozgan: string, sabab: string | null,
+  xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }> = [],
 ): Promise<SuhbatJavobi> {
   const matn = yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan;
-  const javob = await erkinJavob(d, k0.savol, matn, sabab);
+  const javob = await erkinJavob(d, k0.savol, matn, sabab, holat, songgiSuhbat(xabarlar));
+  // Byudjet savolida summalar aytilgan boʻlsa ("80 mlnmi, 100 mlnmi?") — javobdan
+  // keyin ular TUGMA boʻlib chiqadi: bittasini bossa, oʻsha summa bilan boshlanadi.
+  let k1: JoriySavol = k0;
+  if (k0.savol.id === 'byudjet') {
+    const bor = new Set(k0.savol.variantlar.map((v) => String(v.qiymat)));
+    const qoshimcha = byudjetSummalari(yozgan, usdKursi(holat))
+      .filter((x) => !bor.has(String(x.som)))
+      .map((x) => ({ qiymat: x.som, nom: x.usd !== null ? byudjetMatni(x.som, x.usd) : mlnMatni(x.som) }));
+    if (qoshimcha.length) k1 = { ...k0, savol: { ...k0.savol, variantlar: [...qoshimcha, ...k0.savol.variantlar] } };
+  }
   const yangi: SuhbatXabari[] = [
     { rol: 'obunachi', matn },
     { rol: 'menejer', matn: javob, savolId: k0.savol.id },
@@ -555,7 +644,7 @@ async function erkinXabar(
     p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
   });
   const yozildi = y !== null && !y.xato;
-  return { xabarlar: yangi, keyingi: k0, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
+  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, q: unknown): string {

@@ -201,9 +201,22 @@ export const THRESHOLDS = {
    * Usta qadamlari (reja, 2-bo'lim: "Sarmoya Ustasi — 6 qadamli yo'l").
    */
   usta: {
-    /** 2-qadamda nechta yo'nalish ko'rsatiladi. Rejada: 3–5 ta. */
+    /**
+     * 2-qadamda bir sahifada nechta yo'nalish ko'rsatiladi. Rejada 3–5 ta
+     * edi; nazoratchi (2026-10-13): aralash 6 ta — qiziqishi bo'yicha va
+     * boshqa sohalardan, «Yana ko'rsatish» bilan.
+     */
     minYonalish: 3,
-    maxYonalish: 5,
+    maxYonalish: 6,
+    /** «Yana ko'rsatish» bilan jami nechtagacha (4 sahifa). */
+    maxYonalishJami: 24,
+    /** Har sahifada qiziqqan sohalaridan nechta (qolgani — boshqa sohalardan). */
+    qiziqishUlushi: 4,
+    /**
+     * Boshqa sohalardan faqat shu baldan yuqorisi («o'rtacha» va «yaxshi»):
+     * xilma-xillik uchun zaif yo'nalish tavsiya qilinmaydi.
+     */
+    boshqaMinBall: 50,
 
     /**
      * Byudjet turkumning optimal kirish summasidan shuncha barobar

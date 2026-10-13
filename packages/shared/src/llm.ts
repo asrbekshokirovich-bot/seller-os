@@ -1,11 +1,13 @@
 /**
- * LLM adapteri — FAQAT jumlani odamdek aytish uchun.
+ * LLM adapteri — ikki ish: kod jumlasini odamdek aytish va erkin savolga javob.
  *
- * Bu mahsulotda LLM tavsiya bermaydi, hisob qilmaydi, savol tartibini
- * tanlamaydi (QOIDALAR.md, 3-bo'lim). Unga bitta ish beriladi: kod
- * yozgan o'zbekcha jumlani ma'nosini va raqamlarini o'zgartirmasdan,
- * iliq va qisqa qilib qayta aytish. Natija `tekshiruv.ts` darvozasidan
- * o'tadi; o'tmasa kodning jumlasi ketadi.
+ * LLM hisob qilmaydi, ball qoʻymaydi, savol tartibini tanlamaydi (QOIDALAR.md,
+ * 3-boʻlim). (1) `odamlashtir`: kod yozgan oʻzbekcha jumlani maʼnosini va
+ * raqamlarini oʻzgartirmasdan, iliq va qisqa qilib qayta aytadi. (2)
+ * `erkinJavobBer`: mijoz savol bersa yoki tushunmasa — faktlar, mijoz holati
+ * va suhbat bilan aniq javob va umumiy maslahat beradi (nazoratchi qarori,
+ * 2026-10-13). Ikkalasining natijasi ham `tekshiruv.ts` darvozasidan oʻtadi:
+ * manbasiz raqam yoki kafolat boʻlsa — tashlanadi.
  *
  * Shuning uchun bu fayl juda kichik va provayderga bog'lanmagan:
  * `fetch` bor joyda (Node, Deno) ishlaydi. Kalit `env` dan keladi,
@@ -40,21 +42,42 @@ const KORSATMA =
   'tushunarli bo\'lsa — o\'zini qaytar.';
 
 /**
- * Erkin xabar: obunachi savolga javob oʻrniga boshqa narsa yozdi (savol,
- * salom, notoʻgʻri javob). Javob `tekshiruv.ts` darvozasidan oʻtadi —
- * oʻtmasa kod shabloni ketadi (`suhbat.ts`, `erkinJavob`).
+ * Erkin xabar: obunachi savolga javob oʻrniga savol berdi, tushunmadi yoki
+ * maslahat soʻradi. Javob `tekshiruv.ts` darvozasidan oʻtadi — oʻtmasa bir
+ * marta qayta soʻraladi, keyin kod shabloni ketadi (`suhbat.ts`, `erkinJavob`).
+ *
+ * MASLAHAT BERADI (nazoratchi qarori, 2026-10-13; QOIDALAR.md, 3-boʻlim):
+ * birinchi marta kirgan mijoz har savoliga aniq javob va sodda yoʻl olishi
+ * kerak. Ilgari "tovar, yoʻnalish, narx, miqdorni tavsiya qilma" deyilgan
+ * edi — "80 mln bilan boshlaymi yoki 100 mi?" kabi savol javobsiz qolardi.
+ * Endi umumiy, ehtiyotkor maslahat beradi; raqamni esa faqat faktlar,
+ * mijoz holati va suhbatdan oladi (darvoza buni tekshiradi), foyda vaʼda
+ * qilmaydi, qaror mijozda qoladi.
  */
-const ERKIN_KORSATMA =
-  'Sen ZumSavdo yordamchisisan: odamga Uzumda birinchi partiyani sotishgacha boʻlgan yoʻlda ' +
-  'yordam berasan. Unga savol berilgan, u esa javob oʻrniga boshqa narsa yozdi (savol, salom, ' +
-  'shubha yoki notoʻgʻri javob). Qisqa (1–3 jumla), iliq va aniq javob ber, keyin joriy savolni ' +
-  'bir jumlada eslat. QOIDALAR: tovar, yoʻnalish, narx, miqdorni TAVSIYA QILMA — buni kod ' +
-  'hisoblaydi; matnda berilmagan raqam, foiz, summa yoki muddat YOZMA; kafolat, vaʼda, bashorat ' +
-  'yozma; faqat berilgan FAKTLARdan foydalan, "tayyor javob" berilgan boʻlsa — uni oʻz soʻzing bilan ayt; ' +
-  'bilmasang yoki mavzudan tashqari boʻlsa — ochiq ayt; "AI", "model", "tizim" soʻzlarini ' +
-  'ishlatma; salom bilan BOSHLAMA — faqat odam oʻzi salom bergan boʻlsa, qisqa alik ol; sodda, ' +
-  'kundalik soʻzlashuv tilida yoz; odam qaysi tilda yozgan boʻlsa (oʻzbek yoki rus), oʻsha tilda ' +
-  'javob ber; faqat javob matnini qaytar, izohsiz.';
+const ERKIN_KORSATMA = [
+  'Sen «ZumSavdo yordamchisi»san: Uzumda birinchi marta sotuvchi boʻlayotgan odamga yoʻl koʻrsatasan — nima sotishni',
+  'tanlashdan tortib Xitoydan olib kelish va Uzumda sotishgacha. Odam chatda bitta savolga javob berishi kerak edi,',
+  'lekin oʻrniga savol berdi, tushunmadi yoki maslahat soʻradi.',
+  '',
+  'VAZIFA:',
+  '1. Odamning savoliga ANIQ va SODDA javob ber: 2–5 qisqa jumla, kundalik soʻzlashuv tilida, tajribali doʻst',
+  'tushuntirgandek. Atama ishlatsang — oddiy soʻz bilan tushuntir. Shu odamga javob ber: MIJOZ HOLATI va SUHBATdan foydalan.',
+  '2. Maslahat soʻrasa — maslahat ber: umumiy va ehtiyotkor (masalan: zaxira qoldirish, kichik partiyadan boshlash,',
+  'tushunadigan sohani tanlash). Variantlarni solishtir, lekin yakuniy qarorni odamga qoldir.',
+  '3. Yoʻnalish yoki tovar haqida soʻrasa — MIJOZ HOLATIdagi kartalar va ularning bahosiga tayan; roʻyxatda yoʻq',
+  'tovarni oʻzingdan taklif qilma — pastga tovar nomini yozib qidirish mumkinligini ayt.',
+  '4. Oxirida joriy savolni bir jumlada eslat (tugmalar pastda turibdi).',
+  '',
+  'QOIDALAR:',
+  '- Raqam (summa, foiz, muddat, dona) faqat FAKTLAR, MIJOZ HOLATI, SUHBAT yoki odamning oʻz xabaridan. Yangi raqam',
+  'oʻylab topma va hisoblab chiqarma (ayirma ham, foiz ham). Kerakli raqam yoʻq boʻlsa — "buni keyingi qadamda aniq',
+  'hisoblaymiz" yoki "aniq bilmayman" de.',
+  '- Foyda, sotuv yoki daromad vaʼda qilma; "kafolat" soʻzini ishlatma.',
+  '- Bilmasang — ochiq ayt, toʻqima. Savdoga aloqasiz savolga bir jumlada muloyim javob berib, savolga qaytar.',
+  '- "AI", "model", "sunʼiy intellekt", "tizim" soʻzlarini ishlatma. Salom bilan boshlama (odam salom bersa — qisqa alik ol).',
+  '- Odam qaysi tilda yozgan boʻlsa (oʻzbek lotin yoki rus), oʻsha tilda javob ber.',
+  '- Faqat javob matnini qaytar: markdown, sarlavha, yulduzcha, roʻyxat belgisi yoʻq.',
+].join('\n');
 
 /** Gemini — bitta chaqiruv. Yiqilsa `null` va logda faqat sababi (kalit ham, matn ham emas). */
 async function gemini(s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low'): Promise<string | null> {
@@ -118,15 +141,28 @@ export async function odamlashtir(s: LlmSozlama, matn: string): Promise<string |
 /** Erkin xabarga javob. `null` — ishlamadi, kod shablonini ishlating. */
 export async function erkinJavobBer(
   s: LlmSozlama,
-  k: { savol: string; variantlar: string[]; xabar: string; sabab: string | null; tayyor: string | null; bilim: string },
+  k: {
+    savol: string; variantlar: string[]; xabar: string; sabab: string | null; tayyor: string | null; bilim: string;
+    /** Mijoz holati (qadam, pul, qiziqish, ekrandagi kartalar) — shaxsiy maʼlumotsiz. */
+    holat?: string;
+    /** Oxirgi xabarlar — shaxsiy maʼlumotsiz. */
+    tarix?: string;
+    /** Oldingi urinish darvozadan oʻtmagan boʻlsa — nima uchun (qayta yozish uchun). */
+    tuzat?: string | null;
+  },
 ): Promise<string | null> {
   const matn = [
-    `Joriy savol: ${k.savol}`,
-    `Variantlar: ${k.variantlar.length ? k.variantlar.join('; ') : 'yoʻq (erkin javob)'}`,
-    k.sabab ? `Javob qabul qilinmadi: ${k.sabab}` : null,
-    k.tayyor ? `Tayyor javob: ${k.tayyor}` : null,
+    'FAKTLAR:',
     k.bilim,
-    `Odam yozdi: ${k.xabar}`,
+    k.holat ? `\nMIJOZ HOLATI:\n${k.holat}` : null,
+    k.tarix ? `\nSUHBAT (oxirgi xabarlar):\n${k.tarix}` : null,
+    `\nJORIY SAVOL: ${k.savol}`,
+    `TUGMALAR: ${k.variantlar.length ? k.variantlar.join('; ') : 'yoʻq (odam oʻzi yozadi)'}`,
+    k.sabab ? `ODAMNING JAVOBI QABUL QILINMADI: ${k.sabab}` : null,
+    k.tayyor ? `TAYYOR JAVOB (oʻz soʻzing bilan ayt): ${k.tayyor}` : null,
+    k.tuzat ? `OLDINGI JAVOBING QAYTARILDI: ${k.tuzat} Shusiz qayta yoz.` : null,
+    `ODAM YOZDI: ${k.xabar}`,
   ].filter(Boolean).join('\n');
-  return gemini(s, ERKIN_KORSATMA, matn, 'erkin', 'low');
+  // Bilim va holat bilan javob uzunroq oʻylanadi — chegara 8 emas, 14 soniya.
+  return gemini({ ...s, vaqtMs: s.vaqtMs ?? 14_000 }, ERKIN_KORSATMA, matn, 'erkin', 'low');
 }

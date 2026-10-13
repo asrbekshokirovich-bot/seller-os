@@ -52,6 +52,7 @@ import {
   type TannarxKirishi,
   type NomzodJavobi,
   type ObunaXom,
+  type ErkinSorov,
   type RejaNatijasi,
   type TovarHolati,
   type TovarNomzodi,
@@ -397,7 +398,7 @@ export function build(): FastifyInstance {
     ...(process.env.GEMINI_API_KEY
       ? {
         llm: (m: string) => odamlashtir({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, m),
-        erkinLlm: (k: { savol: string; variantlar: string[]; xabar: string; sabab: string | null; tayyor: string | null; bilim: string }) =>
+        erkinLlm: (k: ErkinSorov) =>
           erkinJavobBer({ kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL }, k),
       }
       : {}),

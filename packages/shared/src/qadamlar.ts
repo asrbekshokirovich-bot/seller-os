@@ -15,6 +15,7 @@ import { minglik } from './fakt.js';
 import { THRESHOLDS } from './thresholds.js';
 import type { Flag } from './traps.js';
 import type { TovarToliq } from './filtrlar/turlar.js';
+import { SAVDO_SOHALARI, turkumSohasi, type SohaId, type TurkumSohasi } from './soha.js';
 
 const U = THRESHOLDS.usta;
 
@@ -85,6 +86,8 @@ export interface TurkumNomzodi {
 export interface Yonalish {
   categoryId: number;
   name: string;
+  /** Qaysi sohaga tegishli (`soha.ts`) — aralash roʻyxat va kartadagi belgi uchun. */
+  soha: TurkumSohasi;
   ball: Score;
   /** Byudjet shu turkumga yetadimi. `null` — optimal summa bilinmaydi. */
   yetadi: boolean | null;
@@ -98,7 +101,15 @@ export interface Yonalish {
 }
 
 export interface YonalishNatijasi {
+  /** Birinchi sahifa — chatda koʻrsatiladi (`THRESHOLDS.usta.maxYonalish` ta). */
   royxat: Yonalish[];
+  /**
+   * «Yana koʻrsatish» navbati: keyingi sahifalar xuddi shu aralash tartibda
+   * (nazoratchi, 2026-10-13). Eski natijalarda yoʻq — `undefined`.
+   */
+  keyingilar?: Yonalish[];
+  /** Qaysi sohalar boʻyicha tanlandi. Boʻsh — hamma sohadan aralash. */
+  qiziqishlar?: SohaId[];
   /**
    * Byudjet katta boʻlsa — bir necha yoʻnalishga boʻlish taklifi.
    * `null` — taklif yoʻq.
@@ -139,7 +150,70 @@ export function yonalishlar(
   byudjetSom: number | null,
   profilSohalari: string[] | null,
   oy: number,
+  qiziqishlar: readonly string[] | null = null,
 ): YonalishNatijasi {
+  const { baholangan, baholanmadi } = yonalishBaholari(nomzodlar, byudjetSom, profilSohalari, oy);
+  const tanlangan = SAVDO_SOHALARI.map((s) => s.id).filter((id) => qiziqishlar?.includes(id));
+  const tartib = aralashTartib(baholangan, tanlangan);
+  const royxat = tartib.slice(0, U.maxYonalish);
+  return {
+    royxat,
+    keyingilar: tartib.slice(U.maxYonalish, U.maxYonalishJami),
+    qiziqishlar: tanlangan,
+    bolishTaklifi: bolishTaklifi(royxat, byudjetSom),
+    baholanmadi,
+  };
+}
+
+/**
+ * Aralash tartib (nazoratchi, 2026-10-13): har sahifada (`maxYonalish` ta)
+ * qiziqishi boʻyicha `qiziqishUlushi` ta va boshqa sohalardan qolgani.
+ * Ikkala navbat ham sohalar boʻyicha NAVBATMA-NAVBAT: bitta sohaning
+ * eng yaxshilari ketma-ket emas — avval har sohaning birinchisi, keyin
+ * ikkinchisi… (sohalar eng yaxshi bali boʻyicha). Shunda birinchi sahifa
+ * oltita xil sohadan boʻladi, uchta kiyim-kechakdan emas.
+ *
+ * Boshqa sohalardan faqat «oʻrtacha» va undan yuqorisi (`boshqaMinBall`):
+ * xilma-xillik uchun zaif yoʻnalish tavsiya qilinmaydi. Qiziqqan
+ * sohasidan esa — bali qanday boʻlsa ham (kartada bahosi yozilgan).
+ */
+function aralashTartib(baholangan: Yonalish[], tanlangan: readonly SohaId[]): Yonalish[] {
+  const navbat = (royxat: Yonalish[]): Yonalish[] => {
+    // `royxat` bal boʻyicha tartiblangan — Map ga birinchi tushgan soha eng yaxshisi.
+    const guruh = new Map<TurkumSohasi, Yonalish[]>();
+    for (const y of royxat) guruh.set(y.soha, [...(guruh.get(y.soha) ?? []), y]);
+    const qatorlar = [...guruh.values()];
+    const chiqdi: Yonalish[] = [];
+    for (let i = 0; chiqdi.length < royxat.length; i++) for (const q of qatorlar) if (q[i]) chiqdi.push(q[i]!);
+    return chiqdi;
+  };
+  const qiziq = tanlangan.length ? navbat(baholangan.filter((y) => (tanlangan as readonly string[]).includes(y.soha))) : [];
+  const boshqa = navbat(baholangan.filter((y) => !(tanlangan as readonly string[]).includes(y.soha)
+    && (y.ball.value ?? 0) >= U.boshqaMinBall));
+  const ulush = tanlangan.length ? U.qiziqishUlushi : 0;
+  const chiqdi: Yonalish[] = [];
+  let i = 0;
+  let j = 0;
+  while (chiqdi.length < U.maxYonalishJami && (i < qiziq.length || j < boshqa.length)) {
+    const sahifa: Yonalish[] = [];
+    while (sahifa.length < ulush && i < qiziq.length) sahifa.push(qiziq[i++]!);
+    while (sahifa.length < U.maxYonalish && j < boshqa.length) sahifa.push(boshqa[j++]!);
+    while (sahifa.length < U.maxYonalish && i < qiziq.length) sahifa.push(qiziq[i++]!);
+    chiqdi.push(...sahifa);
+  }
+  return chiqdi.slice(0, U.maxYonalishJami);
+}
+
+/**
+ * Hamma nomzodning bali, eng yaxshisi oldin — 2-qadam roʻyxati va
+ * qidiruv (`yonalish_qidiruv`) shundan oladi.
+ */
+export function yonalishBaholari(
+  nomzodlar: TurkumNomzodi[],
+  byudjetSom: number | null,
+  profilSohalari: string[] | null,
+  oy: number,
+): { baholangan: Yonalish[]; baholanmadi: number } {
   const baholangan: Yonalish[] = [];
   let baholanmadi = 0;
 
@@ -166,6 +240,7 @@ export function yonalishlar(
     baholangan.push({
       categoryId: n.categoryId,
       name: n.name,
+      soha: turkumSohasi(n.name),
       ball,
       yetadi:
         byudjetSom === null || n.optimalKirishSom === null
@@ -184,9 +259,7 @@ export function yonalishlar(
   baholangan.sort((a, b) =>
     (b.ball.value as number) - (a.ball.value as number) || a.categoryId - b.categoryId);
 
-  const royxat = baholangan.slice(0, U.maxYonalish);
-
-  return { royxat, bolishTaklifi: bolishTaklifi(royxat, byudjetSom), baholanmadi };
+  return { baholangan, baholanmadi };
 }
 
 /**

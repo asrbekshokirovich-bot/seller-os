@@ -53,7 +53,7 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, erkinLlm?: SuhbatBogliqliklari[
 }
 
 /** Byudjet savoli turgan holat (2026-10-12: avval ism, telefon, tajriba; dollar kursi olingan). */
-const BYUDJET_HOLATI: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', uzum_dokoni: 'yoq' }, natijalar: { kurs: KURS } };
+const BYUDJET_HOLATI: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', uzum_dokoni: 'yoq', qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS } };
 /** Tajriba savoli (`uzum_dokoni`) turgan holat. */
 const TAJRIBA_HOLATI: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567' }, natijalar: {} };
 
@@ -224,5 +224,83 @@ describe('erkin xabar — tekshiruv tuzatishlari (2026-10-05)', () => {
     expect(m).toMatch(/^Summani yozing — masalan: 30 mln yoki 3000 \$\. Tariflar:/);
     const s = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'soliq toʻlovi qachon?' });
     expect(s.xabarlar[1]!.matn).not.toMatch(/Tariflar/);
+  });
+});
+
+describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
+  /** Nazoratchi sinovidagi aynan gap — maslahat soʻrovi, javob emas. */
+  const MASLAHAT = '100 mln pulim bor birinchi 80 mln bsohlasammikan yoki 100 mln bilan nima maslahat berasan';
+
+  it('maslahat soʻrovi javob deb olinmaydi: byudjet yozilmaydi, yordamchi javob beradi, summalar tugma boʻladi', async () => {
+    const b = soxtaBaza(BYUDJET_HOLATI);
+    let kelgan: ErkinSorov | null = null;
+    const r = await suhbatTurn(bogliq(b, async (k) => {
+      kelgan = k;
+      return 'Hamma pulni birinchi partiyaga tikmaslik yaxshi: 80 mln bilan boshlab, qolganini zaxirada saqlasangiz xavf kamroq. Qaror sizniki — qaysi summa bilan boshlaymiz?';
+    }), 'tok', { savolId: 'byudjet', matn: MASLAHAT });
+    expect(r.xato).toBeUndefined();
+    expect(b.holat()!.javoblar['byudjet']).toBeUndefined();
+    expect(r.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    expect(r.xabarlar[1]!.matn).toMatch(/80 mln bilan boshlab/);
+    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
+    // Aytgan summalari — birinchi tugmalar (kichigi oldin); bosilsa oʻsha summa bilan boshlanadi.
+    expect(r.keyingi.savol.variantlar.slice(0, 2)).toEqual([{ qiymat: 80_000_000, nom: '80 mln soʻm' }, { qiymat: 100_000_000, nom: '100 mln soʻm' }]);
+    const r2 = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 80_000_000 });
+    expect(r2.xato).toBeUndefined();
+    expect(b.holat()!.javoblar['byudjet']).toBe(80_000_000);
+    // Yordamchi mijozni "koʻradi": bilim, holat, suhbat — ism va telefonsiz.
+    expect(kelgan!.bilim).toMatch(/Hamma pulni birinchi partiyaga tikmang/);
+    expect(kelgan!.holat).toMatch(/1-qadam «Tanishuv»/);
+    expect(kelgan!.holat).toMatch(/Savdo tajribasi: Yoʻq, birinchi marta/);
+    const yuborilgan = JSON.stringify(kelgan);
+    expect(yuborilgan).not.toMatch(/Aziz|Karimov|998901234567/);
+  });
+
+  it('LLM boʻlmasa ham — maslahat shabloni (raqamsiz) va summalar tugmasi', async () => {
+    const b = soxtaBaza(BYUDJET_HOLATI);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: MASLAHAT });
+    expect(r.xabarlar[1]!.matn).toMatch(/^Maslahatim: hamma pulni birinchi partiyaga tikmang/);
+    expect(r.xabarlar[1]!.matn).toMatch(/Hozirgi savol: «/);
+    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
+    expect(r.keyingi.savol.variantlar[0]).toEqual({ qiymat: 80_000_000, nom: '80 mln soʻm' });
+  });
+
+  it.each([
+    '70 mln bilan boshlasammi', '50 mln yetadimi', 'qaysi biri yaxshi', 'tushunmadim', 'kafolat bormi',
+    '100 mln mi', 'shu bilan boshlasam boʻladimi', 'что лучше выбрать',
+  ])('savol deb taniladi: «%s»', async (matn) => {
+    const b = soxtaBaza(BYUDJET_HOLATI);
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn });
+    expect(b.holat()!.javoblar['byudjet']).toBeUndefined();
+  });
+
+  it.each([
+    ['hozir 100 mln pulim bor lekin 70 mln bilan boshlamoqchiman', 70_000_000],
+    ['70 mln', 70_000_000],
+    ['5000 $ bilan boshlayman', 63_250_000],
+  ])('javob deb olinadi: «%s»', async (matn, som) => {
+    const b = soxtaBaza(BYUDJET_HOLATI);
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn });
+    expect(b.holat()!.javoblar['byudjet']).toBe(som);
+  });
+
+  it('LLM manbasiz raqam yozsa — sababi bilan BIR MARTA qayta soʻraladi; toʻgʻri javob ketadi', async () => {
+    const b = soxtaBaza(BYUDJET_HOLATI);
+    const kelganlar: ErkinSorov[] = [];
+    const r = await suhbatTurn(bogliq(b, async (k) => {
+      kelganlar.push(k);
+      return kelganlar.length === 1
+        ? 'Koʻpchilik 25 mln bilan boshlaydi.'
+        : 'Boshlash uchun qancha kerakligini keyingi qadamda har yoʻnalish uchun koʻrsataman. Qancha pul bilan boshlaymiz?';
+    }), 'tok', { savolId: 'byudjet', matn: 'qancha kerak?' });
+    expect(kelganlar).toHaveLength(2);
+    expect(kelganlar[1]!.tuzat).toMatch(/25 mln/);
+    expect(r.xabarlar[1]!.matn).toMatch(/^Boshlash uchun qancha kerakligini keyingi qadamda/);
+  });
+
+  it('ism va telefon savolida "…mi" bilan tugagan ism savol hisoblanmaydi', async () => {
+    const b = soxtaBaza(null);
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Ilhom Hakimi' });
+    expect(b.holat()!.javoblar['ism']).toBe('Ilhom Hakimi');
   });
 });

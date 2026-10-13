@@ -49,6 +49,7 @@ import type { ProfilJavoblari } from './profil.ts';
 import type { XitoyTovar } from './xitoy.ts';
 import { minglik, type KargoStavkasi } from './fakt.ts';
 import { sotuvToifasi, type SotuvToifasi } from './qadamlar.ts';
+import { BILMAYMAN, SAVDO_SOHALARI, sohaNomi, sohaniTop } from './soha.ts';
 import type { Kurs } from './kurs.ts';
 import { SHAHARLAR } from './savollar.ts';
 import type { OylikSoliq, RasmiyFaktlar } from './rasmiy.ts';
@@ -97,7 +98,9 @@ export interface AloqaJavoblari {
 export type KodHarakati = 'yonalishlar' | 'tovarlar' | 'tannarx' | 'xitoy' | 'buyurtma' | 'ochiq_ish' | 'rasmiy' | 'rasmiy_yakun' | 'qabul' | 'qabul_yakun'
   | 'studiya' | 'studiya_yakun' | 'yuklash' | 'yuklash_yakun'
   | 'sotuv' | 'hisobot' | 'hisobot_hisob' | 'hisobot_yakun'
-  | 'usta_fikri' | 'kurs';
+  | 'usta_fikri' | 'kurs'
+  // 2-qadam: «Yana koʻrsatish» sahifasi va istalgan tovar nomi bilan qidiruv (2026-10-13).
+  | 'yonalish_yana' | 'yonalish_qidiruv';
 
 /**
  * Chatga xabar yozmaydigan kod harakatlari: natija faqat keyingi savol
@@ -247,11 +250,35 @@ export const MARJA_TUGMALARI: readonly SuhbatVarianti[] = [
 interface YonalishQisqa {
   categoryId: number;
   name: string;
+  soha?: string;
   yetadi?: boolean | null;
   ball?: { value: number | null };
 }
 interface YonalishlarNatijasi {
   royxat?: YonalishQisqa[];
+  /** «Yana koʻrsatish» navbati (2026-10-13); eski natijada yoʻq. */
+  keyingilar?: YonalishQisqa[];
+  qiziqishlar?: string[];
+  nomzod_soni?: number;
+  olchov_yoq?: boolean;
+  sabab?: string;
+}
+/** «Yana koʻrsatish» — navbatdagi sahifa (`yonalishYanaNatija`). */
+interface YonalishYanaNatijasi {
+  sahifa: number;
+  royxat: YonalishQisqa[];
+  /** Shu sahifadan keyin navbatda nechta qoldi. */
+  qolgan: number;
+}
+/** Qidiruv natijasi (`suhbat-kod.ts`, `yonalishQidiruv`). */
+interface YonalishQidiruvNatijasi {
+  soz: string;
+  /** Nechanchi qidiruv — bir xil soʻz qayta yozilsa ham yangi qidiruv. */
+  n: number;
+  royxat?: YonalishQisqa[];
+  /** Mos kelganlar jami (koʻrsatilgani eng yaxshi `royxat.length` tasi). */
+  topildi?: number;
+  nomzod_soni?: number;
   olchov_yoq?: boolean;
   sabab?: string;
 }
@@ -855,6 +882,19 @@ const ZAXIRA_OZIM: readonly SuhbatVarianti[] = [{ qiymat: 'ozim', nom: 'Tushunar
 /** Boʻsh natija (2/3-qadam) va kutilmagan xato — kod harakatini qayta chaqirish. */
 const QAYTA_URINISH: SuhbatVarianti = { qiymat: 'qayta', nom: 'Qayta urinish' };
 const BOSHQA_YONALISH: SuhbatVarianti = { qiymat: 'boshqa', nom: 'Boshqa yoʻnalish' };
+/** 2-qadam: navbatdagi aralash sahifa (2026-10-13). */
+const YANA_YONALISH: SuhbatVarianti = { qiymat: 'yana', nom: 'Yana koʻrsatish' };
+/** Bir sahifadagi yoʻnalishlar soni — `THRESHOLDS.usta.maxYonalish` bilan bir xil. */
+const YONALISH_SAHIFASI = 6;
+/**
+ * 1-qadam: qiziqish — qaysi sohada sotmoqchi (nazoratchi, 2026-10-13). Bir
+ * nechtasi tanlanadi; 2-qadam roʻyxati shunga qarab aralashtiriladi
+ * (`qadamlar.ts`, `aralashTartib`).
+ */
+export const QIZIQISH_TUGMALARI: readonly SuhbatVarianti[] = [
+  ...SAVDO_SOHALARI.map((x) => ({ qiymat: x.id, nom: x.nom })),
+  { qiymat: BILMAYMAN, nom: 'Bilmayman — eng yaxshilarini koʻrsating' },
+];
 export const SIGNAL_NARX: readonly SuhbatVarianti[] = [
   { qiymat: 'tegmaymiz', nom: 'Tegmaymiz' },
   { qiymat: 'tushiraman', nom: 'Tushiraman' },
@@ -1228,12 +1268,49 @@ function tanlanganTovarlar(h: YolHolati): number[] {
   return Array.isArray(q) ? q.map(Number).filter(Number.isInteger) : [];
 }
 
+/** «Yana koʻrsatish» necha marta bosilgan (2-qadam). */
+function yonalishSahifasi(h: YolHolati): number {
+  const n = Number(h.javoblar['yonalish_sahifa'] ?? 0);
+  return Number.isInteger(n) && n > 0 ? n : 0;
+}
+
+/** Oxirgi qidiruv soʻzi va raqami (2-qadam) — `null`: qidirilmagan. */
+export function yonalishQidiruvi(h: YolHolati): { soz: string; n: number } | null {
+  const q = h.javoblar['yonalish_qidiruv'] as { soz?: unknown; n?: unknown } | undefined;
+  return q && typeof q.soz === 'string' && typeof q.n === 'number' ? { soz: q.soz, n: q.n } : null;
+}
+
+/**
+ * «Yana koʻrsatish» — navbatdagi sahifa. Bazaga murojaat yoʻq: navbat
+ * birinchi hisobda tayyorlangan (`keyingilar`), shu yerda kesiladi.
+ */
+export function yonalishYanaNatija(h: YolHolati): YonalishYanaNatijasi {
+  const navbat = yonalishlarNatija(h)?.keyingilar ?? [];
+  const sahifa = yonalishSahifasi(h);
+  const royxat = navbat.slice((sahifa - 1) * YONALISH_SAHIFASI, sahifa * YONALISH_SAHIFASI);
+  return { sahifa, royxat, qolgan: Math.max(0, navbat.length - sahifa * YONALISH_SAHIFASI) };
+}
+
+/** Chatda koʻrsatilgan hamma yoʻnalish (tugmalar uchun), takrorsiz. */
+function korsatilganYonalishlar(h: YolHolati): YonalishQisqa[] {
+  const yn = yonalishlarNatija(h);
+  const sahifa = yonalishSahifasi(h);
+  const q = h.natijalar.yonalish_qidiruv as YonalishQidiruvNatijasi | undefined;
+  const hammasi = [
+    ...(yn?.royxat ?? []),
+    ...(yn?.keyingilar ?? []).slice(0, sahifa * YONALISH_SAHIFASI),
+    ...(q?.royxat ?? []),
+  ];
+  const korilgan = new Set<number>();
+  return hammasi.filter((y) => (korilgan.has(y.categoryId) ? false : (korilgan.add(y.categoryId), true)));
+}
+
 /** Har kod harakati qaysi qadamda. */
 const HARAKAT_QADAMI: Readonly<Record<KodHarakati, number>> = {
   yonalishlar: 2, tovarlar: 3, tannarx: 4, xitoy: 5, buyurtma: 6, ochiq_ish: 6, rasmiy: 7, rasmiy_yakun: 7,
   qabul: 8, qabul_yakun: 8, studiya: 9, studiya_yakun: 9, yuklash: 10, yuklash_yakun: 10,
   sotuv: 11, hisobot: 12, hisobot_hisob: 12, hisobot_yakun: 12,
-  usta_fikri: 4, kurs: 1,
+  usta_fikri: 4, kurs: 1, yonalish_yana: 2, yonalish_qidiruv: 2,
 };
 
 /**
@@ -1308,6 +1385,14 @@ export function keyingi(h: YolHolati): Keyingi {
       'Doʻkoningiz nomi qanday?',
       'matn', { erkin: true, otkazishMumkin: true }) };
   }
+  // Qiziqish (nazoratchi, 2026-10-13): yoʻnalish roʻyxati shunga qarab
+  // aralashtiriladi. Yoʻnalishi tanlangan eski suhbatda soʻralmaydi.
+  if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) {
+    return { tur: 'savol', savol: savol('qiziqish', 1,
+      'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
+        + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.',
+      'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true }) };
+  }
   if (!berilgan(h, 'byudjet')) {
     // Dollar tugmalari va dollarni soʻmga oʻgirish uchun — CBU kursi (jim harakat).
     if (h.natijalar.kurs === undefined) return { tur: 'kod', harakat: 'kurs', qadam: 1 };
@@ -1324,16 +1409,35 @@ export function keyingi(h: YolHolati): Keyingi {
   if (yn === null) return { tur: 'kod', harakat: 'yonalishlar', qadam: 2 };
   const yonalishlar = yn.royxat ?? [];
   if (!berilgan(h, 'yonalish')) {
+    // «Yana koʻrsatish» bosilgan, sahifasi hali chatga chiqmagan — kod xabari.
+    const sahifa = yonalishSahifasi(h);
+    if (yonalishlar.length && sahifa > ((h.natijalar.yonalish_yana as YonalishYanaNatijasi | undefined)?.sahifa ?? 0)) {
+      return { tur: 'kod', harakat: 'yonalish_yana', qadam: 2 };
+    }
+    // Pastga tovar nomi yozildi — qidiruv (nechanchisi: bir xil soʻz ham qayta qidiriladi).
+    const qidir = yonalishQidiruvi(h);
+    if (yonalishlar.length && qidir !== null && (h.natijalar.yonalish_qidiruv as YonalishQidiruvNatijasi | undefined)?.n !== qidir.n) {
+      return { tur: 'kod', harakat: 'yonalish_qidiruv', qadam: 2 };
+    }
     // "Byudjetingiz bilan boshlash mumkin" deyilmaydi: roʻyxatda byudjet
     // yetmaydigan (yoki byudjet aytilmagan) yoʻnalish ham bor — bu kod
     // xulosasida aytiladi. Roʻyxat boʻsh — «Qayta urinish»: ilgari "keyinroq
     // qayta urinib koʻramiz" deyilardi, lekin hech narsa qayta urinmasdi.
+    // Tugmalar — chatda KOʻRSATILGAN hamma yoʻnalish (birinchi sahifa, «Yana
+    // koʻrsatish» sahifalari, qidiruv topganlari); yana boʻlsa — «Yana koʻrsatish».
+    const korsatilgan = korsatilganYonalishlar(h);
+    const yanaBor = (yn.keyingilar?.length ?? 0) > sahifa * YONALISH_SAHIFASI;
     return { tur: 'savol', savol: savol('yonalish', 2,
       yonalishlar.length
-        ? 'Qaysi yoʻnalishda boshlaymiz? Eng yaxshisi tepada — lekin oʻzingizga yaqinini tanlasangiz ham boʻladi.'
+        ? 'Qaysi yoʻnalishda boshlaymiz? Kartalardan birini tanlang. Boshqasi kerak boʻlsa — '
+          + (yanaBor ? '«Yana koʻrsatish» ni bosing yoki ' : '')
+          + 'pastga tovar nomini yozing (masalan: ruchka, atir, oʻyinchoq).'
         : `Yoʻnalishlarni hozir koʻrsata olmayman: ${yn.sabab ?? 'oʻlchov yoʻq'}. «Qayta urinish» ni bosing.`,
       'tanlov', {
-        variantlar: yonalishlar.length ? yonalishlar.map((y) => ({ qiymat: y.categoryId, nom: y.name })) : [QAYTA_URINISH],
+        variantlar: yonalishlar.length
+          ? [...korsatilgan.map((y) => ({ qiymat: y.categoryId, nom: y.name })), ...(yanaBor ? [YANA_YONALISH] : [])]
+          : [QAYTA_URINISH],
+        erkin: yonalishlar.length > 0,
         otkazishMumkin: yonalishlar.length === 0,
       }) };
   }
@@ -1794,6 +1898,15 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
     }
     case 'tanlov': {
       const bor = s.variantlar.some((v) => String(v.qiymat) === String(xom));
+      // 2-qadam: tugma emas, oʻzi yozgan matn — tovar/yoʻnalish nomi boʻyicha
+      // qidiruv (savol boʻlsa `suhbat.ts` uni bu yerga yubormaydi — LLM javob beradi).
+      if (!bor && s.id === 'yonalish' && s.erkin && typeof xom === 'string' && xom.trim()) {
+        const t = xom.trim().slice(0, 60);
+        const oldingi = yonalishQidiruvi(h);
+        return { holat: { ...h, javoblar: { ...h.javoblar, yonalish_qidiruv: { soz: t, n: (oldingi?.n ?? 0) + 1 } } }, xato: null, profil: null };
+      }
+      // Yoʻnalish — faqat chatda koʻrsatilgan kartalardan (yoki qidiruv bilan topilgani).
+      if (!bor && s.id === 'yonalish') return { holat: h, xato: 'variantlardan birini tanlang', profil: null };
       if (!bor && !s.erkin) return { holat: h, xato: 'variantlardan birini tanlang', profil: null };
       if (!bor && s.id === 'uzum_dokoni') {
         const t = String(xom).trim();
@@ -1806,6 +1919,18 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
       break;
     }
     case 'kopTanlov': {
+      // Qiziqish: oʻzi yozgan boʻlsa ("kanstovar sotmoqchiman") — soha nomi va
+      // tovar soʻzlaridan (`soha.ts`). «Bilmayman» boshqalari bilan — tashlanadi.
+      if (s.id === 'qiziqish') {
+        const tanlov = typeof xom === 'string' && !QIZIQISH_TUGMALARI.some((v) => v.qiymat === xom)
+          ? sohaniTop(xom)
+          : (Array.isArray(xom) ? xom : [xom]).map(String).filter((x) => QIZIQISH_TUGMALARI.some((v) => v.qiymat === x));
+        if (!tanlov.length) {
+          return { holat: h, xato: 'Roʻyxatdan tanlang yoki soha nomini yozing — masalan: kanstovar, kiyim, kosmetika.', profil: null };
+        }
+        qiymat = tanlov.length > 1 ? tanlov.filter((x) => x !== BILMAYMAN) : tanlov;
+        break;
+      }
       const royxat = Array.isArray(xom) ? xom : [xom];
       const ruxsat = new Set(s.variantlar.map((v) => String(v.qiymat)));
       const tanlangan = royxat.filter((x) => ruxsat.has(String(x)));
@@ -1872,14 +1997,37 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
     return { holat: { javoblar: yangi, natijalar }, xato: null, profil: null };
   }
 
+  // «Yana koʻrsatish» — yoʻnalish tanlanmaydi, navbatdagi sahifa chiqadi.
+  if (s.id === 'yonalish' && qiymat === 'yana') {
+    const yangi = { ...h.javoblar, yonalish_sahifa: yonalishSahifasi(h) + 1 };
+    return { holat: { ...h, javoblar: yangi }, xato: null, profil: null };
+  }
+  // Qiziqish berildi — eski (qiziqishsiz) yoʻnalish roʻyxati, sahifalari va
+  // qidiruvi oʻchadi: `keyingi()` roʻyxatni yangidan hisoblaydi.
+  if (s.id === 'qiziqish') {
+    const yangi = { ...holat.javoblar };
+    delete yangi['yonalish_sahifa'];
+    delete yangi['yonalish_qidiruv'];
+    const natijalar = { ...holat.natijalar };
+    delete natijalar.yonalishlar;
+    delete natijalar.yonalish_yana;
+    delete natijalar.yonalish_qidiruv;
+    return { holat: { javoblar: yangi, natijalar }, xato: null, profil: null };
+  }
+
   // Boʻsh roʻyxat (2/3-qadam): «Qayta urinish» — natija oʻchadi, kod yana
   // hisoblaydi; «Boshqa yoʻnalish» — yoʻnalish tanlovi qayta ochiladi.
   if ((s.id === 'yonalish' || s.id === 'tovarlar') && (qiymat === 'qayta' || qiymat === 'boshqa')) {
     const yangi = { ...holat.javoblar };
     delete yangi[s.id];
     const natijalar = { ...holat.natijalar };
-    if (s.id === 'yonalish') delete natijalar.yonalishlar;
-    else {
+    if (s.id === 'yonalish') {
+      delete natijalar.yonalishlar;
+      delete natijalar.yonalish_yana;
+      delete natijalar.yonalish_qidiruv;
+      delete yangi['yonalish_sahifa'];
+      delete yangi['yonalish_qidiruv'];
+    } else {
       delete natijalar.tovarlar;
       if (qiymat === 'boshqa') delete yangi['yonalish'];
     }
@@ -2035,7 +2183,9 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     if (n.olchov_yoq || !n.royxat?.length) {
       return `Yoʻnalishlarni hozir hisoblab bera olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Bu "sizga mos yoʻnalish yoʻq" degani emas — hisob hali yoʻq.`;
     }
-    const eng = n.royxat[0]!;
+    // Aralash roʻyxatda (qiziqish + boshqa sohalar) birinchisi eng yuqori balli
+    // boʻlishi shart emas — "eng yuqorisi" koʻrsatilganlar ichidan.
+    const eng = [...n.royxat].sort((a, b) => (b.ball?.value ?? 0) - (a.ball?.value ?? 0))[0]!;
     const yetadi = n.royxat.filter((y) => y.yetadi === true).length;
     // `false` — byudjet MAʼLUM va yetmaydi; `null` — bilmaymiz. Ikkisi bitta
     // "hali aytib boʻlmaydi" boʻlib qolmaydi (QOIDALAR.md, 4-boʻlim).
@@ -2051,11 +2201,42 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
         : yetmaydi
           ? `Pulingiz ${yetmaydi} tasiga yetmasligi mumkin, qolganlari uchun hali aytib boʻlmaydi.`
           : 'Qancha pul ketishi tovar tanlangach aniq boʻladi.';
-    return `Uzumda hozir nima yaxshi sotilayotganini tekshirdim — sizga ${n.royxat.length} ta yoʻnalish. `
+    // Qiziqish (2026-10-13): nechtasi tanlagan sohasidan, nechtasi boshqasidan —
+    // mijoz "faqat shularni sotsam boʻlarkan" deb oʻylamasin.
+    const qiziq = n.qiziqishlar ?? [];
+    const qiziqSoni = n.royxat.filter((y) => y.soha !== undefined && qiziq.includes(y.soha)).length;
+    const nomlar = qiziq.map(sohaNomi).join(', ');
+    const kimga = !qiziq.length
+      ? `Hamma sohadan ${n.royxat.length} ta yoʻnalish — har biri boshqa sohadan.`
+      : qiziqSoni
+        ? `Siz tanlagan ${qiziq.length > 1 ? 'sohalar' : 'soha'} (${nomlar}) boʻyicha ${qiziqSoni} ta${n.royxat.length > qiziqSoni ? ` va boshqa sohalardan ${n.royxat.length - qiziqSoni} ta` : ''} yoʻnalish.`
+        : `Siz tanlagan sohada (${nomlar}) hozir kuzatayotgan yoʻnalishimiz yoʻq — boshqa sohalardan ${n.royxat.length} ta yoʻnalish.`;
+    const yana = (n.keyingilar?.length ?? 0) > 0;
+    return `Uzumda nima yaxshi sotilayotganini tekshirdim. ${kimga} `
       + 'Har biriga 100 ballik «imkoniyat bahosi» berdim: xaridor qanchalik koʻp va bozorda yangi sotuvchiga joy bormi. '
-      + `Baho qancha yuqori — boshlash shuncha osonroq. Eng yaxshisi — «${eng.name}»${ball !== null ? ` (${Math.round(ball)} ball)` : ''}. `
+      + `Baho qancha yuqori — boshlash shuncha osonroq. Eng yuqorisi — «${eng.name}»${ball !== null ? ` (${Math.round(ball)} ball)` : ''}. `
       + pul
-      + ' Tanlov sizniki.';
+      + `\n\nBu faqat boshlangʻich taklif: Uzumdagi ${n.nomzod_soni ? `${n.nomzod_soni} ta` : 'koʻplab'} yoʻnalishni kuzatyapman. `
+      + (yana ? 'Boshqalarini «Yana koʻrsatish» bilan koʻring yoki' : 'Boshqasini qidirish uchun')
+      + ' pastga tovar nomini yozing. Tanlov sizniki.';
+  }
+  if (harakat === 'yonalish_yana') {
+    const n = natija as YonalishYanaNatijasi;
+    if (!n.royxat?.length) return 'Boshqa taklif qolmadi — pastga tovar nomini yozib qidirishingiz mumkin.';
+    return `Yana ${n.royxat.length} ta yoʻnalish.`
+      + (n.qolgan ? '' : ' Takliflar shu — boshqasini pastga tovar nomini yozib qidiring.');
+  }
+  if (harakat === 'yonalish_qidiruv') {
+    const n = natija as YonalishQidiruvNatijasi;
+    if (n.olchov_yoq) return `Qidira olmadim: ${n.sabab ?? 'oʻlchov yoʻq'}. Roʻyxatdan tanlang yoki birozdan keyin qayta yozing.`;
+    if (!n.royxat?.length) {
+      return `«${n.soz}» boʻyicha kuzatayotgan ${n.nomzod_soni ? `${n.nomzod_soni} ta ` : ''}yoʻnalishimizdan mosi topilmadi. `
+        + 'Boshqa soʻz bilan yozing (masalan: ruchka, atir, oʻyinchoq) yoki roʻyxatdan tanlang.';
+    }
+    const jami = n.topildi ?? n.royxat.length;
+    return jami > n.royxat.length
+      ? `«${n.soz}» boʻyicha ${jami} ta yoʻnalish topdim — eng yuqori baholi ${n.royxat.length} tasi:`
+      : `«${n.soz}» boʻyicha ${n.royxat.length} ta yoʻnalish topdim:`;
   }
   if (harakat === 'tovarlar') {
     const n = natija as TovarlarNatijasi;

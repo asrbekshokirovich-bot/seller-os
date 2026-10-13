@@ -87,7 +87,11 @@ import {
   xitoyQidiruvniBoshla,
   xitoyQidiruvniTekshir,
   XITOY_LIMIT,
+  yonalishBaholari,
   yonalishlar,
+  qidiruvMos,
+  sohaniTop,
+  BILMAYMAN,
   type NomzodJavobi,
   type ObunaXom,
   type ProfilJavoblari,
@@ -284,7 +288,8 @@ export function suhbatKodHarakatlari(
         city: null, onlineExperience: null, hasUzumShop: profil.hasUzumShop ?? null,
         importedFromChina: null, certExperience: null, riskPreference: null,
       };
-      const n = yonalishlar(kesh.royxat, toliq.budgetUzs, sohalar(toliq), hozirgiOy());
+      // Qiziqish (1-qadam, 2026-10-13) — roʻyxat aralashmasi uchun; ballga taʼsir qilmaydi.
+      const n = yonalishlar(kesh.royxat, toliq.budgetUzs, sohalar(toliq), hozirgiOy(), profil.interest ?? null);
       return {
         olchov_yoq: false,
         nomzod_soni: kesh.royxat.length,
@@ -293,6 +298,26 @@ export function suhbatKodHarakatlari(
         kesh_eskirgan: kesh.yoshi_soat !== null && kesh.yoshi_soat > KESH_ESKI_SOAT,
         ...n,
       };
+    },
+
+    /**
+     * 2-qadam qidiruvi (nazoratchi, 2026-10-13: mijoz "faqat shularni sotsam
+     * boʻlarkan" deb oʻylamasin — istalgan tovar nomini yozib topsin). Soʻz
+     * turkum nomiga (`qidiruvMos`) yoki soha nomiga ("kanstovar", "kosmetika"
+     * — `sohaniTop`) mos kelsa; eng yuqori baholi 6 tasi. `soz` va `n` har
+     * doim qaytadi — `keyingi()` qidiruv bajarilganini shundan biladi.
+     */
+    async yonalishQidiruv(soz: string, n: number, profil: Partial<ProfilJavoblari>) {
+      const kesh = await rpc<NomzodJavobi>('so_yonalish_nomzodlari', {});
+      if (kesh === null) return { soz, n, olchov_yoq: true, sabab: 'baza javob bermadi' };
+      if (!kesh.royxat.length) return { soz, n, olchov_yoq: true, sabab: 'nomzodlar hali hisoblanmadi' };
+      const { baholangan } = yonalishBaholari(kesh.royxat, profil.budgetUzs ?? null, null, hozirgiOy());
+      // Avval nomi boʻyicha ("ruchka" → «Ruchkalar»); nomda yoʻq boʻlsa — soha
+      // boʻyicha ("kanstovar" → shu sohaning hammasi, bali boʻyicha).
+      const nomBoyicha = baholangan.filter((y) => qidiruvMos(soz, y.name));
+      const sohalari = sohaniTop(soz).filter((x) => x !== BILMAYMAN) as string[];
+      const mos = nomBoyicha.length ? nomBoyicha : baholangan.filter((y) => sohalari.includes(y.soha));
+      return { soz, n, olchov_yoq: false, nomzod_soni: kesh.royxat.length, topildi: mos.length, royxat: mos.slice(0, 6) };
     },
 
     async tovarlar(categoryId: number) {
