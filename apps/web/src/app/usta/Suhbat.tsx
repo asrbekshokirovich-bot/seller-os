@@ -2424,7 +2424,7 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
         maxLength={500}
         autoComplete={savol.id === 'ism' ? 'name' : savol.id === 'telefon' ? 'tel' : 'off'}
         aria-label={savol.matn}
-        placeholder={savol.id === 'ism' ? tr('Ism va familiya — masalan: Aziz Karimov', 'Имя и фамилия — например: Азиз Каримов')
+        placeholder={savol.id === 'ism' ? tr('Ism, familiya va telefon — masalan: Aziz Karimov, +998 90 123 45 67', 'Имя, фамилия и телефон — например: Азиз Каримов, +998 90 123 45 67')
           : savol.id === 'telefon' ? '+998 90 123 45 67'
             : savol.id === 'byudjet' ? tr('Oʻzim yozaman: masalan, 70 mln yoki 5000 $', 'Своя сумма: например, 70 млн или 5000 $')
               // 2-qadam: pastga yozilgan tovar nomi — qidiruv (2026-10-13).

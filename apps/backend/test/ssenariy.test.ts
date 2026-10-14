@@ -187,11 +187,43 @@ function byudjetgacha(tajriba: unknown = 'yoq'): YolHolati {
 }
 
 describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
-  it('birinchi savol — ism va familiya: matn, 1-qadam, oʻtkazib boʻlmaydi', () => {
+  it('birinchi savol — ism, familiya va telefon (nazoratchi, 2026-10-14): matn, 1-qadam, oʻtkazib boʻlmaydi', () => {
     const k = keyingi(boshlangichHolat());
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol).toMatchObject({ id: 'ism', qadam: 1, turi: 'matn', otkazishMumkin: false });
-    expect(k.savol.matn).toMatch(/ismingiz va familiyangiz\?$/);
+    expect(k.savol.matn).toMatch(/ismingiz, familiyangiz va telefon raqamingizni yozing — masalan: Aziz Karimov, \+998 90 123 45 67\. Raqam faqat siz bilan bogʻlanish uchun/);
+  });
+
+  it('ism va telefon bitta javobda — ikkalasi yoziladi, telefon savoli soʻralmaydi', () => {
+    for (const yozdi of ['Aziz Karimov, +998 90 123 45 67', 'aziz karimov 901234567', 'Aziz Karimov tel: 8 (90) 123-45-67', '+998901234567 Aziz Karimov']) {
+      const n = javobniQabulQil(boshlangichHolat(), 'ism', yozdi);
+      expect(n.xato, yozdi).toBeNull();
+      expect(n.holat.javoblar).toEqual({ ism: 'Aziz Karimov', telefon: '+998901234567' });
+      expect(n.profil).toEqual({ fullName: 'Aziz Karimov', phone: '+998901234567' });
+      expect(savolId(n.holat)).toBe('uzum_dokoni');
+    }
+  });
+
+  it('faqat telefon yozsa — u yoziladi, ism qayta soʻraladi (salomsiz); keyin ism — tajribaga oʻtadi', () => {
+    const n = javobniQabulQil(boshlangichHolat(), 'ism', '+998 90 123 45 67');
+    expect(n.xato).toBeNull();
+    expect(n.holat.javoblar).toEqual({ telefon: '+998901234567' });
+    expect(n.profil).toEqual({ phone: '+998901234567' });
+    const k = keyingi(n.holat);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('ism');
+    expect(k.savol.matn).toMatch(/^Rahmat, raqamingizni yozib oldim\. Endi ismingiz va familiyangizni yozing/);
+    const h = javob(n.holat, 'ism', 'Aziz Karimov');
+    expect(h.javoblar).toEqual({ telefon: '+998901234567', ism: 'Aziz Karimov' });
+    expect(savolId(h)).toBe('uzum_dokoni');
+  });
+
+  it('ism+telefon javobida xato: telefon chala yoki ism bitta soʻz — sababi va namunasi bilan', () => {
+    const xato = (m: string) => javobniQabulQil(boshlangichHolat(), 'ism', m).xato;
+    expect(xato('Aziz Karimov 12345')).toBe('Telefon raqamni toʻliq yozing — masalan: Aziz Karimov, +998 90 123 45 67.');
+    expect(xato('Aziz Karimov 1234567')).toMatch(/^Telefon raqamni toʻliq yozing/);
+    expect(xato('Aziz 901234567')).toBe('Ism va familiyangizni birga yozing — masalan: Aziz Karimov, +998 90 123 45 67.');
+    expect(xato('tel')).toMatch(/^Ism, familiya va telefon raqamingizni yozing/);
   });
 
   it('birinchi gap (nazoratchi, 2026-10-12): "yordamchi", menejer emas; sodda — butun yoʻlda yordam; vaʼda yoʻq', () => {

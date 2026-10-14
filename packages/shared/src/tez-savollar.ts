@@ -27,6 +27,8 @@ export const TEZ_SAVOLLAR: Readonly<Record<string, readonly TezSavol[]>> = {
   ism: [
     { uz: 'ZumSavdo nima qiladi?', ru: 'Что делает ZumSavdo?' },
     { uz: 'Bu bepulmi?', ru: 'Это бесплатно?' },
+    // Birinchi savol telefonni ham soʻraydi (2026-10-14).
+    { uz: 'Raqamim nima uchun kerak?', ru: 'Зачем нужен мой номер?' },
     { uz: 'Misol bilan tushuntirasizmi?', ru: 'Объясните на примере?' },
   ],
   telefon: [

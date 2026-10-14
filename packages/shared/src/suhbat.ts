@@ -288,6 +288,7 @@ export async function suhbatTurn(
     if (q === null || q.xato) {
       return { xato: q?.xato ?? 'javob qabul qilinmadi', xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false };
     }
+    const oldin = holat;
     holat = q.holat;
     profil = q.profil;
     // Ayrim javoblar yoʻlni qayta ochadi («Yangilash», «Qayta qidir», «Boshlaymiz»
@@ -314,9 +315,12 @@ export async function suhbatTurn(
           ? byudjetMatni(yozilgan as number, usd)
           : savolId === 'telefon' && typeof yozilgan === 'string'
             ? telefonKorinishi(yozilgan)
-            : javobMatni(k0.savol.variantlar, yozilgan),
+            // Birinchi savol: shu javobda nima berilgan boʻlsa — "Aziz Karimov, +998 90 123 45 67".
+            : savolId === 'ism'
+              ? ismTelefonMatni(oldin, holat)
+              : javobMatni(k0.savol.variantlar, yozilgan),
       savolId,
-      javob: yozilgan ?? null,
+      javob: savolId === 'ism' ? (holat.javoblar['ism'] ?? null) : (yozilgan ?? null),
     });
     if (byudjetGapi) {
       yangi.push({ rol: 'menejer', matn: `Tushunarli — ${byudjetMatni(yozilgan as number, usd)} bilan boshlaymiz.` });
@@ -771,6 +775,16 @@ async function erkinXabar(
   });
   const yozildi = y !== null && !y.xato;
   return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
+}
+
+/** Birinchi savol javobi chatda: shu turnda yozilgan ism va/yoki telefon. */
+function ismTelefonMatni(oldin: YolHolati, h: YolHolati): string {
+  const ism = h.javoblar['ism'];
+  const telefon = h.javoblar['telefon'];
+  return [
+    typeof ism === 'string' && ism !== oldin.javoblar['ism'] ? ism : null,
+    typeof telefon === 'string' && telefon !== oldin.javoblar['telefon'] ? telefonKorinishi(telefon) : null,
+  ].filter(Boolean).join(', ');
 }
 
 function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, q: unknown): string {
