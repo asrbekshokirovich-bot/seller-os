@@ -33,6 +33,8 @@ export * from './filtrlar/mavsum.ts';
 export * from './filtrlar/hype.ts';
 export * from './tarif.ts';
 export * from './tolov.ts';
+export * from './tolov-payme.ts';
+export * from './tolov-click.ts';
 export * from './kpi.ts';
 export * from './tannarx.ts';
 export * from './xatolik.ts';

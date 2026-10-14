@@ -58,6 +58,10 @@ import {
   darvozaHolati,
   OBUNA_NARXI,
   SUHBAT_QADAMLARI,
+  clickIshla,
+  paymeIshla,
+  tolovniBoshla,
+  tolovSozlamasi,
   sohalar,
   tovarlar,
   yonalishlar,
@@ -185,6 +189,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         tarifCheklovi: tarifCheklovi(),
         // LLM kaliti bormi (qiymati emas) — "LLM ishlayaptimi?" ni tashqaridan bilish uchun.
         llm: Boolean(Deno.env.get('GEMINI_API_KEY')),
+        // Payme/Click sozlanganmi (kalitlar emas, faqat bor-yoʻqligi) — 0067.
+        tolov: tolovHolati(),
       },
     });
   }
@@ -595,6 +601,30 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     });
   }
 
+  /*
+   * Obuna toʻlovi (0067; nazoratchi 2026-10-14: 149 000 soʻm/oy, faqat Payme/Click).
+   * `/tolov/boshla` — sessiya egasiga buyurtma va provayder sahifasi manzili.
+   * `/tolov/payme` va `/tolov/click` — provayderlar chaqiradi, sayt (`/api/tolov/*`) orqali:
+   * Edge Function JWT bilan yopiq. Payme kaliti va Click imzosi shu yerda tekshiriladi;
+   * summa — bazadagi buyurtma bilan. Javob DOIM 200 (ikkala protokol talabi).
+   */
+  if (yol === '/tolov/boshla' && req.method === 'POST') {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+    const r = await tolovniBoshla(rpc, token, tana.provayder, tolovSozlamasi((k) => Deno.env.get(k)));
+    return javob(r.tana, r.status);
+  }
+  if (yol === '/tolov/payme' && req.method === 'POST') {
+    const s = tolovSozlamasi((k) => Deno.env.get(k));
+    return javob(await paymeIshla(rpc, req.headers.get('x-payme-auth'), await req.text(), { kalit: s.payme.kalit, chek: s.payme.chek }));
+  }
+  if (yol === '/tolov/click' && req.method === 'POST') {
+    const s = tolovSozlamasi((k) => Deno.env.get(k));
+    return javob(await clickIshla(rpc, new URLSearchParams(await req.text()), { xizmatId: s.click.xizmatId, maxfiyKalit: s.click.maxfiyKalit }));
+  }
+
   // KPI paneli — reja, 8-boʻlim. Oʻlchanmagan KPI NOL EMAS:
   // har qatorda `qiymat: null` va sabab turadi.
   if (yol === '/kpi') {
@@ -873,6 +903,16 @@ function raqam(q: unknown): number | null {
  */
 function tarifCheklovi(): boolean {
   return Deno.env.get('TARIF_CHEKLOVI') === '1';
+}
+
+/** Payme/Click sozlanganmi — `/health` uchun (kalitlarning oʻzi chiqmaydi). */
+function tolovHolati(): { jonli: boolean; payme: boolean; click: boolean } {
+  const s = tolovSozlamasi((k) => Deno.env.get(k));
+  return {
+    jonli: s.jonli,
+    payme: s.payme.merchantId !== null && s.payme.kalit !== null,
+    click: s.click.xizmatId !== null && s.click.merchantId !== null && s.click.maxfiyKalit !== null,
+  };
 }
 
 /** Sessiya tokenidan amaldagi rejani chiqaradi. */

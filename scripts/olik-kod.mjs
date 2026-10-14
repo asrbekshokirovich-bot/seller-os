@@ -51,7 +51,7 @@ const ISTISNO = new Map([
   ['paymeSubscribeYechish', 'B3: Payme Subscribe avtomatik yechish — merchant key kelgach ulanadi'],
   ['paymeHmac', 'B3: baʼzi Payme endpointlari uchun — merchant key kelgach ulanadi'],
   ['YILLIK_TEJASH_OY', 'B5: yillik tarif — frontend da tejash koʻrsatish uchun'],
-  ['obunaMuddati', 'B5: yillik muddat hisoblash — so_tolov_webhook da SQL bilan ishlaydi'],
+  ['obunaMuddati', 'B5: yillik muddat hisoblash — yillik tarif hozir sotilmaydi (2026-10-14), toʻlov 0067 da 30 kun'],
 ]);
 
 /** Test fayli — ham taʼrif, ham murojaat sifatida chetda qoladi. */

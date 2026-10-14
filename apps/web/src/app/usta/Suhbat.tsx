@@ -37,6 +37,7 @@ import { faylBolagi, zipYasa } from '@/lib/zip';
 import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
+import { tolovgaOt, useObunaHolati } from './obunaHolati';
 import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 
@@ -348,19 +349,9 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     if (qiymat !== 'payme' && qiymat !== 'click') return;
     bandQil(true); setXato(null);
     try {
-      const r = await fetch('/api/tolov/boshla', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
-        body: JSON.stringify({ provayder: qiymat }),
-      });
-      const d = (await r.json().catch(() => null)) as { checkoutUrl?: unknown } | null;
-      if (r.ok && typeof d?.checkoutUrl === 'string' && /^https:\/\//u.test(d.checkoutUrl)) {
-        window.location.assign(d.checkoutUrl);
-        return;
-      }
-      setXato(tr('Toʻlov hozircha ishlamayapti — birozdan keyin urinib koʻring.', 'Оплата пока не работает — попробуйте чуть позже.'));
-    } catch {
-      setXato(XATO.tarmoq);
+      const sabab = await tolovgaOt(qiymat, sessiyaSarlavhasi());
+      if (sabab === 'tarmoq') setXato(XATO.tarmoq);
+      else if (sabab !== null) setXato(tr('Toʻlov hozircha ishlamayapti — birozdan keyin urinib koʻring.', 'Оплата пока не работает — попробуйте чуть позже.'));
     } finally {
       bandQil(false);
     }
@@ -606,7 +597,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       )}
 
       <div className={u.asosiy} inert={modal}>
-        {obunaOchiq && <Obuna tr={tr} mavzu={mavzu} mavzuniTanla={mavzuniTanla} orqaga={() => yop('obuna')} />}
+        {obunaOchiq && <Obuna tr={tr} mavzu={mavzu} mavzuniTanla={mavzuniTanla} orqaga={() => yop('obuna')} sarlavha={sessiyaSarlavhasi} />}
         <header className={u.tepa} style={yashir}>
           <div className={u.tepaChap}>
             <button type="button" className={u.burger} aria-label={tr('Menyu', 'Меню')} aria-expanded={menyu} onClick={menyuOch}>
@@ -2567,6 +2558,9 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, ob
   const tr = tarjima(til);
   const panel = useRef<HTMLDivElement>(null);
   useModalFokus(panel);
+  // Joriy reja va Payme/Click ulanganmi — serverdan (toʻlagandan keyin «Bepul — joriy» turib qolmasin).
+  const obunaHolati = useObunaHolati(sessiyaSarlavhasi);
+  const tolovBor = obunaHolati.ulangan !== null && (obunaHolati.ulangan.payme || obunaHolati.ulangan.click);
   // Bitta pullik reja (nazoratchi, 2026-10-14): «Obuna» — 149 000 soʻm/oy, 6–12-qadamlar.
   const rejalar: ReadonlyArray<{ reja: Reja; nom: string }> = [
     { reja: 'bepul', nom: tr('Bepul', 'Бесплатный') },
@@ -2604,13 +2598,15 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, ob
             <div className={u.rejalar}>
               {rejalar.map((r) => {
                 const narx = TARIF_NARXI[r.reja] ?? null;
-                const joriy = r.reja === 'bepul';
+                const joriy = r.reja === (obunaHolati.joriy === 'bepul' ? 'bepul' : 'pro');
                 const qadam = REJA_QADAMI[r.reja];
                 return (
                   <div key={r.reja} className={`${u.reja} ${joriy ? u.rejaJoriy : ''}`}>
                     <div className={u.rejaBosh}>
                       <span className={u.rejaNomi}>{r.nom}</span>
-                      {joriy ? <span className={u.teg}>{tr('joriy', 'текущий')}</span> : <span className={`${u.teg} ${u.tegNeytral}`}>{tr('tez orada', 'скоро')}</span>}
+                      {joriy
+                        ? <span className={u.teg}>{tr('joriy', 'текущий')}</span>
+                        : !tolovBor ? <span className={`${u.teg} ${u.tegNeytral}`}>{tr('tez orada', 'скоро')}</span> : null}
                     </div>
                     <div className={u.rejaNarx}>
                       <span className={u.rejaSon}>{narx === null ? '0' : son(narx)}</span>
@@ -2621,10 +2617,12 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, ob
                 );
               })}
             </div>
-            <div className={u.tolovIzoh}>
-              <Ikon nom="qulf" o={15} />
-              {tr('Toʻlov (Payme, Click) hali ulanmagan — pullik rejaga hozircha oʻtib boʻlmaydi.', 'Оплата (Payme, Click) ещё не подключена — перейти на платный тариф пока нельзя.')}
-            </div>
+            {!tolovBor && (
+              <div className={u.tolovIzoh}>
+                <Ikon nom="qulf" o={15} />
+                {tr('Toʻlov (Payme, Click) hali ulanmagan — pullik rejaga hozircha oʻtib boʻlmaydi.', 'Оплата (Payme, Click) ещё не подключена — перейти на платный тариф пока нельзя.')}
+              </div>
+            )}
           </section>
           <div className={u.panelChiziq} />
           <section className={u.sozlamalar}>
