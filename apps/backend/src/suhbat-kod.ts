@@ -703,7 +703,7 @@ export function suhbatKodHarakatlari(
         const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...RASMIY_KALITLARI] });
         if (xom === null) return null;
         const f = rasmiyFaktlari(faktlarniOqi(xom));
-        return niyat.tur === 'soliq' ? soliqMatni(f) : bankMatni(f);
+        return niyat.tur === 'soliq' ? soliqMatni(f) : bankMatni(f, niyat);
       }
       const kesh = await rpc<NomzodJavobi>('so_yonalish_nomzodlari', {});
       if (!kesh?.royxat?.length) return null;

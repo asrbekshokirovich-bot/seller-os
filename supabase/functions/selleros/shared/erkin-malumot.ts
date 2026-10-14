@@ -33,10 +33,14 @@ export interface MalumotNiyati {
   sohalar: SohaId[];
   /** Tovar soʻzlari ("krossovka", "ruchka") — turkum nomlari bilan solishtiriladi (`qidiruvMos`). */
   sozlar: string[];
+  /** Savol matni (normlangan) — nomi aytilgan bankni topish uchun (`bankMatni`). */
+  matn: string;
 }
 
 const SOLIQ = /soli[qg]|налог/u;
-const BANK = /(?<!\p{L})bank|hisob ?raqam|банк|расч[её]тн/u;
+// Bank nomi ham: «Kapitalbankda…», «Hamkorbankda…», «TBCda…» — jonli (2026-10-14) bular
+// "aniq javob bera olmayman" olardi. «banka» (idish) — bank emas.
+const BANK = /bank(?!a)|(?<!\p{L})tbc|hisob ?raqam|hisob(?:ni)? och|банк|расч[её]тн/u;
 const TOP = /eng ko'p (nima |qaysi tovar |qanday tovar )?(sotil|sotad|xarid|olin)|ko'p sotiladigan|nima ko'p sotil|eng (ko'p |yaxshi )?sotilayotgan|ommabop|xit tovar|самы[ейх] продаваем|что (больше|чаще) всего (прода|покупа)|популярн/u;
 const RAQOBAT = /raqobat|konkurent|конкурен/u;
 const TAVSIYA = /nima sotsam|nimani sotsam|nima sotay|qaysi (tovar|yo'nalish|soha)(ni|da)? (sotsam|tanlasam|tanlay|boshla)|qaysi (yo'nalish|soha|tovar) (yaxshi|foydali|oson)|nimadan boshlasam|что (лучше )?продавать|какой товар (выбрать|лучше)/u;
@@ -73,7 +77,7 @@ export function malumotNiyati(matn: string): MalumotNiyati | null {
   if (!t) return null;
   const sohalar = sohaniTop(t).filter((x): x is SohaId => x !== BILMAYMAN);
   const sozlar = tovarSozlari(t);
-  const niyat = (tur: MalumotTuri): MalumotNiyati => ({ tur, sohalar, sozlar });
+  const niyat = (tur: MalumotTuri): MalumotNiyati => ({ tur, sohalar, sozlar, matn: t });
   if (SOLIQ.test(t)) return niyat('soliq');
   if (BANK.test(t)) return niyat('bank');
   if (TOP.test(t)) return niyat('top');
@@ -151,18 +155,63 @@ function bankSatri(b: BankQatori): string {
   return `${b.nom}${qism.length ? `: ${qism.join('; ')}` : ''}`;
 }
 
-/** «Bank hisob raqami kerakmi?» — Uzum qoidasi va 7-qadamdagi bank roʻyxati. Roʻyxat yoʻq — `null`. */
-export function bankMatni(f: RasmiyFaktlar): string | null {
+/** Bank nomining kaliti: birinchi soʻz, faqat harflar («Kapitalbank (Uzum…)» → "kapitalbank", «TBC Bank» → "tbc"). */
+function bankKaliti(nom: string): string | null {
+  const k = normla(nom).split(/[^\p{L}]+/u).find(Boolean) ?? '';
+  return k.length >= 3 ? k : null;
+}
+
+/**
+ * Savolda nomi aytilgan banklar: soʻz (yoki yonma-yon ikki soʻz — «Anor bankda»)
+ * kalit bilan boshlanadi: «hamkorbankda» → Hamkorbank.
+ */
+function aytilganBanklar(banklar: readonly BankQatori[], matn: string): BankQatori[] {
+  const s = normla(matn).split(/[^\p{L}]+/u).filter(Boolean);
+  const nomzod = [...s, ...s.slice(1).map((x, i) => s[i] + x)];
+  return banklar.filter((b) => {
+    const k = bankKaliti(b.nom);
+    return k !== null && nomzod.some((x) => x.startsWith(k));
+  });
+}
+
+/** Bitta bank — toʻliq: ochish usuli, narxi, izohning hammasi, manbasi. */
+function bankBatafsil(b: BankQatori): string {
+  const usul = b.onlayn === true ? 'onlayn ochiladi' : b.onlayn === false ? 'ofisga borib ochiladi' : null;
+  const ochish = b.ochishSom === 0 ? 'ochish bepul' : b.ochishSom !== null ? `ochish ${minglik(b.ochishSom)} soʻm` : null;
+  const bosh = [usul, ochish].filter(Boolean).join(', ');
+  const oylik = b.oylikSom === 0 ? 'Oylik xizmat bepul.' : b.oylikSom !== null ? `Oylik xizmat — ${minglik(b.oylikSom)} soʻm.` : null;
+  return [
+    `${b.nom}${bosh ? ` — ${bosh}` : ''}:`,
+    izohTozala(b.izoh) ?? oylik,
+    b.manba ? `Manba: ${b.manba}.` : null,
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * «Bank hisob raqami kerakmi?» — Uzum qoidasi va 7-qadamdagi bank roʻyxati. Roʻyxat yoʻq — `null`.
+ * Savolda bank nomi boʻlsa («Hamkorbankda ofisga borish shartmi?») — oʻsha bank toʻliq,
+ * qolganlari nomi bilan (2026-10-14: nazoratchi "mijoz oʻzi xohlagan bankni tanlaydi").
+ */
+export function bankMatni(f: RasmiyFaktlar, niyat?: Pick<MalumotNiyati, 'matn'>): string | null {
   const b = f.banklar;
   if (!b.length) return null;
   const bepul = b.every((x) => x.ochishSom === 0);
   const sana = b.map((x) => x.olchandi).filter((x): x is string => x !== null).sort().at(-1) ?? null;
+  const ogoh = sana ? `Tariflar ${sanaMatni(sana)} da bank saytlaridan olingan — oʻzgargan boʻlishi mumkin, ochishdan oldin bankdan soʻrang.` : null;
+  const aytilgan = niyat ? aytilganBanklar(b, niyat.matn) : [];
+  if (aytilgan.length) {
+    const boshqa = b.filter((x) => !aytilgan.includes(x)).map((x) => x.nom);
+    return xatboshilar([
+      ...aytilgan.map(bankBatafsil),
+      [ogoh, boshqa.length ? `Boshqa banklar ham bor: ${boshqa.join(', ')} — solishtirish uchun «Qaysi bankda hisob ochay?» deb soʻrang; tanlov sizniki.` : null]
+        .filter(Boolean).join(' '),
+    ]);
+  }
   return xatboshilar([
     ['Ha, bank hisob raqami kerak: Uzum pulni faqat oʻz nomingizdagi biznes hisob raqamiga oʻtkazadi — shaxsiy karta boʻlmaydi.',
       ...uzumFakti('To‘lovlar', /hisob raqam/u)].join(' '),
     `Taqqoslangan banklar${bepul ? ' (hammasida hisob ochish bepul)' : ''}:\n${qatorlar(b.map(bankSatri))}`,
-    [sana ? `Tariflar ${sanaMatni(sana)} da bank saytlaridan olingan — oʻzgargan boʻlishi mumkin, ochishdan oldin bankdan soʻrang.` : null,
-      '7-qadamda (Rasmiylashtirish) jadvalini toʻliq koʻrsataman; qaysi bank — tanlov sizniki.'].filter(Boolean).join(' '),
+    [ogoh, '7-qadamda (Rasmiylashtirish) jadvalini toʻliq koʻrsataman; qaysi bank — tanlov sizniki.'].filter(Boolean).join(' '),
   ]);
 }
 
