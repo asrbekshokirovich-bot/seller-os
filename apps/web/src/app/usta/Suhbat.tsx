@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja } from '@selleros/shared';
+import { izohTozala, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -1485,7 +1485,8 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
             <div className={u.kartaSarlavha}>{tr('2. Biznes hisob raqami', '2. Расчётный счёт')}</div>
             {f.banklar.length === 0 ? <p className={u.kichikIzoh}>{tr('Bank roʻyxati faktda yoʻq.', 'Список банков не заполнен.')}</p> : f.banklar.map((b) => (
               <div key={b.nom} className={u.statlar}>
-                <Stat nom={b.nom} q={b.onlayn === true ? tr('onlayn', 'онлайн') : b.onlayn === false ? tr('ofisda', 'в офисе') : '—'} izoh={b.izoh ?? undefined} />
+                {/* Eski saqlangan natijada izoh «[TASDIQ]» bilan qolgan boʻlishi mumkin — mijozga belgisiz. */}
+                <Stat nom={b.nom} q={b.onlayn === true ? tr('onlayn', 'онлайн') : b.onlayn === false ? tr('ofisda', 'в офисе') : '—'} izoh={izohTozala(b.izoh) ?? undefined} />
                 <Stat nom={tr('Ochish', 'Открытие')} q={bepulYoki(b.ochishSom)} />
                 <Stat nom={tr('Oylik', 'В месяц')} q={bepulYoki(b.oylikSom)} izoh={b.olchandi ?? undefined} />
               </div>

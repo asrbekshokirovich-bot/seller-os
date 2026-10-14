@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { bankRoyxati, faktlarniOqi, oylikSoliq, RASMIY_KALITLARI, rasmiyFaktlari } from '@selleros/shared';
+import { bankRoyxati, faktlarniOqi, izohTozala, oylikSoliq, RASMIY_KALITLARI, rasmiyFaktlari } from '@selleros/shared';
 
 const Q = (qiymat: unknown, manba = 'manba', olchandi = '2026-09-28') => ({ qiymat, birlik: null, manba, olchandi, izoh: null });
 
@@ -98,6 +98,34 @@ describe('bankRoyxati', () => {
     const r = bankRoyxati([{ nom: 'A', ochish_som: -5, oylik_som: '10' }, { onlayn: true }, 7, null, { nom: ' ' }], umumiy);
     expect(r.tashlandi).toBe(4);
     expect(r.banklar).toEqual([{ nom: 'A', onlayn: null, ochishSom: null, oylikSom: null, izoh: null, manba: 'M', olchandi: '2026-09-28' }]);
+  });
+
+  it('izoh mijozga «[TASDIQ]» belgisiz chiqadi (2026-10-14: 7-qadam bank kartasida koʻrinardi)', () => {
+    // 0057 seed dagi ikkala izoh aynan shunday.
+    const r = bankRoyxati([
+      { nom: 'Kapitalbank', izoh: '3 oy bepul, keyin paket (Start/Pro Business — narxi PDF, [TASDIQ]); aksiyada boshqa bankka 0,1 %. Uzum guruhi banki. Toshkent.' },
+      { nom: 'Hamkorbank', izoh: 'ILK QADAM — 220 000/oy (aylanma 15 mln gacha); hujjat ofisda [TASDIQ]; naqd 1 %.' },
+    ], { manba: null, olchandi: null });
+    expect(r.banklar.map((b) => b.izoh)).toEqual([
+      '3 oy bepul, keyin paket; aksiyada boshqa bankka 0,1 %. Uzum guruhi banki. Toshkent.',
+      'ILK QADAM — 220 000/oy (aylanma 15 mln gacha); hujjat ofisda; naqd 1 %.',
+    ]);
+  });
+});
+
+describe('izohTozala', () => {
+  it('belgi, uning qavsi va qolgan ortiqcha boʻshliq olinadi; oddiy matn oʻzgarmaydi', () => {
+    expect(izohTozala('[TASDIQ] Onlayn ariza — 0,9 BHM.')).toBe('Onlayn ariza — 0,9 BHM.');
+    expect(izohTozala('A (narxi PDF, [TASDIQ: paket narxi]) va B')).toBe('A va B');
+    expect(izohTozala('Basic — bepul, operatsiya boʻyicha toʻlov; Biznes — 170 000/oy.')).toBe('Basic — bepul, operatsiya boʻyicha toʻlov; Biznes — 170 000/oy.');
+    expect(izohTozala('(aylanma 15 mln gacha) qavs qoladi')).toBe('(aylanma 15 mln gacha) qavs qoladi');
+  });
+
+  it('boʻsh yoki faqat belgi — null', () => {
+    expect(izohTozala(null)).toBeNull();
+    expect(izohTozala(undefined)).toBeNull();
+    expect(izohTozala('[TASDIQ]')).toBeNull();
+    expect(izohTozala('  ')).toBeNull();
   });
 });
 
