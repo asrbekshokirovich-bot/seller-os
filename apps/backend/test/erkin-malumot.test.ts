@@ -50,7 +50,8 @@ describe('malumotNiyati — savol turi', () => {
   });
 });
 
-// 0057 seed bilan bir xil shakl va raqamlar (izohdagi "[TASDIQ]" ham — u chatga chiqmasligi kerak).
+// 0057 seed shakli va raqamlari (izohdagi "[TASDIQ]" ham — u chatga chiqmasligi kerak). Hamkorbank
+// `onlayn: false` (2026-10-14 oʻlchovi: hujjatlar ofisda), Agrobank — `onlayn: null`, izohsiz.
 const Q = (qiymat: unknown, manba = 'manba') => ({ qiymat, birlik: null, manba, olchandi: '2026-09-28', izoh: null });
 const FAKT = {
   'bhm.som': Q(440_000, 'PF-115'),
@@ -61,7 +62,8 @@ const FAKT = {
       izoh: '3 oy bepul, keyin paket (Start/Pro Business — narxi PDF, [TASDIQ]); aksiyada boshqa bankka 0,1 %. Uzum guruhi banki. Toshkent.',
       olchandi: '2026-09-28' },
     { nom: 'TBC Bank (TBC Biznes)', onlayn: true, ochish_som: 0, oylik_som: 0, izoh: 'Basic — bepul, operatsiya boʻyicha toʻlov; Biznes — 170 000/oy. ERI kerak emas.' },
-    { nom: 'Hamkorbank', onlayn: null, ochish_som: 0, oylik_som: 220_000, izoh: 'ILK QADAM — 220 000/oy (aylanma 15 mln gacha); hujjat ofisda [TASDIQ]; naqd 1 %.' },
+    { nom: 'Hamkorbank', onlayn: false, ochish_som: 0, oylik_som: 220_000, izoh: 'ILK QADAM — 220 000/oy (aylanma 15 mln gacha); hujjat ofisda [TASDIQ]; naqd 1 %.' },
+    { nom: 'Agrobank', onlayn: null, ochish_som: 0, oylik_som: 60_000, izoh: null },
   ]),
 };
 
@@ -81,13 +83,15 @@ describe('soliqMatni / bankMatni — 7-qadam faktlaridan', () => {
     expect(faqat).not.toMatch(/Masalan|ikki qism|aylanma/);
   });
 
-  it('bank: Uzum qoidasi, banklar qisqa izoh bilan — "[TASDIQ]" chatga chiqmaydi; sana', () => {
+  it('bank: Uzum qoidasi, banklar qisqa izoh bilan — "[TASDIQ]" chatga chiqmaydi; ochish usuli; sana', () => {
     const m = bankMatni(rasmiyFaktlari(faktlarniOqi(FAKT)))!;
     expect(m).toMatch(/^Ha, bank hisob raqami kerak: Uzum pulni faqat oʻz nomingizdagi biznes hisob raqamiga/);
     expect(m).toMatch(/5 tagacha hisob raqam/);
     expect(m).toMatch(/\n\nTaqqoslangan banklar \(hammasida hisob ochish bepul\):\n• Kapitalbank \(Uzum Business ilovasi\): onlayn ochiladi; 3 oy bepul, keyin paket; aksiyada boshqa bankka 0,1 %\n/);
     expect(m).toMatch(/\n• TBC Bank \(TBC Biznes\): onlayn ochiladi; Basic — bepul/);
-    expect(m).toMatch(/\n• Hamkorbank: ILK QADAM — 220 000\/oy \(aylanma 15 mln gacha\); hujjat ofisda; naqd 1 %\n\n/);
+    // onlayn: false — «ofisga borib ochiladi»; null — usul aytilmaydi, izoh yoʻq — oylik toʻlov.
+    expect(m).toMatch(/\n• Hamkorbank: ofisga borib ochiladi; ILK QADAM — 220 000\/oy \(aylanma 15 mln gacha\); hujjat ofisda; naqd 1 %\n/);
+    expect(m).toMatch(/\n• Agrobank: oylik 60 000 soʻm\n\n/);
     expect(m).not.toMatch(/TASDIQ|PDF/);
     expect(m).toMatch(/28\.09\.2026 da bank saytlaridan/);
   });

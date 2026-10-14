@@ -68,18 +68,37 @@ kartasi mumkin emas — qoʻllanma 3.1). YATT shaxsiy kartaga tadbirkorlik tushu
 qabul qila olmaydi (tbcbank.uz blogi; soliq/bank muammosi). Demak biznes hisob
 raqami SHART.
 
-| Bank | Onlayn ochish | Ochish | Oylik xizmat | Chiqim oʻtkazma | Manba | Sana |
-|---|---|---|---|---|---|---|
-| **Kapitalbank** ("Uzum Business Kapitalbank" ilovasi) | Ha, YATT va YuSh; pasport + YATT guvohnomasi; "bir necha daqiqa, navbatsiz, komissiyasiz" | bepul | 3 oy bepul, keyin paket (Start Business / Pro Business PDF, 03.08.2026) `[TASDIQ: paket narxi]` | aksiya davrida 0,1 % boshqa bankka; qoldiqqa 7 % gacha | gazeta.uz/oz/2026/02/27/kapitalbank; kapitalbank.uz press-reliz; tariflar sahifasi (PDF) | 2026-02-27; 2026-08 |
-| **TBC Bank** (TBC Biznes ilovasi) | Ha, ERI kerak emas, "bir necha daqiqa"; INN + pasport/ID | bepul | Basic — bepul (operatsiya boʻyicha toʻlov); Biznes — 170 000 soʻm/oy (100 mln gacha oʻtkazma); Pro — 600 000; birinchi oy bepul | tarifga qarab | tbcbank.uz/ru/business, blog | 2026-09-28 oʻqildi |
-| **Anorbank** (Anor Business) | Ha | bepul | TEZ 2.0 — bepul; OLGA 2.0 — bepul; ZOʻR 2.0 — 300 000; BIRGA 2.0 — 500 000 | TEZ 0,1 % (min 100), OLGA 0,3 %, ZOʻR 0,2 % | anorbank.uz/uz/business/tariffs | 2026-06-16 amal |
-| **Hamkorbank** | Ariza onlayn, hujjat ofisda `[TASDIQ]` | bepul | ILK QADAM — 220 000 soʻm/oy (aylanma 15 mln gacha), boshqa paketlar PDF | oʻz hisoblari orasida bepul; naqd 1 % | hamkorbank.uz/uz/business/cash-management-services | 2026-06-02 |
-| Boshqa banklar (Ipak Yoʻli, Aloqabank, Asaka, Xalq, Ipoteka, Agrobank …) | OʻLCHANMADI | — | — | — | — | — |
+Hammasi 2026-10-14 da bank saytlaridan qayta oʻqildi (nazoratchi: "5–6 ta bank boʻlsin,
+mijoz oʻzi tanlaydi"). Jonli `bank.royxat` fakti shu jadval bilan bir xil.
 
-Xulosa (2026-09-28): yangi YATT uchun eng arzon va tez — **Kapitalbank (Uzum Business
-ilovasi, Uzum guruhi banki, ochish bepul, 3 oy bepul)**, **TBC Biznes Basic (bepul,
-daqiqalarda)** va **Anorbank TEZ 2.0 (bepul)**. Tanlov obunachiniki; kod faqat faktdan
-jadval koʻrsatadi.
+| Bank | Onlayn ochish | Ochish | Oylik xizmat | Chiqim oʻtkazma | Manba |
+|---|---|---|---|---|---|
+| **Kapitalbank** ("Uzum Business Kapitalbank" ilovasi) | Ha — "roʻyxatdan oʻtish va identifikatsiya toʻliq onlayn", hisob avtomatik ochiladi | bepul (PDF 1.1.1) | **Start Business — 100 000 soʻm/oy**; Pro Business — 250 000 | Start: boshqa bankka oyiga 100 mln gacha bepul, keyin 0,3 %; har toʻlov hujjati 1 000 soʻm. Pro: PDF da 300 mln gacha bepul, keyin 0,2 % (sahifa kartochkasida 200 mln — farq) | kapitalbank.uz/uz/business/sme/rko; Start Business PDF (Paket 19), Pro Business PDF (Paket 20) |
+| **TBC Bank** (TBC Biznes) | Ha — ERI kerak emas, "ikki minutda", bankka bormaysiz; STIR + pasport/ID | bepul (blog) | Obunasiz — 0; «Biznes» — 170 000/oy (birinchi oy bepul); «Biznes Pro» — 600 000 | Obunasiz: boshqa bankka 0,5 % (kamida 1 000), soliq/byudjet 0,5 % (kamida 1 000), MUNIS 1 %. «Biznes»: 100 mln gacha komissiyasiz; «Pro»: 500 mln | tbcbank.uz/business/product/subscriptions; tbcbank.uz/business; blog «Biznes uchun hisob raqami» |
+| **Anorbank** (Anor Business) | Ha — "hech qayerga borish kerak emas", hisob hujjatlar yuborilgandan keyingi kuni | bepul | TEZ 2.0 — 0; OLGʻA 2.0 — 0; ZOʻR 2.0 — 300 000; BIRGA 2.0 — 500 000 | TEZ 0,1 % (kamida 100), OLGʻA 0,3 %, ZOʻR va BIRGA 0,2 %; soliq toʻlovlari bepul | anorbank.uz/uz/business/tariffs (nashr 16.06.2026) |
+| **Hamkorbank** | Yoʻq — ariza onlayn, hujjatlar ofisda ("Bank ofisiga tashrif buyuring"; "Ariza bank ofislarida toʻldiriladi") | bepul | «Lutf» (yangi mijoz, 180 kun) — 0; keyin boshqasi tanlanmasa oʻzi «Barqaror» — 220 000 (0,5 BHM). Yana: «Xush kelibsiz» (90 kun) — 150 000; «Ilk qadam» — 220 000 | Lutf: chiqim 0,1 %; Barqaror: oyiga 100 mln gacha bepul, keyin 0,2 %; naqd 1 % | hamkorbank.uz/uz/business/cash-management-services; «Lutf» PDF (Qoʻmita qarori 29.09.2026, №8) |
+| **Ipoteka bank** (OTP Group) | Yoʻq — ariza saytda, hujjatlar filialda, hisob 90 daqiqada; 90+ boʻlinma | bepul | Abonent toʻlovi — 0; yangi mijozga «Start Up» paketi (6 oy) | Start Up: 500 mln gacha chiquvchi toʻlov komissiyasiz, oshgani 0,4 %; oddiy tarif: 0,4 % | ipotekabank.uz/business/start-up; ipotekabank.uz/business/cash-services/rko (yangilangan 03.09.2026) |
+| **Agrobank** | OʻLCHANMADI — saytda ariza bor, masofaviy ochish haqida maʼlumot topilmadi | bepul | «Zero» (yangi mijoz, 180 kun) — 0; keyin standart tarif. «Yengil» (yillik aylanma 180 mln gacha) — 60 000/oy | Zero: dastlabki 6 oy bepul, har oʻtkazmaga 500 soʻm kliring. Yengil: oyiga 15 mln aylanma limiti | agrobank.uz/uz/business/tariffs/zero, /yengil (yangilangan 10.07.2026); Zero PDF (17.02.2025) |
+| Boshqa banklar (Ipak Yoʻli, Aloqabank, Asaka, Xalq, SQB, Davr …) | OʻLCHANMADI | — | — | — | — |
+
+`oylik_som` (faktda) — eng arzon DOIMIY tarifning oylik toʻlovi: aksiya (Lutf, Zero,
+Start Up) emas, undan keyingisi. Aksiya va foizlar — `izoh` da. Izohning birinchi gapi
+chatga chiqadi, butuni — 7-qadam kartasiga.
+
+Olib tashlanganlar (2026-10-14):
+- Kapitalbank "3 oy bepul", "aksiyada boshqa bankka 0,1 %" va "qoldiqqa 7 % gacha" —
+  uchalasi 2023-yil dekabr aksiyasi edi (kun.uz, 19.12.2023: "yil oxirigacha"); bugungi
+  rasmiy tarifda (sahifa va PDF) yoʻq. gazeta.uz/oz/2026/02/27 (reklama) faqat onlayn
+  ochishni aytadi.
+- Kapitalbank PDF izohida "oy davomida harakat boʻlmasa hisob yuritish toʻlovi
+  olinmaydi", jadvalda esa "passiv hisobga 100 000/oy" — bir-biriga zid, mijozga
+  aytilmaydi `[TASDIQ]`.
+
+Xulosa (2026-10-14): onlayn va oylik toʻlovsiz — **TBC Biznes** (obunasiz, har oʻtkazma
+0,5 %) va **Anorbank TEZ 2.0** (0,1 %); **Kapitalbank** — onlayn, Start Business
+100 000/oy (boshqa bankka 100 mln gacha bepul). Ofis orqali: **Hamkorbank** (180 kun
+bepul, keyin 220 000/oy), **Ipoteka** (oylik toʻlov yoʻq, 0,4 %), **Agrobank** (180 kun
+bepul, keyin standart tarif). Tanlov obunachiniki; kod faqat faktdan jadval koʻrsatadi.
 
 ## 5. Uzum Market kabineti — rasmiy qoʻllanma (seller.uzum.uz/manual/uz, 2026-09-28)
 
@@ -153,7 +172,7 @@ kiritildi — tovar nomi boʻyicha taxminiy moslash (BACKLOG).
 1. Davlat boji hozir aynan 440 000 / 396 000 mi — soliq sahifasi 2025-04 da yangilangan,
    birdarcha FAQ oʻqilmadi. `[TASDIQ]` — ro'yxatdan o'tganda ekranda ko'rinadi.
 2. birdarcha onlayn arizada ERI soʻraladimi (PQ-247 dan keyin) — `[TASDIQ]`.
-3. Kapitalbank "Start Business" paket narxi (PDF oʻqilmadi).
+3. ~~Kapitalbank "Start Business" paket narxi~~ — HAL (2026-10-14): 100 000 soʻm/oy, 4-boʻlim.
 4. Uzum toʻlov tashkiloti sifatida 1 % ni ushlab qoladimi yoki sotuvchi oʻzi toʻlaydimi
    (OʻRQ-1108 "toʻlov tashkilotlari soliq agenti") — buxgalter bilan `[TASDIQ]`.
 5. Oʻzini oʻzi band qilgan shaxs uchun chegaralar (aylanma, faoliyat) — oʻlchanmadi.
