@@ -18,8 +18,8 @@ import { TARIF_NARXI } from './tolov.ts';
 
 export interface TayyorJavob { uz: string; ru: string }
 
-const PRO = minglik(TARIF_NARXI.pro ?? 0);
-const BIZNES = minglik(TARIF_NARXI.biznes ?? 0);
+const NARX = minglik(TARIF_NARXI.pro ?? 0);
+const BEPUL = REJA_QADAMI.bepul;
 
 const JAVOBLAR: Record<string, TayyorJavob> = {
   xizmat: {
@@ -30,13 +30,12 @@ const JAVOBLAR: Record<string, TayyorJavob> = {
       + '8 фильтров-ловушек), себестоимость и предельная цена, поиск в Китае (1688), заказ, оформление, приёмка, студия, '
       + 'загрузка, отслеживание продаж и отчёт за месяц. Цифры считает код, решение — за вами.',
   },
+  // Tarif cheklovi yoqilgan (obuna darvozasi, 2026-10-14): 1–5 bepul, 6-qadamdan obuna.
   tarif: {
-    uz: `Tariflar: Bepul — 0 soʻm (1–${REJA_QADAMI.bepul}-qadam), Pro — ${PRO} soʻm/oy (1–${REJA_QADAMI.pro}-qadam), `
-      + `Biznes — ${BIZNES} soʻm/oy (1–${REJA_QADAMI.biznes}-qadam). Toʻlov (Payme, Click) hali ulanmagan — pullik rejaga `
-      + 'hozircha oʻtib boʻlmaydi. Batafsil: «Profilim» → «Rejalarni solishtirish».',
-    ru: `Тарифы: Бесплатный — 0 сум (шаги 1–${REJA_QADAMI.bepul}), Pro — ${PRO} сум/мес (шаги 1–${REJA_QADAMI.pro}), `
-      + `Бизнес — ${BIZNES} сум/мес (шаги 1–${REJA_QADAMI.biznes}). Оплата (Payme, Click) ещё не подключена — перейти `
-      + 'на платный тариф пока нельзя. Подробнее: «Мой профиль» → «Сравнить тарифы».',
+    uz: `1–${BEPUL}-qadamlar (yoʻnalish, tovar, tannarx, Xitoydan topish) — bepul. ${BEPUL + 1}-qadamdan (buyurtma va kargo) `
+      + `boshlab — obuna: ${NARX} soʻm/oy, Payme yoki Click orqali. Batafsil: «Profilim» → «Rejalarni solishtirish».`,
+    ru: `Шаги 1–${BEPUL} (направление, товар, себестоимость, поиск в Китае) — бесплатно. С шага ${BEPUL + 1} (заказ и карго) `
+      + `— подписка: ${NARX} сум/мес, через Payme или Click. Подробнее: «Мой профиль» → «Сравнить тарифы».`,
   },
   qadamlar: {
     uz: `Yoʻl 12 qadam: ${SUHBAT_QADAMLARI.map((q) => `${q.n}. ${q.nom}`).join(', ')}. `
@@ -141,10 +140,10 @@ function norm(t: string): string {
  * false`) — mijoz "2 qadamdan keyin pul soʻraladi" deb oʻylardi.
  */
 const TARIF_OCHIQ: TayyorJavob = {
-  uz: `Hozir hamma qadamlar bepul ochiq — toʻlov soʻralmaydi. Keyinroq pullik rejalar boʻladi: Pro — ${PRO} soʻm/oy, `
-    + `Biznes — ${BIZNES} soʻm/oy; toʻlov (Payme, Click) hali ulanmagan. Batafsil: «Profilim» → «Rejalarni solishtirish».`,
-  ru: `Сейчас все шаги открыты бесплатно — оплата не нужна. Позже появятся платные тарифы: Pro — ${PRO} сум/мес, `
-    + `Бизнес — ${BIZNES} сум/мес; оплата (Payme, Click) ещё не подключена. Подробнее: «Мой профиль» → «Сравнить тарифы».`,
+  uz: `Hozir hamma qadamlar bepul ochiq — toʻlov soʻralmaydi. Toʻlov (Payme, Click) ulangach: 1–${BEPUL}-qadamlar bepul `
+    + `qoladi, ${BEPUL + 1}-qadamdan obuna — ${NARX} soʻm/oy. Batafsil: «Profilim» → «Rejalarni solishtirish».`,
+  ru: `Сейчас все шаги открыты бесплатно — оплата не нужна. Когда подключим оплату (Payme, Click): шаги 1–${BEPUL} `
+    + `останутся бесплатными, с шага ${BEPUL + 1} — подписка ${NARX} сум/мес. Подробнее: «Мой профиль» → «Сравнить тарифы».`,
 };
 
 /**

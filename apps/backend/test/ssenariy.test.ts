@@ -15,6 +15,7 @@ import {
   boshlangichHolat, deklaratsiyaQadamlari, faktlarniOqi, hisobotFaktlari, javobniQabulQil, joriyQadam, keyingi,
   kutilayotganHarakat, natijaniYoz, oyHisobi, qabulFaktlari, rasmiyFaktlari, SHAHARLAR, sotuvTovarlari, SUHBAT_QADAMLARI,
   suratTalablari, tushuntir, yiqilganNatija, yonalishYanaNatija, type KodHarakati, type YolHolati,
+  havolalarsiz, OBUNA_SAVOLI, suhbatTurn, type Darvoza, type Keyingi, type SuhbatBogliqliklari, type SuhbatSavoli,
 } from '@selleros/shared';
 
 const YONALISHLAR = {
@@ -1910,5 +1911,203 @@ describe('2-qadam — qiziqish, aralash roʻyxat, «Yana koʻrsatish», qidiruv 
     const h = javob(eski, 'qiziqish', ['kiyim']);
     expect(h.natijalar.yonalishlar).toBeUndefined();
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'yonalishlar', qadam: 2 });
+  });
+});
+
+// ==================================================================== obuna darvozasi
+
+/** Zanjirdagi har kod harakati uchun fikstura (yuqoridagi «zanjir hech qayerda uzilmaydi» bilan bir xil). */
+const KOD_NATIJASI: Partial<Record<KodHarakati, unknown>> = {
+  yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, xitoy: XITOY, buyurtma: BUYURTMA, ochiq_ish: OCHIQ, rasmiy: RASMIY,
+  rasmiy_yakun: YAKUN, qabul: QABUL, qabul_yakun: QABUL_YAKUN, studiya: STUDIYA, studiya_yakun: STUDIYA_YAKUN,
+  yuklash: YUKLASH, yuklash_yakun: YUKLASH_YAKUN, sotuv: SOTUV, hisobot: HISOBOT, hisobot_hisob: HISOBOT_HISOB,
+  hisobot_yakun: HISOBOT_YAKUN, kurs: KURS,
+};
+
+/** Zanjir javobi — «zanjir hech qayerda uzilmaydi» testidagi tanlov bilan bir xil. */
+function avtoJavob(s: SuhbatSavoli): unknown {
+  return s.id === 'ism' ? 'Aziz Karimov' : s.id === 'telefon' ? '+998901234567'
+    : s.id.startsWith('uzum_havola:') ? 'https://uzum.uz/uz/product/mening-quloqchinim-5001'
+    : s.id === 'sotuv_holat' ? 'hisobot'
+    : s.id === 'kartochka_yaratildi' ? 'yaratdim'
+    : s.id.startsWith('signal:zaxira:') ? 'yoq'
+    : s.turi === 'kopTanlov' ? [s.variantlar[0]!.qiymat]
+    : s.variantlar.length ? s.variantlar[0]!.qiymat
+    : s.turi === 'son' ? 7 : 'sinov';
+}
+
+/** Bir qadam oldinga: kod — fikstura natijasi, savol — zanjir javobi. */
+function qadamYur(h: YolHolati, k: Keyingi): YolHolati {
+  if (k.tur === 'kod') return natijaniYoz(h, k.harakat, KOD_NATIJASI[k.harakat] ?? { ok: true });
+  if (k.tur !== 'savol') throw new Error(`kutilmagan: ${k.tur}`);
+  return javob(h, k.savol.id, avtoJavob(k.savol));
+}
+
+const keyingiQadami = (k: Keyingi): number => (k.tur === 'savol' ? k.savol.qadam : k.qadam);
+
+/** 5-qadam tugagan holat: Xitoy taklifi tanlangan, keyingisi — 6-qadam buyurtma kodi. */
+function xitoyTugadi(): YolHolati {
+  let h = boshlangichHolat();
+  for (let i = 0; i < 80; i++) {
+    const k = keyingi(h);
+    if (k.tur === 'kod' && k.harakat === 'buyurtma') return h;
+    h = qadamYur(h, k);
+  }
+  throw new Error('6-qadamga yetmadi');
+}
+
+describe('obuna darvozasi — 5-qadamdan keyin obuna (nazoratchi, 2026-10-14)', () => {
+  const YOQ: Darvoza = { holat: 'yoq', narxSom: 149_000 };
+  const FAOL: Darvoza = { holat: 'faol', narxSom: 149_000 };
+  const NOMALUM: Darvoza = { holat: 'nomalum', narxSom: 149_000 };
+
+  it('1–5-qadamlar darvozasiz; 6-qadam oldida — «Obuna» savoli, buyurtma kodi oʻrniga', () => {
+    let h = boshlangichHolat();
+    for (let i = 0; i < 80; i++) {
+      const k = keyingi(h);
+      if (k.tur === 'kod' && k.harakat === 'buyurtma') break;
+      // Obunasiz ham 1–5-qadamda aynan oʻsha harakat.
+      expect(keyingi(h, YOQ), k.tur === 'savol' ? k.savol.id : k.tur).toEqual(k);
+      h = qadamYur(h, k);
+    }
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
+    // Darvoza yoʻq (cheklov oʻchiq) yoki obuna faol — yoʻl oldingidek.
+    expect(keyingi(h, null)).toEqual(keyingi(h));
+    expect(keyingi(h, FAOL)).toEqual(keyingi(h));
+    const k = keyingi(h, YOQ);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol).toMatchObject({ id: OBUNA_SAVOLI, qadam: 6, turi: 'tanlov' });
+    expect(k.savol.matn).toMatch(/^Xitoydan takliflar tayyor\. .* obuna bilan ochiladi: 149 000 soʻm\/oy\. /);
+    expect(k.savol.matn).toMatch(/1688 havolalari ham ochiladi/);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['payme', 'click', 'tekshir']);
+    // Darvoza qadamni oʻzgartirmaydi — yon panel 6-qadamni koʻrsatadi.
+    expect(joriyQadam(h)).toBe(6);
+  });
+
+  it('obunasiz javob qabul qilinmaydi: «obuna» ham, 6-qadam savoli ham — navbat chetlab oʻtilmaydi', () => {
+    const h = xitoyTugadi();
+    const o = javobniQabulQil(h, OBUNA_SAVOLI, 'payme', YOQ);
+    expect(o.xato).toMatch(/obuna hali faol emas/);
+    expect(o.holat).toBe(h);
+    // Buyurtma natijasi bor boʻlsa ham (masalan, cheklov oʻchiq paytda yasalgan) — keyingi savolga oʻtilmaydi.
+    const h6 = natijaniYoz(h, 'buyurtma', BUYURTMA);
+    expect(javobniQabulQil(h6, 'shahar', 'Toshkent', YOQ).xato).toMatch(/navbat buzildi: hozir "obuna"/);
+    expect(javobniQabulQil(h6, 'shahar', 'Toshkent', FAOL).xato).toBeNull();
+  });
+
+  it('nomaʼlum (baza javob bermadi) — toʻlov soʻralmaydi, faqat «Qayta tekshirish»', () => {
+    const k = keyingi(xitoyTugadi(), NOMALUM);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe(OBUNA_SAVOLI);
+    expect(k.savol.matn).toMatch(/tekshira olmadim — bu toʻlov soʻrovi emas/);
+    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['tekshir']);
+  });
+
+  it('obuna tugagan — oʻrtadagi qadamda yangilash soʻraladi; obuna faol boʻlsa oʻsha joydan davom', () => {
+    let h = xitoyTugadi();
+    for (let i = 0; i < 80 && keyingiQadami(keyingi(h)) < 9; i++) h = qadamYur(h, keyingi(h));
+    expect(keyingiQadami(keyingi(h))).toBe(9);
+    const k = keyingi(h, YOQ);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol).toMatchObject({ id: OBUNA_SAVOLI, qadam: 9 });
+    expect(k.savol.matn).toMatch(/^Obunangiz faol emas\. 9-qadamdan \(«Studiya»\) davom etish uchun obunani yangilang: 149 000 soʻm\/oy/);
+    expect(keyingi(h, FAOL)).toEqual(keyingi(h));
+  });
+
+  it('havolalarsiz — obunasiz 1688 havolasi brauzerga ketmaydi; rasm va narx qoladi; jurnal nusxasi oʻzgarmaydi', () => {
+    const x = [{ rol: 'kod', savolId: 'xitoy', javob: XITOY as unknown }, { rol: 'menejer', matn: 'salom' }];
+    const y = havolalarsiz(x, YOQ);
+    const j = y[0]!.javob as typeof XITOY & { havolaYopiq?: boolean };
+    expect(j.havolaYopiq).toBe(true);
+    expect(j.qatorlar[0]!.takliflar.map((t) => t.manzil)).toEqual([null, null]);
+    expect(j.qatorlar[0]!.takliflar[0]).toMatchObject({ narxSom: 47_587, rasmUrl: TAKLIF.rasmUrl, sourceId: '983093623752' });
+    expect(XITOY.qatorlar[0]!.takliflar[0]!.manzil).toBe(TAKLIF.manzil);
+    expect(y[1]).toBe(x[1]);
+    expect(havolalarsiz(x, FAOL)).toEqual(x);
+    expect(havolalarsiz(x, null)).toEqual(x);
+    expect(havolalarsiz(x, NOMALUM)[0]!.javob).toMatchObject({ havolaYopiq: true });
+  });
+
+  /** Soxta baza va kod: holat va jurnal yoziladi, chaqirilgan kod harakatlari sanaladi. */
+  function soxta(h: YolHolati, darvoza: Darvoza) {
+    let holat = h;
+    const jurnal: Array<{ rol: string; matn: string; savolId?: string; javob?: unknown }> = [
+      { rol: 'kod', matn: 'xitoy', savolId: 'xitoy', javob: XITOY },
+    ];
+    const chaqirildi: string[] = [];
+    const rpc = async <T>(nom: string, arg: unknown): Promise<T | null> => {
+      const a = arg as Record<string, unknown>;
+      if (nom === 'so_suhbat_oqi') return { holat, qadam: 5, xabarlar: jurnal } as T;
+      if (nom === 'so_suhbat_yoz') {
+        holat = a.p_holat as YolHolati;
+        jurnal.push(...(a.p_xabarlar as typeof jurnal));
+        return { yozildi: 1 } as T;
+      }
+      return null;
+    };
+    const kod = new Proxy({}, {
+      get: (_t, nom: string) => async () => { chaqirildi.push(nom); return KOD_NATIJASI[nom as KodHarakati] ?? { ok: true }; },
+    }) as SuhbatBogliqliklari['kod'];
+    const d: SuhbatBogliqliklari = { rpc, kod, darvoza };
+    return { d, chaqirildi, holat: () => holat, jurnal };
+  }
+
+  it('suhbatTurn: obunasiz buyurtma kodi BAJARILMAYDI, menejer obuna savolini aytadi; toʻlov tugmasi javob emas', async () => {
+    const s = soxta(xitoyTugadi(), YOQ);
+    const r = await suhbatTurn(s.d, 'tok', {});
+    expect(s.chaqirildi).toEqual([]);
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: OBUNA_SAVOLI, qadam: 6 } });
+    expect(r.xabarlar.at(-1)).toMatchObject({ rol: 'menejer', savolId: OBUNA_SAVOLI });
+    expect(r.qadam).toBe(6);
+    expect(s.holat().natijalar.buyurtma).toBeUndefined();
+    // Tugma (Payme) — javob sifatida yozilmaydi, holat oʻzgarmaydi.
+    const t = await suhbatTurn(s.d, 'tok', { savolId: OBUNA_SAVOLI, javob: 'payme' });
+    expect(t.xato).toMatch(/obuna hali faol emas/);
+    expect(s.holat().javoblar[OBUNA_SAVOLI]).toBeUndefined();
+  });
+
+  it('suhbatTurn: darvoza oldida yozilgan savolga javob beriladi, yoʻl oʻzgarmaydi', async () => {
+    const s = soxta(xitoyTugadi(), YOQ);
+    const r = await suhbatTurn(s.d, 'tok', { matn: 'Obuna nima beradi?' });
+    expect(r.xato).toBeUndefined();
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: OBUNA_SAVOLI } });
+    expect(r.xabarlar.some((x) => x.rol === 'obunachi' && x.matn === 'Obuna nima beradi?')).toBe(true);
+    expect(s.chaqirildi.filter((x) => x !== 'erkinMalumot')).toEqual([]);
+    expect(s.holat().natijalar.buyurtma).toBeUndefined();
+  });
+
+  it('suhbatTurn: obuna faol — xuddi shu turn buyurtmani bajaradi va 6-qadam savoli chiqadi', async () => {
+    const s = soxta(xitoyTugadi(), FAOL);
+    const r = await suhbatTurn(s.d, 'tok', {});
+    expect(s.chaqirildi).toContain('buyurtma');
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'shahar', qadam: 6 } });
+  });
+
+  it('suhbatTurn: 1688 qidiruvi tugagan turn — obunasiz qaytgan kod xabarida havola yoʻq, jurnalda — bor', async () => {
+    // Qidiruv kutilmoqda: tanlov hali yoʻq, natijada `kutilmoqda` (5-qadam — darvozadan oldin).
+    const h0 = xitoyTugadi();
+    const javoblar = Object.fromEntries(Object.entries(h0.javoblar).filter(([k]) => !k.startsWith('xitoy_tanlov:')));
+    const h = { javoblar, natijalar: { ...h0.natijalar, xitoy: { ...XITOY, kutilmoqda: { runId: 'r1', rasmlar: [], boshlandi: '2026-10-14T00:00:00Z' } } } };
+    const s = soxta(h, { holat: 'yoq', narxSom: 149_000 });
+    const r = await suhbatTurn(s.d, 'tok', { tekshir: true });
+    const kod = r.xabarlar.find((x) => x.rol === 'kod' && x.savolId === 'xitoy')!;
+    expect(JSON.stringify(kod.javob)).not.toContain('detail.1688.com');
+    expect(kod.javob).toMatchObject({ havolaYopiq: true });
+    expect(JSON.stringify(s.jurnal.at(-2)!.javob)).toContain('detail.1688.com');
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'xitoy_tanlov:100', qadam: 5 } });
+  });
+
+  it('suhbatOqi va suhbatTurn: obunasiz qaytgan xabarlarda 1688 havolasi yoʻq, jurnalda — bor', async () => {
+    const { suhbatOqi } = await import('@selleros/shared');
+    const s = soxta(xitoyTugadi(), YOQ);
+    const o = await suhbatOqi(s.d, 'tok');
+    if ('xato' in o && !('keyingi' in o)) throw new Error(o.xato);
+    const x = o.tarix.find((m) => m.savolId === 'xitoy')!;
+    expect(JSON.stringify(x.javob)).not.toContain('detail.1688.com');
+    expect(JSON.stringify(s.jurnal[0]!.javob)).toContain('detail.1688.com');
+    const f = soxta(xitoyTugadi(), FAOL);
+    const of = await suhbatOqi(f.d, 'tok');
+    if ('xato' in of && !('keyingi' in of)) throw new Error(of.xato);
+    expect(JSON.stringify(of.tarix.find((m) => m.savolId === 'xitoy')!.javob)).toContain('detail.1688.com');
   });
 });

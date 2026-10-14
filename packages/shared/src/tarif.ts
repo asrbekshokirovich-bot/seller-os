@@ -20,18 +20,18 @@
 export type Reja = 'bepul' | 'pro' | 'biznes';
 
 /**
- * Reja qaysi qadamgacha ochadi (1–6).
+ * Reja qaysi qadamgacha ochadi (suhbatning 12 qadami, `SUHBAT_QADAMLARI`).
  *
- * `bepul: 2` — yoʻnalishlar koʻrinadi, tovar roʻyxati koʻrinmaydi.
- * Nega aynan shu chegara: 2-qadam qiymatni KOʻRSATADI (sizga mana
- * shu yoʻnalishlar mos), 3-qadam esa uni ISHLATIB boʻladigan qilib
- * beradi (aynan qaysi tovar, qancha miqdorda). Odam toʻlashdan
- * oldin nima sotib olayotganini koʻrishi kerak.
+ * Nazoratchi qarori (2026-10-14): "mijoz tovarlarini Xitoydan topgandan
+ * keyin obuna xarid qilishi kerak; xarid qilmasa keyingi qadamga oʻtmasin".
+ * `bepul: 5` — yoʻnalish, tovar, tannarx va Xitoydagi takliflar bepul: odam
+ * toʻlashdan oldin nima olayotganini koʻradi. 6-qadamdan (buyurtma va kargo)
+ * — obuna. Ilgari (eski 6 qadamli raqamlash) `bepul: 2` edi.
  */
 export const REJA_QADAMI: Readonly<Record<Reja, number>> = {
-  bepul: 2,
-  pro: 6,
-  biznes: 6,
+  bepul: 5,
+  pro: 12,
+  biznes: 12,
 };
 
 /** Bazadagi `subscriptions.status` qiymatlaridan qaysilari rejani BERADI. */
@@ -97,4 +97,26 @@ export function qadamOchiq(r: Reja, qadam: number): boolean {
 /** Qadamni ochadigan eng arzon rejalar — "nima kerak" deb koʻrsatish uchun. */
 export function kerakliRejalar(qadam: number): Reja[] {
   return (Object.keys(REJA_QADAMI) as Reja[]).filter((r) => qadamOchiq(r, qadam));
+}
+
+/**
+ * Obuna darvozasi — suhbatda 5-qadamdan keyin (`ssenariy.ts`, `keyingi`).
+ *
+ * `faol` — obuna tirik, yoʻl ochiq. `yoq` — obuna yoʻq yoki tugagan: 6-qadamdan
+ * oldin obuna soʻraladi. `nomalum` — bazadan obunani oʻqib boʻlmadi: yoʻl
+ * ochilmaydi, lekin toʻlov ham soʻralmaydi — toʻlagan odamdan ikkinchi marta
+ * pul soʻralmasin («Qayta tekshirish»).
+ */
+export interface Darvoza {
+  holat: 'faol' | 'yoq' | 'nomalum';
+  /** Oylik narx, soʻm (`tolov.ts`, `OBUNA_NARXI`). */
+  narxSom: number;
+}
+
+/** `so_obuna` javobidan darvoza holati. Baza javob bermasa yoki xato qaytarsa — `nomalum`. */
+export function darvozaHolati(
+  xom: { xato?: string; obuna?: ObunaXom | null } | null, hozir: Date, narxSom: number,
+): Darvoza {
+  if (xom === null || xom.xato) return { holat: 'nomalum', narxSom };
+  return { holat: reja(xom.obuna ?? null, hozir).reja === 'bepul' ? 'yoq' : 'faol', narxSom };
 }

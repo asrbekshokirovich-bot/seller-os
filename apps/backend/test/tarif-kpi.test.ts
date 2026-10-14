@@ -68,18 +68,25 @@ describe('tarif cheklovi — pilotda OʻCHIQ', () => {
     }
   });
 
-  it('cheklov yoqilganda tokensiz soʻrov 402 va SABABI bilan qaytadi', async () => {
+  it('cheklov yoqilganda obunasiz 10-qadam (kartochka) — 402 va SABABI bilan', async () => {
     process.env.TARIF_CHEKLOVI = '1';
-    const res = await soraw('/tovarlar?turkum=123');
+    const app = build();
+    const res = await app.inject({ method: 'POST', url: '/kartochka', headers: { 'x-sessiya': 'sinov' }, payload: {} });
+    await app.close();
     expect(res.statusCode).toBe(402);
     const j = res.json();
     expect(j.cheklov).toBe('tarif');
     expect(j.reja).toBe('bepul');
-    expect(j.qadam).toBe(3);
+    expect(j.qadam).toBe(10);
     // Nima ochishini AYTIB qoʻyish shart: odam nimani
     // yoʻqotayotganini bilsin.
     expect(j.ochadigan_rejalar).toContain('pro');
-    expect(j.hozir_ochiq_qadam).toBe(2);
+    expect(j.hozir_ochiq_qadam).toBe(5);
+  });
+
+  it('cheklov yoqilgan boʻlsa ham 1–5-qadamlar ochiq — 3-qadam tovarlari 402 emas (2026-10-14)', async () => {
+    process.env.TARIF_CHEKLOVI = '1';
+    expect((await soraw('/tovarlar?turkum=123')).statusCode).not.toBe(402);
   });
 
   it('cheklov yoqilgan boʻlsa ham 2-qadam yopilmaydi', async () => {
@@ -102,15 +109,18 @@ describe('/tarif', () => {
     const j = (await soraw('/tarif')).json();
     expect(j.cheklov_yoqilgan).toBe(false);
     expect(j.qadamlar.every((q: { ochiq: boolean }) => q.ochiq)).toBe(true);
-    // Qoida esa oʻzgarmaydi: rejada 3-qadam baribir yopiq.
-    expect(j.qadamlar.find((q: { qadam: number }) => q.qadam === 3).rejada_ochiq).toBe(false);
+    expect(j.qadamlar).toHaveLength(12);
+    expect(j.narx_som).toBe(149_000);
+    // Qoida esa oʻzgarmaydi: rejada 6-qadam baribir yopiq, 5-qadam ochiq.
+    expect(j.qadamlar.find((q: { qadam: number }) => q.qadam === 6).rejada_ochiq).toBe(false);
+    expect(j.qadamlar.find((q: { qadam: number }) => q.qadam === 5).rejada_ochiq).toBe(true);
   });
 
-  it('cheklov yoqilganda 3-qadam yopiq koʻrinadi', async () => {
+  it('cheklov yoqilganda 6-qadam yopiq, 5-qadam ochiq koʻrinadi', async () => {
     process.env.TARIF_CHEKLOVI = '1';
     const j = (await soraw('/tarif')).json();
-    expect(j.qadamlar.find((q: { qadam: number }) => q.qadam === 3).ochiq).toBe(false);
-    expect(j.qadamlar.find((q: { qadam: number }) => q.qadam === 2).ochiq).toBe(true);
+    expect(j.qadamlar.find((q: { qadam: number }) => q.qadam === 6).ochiq).toBe(false);
+    expect(j.qadamlar.find((q: { qadam: number }) => q.qadam === 5).ochiq).toBe(true);
   });
 });
 

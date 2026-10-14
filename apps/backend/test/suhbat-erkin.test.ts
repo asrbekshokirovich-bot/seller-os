@@ -124,7 +124,7 @@ describe('erkin xabar', () => {
     const b = soxtaBaza(BYUDJET_HOLATI);
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: 'obuna qancha turadi' });
     expect(r.xato).toBeUndefined();
-    expect(r.xabarlar[1]!.matn).toMatch(/99 000/);
+    expect(r.xabarlar[1]!.matn).toMatch(/149 000/);
     expect(r.xabarlar[1]!.matn).toMatch(/Hozirgi savol/);
     expect(b.holat()?.javoblar['byudjet']).toBeUndefined();
   });
@@ -226,9 +226,9 @@ describe('erkin xabar — tekshiruv tuzatishlari (2026-10-05)', () => {
   it('F25: javob oʻtmasa VA tayyor javob bor — avval sabab, keyin tayyor javob; boshqa mavzu tarifga burilmaydi', async () => {
     const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'obuna qancha turadi' });
     const m = r.xabarlar[1]!.matn;
-    expect(m).toMatch(/^Summani yozing — masalan: 30 mln yoki 3000 \$\. Tariflar:/);
+    expect(m).toMatch(/^Summani yozing — masalan: 30 mln yoki 3000 \$\. 1–5-qadamlar/);
     const s = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'soliq toʻlovi qachon?' });
-    expect(s.xabarlar[1]!.matn).not.toMatch(/Tariflar/);
+    expect(s.xabarlar[1]!.matn).not.toMatch(/obuna: 149 000/);
   });
 });
 
@@ -404,7 +404,7 @@ describe('tarif cheklovi oʻchiq — «Bu bepulmi?» rost javob oladi (2026-10-1
     expect(bilim).toMatch(/Hozir hamma qadamlar bepul ochiq/);
     expect(bilim).not.toMatch(/1–2-qadam/);
     const y = await suhbatTurn({ ...bogliq(soxtaBaza(BYUDJET_HOLATI)), tarifCheklovi: true }, 'tok', { savolId: 'byudjet', matn: 'Bu bepulmi?' });
-    expect(y.xabarlar.at(-1)!.matn).toMatch(/Tariflar: Bepul/);
+    expect(y.xabarlar.at(-1)!.matn).toMatch(/1–5-qadamlar \(yoʻnalish, tovar, tannarx, Xitoydan topish\) — bepul\. 6-qadamdan/);
   });
 });
 

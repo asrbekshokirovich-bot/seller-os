@@ -500,7 +500,8 @@ export function suhbatKodHarakatlari(
       // ---- BOSHLASH
       const obuna = await rpc<{ xato?: string; obuna: ObunaXom | null }>('so_obuna', { p_token: xitoy.token });
       const r = reja(obuna?.obuna ?? null, new Date()).reja;
-      if (xitoy.tarifCheklovi && !qadamOchiq(r, 4)) {
+      // Xitoydan topish — 5-qadam: bepul rejada ham ochiq (obuna 6-qadamdan, 2026-10-14).
+      if (xitoy.tarifCheklovi && !qadamOchiq(r, 5)) {
         return yakun(null, tanlangan.map((id) => qidirilmadi(id, `tarif: "${r}" rejada Xitoy qidiruvi yopiq`)), null);
       }
       // Sanoq — O'LCHOV; kelmasa qidirmaymiz (nol emas).

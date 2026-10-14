@@ -60,6 +60,7 @@ import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, t
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.ts';
 import { matndanSon, valyutami } from './tekshiruv.ts';
 import { BYUDJET_DOLLAR, byudjetniOqi, ISM_TELEFON_MISOL, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.ts';
+import { REJA_QADAMI, type Darvoza } from './tarif.ts';
 
 // ==================================================================== turlar
 
@@ -1375,6 +1376,78 @@ function yiqilganHarakat(h: YolHolati): KodHarakati | null {
   return null;
 }
 
+/** «Obuna» savoli id si. Javobi yozilmaydi: obuna toʻlov bilan faollashadi (`javobniQabulQil`). */
+export const OBUNA_SAVOLI = 'obuna';
+const OBUNA_TEKSHIR: SuhbatVarianti = { qiymat: 'tekshir', nom: 'Qayta tekshirish' };
+const OBUNA_TUGMALARI: readonly SuhbatVarianti[] = [
+  { qiymat: 'payme', nom: 'Payme orqali toʻlash' },
+  { qiymat: 'click', nom: 'Click orqali toʻlash' },
+  { qiymat: 'tekshir', nom: 'Toʻladim — tekshirish' },
+];
+
+/**
+ * KEYINGI HARAKAT, obuna darvozasi bilan (nazoratchi, 2026-10-14): "mijoz
+ * tovarlarini Xitoydan topgandan keyin obuna xarid qilishi kerak; xarid
+ * qilmasa keyingi qadamga oʻtmasin". `darvoza` berilmasa (tarif cheklovi
+ * oʻchiq) — yoʻl oldingidek. Obuna faol boʻlmasa — 6–12-qadamdagi har savol va
+ * kod harakati oʻrniga «Obuna» savoli: buyurtma varaqasi ham yasalmaydi. Bu
+ * SAVOL — mijoz yozib savol bera oladi (`erkinXabar`), maʼlumoti saqlanadi;
+ * obuna faollashgach yoʻl shu joydan davom etadi.
+ */
+export function keyingi(h: YolHolati, darvoza?: Darvoza | null): Keyingi {
+  const k = keyingiAsl(h);
+  if (!darvoza || darvoza.holat === 'faol') return k;
+  const qadam = k.tur === 'savol' ? k.savol.qadam : k.qadam;
+  return qadam > REJA_QADAMI.bepul ? { tur: 'savol', savol: obunaSavoli(h, qadam, darvoza) } : k;
+}
+
+/** «Obuna» savoli: birinchi marta (5-qadamdan keyin) yoki obuna tugagan boʻlsa — yangilash. */
+function obunaSavoli(h: YolHolati, qadam: number, d: Darvoza): SuhbatSavoli {
+  if (d.holat === 'nomalum') {
+    return savol(OBUNA_SAVOLI, qadam,
+      'Obuna holatini hozir tekshira olmadim — bu toʻlov soʻrovi emas. Birozdan keyin «Qayta tekshirish»ni bosing.',
+      'tanlov', { variantlar: [OBUNA_TEKSHIR] });
+  }
+  const narx = `${minglik(d.narxSom)} soʻm/oy`;
+  const birinchi = qadam === REJA_QADAMI.bepul + 1 && partiyaRaqami(h) === 1 && buyurtmaNatija(h) === null;
+  const nom = SUHBAT_QADAMLARI.find((q) => q.n === qadam)?.nom ?? '';
+  return savol(OBUNA_SAVOLI, qadam,
+    birinchi
+      ? `Xitoydan takliflar tayyor. Keyingi qadamlar — buyurtma va kargo, rasmiylashtirish, qabul, studiya, yuklash, sotuv `
+        + `va hisobot — obuna bilan ochiladi: ${narx}. Toʻlov Payme yoki Click orqali; toʻlaganingizdan keyin shu joydan `
+        + 'davom etamiz va 1688 havolalari ham ochiladi. Savolingiz boʻlsa — yozavering.'
+      : `Obunangiz faol emas. ${qadam}-qadamdan («${nom}») davom etish uchun obunani yangilang: ${narx}, Payme yoki Click `
+        + 'orqali. Maʼlumotlaringiz saqlangan — toʻlaganingizdan keyin shu joydan davom etamiz.',
+    'tanlov', { variantlar: OBUNA_TUGMALARI });
+}
+
+/**
+ * 1688 havolasiz xabarlar (nazoratchi, 2026-10-14): obuna faol boʻlmasa 5-qadamda
+ * takliflarning rasmi va narxi koʻrinadi, sotuvchi havolasi (`manzil`) —
+ * toʻlovdan keyin. Faqat brauzerga ketadigan nusxa oʻzgaradi: jurnal va holat
+ * toʻliq qoladi. Darvoza yoʻq (cheklov oʻchiq) yoki obuna faol — oʻzgarishsiz.
+ */
+export function havolalarsiz<T extends { rol: string; savolId?: string | null; javob?: unknown }>(
+  xabarlar: readonly T[], darvoza?: Darvoza | null,
+): T[] {
+  if (!darvoza || darvoza.holat === 'faol') return [...xabarlar];
+  return xabarlar.map((x) => (x.rol === 'kod' && x.savolId === 'xitoy' ? { ...x, javob: xitoyHavolasiz(x.javob) } : x));
+}
+
+function xitoyHavolasiz(n: unknown): unknown {
+  if (n === null || typeof n !== 'object' || !Array.isArray((n as { qatorlar?: unknown }).qatorlar)) return n;
+  const o = n as { qatorlar: unknown[] };
+  return {
+    ...o,
+    havolaYopiq: true,
+    qatorlar: o.qatorlar.map((q) => {
+      if (q === null || typeof q !== 'object' || !Array.isArray((q as { takliflar?: unknown }).takliflar)) return q;
+      const t = (q as { takliflar: unknown[] }).takliflar;
+      return { ...q, takliflar: t.map((x) => (x !== null && typeof x === 'object' ? { ...x, manzil: null } : x)) };
+    }),
+  };
+}
+
 /**
  * KEYINGI HARAKAT — mashinaning yuragi.
  *
@@ -1383,7 +1456,7 @@ function yiqilganHarakat(h: YolHolati): KodHarakati | null {
  * bajarilgan bo'lsa — keyingi qadam; u qurilmagan bo'lsa — "tez
  * orada", sababi bilan.
  */
-export function keyingi(h: YolHolati): Keyingi {
+function keyingiAsl(h: YolHolati): Keyingi {
   // Kod harakati kutilmaganda yiqilgan — oʻsha qadamda «Qayta urinish»: matn
   // quruvchilar yiqilmaydi, yoʻl berk qolmaydi (xom xato logda, chatda emas).
   const yiqilgan = yiqilganHarakat(h);
@@ -1880,14 +1953,18 @@ function tajribaMatnimi(t: string): boolean {
  * `undefined` / `''` / bo'sh massiv — o'tkazib yuborish; ruxsat bo'lsa
  * `null` yoziladi, bo'lmasa xato. Nol yoki `false` — JAVOB.
  */
-export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): QabulNatijasi {
-  const k = keyingi(h);
+export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown, darvoza?: Darvoza | null): QabulNatijasi {
+  const k = keyingi(h, darvoza);
   if (k.tur !== 'savol') {
     return { holat: h, xato: 'hozir savol kutilmayapti', profil: null };
   }
   const s = k.savol;
   if (s.id !== savolId) {
     return { holat: h, xato: `navbat buzildi: hozir "${s.id}" savoli kutilmoqda`, profil: null };
+  }
+  // «Obuna» savolining javobi yozilmaydi: obuna toʻlov bilan faollashadi, darvoza har turnda bazadan tekshiriladi.
+  if (s.id === OBUNA_SAVOLI) {
+    return { holat: h, xato: 'obuna hali faol emas — toʻlov Payme yoki Click orqali', profil: null };
   }
 
   const bosh = xom === undefined || xom === null || xom === ''
@@ -2197,7 +2274,7 @@ export function natijaniYoz(h: YolHolati, harakat: KodHarakati, natija: unknown)
   return { ...h, natijalar: { ...h.natijalar, [harakat]: natija } };
 }
 
-/** Joriy qadam raqami — yon panel uchun. */
+/** Joriy qadam raqami — yon panel uchun. Obuna darvozasi qadamni oʻzgartirmaydi (`keyingi`). */
 export function joriyQadam(h: YolHolati): number {
   const k = keyingi(h);
   if (k.tur === 'savol') return k.savol.qadam;

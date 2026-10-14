@@ -2,17 +2,19 @@
 
 export type DavrTuri = 'oylik' | 'yillik';
 
-// Tarif narxlari (soʻm). Pilot: birinchi oy bepul (trial).
+// Obuna narxi, soʻm/oy. Nazoratchi (2026-10-14): bitta reja — 149 000 soʻm/oy;
+// 1–5-qadamlar bepul, 6–12-qadamlar obuna bilan (`tarif.ts`).
+export const OBUNA_NARXI = 149_000;
+
+// Sotiladigan reja bitta — `pro` («Obuna»). Bazadagi eski `biznes` qatori ham
+// yoʻlni ochadi (`tarif.ts`), lekin u sotilmaydi.
 export const TARIF_NARXI: Record<string, number> = {
-  pro: 99_000,
-  biznes: 299_000,
+  pro: OBUNA_NARXI,
 };
 
-// Yillik narxlar: 10 oy narxi (2 oy bepul).
-export const YILLIK_NARX: Record<string, number> = {
-  pro: 990_000,
-  biznes: 2_990_000,
-};
+// Yillik tarif hozir SOTILMAYDI: nazoratchi (2026-10-14) faqat oylik narx berdi.
+// Eski yillik narxlar (990 000 / 2 990 000) 99 000 lik oylikdan hisoblangan edi.
+export const YILLIK_NARX: Record<string, number> = {};
 
 export const YILLIK_TEJASH_OY = 2;
 

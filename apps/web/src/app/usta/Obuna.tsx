@@ -21,7 +21,8 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import o from './obuna.module.css';
 
-const REJALAR: readonly Reja[] = ['bepul', 'pro', 'biznes'];
+// Bitta pullik reja (nazoratchi, 2026-10-14): «Obuna» — 1–12-qadam; bepulda 1–5.
+const REJALAR: readonly Reja[] = ['bepul', 'pro'];
 const OYLAR_QISQA = ['yan', 'fev', 'mar', 'apr', 'may', 'iyun', 'iyul', 'avg', 'sen', 'okt', 'noy', 'dek'] as const;
 const OYLAR_QISQA_RU = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'] as const;
 
@@ -39,11 +40,10 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga }: {
   const joriy: Reja = 'bepul';
   const [tanlangan, setTanlangan] = useState<Reja>('pro');
   const [usul, setUsul] = useState<'payme' | 'click'>('payme');
-  const nomi = (r: Reja) => (r === 'bepul' ? tr('Bepul', 'Бесплатный') : r === 'pro' ? 'Pro' : tr('Biznes', 'Бизнес'));
+  const nomi = (r: Reja) => (r === 'bepul' ? tr('Bepul', 'Бесплатный') : tr('Obuna', 'Подписка'));
   const narx = (r: Reja) => TARIF_NARXI[r] ?? 0;
-  // Roʻyxat: eng keng reja chegarasidan bitta keyingi qadamgacha (dizayn: 1–7).
-  const oxirgi = Math.min(SUHBAT_QADAMLARI.length, Math.max(...REJALAR.map((r) => REJA_QADAMI[r])) + 1);
-  const qadamlar = SUHBAT_QADAMLARI.slice(0, oxirgi);
+  // Roʻyxat: 12 qadamning hammasi — bepulda qaysilari qulfligi koʻrinsin.
+  const qadamlar = SUHBAT_QADAMLARI.slice(0, Math.max(...REJALAR.map((r) => REJA_QADAMI[r])));
   const somB = tr('soʻm', 'сум');
 
   return (

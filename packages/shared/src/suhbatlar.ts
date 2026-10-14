@@ -119,7 +119,7 @@ export async function suhbatBolagi(
  * sahifa chatni shu bilan almashtiradi.
  */
 export async function suhbatQaytar(
-  d: Pick<SuhbatBogliqliklari, 'rpc'>, token: string, boshi: number,
+  d: Pick<SuhbatBogliqliklari, 'rpc' | 'darvoza'>, token: string, boshi: number,
 ): Promise<(SuhbatJavobi & { tarix?: unknown }) | { xato: string }> {
   if (!Number.isSafeInteger(boshi) || boshi < 1) return { xato: 'suhbat topilmadi' };
   const r = await d.rpc<{ xato?: string }>('so_suhbat_qaytar', { p_token: token, p_boshi: boshi });

@@ -23,8 +23,9 @@ describe('tayyorJavob', () => {
   it('tarif va toʻlov — narxlar koddan', () => {
     const j = tayyorJavob('obuna qancha turadi?');
     expect(j?.uz).toContain(minglik(TARIF_NARXI.pro!));
-    expect(j?.uz).toContain(minglik(TARIF_NARXI.biznes!));
-    expect(j?.uz).toMatch(/ulanmagan/);
+    // Bitta reja (nazoratchi, 2026-10-14): 1–5 bepul, 6-qadamdan obuna; Biznes sotilmaydi.
+    expect(j?.uz).toMatch(/^1–5-qadamlar \(yoʻnalish, tovar, tannarx, Xitoydan topish\) — bepul\. 6-qadamdan/);
+    expect(j?.uz).not.toMatch(/Biznes|ulanmagan/);
     expect(tayyorJavob("to'lov qanday qilinadi?")?.uz).toMatch(/Payme/);
     expect(tayyorJavob('сколько стоит подписка?')?.ru).toContain(minglik(TARIF_NARXI.pro!));
   });
@@ -83,8 +84,10 @@ describe('tayyorJavob', () => {
     expect(tayyorJavob('Bu bepulmi?', false)!.uz).not.toMatch(/1–2-qadam/);
     expect(erkinBilimi(false)).toMatch(/Hozir hamma qadamlar bepul ochiq/);
     expect(erkinBilimi(false)).not.toMatch(/1–2-qadam/);
-    // Cheklov yoqilgan yoki nomaʼlum — rejalar roʻyxati.
-    expect(tayyorJavob('Bu bepulmi?', true)!.uz).toMatch(/^Tariflar: Bepul/);
-    expect(tayyorJavob('Bu bepulmi?')!.uz).toMatch(/^Tariflar: Bepul/);
+    // Toʻlov ulangach nima boʻlishi ham rost aytiladi — 6-qadamdan obuna.
+    expect(tayyorJavob('Bu bepulmi?', false)!.uz).toMatch(/6-qadamdan obuna — 149 000 soʻm\/oy/);
+    // Cheklov yoqilgan yoki nomaʼlum — 1–5 bepul, 6-qadamdan obuna.
+    expect(tayyorJavob('Bu bepulmi?', true)!.uz).toMatch(/^1–5-qadamlar/);
+    expect(tayyorJavob('Bu bepulmi?')!.uz).toMatch(/^1–5-qadamlar/);
   });
 });

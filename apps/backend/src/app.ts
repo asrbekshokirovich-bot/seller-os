@@ -36,6 +36,9 @@ import {
   profilOqi,
   qadamOchiq,
   reja,
+  darvozaHolati,
+  OBUNA_NARXI,
+  SUHBAT_QADAMLARI,
   sohalar,
   tovarlar,
   yonalishlar,
@@ -409,8 +412,12 @@ export function build(): FastifyInstance {
   const llmSozlama = () => ({
     kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL,
   });
-  const suhbatBogliq = (token: string) => ({
+  const suhbatBogliq = async (token: string) => ({
     rpc,
+    // Obuna darvozasi (2026-10-14) — Edge bilan bir xil: cheklov yoqilgan boʻlsa har soʻrovda bazadan.
+    darvoza: tarifCheklovi()
+      ? darvozaHolati(await rpc<{ xato?: string; obuna?: ObunaXom | null }>('so_obuna', { p_token: token }), new Date(), OBUNA_NARXI)
+      : null,
     tarifCheklovi: tarifCheklovi(),
     kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
@@ -436,7 +443,7 @@ export function build(): FastifyInstance {
     if (typeof token !== 'string' || !token) {
       return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
     }
-    const r = await suhbatOqi(suhbatBogliq(token), token);
+    const r = await suhbatOqi(await suhbatBogliq(token), token);
     if ('xato' in r && !('keyingi' in r)) {
       return javob.code(r.xato === 'baza javob bermadi' ? 503 : 401).send(r);
     }
@@ -449,7 +456,7 @@ export function build(): FastifyInstance {
       return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
     }
     const tana = (request.body ?? {}) as Record<string, unknown>;
-    const d = suhbatBogliq(token);
+    const d = await suhbatBogliq(token);
     if (tana.boshdan === true) return suhbatBoshdan(d, token);
     // «Suhbatlarim» → «Davom ettirish» (0066) — Edge bilan bir xil.
     if (typeof tana.qaytish === 'number') {
@@ -597,7 +604,9 @@ export function build(): FastifyInstance {
     return {
       ...n,
       cheklov_yoqilgan: tarifCheklovi(),
-      qadamlar: [1, 2, 3, 4, 5, 6].map((qadam) => ({
+      // Oylik obuna narxi (`tolov.ts`) — UI qulf yonida koʻrsatadi.
+      narx_som: OBUNA_NARXI,
+      qadamlar: SUHBAT_QADAMLARI.map((q) => q.n).map((qadam) => ({
         qadam,
         // Cheklov oʻchiq boʻlsa hamma qadam ochiq — panel
         // haqiqatni koʻrsatsin, qoidani emas.
@@ -726,7 +735,9 @@ export function build(): FastifyInstance {
     if (davr !== 'oylik' && davr !== 'yillik') {
       return javob.code(400).send({ xato: 'notanish davr', berilgan: davr });
     }
-    const summa = tarifNarxi(rejaNomi, davr) ?? TARIF_NARXI[rejaNomi]!;
+    // Narxi yoʻq davr (yillik hozir sotilmaydi) — oylik narx bilan almashtirilmaydi.
+    const summa = tarifNarxi(rejaNomi, davr);
+    if (summa === null) return javob.code(400).send({ xato: 'bu davr sotilmaydi', berilgan: davr });
     const sandbox = process.env.PAYMENTS_LIVE !== '1';
 
     const n = await rpc<{ xato?: string; paymentId?: string; userId?: string }>(
@@ -996,7 +1007,8 @@ export function build(): FastifyInstance {
     }
 
     // Tarif darvozasi: 4-qadam
-    const ruxsat = await qadamRuxsati(token, 4);
+    // Xitoydan topish — 5-qadam (12 qadamli raqamlash).
+    const ruxsat = await qadamRuxsati(token, 5);
     if (!ruxsat.ochiq) return javob.code(402).send(ruxsat.javob);
 
     const tana = (request.body ?? {}) as Record<string, unknown>;
@@ -1213,7 +1225,8 @@ export function build(): FastifyInstance {
       return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
     }
 
-    const ruxsat = await qadamRuxsati(token, 5);
+    // Kartochka — 10-qadam (yuklash).
+    const ruxsat = await qadamRuxsati(token, 10);
     if (!ruxsat.ochiq) return javob.code(402).send(ruxsat.javob);
 
     const tana = (request.body ?? {}) as Record<string, unknown>;
@@ -1402,7 +1415,7 @@ async function qadamRuxsati(token: unknown, qadam: number): Promise<
       // Nimagacha ochiqligini AYTIB qoʻyish kerak: odam nimani
       // yoʻqotayotganini bilsin.
       hozir_ochiq_qadam: REJA_QADAMI[n.reja],
-      izoh: 'Bu rejada bu qadam yopiq. Yoʻnalishlar (2-qadam) ochiq turadi.',
+      izoh: `Bu qadam obuna bilan ochiladi. 1–${REJA_QADAMI.bepul}-qadamlar bepul.`,
     },
   };
 }

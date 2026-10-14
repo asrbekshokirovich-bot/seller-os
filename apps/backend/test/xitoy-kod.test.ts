@@ -138,12 +138,12 @@ describe('xitoy — boshlash', () => {
     expect(qator(n, 100).sabab).toBe('baza javob bermadi — limit oʻlchanmadi');
   });
 
-  it('tarif cheklovi yoqiq, bepul reja — qidirilmadi "tarif", yurish yoʻq', async () => {
+  it('tarif cheklovi yoqiq, bepul reja — Xitoy qidiruvi baribir ishlaydi (1–5-qadam bepul, 2026-10-14)', async () => {
     const b = soxtaBaza(); const s = soxtaFetch();
     const n = await kod(b, s.fetch, { tarifCheklovi: true }).xitoy(holatYasa()) as XitoyNatijasi;
-    expect(qator(n, 100).sabab).toMatch(/tarif/);
-    expect(s.apify()).toEqual([]);
-    expect(b.soni()).toBe(0);
+    expect(n.qatorlar.some((q) => /tarif/.test(q.sabab ?? ''))).toBe(false);
+    expect(n.kutilmoqda).toBeTruthy();
+    expect(s.apify().filter((u) => u.endsWith('/runs')).length).toBe(1);
   });
 
   it('rasmli tovarlar: har biri band qilinadi, BITTA yurish boshlanadi, kutilmoqda; rasmsizi qidirilmadi', async () => {
