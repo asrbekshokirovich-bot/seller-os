@@ -34,6 +34,9 @@ import {
   odamlashtir,
   type ErkinSorov,
   suhbatBoshdan,
+  suhbatBolagi,
+  suhbatlarOqi,
+  suhbatQaytar,
   suhbatOqi,
   suhbatTurn,
   kerakliRejalar,
@@ -457,6 +460,14 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         if (b.xato) return javob(b, /sessiya topilmadi/.test(b.xato) ? 401 : 503);
         return javob(b);
       }
+      // «Suhbatlarim» → «Davom ettirish» (0066): eski suhbatga qaytish; javob — yangi holat.
+      if (typeof tana.qaytish === 'number') {
+        const q = await suhbatQaytar(d, token, tana.qaytish);
+        if ('xato' in q && !('keyingi' in q)) {
+          return javob(q, /sessiya topilmadi/.test(q.xato) ? 401 : q.xato === 'baza javob bermadi' ? 503 : 409);
+        }
+        return javob(q);
+      }
       const r = await suhbatTurn(d, token, {
         ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
         ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
@@ -468,6 +479,28 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       }
       return javob(r);
     }
+  }
+
+  /*
+   * «Suhbatlarim» (0066, nazoratchi 2026-10-14): mijozning suhbatlari roʻyxati va
+   * bitta eski suhbatni oʻqish. Faqat oʻz sessiyasiniki; ism va telefon chiqmaydi.
+   */
+  if (yol === '/suhbatlar' && req.method === 'GET') {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    const r = await suhbatlarOqi({ rpc }, token);
+    if ('xato' in r) return javob(r, r.xato === 'baza javob bermadi' ? 503 : 401);
+    return javob(r);
+  }
+  if (yol === '/suhbat-bolagi' && req.method === 'GET') {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    const qidir = new URL(req.url).searchParams;
+    const boshi = Number(qidir.get('boshi'));
+    const oxiri = Number(qidir.get('oxiri'));
+    const r = await suhbatBolagi({ rpc }, token, boshi, oxiri);
+    if ('xato' in r) return javob(r, r.xato === 'baza javob bermadi' ? 503 : /sessiya/.test(r.xato) ? 401 : 400);
+    return javob(r);
   }
 
   /*

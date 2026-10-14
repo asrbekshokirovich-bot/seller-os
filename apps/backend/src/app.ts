@@ -22,6 +22,9 @@ import {
   turkumRasmlari,
   odamlashtir,
   suhbatBoshdan,
+  suhbatBolagi,
+  suhbatlarOqi,
+  suhbatQaytar,
   suhbatOqi,
   suhbatTurn,
   REJA_QADAMI,
@@ -448,6 +451,14 @@ export function build(): FastifyInstance {
     const tana = (request.body ?? {}) as Record<string, unknown>;
     const d = suhbatBogliq(token);
     if (tana.boshdan === true) return suhbatBoshdan(d, token);
+    // «Suhbatlarim» → «Davom ettirish» (0066) — Edge bilan bir xil.
+    if (typeof tana.qaytish === 'number') {
+      const q = await suhbatQaytar(d, token, tana.qaytish);
+      if ('xato' in q && !('keyingi' in q)) {
+        return javob.code(/sessiya topilmadi/.test(q.xato) ? 401 : q.xato === 'baza javob bermadi' ? 503 : 409).send(q);
+      }
+      return q;
+    }
     const r = await suhbatTurn(d, token, {
       ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
       ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
@@ -458,6 +469,24 @@ export function build(): FastifyInstance {
     if (r.xato && r.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(r.xato)) {
       return javob.code(r.xato.includes('baza') ? 503 : 401).send(r);
     }
+    return r;
+  });
+
+  // «Suhbatlarim» (0066): roʻyxat va bitta eski suhbat — Edge bilan bir xil.
+  app.get('/suhbatlar', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    const r = await suhbatlarOqi({ rpc }, token);
+    if ('xato' in r) return javob.code(r.xato === 'baza javob bermadi' ? 503 : 401).send(r);
+    return r;
+  });
+
+  app.get('/suhbat-bolagi', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    const q = (request.query ?? {}) as Record<string, string | undefined>;
+    const r = await suhbatBolagi({ rpc }, token, Number(q.boshi), Number(q.oxiri));
+    if ('xato' in r) return javob.code(r.xato === 'baza javob bermadi' ? 503 : /sessiya/.test(r.xato) ? 401 : 400).send(r);
     return r;
   });
 

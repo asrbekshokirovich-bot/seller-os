@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { izohTozala, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja } from '@selleros/shared';
+import { izohTozala, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -117,8 +117,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const [mavzu, mavzuniTanla] = useMavzu();
   const [til, tilniTanla] = useTil(boshTil);
   const [menyu, setMenyu] = useState(false);
-  /** Modal oyna: «Profilim» yoki «Boshidan boshlash» tasdigʻi — bir vaqtda bittasi. */
-  const [oyna, setOyna] = useState<'profil' | 'tasdiq' | null>(null);
+  /** Modal oyna: «Profilim», «Boshidan boshlash» tasdigʻi yoki «Suhbatlarim» — bir vaqtda bittasi. */
+  const [oyna, setOyna] = useState<'profil' | 'tasdiq' | 'suhbatlar' | null>(null);
   const [obunaOchiq, setObunaOchiq] = useState(false);
   const tr = tarjima(til);
   const oqim = useRef<HTMLDivElement>(null);
@@ -397,6 +397,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const profilOch = () => { qatlamOch(); setMenyu(false); setOyna('profil'); };
   /** «Boshidan boshlash» endi faqat tasdiqdan keyin — bitta bosish butun yoʻlni oʻchirardi. */
   const boshdanSora = () => { qatlamOch(); setMenyu(false); setOyna('tasdiq'); };
+  const suhbatlarOch = () => { qatlamOch(); setMenyu(false); setOyna('suhbatlar'); };
   const obunaOch = () => { aylanish.current = oqim.current?.scrollTop ?? 0; qatlamOch(); setOyna(null); setObunaOchiq(true); };
 
   async function boshdanBoshla() {
@@ -407,6 +408,34 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     // holatni boshidan boshlangandan KEYIN bazaga yozib qoʻyardi.
     if (tekshiruv.current) await tekshiruv.current;
     await yubor({ boshdan: true });
+  }
+
+  /**
+   * «Suhbatlarim» → «Davom ettirish» (2026-10-14): eski suhbat chatga qaytadi, hozirgisi
+   * roʻyxatda qoladi. Xato boʻlsa — matni (oynada koʻrsatiladi), chat oʻzgarmaydi.
+   */
+  async function suhbatgaQayt(boshi: number): Promise<string | null> {
+    avlod.current += 1;
+    bandQil(true);
+    // Fon tekshiruvi yoʻlda boʻlsa — tugashini kutamiz (boshidan boshlashdagidek).
+    if (tekshiruv.current) await tekshiruv.current;
+    try {
+      const r = await fetch('/api/suhbat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
+        body: JSON.stringify({ qaytish: boshi }),
+      });
+      const d = await jsonOl(r);
+      if (!r.ok || d === null || !d.keyingi) return d?.xato ?? XATO.buzuq;
+      qabul(d, { almashtir: true, tozala: true });
+      yop('oyna');
+      return null;
+    } catch (q) {
+      console.warn('suhbat:', q);
+      return XATO.tarmoq;
+    } finally {
+      bandQil(false);
+    }
   }
 
   /** Yuklab boʻlmadi — qayta oʻqish; kod qadami ochilmadi — qayta bajarish. */
@@ -503,6 +532,11 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       <button type="button" className={u.yangiSuhbat} onClick={boshdanSora} disabled={band || !holatBor}>
         {tr('Boshidan boshlash', 'Начать заново')}
         <span className={u.xiraIkon}><Ikon nom="qaytadan" o={17} /></span>
+      </button>
+      {/* «Suhbatlarim» (nazoratchi, 2026-10-14): oldingi suhbatlar — oʻqish va davom ettirish. */}
+      <button type="button" className={`${u.yangiSuhbat} ${u.suhbatlarTugma}`} onClick={suhbatlarOch} disabled={band || !holatBor}>
+        {tr('Suhbatlarim', 'Мои чаты')}
+        <span className={u.xiraIkon}><Ikon nom="suhbatlar" o={17} /></span>
       </button>
 
       <nav className={u.qadamlar} aria-label={tr('Qadamlar', 'Шаги')}>
@@ -656,6 +690,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
           boshdan={() => setOyna('tasdiq')} yop={() => yop('oyna')} obuna={obunaOch} />
       )}
       {oyna === 'tasdiq' && <BoshdanTasdiq tr={tr} band={band} ha={() => void boshdanBoshla()} yoq={() => yop('oyna')} />}
+      {oyna === 'suhbatlar' && <Suhbatlarim tr={tr} band={band} yop={() => yop('oyna')} qayt={suhbatgaQayt} />}
     </div>
   );
 }
@@ -2582,13 +2617,170 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, ob
             <div className={u.sozlama}>
               <div>
                 <div className={u.sozlamaNomi}>{tr('Suhbat', 'Чат')}</div>
-                <div className={u.hisobIzoh}>{tr('Yoʻlni boshidan boshlash. Tarix saqlanadi.', 'Начать путь заново. История сохраняется.')}</div>
+                <div className={u.hisobIzoh}>{tr('Yangi suhbat. Hozirgisi «Suhbatlarim»da qoladi.', 'Новый чат. Текущий останется в «Моих чатах».')}</div>
               </div>
               <button type="button" className={u.boshdanTugma} onClick={boshdan} disabled={band}>
                 <Ikon nom="qaytadan" o={18} />{tr('Boshidan boshlash', 'Начать заново')}
               </button>
             </div>
           </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ suhbatlarim */
+
+/** Kartadagi mavzu: tanlangan turkum, qiziqqan sohalar yoki hali yoʻq. */
+function suhbatMavzusi(k: SuhbatKartasi, tr: Tr): string {
+  if (k.mavzu?.tur === 'turkum') return `«${k.mavzu.nom}»`;
+  if (k.mavzu?.tur === 'soha') {
+    return k.mavzu.sohalar.map((s) => { const x = SAVDO_SOHALARI.find((y) => y.id === s); return x ? tr(x.nom, x.ru) : s; }).join(', ');
+  }
+  // Mavzu hali tanlanmagan (1-qadam) — qadam nomi alohida yoziladi, sarlavhada takrorlanmaydi.
+  return k.joriy || k.davomEtsaBoladi ? tr('Yangi suhbat', 'Новый чат') : tr('Avvalgi suhbat', 'Прежний чат');
+}
+
+/**
+ * «Suhbatlarim» (nazoratchi, 2026-10-14: "mijoz kirib oldingi yozishgan chatini
+ * ham topishi kerak … suhbatlarim degan tugma boʻladi, ichida oldin yozishilgan
+ * chatlar"). Roʻyxat → eski suhbatni oʻqish → «Shu suhbatni davom ettirish».
+ * Hozirgisi belgilangan. Holati saqlanmagan (2026-10-14 gacha boshlangan)
+ * suhbatni faqat oʻqish mumkin — bu ochiq aytiladi.
+ */
+function Suhbatlarim({ tr, band, yop, qayt }: {
+  tr: Tr; band: boolean; yop: () => void; qayt: (boshi: number) => Promise<string | null>;
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  useModalFokus(panel);
+  const [royxat, setRoyxat] = useState<SuhbatKartasi[] | null>(null);
+  const [ochiq, setOchiq] = useState<SuhbatKartasi | null>(null);
+  const [xabarlar, setXabarlar] = useState<SuhbatBolagiXabari[] | null>(null);
+  const [xato, setXato] = useState<string | null>(null);
+  const [kutish, setKutish] = useState(false);
+  const yuklanmadi = tr('Yuklab boʻlmadi — internetni tekshirib, qayta oching.', 'Не удалось загрузить — проверьте интернет и откройте снова.');
+
+  // Oyna ochilganda bir marta (tr har renderda yangi — bogʻliqlikka kirmaydi).
+  useEffect(() => {
+    let bekor = false;
+    void (async () => {
+      try {
+        const r = await fetch('/api/suhbatlar', { cache: 'no-store', headers: sessiyaSarlavhasi() });
+        const d = (await r.json().catch(() => null)) as { suhbatlar?: SuhbatKartasi[] } | null;
+        if (bekor) return;
+        if (!r.ok || !Array.isArray(d?.suhbatlar)) setXato(yuklanmadi);
+        else setRoyxat(d.suhbatlar);
+      } catch {
+        if (!bekor) setXato(yuklanmadi);
+      }
+    })();
+    return () => { bekor = true; };
+  }, []);
+
+  async function och(k: SuhbatKartasi) {
+    if (k.joriy) { yop(); return; }
+    setOchiq(k);
+    setXabarlar(null);
+    setXato(null);
+    try {
+      const r = await fetch(`/api/suhbat-bolagi?boshi=${k.boshi}&oxiri=${k.oxiri}`, { cache: 'no-store', headers: sessiyaSarlavhasi() });
+      const d = (await r.json().catch(() => null)) as { xabarlar?: SuhbatBolagiXabari[] } | null;
+      if (!r.ok || !Array.isArray(d?.xabarlar)) setXato(yuklanmadi);
+      else setXabarlar(d.xabarlar.filter((m) => m.matn.trim() !== ''));
+    } catch {
+      setXato(yuklanmadi);
+    }
+  }
+
+  async function davom() {
+    if (!ochiq) return;
+    setKutish(true);
+    setXato(null);
+    const x = await qayt(ochiq.boshi);
+    setKutish(false);
+    if (x) {
+      setXato(x === 'bu suhbatni faqat oʻqish mumkin'
+        ? tr('Bu suhbatni faqat oʻqish mumkin.', 'Этот чат можно только читать.')
+        : tr('Davom ettirib boʻlmadi — qayta urinib koʻring.', 'Не получилось продолжить — попробуйте ещё раз.'));
+    }
+  }
+
+  const qadamMatni = (k: SuhbatKartasi) => {
+    const q = SUHBAT_QADAMLARI.find((x) => x.n === k.qadam);
+    return q ? tr(`${q.n}-qadam · ${q.nom}`, `Шаг ${q.n} · ${q.ru}`) : null;
+  };
+
+  return (
+    <div className={u.panelFon} role="presentation" onClick={yop}>
+      <div ref={panel} className={`${u.panel} ${u.sbPanel}`} role="dialog" aria-modal="true" aria-labelledby="sb-sarlavha" onClick={(e) => e.stopPropagation()}>
+        <header className={u.panelBosh}>
+          <div>
+            <h2 id="sb-sarlavha" className={u.panelSarlavha}>{ochiq ? suhbatMavzusi(ochiq, tr) : tr('Suhbatlarim', 'Мои чаты')}</h2>
+            <p className={u.panelMeta}>
+              {ochiq
+                ? [qadamMatni(ochiq), sanaMatni(ochiq.sana)].filter(Boolean).join(' · ')
+                : tr('Oldingi suhbatlaringiz — oʻqing yoki davom ettiring', 'Ваши прежние чаты — читайте или продолжайте')}
+            </p>
+          </div>
+          <button type="button" className={u.yopish} data-fokus aria-label={tr('Yopish', 'Закрыть')} onClick={yop}><Ikon nom="yopish" o={18} /></button>
+        </header>
+        <div className={u.panelIchi}>
+          {xato && <p className={u.sbXato} role="alert">{xato}</p>}
+
+          {!ochiq && royxat === null && !xato && <p className={u.kichikIzoh}>{tr('Yuklanmoqda…', 'Загрузка…')}</p>}
+          {!ochiq && royxat !== null && (
+            <ul className={u.sbRoyxat}>
+              {royxat.map((k) => (
+                <li key={k.boshi}>
+                  <button type="button" className={`${u.sbKarta} ${k.joriy ? u.sbKartaJoriy : ''}`} onClick={() => void och(k)}>
+                    <span className={u.sbKartaSarlavha}>
+                      {suhbatMavzusi(k, tr)}
+                      {k.joriy && <span className={u.sbNishon}>{tr('Hozirgi', 'Текущий')}</span>}
+                    </span>
+                    <span className={u.sbMeta}>
+                      {[qadamMatni(k), sanaMatni(k.sana), tr(`${k.xabarlar} ta xabar`, `сообщений: ${k.xabarlar}`)].filter(Boolean).join(' · ')}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!ochiq && royxat !== null && royxat.length <= 1 && (
+            <p className={u.kichikIzoh}>
+              {tr('Hozircha bitta suhbat bor. «Boshidan boshlash» ni bossangiz, hozirgisi shu yerda qoladi.',
+                'Пока один чат. Если нажмёте «Начать заново», текущий останется здесь.')}
+            </p>
+          )}
+
+          {ochiq && (
+            <>
+              <button type="button" className={u.sbOrqaga} onClick={() => { setOchiq(null); setXabarlar(null); setXato(null); }}>
+                <Ikon nom="chap" o={16} />{tr('Roʻyxatga', 'К списку')}
+              </button>
+              {xabarlar === null && !xato && <p className={u.kichikIzoh}>{tr('Yuklanmoqda…', 'Загрузка…')}</p>}
+              {xabarlar !== null && (
+                <div className={u.sbXabarlar} aria-label={tr('Suhbat yozishmalari', 'Переписка')}>
+                  {xabarlar.map((m) => (
+                    <div key={m.seq} className={m.rol === 'obunachi' ? u.sbMen : u.sbU}>{m.matn}</div>
+                  ))}
+                </div>
+              )}
+              {ochiq.davomEtsaBoladi ? (
+                <div className={u.sbAmallar}>
+                  <button type="button" className={`${u.tugma} ${u.tugmaAsosiy}`} onClick={() => void davom()} disabled={band || kutish}>
+                    <Ikon nom="ong" o={18} />{tr('Shu suhbatni davom ettirish', 'Продолжить этот чат')}
+                  </button>
+                  <span className={u.kichikIzoh}>{tr('Hozirgi suhbatingiz ham shu roʻyxatda qoladi.', 'Текущий чат тоже останется в списке.')}</span>
+                </div>
+              ) : (
+                <p className={u.kichikIzoh}>
+                  {tr('Bu suhbat yangi imkoniyatdan oldin boshlangan — uni faqat oʻqish mumkin.',
+                    'Этот чат начат до появления этой функции — его можно только читать.')}
+                </p>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -2613,8 +2805,8 @@ function BoshdanTasdiq({ tr, band, ha, yoq }: { tr: Tr; band: boolean; ha: () =>
         <h2 id="tasdiq-sarlavha" className={u.tasdiqSarlavha}>{tr('Yoʻlni boshidan boshlaysizmi?', 'Начать путь заново?')}</h2>
         <p id="tasdiq-matn" className={u.tasdiqMatn}>
           {tr(
-            'Javoblaringiz oʻchadi: byudjet, yoʻnalish, tovarlar va miqdor, 1688 tanlovlari, buyurtma varaqasi. Suhbat tarixi qoladi.',
-            'Ваши ответы удалятся: бюджет, направление, товары и количество, выбор на 1688, лист заказа. История чата останется.',
+            'Yangi suhbat ochiladi. Hozirgisi oʻchmaydi — «Suhbatlarim»da qoladi, xohlasangiz keyin davom ettirasiz.',
+            'Откроется новый чат. Текущий не удалится — он останется в «Моих чатах», его можно будет продолжить.',
           )}
         </p>
         <div className={u.tasdiqTugmalar}>

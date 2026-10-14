@@ -26,6 +26,7 @@ export * from './yozuv.js';
 export * from './tez-savollar.js';
 export * from './baho.js';
 export * from './erkin-malumot.js';
+export * from './suhbatlar.js';
 export * from './filtrlar/nakrutka.js';
 export * from './filtrlar/ogir.js';
 export * from './filtrlar/mavsum.js';
