@@ -144,7 +144,10 @@ function izohQisqa(izoh: string | null): string | null {
 
 function bankSatri(b: BankQatori): string {
   const oylik = b.oylikSom === 0 ? 'oylik xizmat bepul' : b.oylikSom !== null ? `oylik ${minglik(b.oylikSom)} soʻm` : null;
-  const qism = [b.onlayn === true ? 'onlayn ochiladi' : null, izohQisqa(b.izoh) ?? oylik].filter(Boolean);
+  // 2026-10-14: «Hamkorbankda ofisga borish shartmi?» — javob chatda ham boʻlsin (kartada «ofisda» bor).
+  // Oʻlchanmagan (`null`) — hech narsa demaymiz.
+  const usul = b.onlayn === true ? 'onlayn ochiladi' : b.onlayn === false ? 'ofisga borib ochiladi' : null;
+  const qism = [usul, izohQisqa(b.izoh) ?? oylik].filter(Boolean);
   return `${b.nom}${qism.length ? `: ${qism.join('; ')}` : ''}`;
 }
 
