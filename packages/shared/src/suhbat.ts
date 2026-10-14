@@ -208,7 +208,7 @@ export function eskiSavolsiz<T extends { rol: string; savolId?: string | null }>
 }
 
 /** Tarix + hozirgi savol. Hech narsa yozmaydi. */
-export async function suhbatOqi(d: SuhbatBogliqliklari, token: string): Promise<
+export async function suhbatOqi(d: Pick<SuhbatBogliqliklari, 'rpc'>, token: string): Promise<
   (SuhbatJavobi & { tarix: OqishJavobi['xabarlar'] }) | { xato: string }
 > {
   const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
@@ -386,9 +386,15 @@ export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Prom
   const h = boshlangichHolat();
   const k = keyingi(h);
   const savol: SuhbatXabari[] = k.tur === 'savol' ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id }] : [];
+  // Eski suhbat «Suhbatlarim»da qoladi (2026-10-14): belgida uning holati — keyin davom ettirish uchun (0066).
+  const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
+  if (o === null || o.xato) {
+    return { xato: o?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: k, qadam: 1, yozildi: false };
+  }
+  const eski = o.holat ? { holat: o.holat, qadam: o.qadam ?? joriyQadam(o.holat) } : null;
   const y = await d.rpc<{ xato?: string }>('so_suhbat_yoz', {
     p_token: token,
-    p_xabarlar: [{ rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan', javob: null }, ...savol],
+    p_xabarlar: [{ rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan', javob: eski }, ...savol],
     p_holat: h, p_qadam: 1, p_profil: null,
   });
   if (y === null || y.xato) {
