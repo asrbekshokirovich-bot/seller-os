@@ -529,16 +529,28 @@ Bitta anomaliya koʻrindi va yashirilmadi: **1 foydalanuvchi
 qilmaydi. U nisbat maxrajiga kirmaydi, lekin javobda `ogoh`
 maydonida turadi.
 
-## Tarif limiti — qoida bor, yoqilmagan
+## Tarif limiti — obuna darvozasi qurilgan, yoqilmagan
 
-Reja (B3): "Bepulda Usta 2-qadamgacha, pullikda toʻliq — pilot
-sinovi uchun flag bilan almashtiriladigan".
+Nazoratchi qarori (2026-10-14): "mijoz tovarlarini Xitoydan topgandan
+keyin obuna xarid qilishi kerak; xarid qilmasa keyingi qadamga
+oʻtmasin". Narx — **149 000 soʻm/oy**, bitta reja; toʻlov — **faqat
+Payme/Click**; 1688 sotuvchi havolasi toʻlovdan keyin.
 
-Qoida `packages/shared/src/tarif.ts` da va testlari yashil.
+Qoida `packages/shared/src/tarif.ts` da: bepul — 1–5-qadam, obuna —
+1–12. Chatda `keyingi(h, darvoza)` (`ssenariy.ts`): obuna faol
+boʻlmasa 6–12-qadamning har savoli va kod harakati oʻrniga «Obuna»
+savoli; javobi yozilmaydi, erkin savol ishlaydi; havolalar
+`havolalarsiz` bilan faqat brauzerga ketadigan nusxadan olinadi.
+Server obunani har soʻrovda `so_obuna` dan oʻqiydi (`darvozaHolati`);
+baza javob bermasa — «nomaʼlum»: toʻlov soʻralmaydi.
+
 Yoqilishi uchun `TARIF_CHEKLOVI=1` kerak — **hozir oʻchiq va
-shunday qolishi kerak**: toʻlov oqimi yoʻq, yaʼni yoqilsa hech
-kim 3-qadamga oʻta olmasdi. Holati `/health` javobida
-`live.tarifCheklovi` da koʻrinadi.
+shunday qolishi kerak**: Payme/Click hali ulanmagan (merchant
+roʻyxatdan oʻtish — nazoratchida). Yoqishdan oldin: toʻlov uchlari
+Edge da (Payme Merchant API, Click SHOP API — imzo va summa
+tekshiruvi bilan), `payments` jadvalida reja va provayder
+tranzaksiyasi (migratsiya — nazoratchi ruxsati bilan), yillik tarif
+yoʻq. Holati `/health` javobida `live.tarifCheklovi` da koʻrinadi.
 
 ## Uzum sxemasi — nima BOR va nima YOʻQ (2026-08-25, introspeksiya)
 

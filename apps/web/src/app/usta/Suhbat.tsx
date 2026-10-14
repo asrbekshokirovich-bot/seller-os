@@ -338,7 +338,35 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     }
   }
 
-  const javobBer = (savolId: string, javob: unknown) => void yubor({ savolId, javob });
+  /**
+   * «Obuna» savoli (obuna darvozasi, 2026-10-14): tugmalar javob EMAS. Payme/Click —
+   * toʻlov sahifasi (`/api/tolov/boshla`); «Toʻladim — tekshirish» holatni qayta oʻqiydi:
+   * server obunani har soʻrovda bazadan tekshiradi, faol boʻlsa yoʻl shu joydan davom etadi.
+   */
+  async function obunaTugmasi(qiymat: unknown): Promise<void> {
+    if (qiymat === 'tekshir') { setXato(null); await yukla(); return; }
+    if (qiymat !== 'payme' && qiymat !== 'click') return;
+    bandQil(true); setXato(null);
+    try {
+      const r = await fetch('/api/tolov/boshla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
+        body: JSON.stringify({ provayder: qiymat }),
+      });
+      const d = (await r.json().catch(() => null)) as { checkoutUrl?: unknown } | null;
+      if (r.ok && typeof d?.checkoutUrl === 'string' && /^https:\/\//u.test(d.checkoutUrl)) {
+        window.location.assign(d.checkoutUrl);
+        return;
+      }
+      setXato(tr('Toʻlov hozircha ishlamayapti — birozdan keyin urinib koʻring.', 'Оплата пока не работает — попробуйте чуть позже.'));
+    } catch {
+      setXato(XATO.tarmoq);
+    } finally {
+      bandQil(false);
+    }
+  }
+
+  const javobBer = (savolId: string, javob: unknown) => (savolId === 'obuna' ? void obunaTugmasi(javob) : void yubor({ savolId, javob }));
   // Yozilgan matn: server javob sifatida oʻqiydi ("10 mln" ham) yoki erkin xabar
   // deb menejer javob beradi ("salom", "bu nima?") — chatda ikkalasi ham qoladi.
   const matnYubor = (savolId: string, t: string) => void yubor({ savolId, matn: t });
@@ -882,7 +910,7 @@ function KodKartasi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: Kat
         : x.savolId === 'tannarx'
           ? <Chegaralar qatorlar={(n.qatorlar as TannarxQatori[] | undefined) ?? []} izoh={izoh} tr={tr} />
           : x.savolId === 'xitoy'
-            ? <XitoyTakliflari qatorlar={(n.qatorlar as XitoyQatorQ[] | undefined) ?? []} kurs={(n.kurs as XitoyKursQ | null | undefined) ?? null} izoh={izoh} rejim={xitoy} tr={tr} />
+            ? <XitoyTakliflari qatorlar={(n.qatorlar as XitoyQatorQ[] | undefined) ?? []} kurs={(n.kurs as XitoyKursQ | null | undefined) ?? null} izoh={izoh} rejim={xitoy} havolaYopiq={n.havolaYopiq === true} tr={tr} />
             : x.savolId === 'buyurtma'
               ? <BuyurtmaVaraqasi n={n as unknown as BuyurtmaQ} tr={tr} />
               : x.savolId === 'rasmiy'
@@ -1235,8 +1263,10 @@ interface XitoyKursQ { somPerYuan: number; sana: string; manba: string }
  * bu javob) / qidirilmadi (sabab). Raqamlar provayderdan; soʻm — CBU
  * kursi bilan, kurs boʻlmasa koʻrsatilmaydi. Havola faqat http(s).
  */
-function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, tr }: {
-  qatorlar: XitoyQatorQ[]; kurs: XitoyKursQ | null; izoh: string | null; rejim?: XitoyRejimi | undefined; tr: Tr;
+function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr }: {
+  qatorlar: XitoyQatorQ[]; kurs: XitoyKursQ | null; izoh: string | null; rejim?: XitoyRejimi | undefined;
+  /** Obunasiz — 1688 sotuvchi havolasi serverdan kelmagan (obuna darvozasi, 2026-10-14). */
+  havolaYopiq?: boolean; tr: Tr;
 }) {
   const holatMatni = (h: XitoyQatorQ['holat']) =>
     h === 'topildi' ? tr('topildi', 'найдено') : h === 'topilmadi' ? tr('1688 da oʻxshash yoʻq', 'на 1688 нет похожих') : tr('qidirilmadi', 'не искалось');
@@ -1343,6 +1373,9 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, tr }: {
           : tr('Kurs olinmadi — soʻm koʻrsatilmadi.', 'Курс не получен — сумы не показаны.')}
         {izoh ? ` ${izoh}` : ''}
       </p>
+      {havolaYopiq && (
+        <p className={u.kichikIzoh}>{tr('1688 sotuvchi havolalari obuna olingandan keyin ochiladi.', 'Ссылки на продавцов 1688 откроются после оформления подписки.')}</p>
+      )}
     </div>
   );
 }
@@ -2534,10 +2567,10 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, ob
   const tr = tarjima(til);
   const panel = useRef<HTMLDivElement>(null);
   useModalFokus(panel);
+  // Bitta pullik reja (nazoratchi, 2026-10-14): «Obuna» — 149 000 soʻm/oy, 6–12-qadamlar.
   const rejalar: ReadonlyArray<{ reja: Reja; nom: string }> = [
     { reja: 'bepul', nom: tr('Bepul', 'Бесплатный') },
-    { reja: 'pro', nom: 'Pro' },
-    { reja: 'biznes', nom: tr('Biznes', 'Бизнес') },
+    { reja: 'pro', nom: tr('Obuna', 'Подписка') },
   ];
   return (
     <div className={u.panelFon} role="presentation" onClick={yop}>

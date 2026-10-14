@@ -55,6 +55,9 @@ import {
   profilOqi,
   qadamOchiq,
   reja,
+  darvozaHolati,
+  OBUNA_NARXI,
+  SUHBAT_QADAMLARI,
   sohalar,
   tovarlar,
   yonalishlar,
@@ -421,8 +424,14 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const kalit = Deno.env.get('GEMINI_API_KEY');
     // Model env dan (`LLM_MODEL`); 503/429 da — zaxira model (`LLM_ZAXIRA_MODEL`, boʻlmasa `llm.ts` dagisi).
     const llmSozlama = { kalit, model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL') };
+    // Obuna darvozasi (nazoratchi, 2026-10-14): cheklov yoqilgan boʻlsa — har soʻrovda bazadan.
+    // 5-qadamdan keyin obunasiz yoʻl ochilmaydi (`keyingi`); baza javob bermasa — «nomaʼlum».
+    const darvoza = tarifCheklovi()
+      ? darvozaHolati(await rpc<{ xato?: string; obuna?: ObunaXom | null }>('so_obuna', { p_token: token }), new Date(), OBUNA_NARXI)
+      : null;
     const d = {
       rpc,
+      darvoza,
       // Tarif cheklovi oʻchiq boʻlsa — «Bu bepulmi?» ga «hozir hamma qadam bepul» (rost holat).
       tarifCheklovi: tarifCheklovi(),
       kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
@@ -574,7 +583,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     return javob({
       ...n,
       cheklov_yoqilgan: tarifCheklovi(),
-      qadamlar: [1, 2, 3, 4, 5, 6].map((qadam) => ({
+      // Oylik obuna narxi (`tolov.ts`) — UI qulf yonida koʻrsatadi.
+      narx_som: OBUNA_NARXI,
+      qadamlar: SUHBAT_QADAMLARI.map((q) => q.n).map((qadam) => ({
         qadam,
         // Cheklov oʻchiq boʻlsa hamma qadam ochiq — panel
         // haqiqatni koʻrsatsin, qoidani emas.
@@ -635,7 +646,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const token = req.headers.get('x-sessiya');
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
 
-    const ruxsat = await qadamRuxsati(token, 4);
+    // Xitoydan topish — 5-qadam (12 qadamli raqamlash).
+    const ruxsat = await qadamRuxsati(token, 5);
     if (!ruxsat.ochiq) return javob(ruxsat.javob, 402);
 
     let tana: Record<string, unknown> = {};
@@ -887,7 +899,7 @@ async function qadamRuxsati(token: string | null, qadam: number): Promise<
       reja_sababi: n.sabab,
       ochadigan_rejalar: kerakliRejalar(qadam),
       hozir_ochiq_qadam: REJA_QADAMI[n.reja],
-      izoh: 'Bu rejada bu qadam yopiq. Yoʻnalishlar (2-qadam) ochiq turadi.',
+      izoh: `Bu qadam obuna bilan ochiladi. 1–${REJA_QADAMI.bepul}-qadamlar bepul.`,
     },
   };
 }

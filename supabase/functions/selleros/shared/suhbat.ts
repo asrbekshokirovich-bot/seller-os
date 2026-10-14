@@ -26,9 +26,10 @@
  * tugagach kod xabari + keyingi savol odatdagidek yoziladi.
  */
 
-import { type AloqaJavoblari, type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat, JIM_HARAKATLAR,
+import { type AloqaJavoblari, type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat, havolalarsiz, JIM_HARAKATLAR,
   javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, usdKursi, uzumDokoniBormi, yiqilganNatija,
   yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.ts';
+import type { Darvoza } from './tarif.ts';
 import { natijaSonlari, tekshir } from './tekshiruv.ts';
 import { minglik } from './fakt.ts';
 import { tayyorJavob } from './erkin.ts';
@@ -122,6 +123,11 @@ export interface SuhbatBogliqliklari {
    * tarif haqidagi javob va LLM faktlari shuni aytadi («Bu bepulmi?», 2026-10-13).
    */
   tarifCheklovi?: boolean;
+  /**
+   * Obuna darvozasi (nazoratchi, 2026-10-14): tarif cheklovi yoqilgan boʻlsa server
+   * har turnda bazadan oʻqiydi (`darvozaHolati`). Berilmasa — darvoza yoʻq, yoʻl ochiq.
+   */
+  darvoza?: Darvoza | null;
 }
 
 /**
@@ -208,16 +214,17 @@ export function eskiSavolsiz<T extends { rol: string; savolId?: string | null }>
 }
 
 /** Tarix + hozirgi savol. Hech narsa yozmaydi. */
-export async function suhbatOqi(d: Pick<SuhbatBogliqliklari, 'rpc'>, token: string): Promise<
+export async function suhbatOqi(d: Pick<SuhbatBogliqliklari, 'rpc' | 'darvoza'>, token: string): Promise<
   (SuhbatJavobi & { tarix: OqishJavobi['xabarlar'] }) | { xato: string }
 > {
   const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
   if (o === null) return { xato: 'baza javob bermadi' };
   if (o.xato) return { xato: o.xato };
   const holat = o.holat ?? boshlangichHolat();
-  const k = keyingi(holat);
+  const k = keyingi(holat, d.darvoza);
   return {
-    xabarlar: [], tarix: eskiSavolsiz(songgiSuhbat(o.xabarlar ?? []), k.tur === 'savol' ? k.savol.id : null),
+    xabarlar: [],
+    tarix: havolalarsiz(eskiSavolsiz(songgiSuhbat(o.xabarlar ?? []), k.tur === 'savol' ? k.savol.id : null), d.darvoza),
     keyingi: k, qadam: joriyQadam(holat), yozildi: true,
   };
 }
@@ -234,6 +241,8 @@ export async function suhbatTurn(
   const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
   if (o === null) return { xato: 'baza javob bermadi', xabarlar: [], keyingi: keyingi(boshlangichHolat()), qadam: 1, yozildi: false };
   if (o.xato) return { xato: o.xato, xabarlar: [], keyingi: keyingi(boshlangichHolat()), qadam: 1, yozildi: false };
+  // Obuna darvozasi har chaqiruvda bir xil (`keyingi`, `joriyQadam`, `javobniQabulQil`).
+  const dz = d.darvoza;
 
   let holat = o.holat ?? boshlangichHolat();
   const yangi: SuhbatXabari[] = [];
@@ -244,7 +253,7 @@ export async function suhbatTurn(
     // Kutilayotgan ish: 5-qadam (1688) yoki 9-qadam (internet suratlari).
     const kutilgan = kutilayotganHarakat(holat);
     if (kutilgan === null) {
-      return { xabarlar: [], keyingi: keyingi(holat), qadam: joriyQadam(holat), yozildi: true };
+      return { xabarlar: [], keyingi: keyingi(holat, dz), qadam: joriyQadam(holat), yozildi: true };
     }
     const natija = await bajar(d, kutilgan, holat);
     const yangiHolat = natijaniYoz(holat, kutilgan, natija);
@@ -252,14 +261,14 @@ export async function suhbatTurn(
       // Hali tugamagan: holat oʻzgargan boʻlsa ham (urinish sanogʻi)
       // jurnalga xabar yozilmaydi; holat yoziladi.
       await d.rpc('so_suhbat_yoz', { p_token: token, p_xabarlar: [], p_holat: yangiHolat, p_qadam: joriyQadam(yangiHolat), p_profil: null });
-      return { xabarlar: [], keyingi: keyingi(yangiHolat), qadam: joriyQadam(yangiHolat), yozildi: true };
+      return { xabarlar: [], keyingi: keyingi(yangiHolat, dz), qadam: joriyQadam(yangiHolat), yozildi: true };
     }
     holat = yangiHolat;
     yangi.push({ rol: 'kod', matn: tushuntir(kutilgan, natija), savolId: kutilgan, javob: natija });
   }
 
   // ---- 2. javobni qabul qilish
-  const k0 = keyingi(holat);
+  const k0 = keyingi(holat, dz);
   const bor = kirish.savolId !== undefined || kirish.matn !== undefined;
   if (bor) {
     if (k0.tur !== 'savol') {
@@ -281,7 +290,7 @@ export async function suhbatTurn(
     // Oʻzbek kirillda yozsa ("ҳа", "йўқ") — tugma nomi lotinda: tushunish uchun lotinga oʻgiriladi.
     const tanlanganVariant = yozgan !== null && !savolBerdi && tugmaMatni
       ? variantniTop(k0.savol.variantlar, tushunishUchun(yozgan)) : undefined;
-    const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom);
+    const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom, dz);
     if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
       return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null, o.xabarlar ?? []);
     }
@@ -328,7 +337,7 @@ export async function suhbatTurn(
   }
 
   // ---- 3. kod harakatlari, savol chiqquncha
-  let k = keyingi(holat);
+  let k = keyingi(holat, dz);
   let himoya = 0;
   while (k.tur === 'kod' && himoya++ < 5) {
     const natija = await bajar(d, k.harakat, holat);
@@ -339,7 +348,7 @@ export async function suhbatTurn(
     if (!JIM_HARAKATLAR.has(k.harakat) && !(natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
       yangi.push({ rol: 'kod', matn: tushuntir(k.harakat, natija), savolId: k.harakat, javob: natija });
     }
-    k = keyingi(holat);
+    k = keyingi(holat, dz);
   }
 
   // ---- 4. menejer jumlasi (+ ixtiyoriy odamlashtirish, tekshiruv bilan)
@@ -369,7 +378,8 @@ export async function suhbatTurn(
   });
   const yozildi = y !== null && !y.xato;
 
-  return { xabarlar: yangi, keyingi: k, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
+  // Jurnalga toʻliq yozildi; brauzerga — obunasiz boʻlsa 1688 havolasiz (`havolalarsiz`).
+  return { xabarlar: havolalarsiz(yangi, dz), keyingi: k, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 /**
