@@ -544,13 +544,16 @@ savoli; javobi yozilmaydi, erkin savol ishlaydi; havolalar
 Server obunani har soʻrovda `so_obuna` dan oʻqiydi (`darvozaHolati`);
 baza javob bermasa — «nomaʼlum»: toʻlov soʻralmaydi.
 
+Toʻlov (0067, `claude/tolov`): Payme Merchant API va Click SHOP API
+Edge da, sayt orqali (`/api/tolov/payme`, `/api/tolov/click`); holat
+mashinasi va obunani uzaytirish — bazada, bitta tranzaksiyada. Ulash
+tartibi va sirlar — `docs/TOLOV-ULASH.md`.
+
 Yoqilishi uchun `TARIF_CHEKLOVI=1` kerak — **hozir oʻchiq va
-shunday qolishi kerak**: Payme/Click hali ulanmagan (merchant
-roʻyxatdan oʻtish — nazoratchida). Yoqishdan oldin: toʻlov uchlari
-Edge da (Payme Merchant API, Click SHOP API — imzo va summa
-tekshiruvi bilan), `payments` jadvalida reja va provayder
-tranzaksiyasi (migratsiya — nazoratchi ruxsati bilan), yillik tarif
-yoʻq. Holati `/health` javobida `live.tarifCheklovi` da koʻrinadi.
+shunday qolishi kerak**: Payme/Click sirlari hali yoʻq (merchant
+roʻyxatdan oʻtish — nazoratchida). Avval sinov (test.paycom.uz,
+Click Playground), keyin `PAYMENTS_LIVE=1`, oxirida darvoza.
+Holati `/health` da: `live.tarifCheklovi`, `live.tolov`.
 
 ## Uzum sxemasi — nima BOR va nima YOʻQ (2026-08-25, introspeksiya)
 

@@ -5,8 +5,6 @@ import {
 } from './tahlil.js';
 import type { TarqalganBayroq, TurkumXaritasi } from './tahlil.js';
 import { suhbatKodHarakatlari } from './suhbat-kod.js';
-import { paymeCheckoutUrl, paymeWebhookTekshir, paymeWebhookParse, paymeJavob, paymeXato } from './payme.js';
-import { clickCheckoutUrl, clickImzoTekshir, clickWebhookParse, clickPrepareJavob, clickCompleteJavob, CLICK_XATO, type ClickWebhookTana } from './click.js';
 
 /** `so_tovar_royxati()` javobi. */
 interface TovarJavobi {
@@ -42,9 +40,10 @@ import {
   sohalar,
   tovarlar,
   yonalishlar,
-  TARIF_NARXI,
-  tarifNarxi,
-  type DavrTuri,
+  clickIshla,
+  paymeIshla,
+  tolovniBoshla,
+  tolovSozlamasi,
   rasmManzili,
   rasmYuklovchi,
   tashxisMatni,
@@ -87,6 +86,8 @@ const KUZATILADIGAN: ReadonlySet<string> = new Set([
  */
 export function build(): FastifyInstance {
   const app = Fastify({ logger: false });
+  // Click SHOP API formasi — xom matn (imzo xom `amount` bilan tekshiriladi).
+  app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_soov, tana, tayyor) => tayyor(null, tana));
 
   const tezliklar: number[] = [];
   const sorovBoshi = new WeakMap<object, number>();
@@ -709,229 +710,31 @@ export function build(): FastifyInstance {
   // ───────────────────────────────────────────────────────────────
 
   /**
-   * Toʻlovni boshlash (reja B3).
-   *
-   * Mijoz reja tanlaydi, tizim `payments` jadvaliga yozib provayder
-   * URL ini qaytaradi. Hozir SANDBOX: haqiqiy pul yechilmaydi.
-   *
-   * `PAYMENTS_LIVE` flagi yoʻq boʻlsa sandbox majburiy — jonli
-   * toʻlov tasodifan ishga tushmaydi.
+   * Obuna toʻlovi — Payme va Click (0067). Edge bilan bir xil: ikkalasi ham
+   * `tolovniBoshla`, `paymeIshla`, `clickIshla` ni chaqiradi. Payme/Click sayt
+   * (`/api/tolov/*`) orqali keladi; Payme `Authorization` i — `x-payme-auth`.
    */
   app.post('/tolov/boshla', async (request, javob) => {
     const token = request.headers['x-sessiya'];
-    if (typeof token !== 'string' || !token) {
-      return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
-    }
+    if (typeof token !== 'string' || !token) return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
     const tana = (request.body ?? {}) as Record<string, unknown>;
-    const provayder = tana.provayder as string;
-    const rejaNomi = tana.reja as string;
-    if (!provayder || !['payme', 'click', 'nasiya'].includes(provayder)) {
-      return javob.code(400).send({ xato: 'notanish provayder', berilgan: provayder ?? null });
-    }
-    if (!rejaNomi || !(rejaNomi in TARIF_NARXI)) {
-      return javob.code(400).send({ xato: 'notanish reja', berilgan: rejaNomi ?? null });
-    }
-    const davr = (tana.davr as DavrTuri) || 'oylik';
-    if (davr !== 'oylik' && davr !== 'yillik') {
-      return javob.code(400).send({ xato: 'notanish davr', berilgan: davr });
-    }
-    // Narxi yoʻq davr (yillik hozir sotilmaydi) — oylik narx bilan almashtirilmaydi.
-    const summa = tarifNarxi(rejaNomi, davr);
-    if (summa === null) return javob.code(400).send({ xato: 'bu davr sotilmaydi', berilgan: davr });
-    const sandbox = process.env.PAYMENTS_LIVE !== '1';
-
-    const n = await rpc<{ xato?: string; paymentId?: string; userId?: string }>(
-      'so_tolov_boshla', {
-        p_token: token,
-        p_provayder: provayder,
-        p_reja: rejaNomi,
-        p_summa: summa,
-        p_sandbox: sandbox,
-      },
-    );
-    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
-    if (n.xato) return javob.code(400).send(n);
-
-    // Provayder checkout URL yasash.
-    let checkoutUrl: string | null = null;
-
-    if (provayder === 'payme') {
-      const merchantId = process.env.PAYME_MERCHANT_ID;
-      if (merchantId) {
-        checkoutUrl = paymeCheckoutUrl({
-          merchantId,
-          paymentId: Number(n.paymentId),
-          summaTiyin: summa * 100,
-          sandbox,
-          returnUrl: process.env.RETURN_URL,
-        });
-      }
-    } else if (provayder === 'click') {
-      const serviceId = process.env.CLICK_SERVICE_ID;
-      const merchantId = process.env.CLICK_MERCHANT_ID;
-      if (serviceId && merchantId) {
-        checkoutUrl = clickCheckoutUrl({
-          serviceId,
-          merchantId,
-          paymentId: Number(n.paymentId),
-          summaSom: summa,
-          returnUrl: process.env.RETURN_URL,
-        });
-      }
-    }
-
-    return {
-      ...n,
-      summa,
-      sandbox,
-      checkoutUrl,
-      izoh: sandbox
-        ? 'Sandbox rejimi — haqiqiy pul yechilmaydi.'
-        : !checkoutUrl
-          ? 'Provayder kaliti sozlanmagan — checkout URL yoʻq.'
-          : undefined,
-    };
+    const r = await tolovniBoshla(rpc, token, tana.provayder, tolovSozlamasi((k) => process.env[k]));
+    return javob.code(r.status).send(r.tana);
   });
 
-  /**
-   * Payme webhook — JSON-RPC formatida keladi (B3).
-   *
-   * Payme toʻlov holatini shu uchga yuboradi. Autentifikatsiya:
-   * Basic Auth (Paycom:{merchantKey}).
-   */
-  app.post('/tolov/webhook/payme', async (request, javob) => {
-    const merchantKey = process.env.PAYME_MERCHANT_KEY;
-    if (!merchantKey) {
-      return javob.code(503).send({ xato: 'PAYME_MERCHANT_KEY sozlanmagan' });
-    }
-
-    const authHeader = request.headers.authorization;
-    if (!paymeWebhookTekshir(authHeader, merchantKey)) {
-      return javob.code(401).send(paymeXato(null, -32504, 'Autentifikatsiya xatosi'));
-    }
-
-    const tana = (request.body ?? {}) as Record<string, unknown>;
-    const parsed = paymeWebhookParse(tana);
-    if (!parsed) {
-      return javob.send(paymeXato(tana.id, -32600, 'Soʻrov formati notoʻgʻri'));
-    }
-
-    // CreateTransaction va CheckPerformTransaction — faqat tasdiqlash.
-    if (parsed.method === 'CheckPerformTransaction') {
-      return javob.send(paymeJavob(parsed.rpcId, { allow: true }));
-    }
-
-    if (parsed.method === 'CheckTransaction' || parsed.method === 'GetStatement') {
-      return javob.send(paymeJavob(parsed.rpcId, { exists: true }));
-    }
-
-    // CreateTransaction, PerformTransaction, CancelTransaction → bazaga yozish.
-    const n = await rpc<{ xato?: string; ok?: boolean }>(
-      'so_tolov_webhook', {
-        p_payment_id: parsed.paymentId,
-        p_holat: parsed.holat,
-        p_external_id: parsed.externalId,
-      },
-    );
-    if (n === null) return javob.code(503).send(paymeXato(parsed.rpcId, -32400, 'Baza javob bermadi'));
-    if (n.xato) return javob.send(paymeXato(parsed.rpcId, -31001, n.xato));
-
-    return javob.send(paymeJavob(parsed.rpcId, {
-      transaction: String(parsed.paymentId),
-      state: parsed.holat === 'tolangan' ? 2 : parsed.holat === 'qaytarildi' ? -1 : 1,
-    }));
+  // Payme Merchant API — javob DOIM 200 (xato — JSON-RPC `error` da).
+  app.post('/tolov/payme', async (request) => {
+    const s = tolovSozlamasi((k) => process.env[k]);
+    const sarlavha = request.headers['x-payme-auth'];
+    const tana = typeof request.body === 'string' ? request.body : JSON.stringify(request.body ?? null);
+    return paymeIshla(rpc, typeof sarlavha === 'string' ? sarlavha : null, tana, { kalit: s.payme.kalit, chek: s.payme.chek });
   });
 
-  /**
-   * Click webhook — Prepare va Complete bosqichlari (B3).
-   *
-   * Click ikkita alohida soʻrov yuboradi:
-   *   action=0 → Prepare (toʻlovni tekshirish)
-   *   action=1 → Complete (toʻlov yakunlandi)
-   *
-   * Imzo: MD5(click_trans_id + service_id + secret_key + merchant_trans_id + amount + action + sign_time)
-   */
-  app.post('/tolov/webhook/click', async (request, javob) => {
-    const secretKey = process.env.CLICK_SECRET_KEY;
-    if (!secretKey) {
-      return javob.code(503).send({ xato: 'CLICK_SECRET_KEY sozlanmagan' });
-    }
-
-    const tana = (request.body ?? {}) as ClickWebhookTana;
-
-    if (!clickImzoTekshir(tana, secretKey)) {
-      return javob.send(clickPrepareJavob({
-        clickTransId: tana.click_trans_id,
-        merchantTransId: tana.merchant_trans_id,
-        merchantPrepareId: 0,
-        error: CLICK_XATO.IMZO_XATO,
-        errorNote: 'Imzo notoʻgʻri',
-      }));
-    }
-
-    const parsed = clickWebhookParse(tana);
-    if (!parsed) {
-      return javob.code(400).send({ error: CLICK_XATO.ACTION_XATO, error_note: 'Soʻrov formati notoʻgʻri' });
-    }
-
-    // Bazaga yozish.
-    const n = await rpc<{ xato?: string; ok?: boolean }>(
-      'so_tolov_webhook', {
-        p_payment_id: parsed.paymentId,
-        p_holat: parsed.holat,
-        p_external_id: parsed.externalId,
-      },
-    );
-
-    if (n === null) {
-      return javob.code(503).send({ error: CLICK_XATO.TOLOV_XATO, error_note: 'Baza javob bermadi' });
-    }
-
-    if (parsed.action === 'prepare') {
-      return javob.send(clickPrepareJavob({
-        clickTransId: tana.click_trans_id,
-        merchantTransId: tana.merchant_trans_id,
-        merchantPrepareId: parsed.paymentId,
-        error: n.xato ? CLICK_XATO.FOYDALANUVCHI_TOPILMADI : CLICK_XATO.MUVAFFAQIYAT,
-        errorNote: n.xato ?? 'Muvaffaqiyat',
-      }));
-    }
-
-    return javob.send(clickCompleteJavob({
-      clickTransId: tana.click_trans_id,
-      merchantTransId: tana.merchant_trans_id,
-      merchantConfirmId: parsed.paymentId,
-      error: n.xato ? CLICK_XATO.TOLOV_XATO : CLICK_XATO.MUVAFFAQIYAT,
-      errorNote: n.xato ?? 'Muvaffaqiyat',
-    }));
-  });
-
-  /**
-   * Umumiy toʻlov webhook — eski format (sandbox va test uchun).
-   */
-  app.post('/tolov/webhook', async (request, javob) => {
-    const tana = (request.body ?? {}) as Record<string, unknown>;
-    const paymentId = Number(tana.paymentId ?? tana.payment_id);
-    const tolovHolati = tana.holat as string ?? tana.status as string;
-    const externalId = (tana.externalId ?? tana.external_id ?? null) as string | null;
-
-    if (!Number.isInteger(paymentId) || paymentId <= 0) {
-      return javob.code(400).send({ xato: 'paymentId notoʻgʻri' });
-    }
-    if (!tolovHolati || !['tolangan', 'rad', 'qaytarildi'].includes(tolovHolati)) {
-      return javob.code(400).send({ xato: 'holat notoʻgʻri', berilgan: tolovHolati ?? null });
-    }
-
-    const n = await rpc<{ xato?: string; ok?: boolean }>(
-      'so_tolov_webhook', {
-        p_payment_id: paymentId,
-        p_holat: tolovHolati,
-        p_external_id: externalId,
-      },
-    );
-    if (n === null) return javob.code(503).send({ xato: 'baza javob bermadi' });
-    if (n.xato) return javob.code(400).send(n);
-    return n;
+  // Click SHOP API — forma (`application/x-www-form-urlencoded`), javob JSON, DOIM 200.
+  app.post('/tolov/click', async (request) => {
+    const s = tolovSozlamasi((k) => process.env[k]);
+    const tana = typeof request.body === 'string' ? request.body : '';
+    return clickIshla(rpc, new URLSearchParams(tana), { xizmatId: s.click.xizmatId, maxfiyKalit: s.click.maxfiyKalit });
   });
 
   /**

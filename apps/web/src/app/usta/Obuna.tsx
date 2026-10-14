@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import { REJA_QADAMI, SUHBAT_QADAMLARI, TARIF_NARXI, type Reja } from '@selleros/shared';
+import { tolovgaOt, useObunaHolati } from './obunaHolati';
 import { son } from '@/lib/bazamiz';
 import type { Mavzu } from '@/lib/mavzu';
 import type { Tr } from '@/lib/til';
@@ -34,12 +35,26 @@ function keyingiTolov(tr: Tr): string {
   return `${d.getDate()} ${oy} ${d.getFullYear()}`;
 }
 
-export function Obuna({ tr, mavzu, mavzuniTanla, orqaga }: {
+export function Obuna({ tr, mavzu, mavzuniTanla, orqaga, sarlavha }: {
   tr: Tr; mavzu: Mavzu; mavzuniTanla: (m: Mavzu) => void; orqaga: () => void;
+  /** Kengaytma rejimida sessiya tokeni (`x-sessiya`), saytda — boʻsh. */
+  sarlavha: () => Record<string, string>;
 }) {
-  const joriy: Reja = 'bepul';
+  // Joriy reja va Payme/Click ulanganmi — serverdan (`obunaHolati.ts`).
+  const holat = useObunaHolati(sarlavha);
+  const joriy: Reja = holat.joriy === 'bepul' ? 'bepul' : 'pro';
   const [tanlangan, setTanlangan] = useState<Reja>('pro');
   const [usul, setUsul] = useState<'payme' | 'click'>('payme');
+  const [band, setBand] = useState(false);
+  const [xato, setXato] = useState<string | null>(null);
+  const ulangan = holat.ulangan?.[usul] === true;
+  async function tola(): Promise<void> {
+    setBand(true); setXato(null);
+    const sabab = await tolovgaOt(usul, sarlavha());
+    setBand(false);
+    if (sabab === 'tarmoq') setXato(tr('Internetga ulanib boʻlmadi — qayta urinib koʻring.', 'Нет соединения — попробуйте ещё раз.'));
+    else if (sabab !== null) setXato(tr('Toʻlov hozircha ishlamayapti — birozdan keyin urinib koʻring.', 'Оплата пока не работает — попробуйте чуть позже.'));
+  }
   const nomi = (r: Reja) => (r === 'bepul' ? tr('Bepul', 'Бесплатный') : tr('Obuna', 'Подписка'));
   const narx = (r: Reja) => TARIF_NARXI[r] ?? 0;
   // Roʻyxat: 12 qadamning hammasi — bepulda qaysilari qulfligi koʻrinsin.
@@ -132,11 +147,21 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga }: {
             ))}
           </div>
           <div className={o.boshliq} />
-          <div className={o.ogoh}>
-            <span className={o.ogohIkon}><Ikon nom="qulf" o={15} /></span>
-            {tr('Toʻlov (Payme, Click) hali ulanmagan — pullik rejaga hozircha oʻtib boʻlmaydi.', 'Оплата (Payme, Click) ещё не подключена — перейти на платный тариф пока нельзя.')}
-          </div>
-          <button type="button" className={o.tolash} disabled>
+          {joriy === 'pro' ? (
+            <div className={o.ogoh}>
+              <span className={o.ogohIkon}><Ikon nom="belgi" o={15} /></span>
+              {tr('Obunangiz faol. Toʻlasangiz — muddati yana 30 kunga uzayadi.', 'Подписка активна. Оплата продлит её ещё на 30 дней.')}
+            </div>
+          ) : !ulangan && (
+            <div className={o.ogoh}>
+              <span className={o.ogohIkon}><Ikon nom="qulf" o={15} /></span>
+              {usul === 'payme'
+                ? tr('Payme orqali toʻlov hali ulanmagan.', 'Оплата через Payme ещё не подключена.')
+                : tr('Click orqali toʻlov hali ulanmagan.', 'Оплата через Click ещё не подключена.')}
+            </div>
+          )}
+          {xato && <div className={o.ogoh} role="alert">{xato}</div>}
+          <button type="button" className={o.tolash} disabled={!ulangan || band || tanlangan === 'bepul'} onClick={() => void tola()}>
             {usul === 'payme' ? tr('Payme orqali toʻlash', 'Оплатить через Payme') : tr('Click orqali toʻlash', 'Оплатить через Click')}
           </button>
           </div>
