@@ -105,6 +105,24 @@ function butun(x: number | null): number | null {
   return x === null ? null : Math.round(x);
 }
 
+/**
+ * Fakt izohidan nazoratchi belgilari olinadi: «[TASDIQ]» — "bu faktni egasi
+ * tasdiqlashi kerak" degan ichki eslatma (docs/RASMIYLASHTIRISH-FAKTLAR.md),
+ * mijoz uchun emas. 2026-10-14: 7-qadam bank kartasida «3 oy bepul, keyin
+ * paket (Start/Pro Business — narxi PDF, [TASDIQ])» koʻrinardi. Belgi turgan
+ * qavs ichidagi gap ham ichki izoh — u ham olinadi. Boʻsh qolsa — `null`.
+ */
+export function izohTozala(izoh: string | null | undefined): string | null {
+  if (typeof izoh !== 'string') return null;
+  const toza = izoh
+    .replace(/\s*\([^()]*TASDIQ[^()]*\)/gu, '')
+    .replace(/\s*\[TASDIQ[^\]]*\]/gu, '')
+    .replace(/\s+([;,.])/gu, '$1')
+    .replace(/\s{2,}/gu, ' ')
+    .trim();
+  return toza || null;
+}
+
 /** Bir qatorning manbasi boʻlmasa — kalit boʻyicha umumiy manba. */
 function bankQatori(x: unknown, umumiy: Manba): BankQatori | null {
   if (x === null || typeof x !== 'object') return null;
@@ -118,7 +136,8 @@ function bankQatori(x: unknown, umumiy: Manba): BankQatori | null {
     onlayn: typeof o.onlayn === 'boolean' ? o.onlayn : null,
     ochishSom: son(o.ochish_som),
     oylikSom: son(o.oylik_som),
-    izoh: matn(o.izoh),
+    // Mijozga chiqadi (7-qadam kartasi, chat) — ichki «[TASDIQ]» belgilarisiz.
+    izoh: izohTozala(matn(o.izoh)),
     manba: matn(o.manba) ?? umumiy.manba,
     olchandi: matn(o.olchandi) ?? umumiy.olchandi,
   };

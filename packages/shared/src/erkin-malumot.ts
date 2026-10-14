@@ -20,7 +20,7 @@
 import { minglik } from './fakt.js';
 import { sanaMatni } from './hisobot.js';
 import type { Yonalish } from './qadamlar.js';
-import { oylikSoliq, type BankQatori, type RasmiyFaktlar } from './rasmiy.js';
+import { izohTozala, oylikSoliq, type BankQatori, type RasmiyFaktlar } from './rasmiy.js';
 import { BILMAYMAN, normla, qidiruvMos, sohaNomi, sohaniTop, type SohaId } from './soha.js';
 import { UZUM_BILIMI } from './uzum-bilim.js';
 import { yonalishSatri } from './yordamchi.js';
@@ -136,15 +136,9 @@ export function soliqMatni(f: RasmiyFaktlar): string | null {
   ]);
 }
 
-/** Bank izohidan chat uchun qisqasi: birinchi gap, ichki "[TASDIQ]" belgilarisiz. */
+/** Bank izohidan chat uchun qisqasi: birinchi gap, ichki «[TASDIQ]» belgilarisiz (`izohTozala`). */
 function izohQisqa(izoh: string | null): string | null {
-  if (!izoh) return null;
-  const toza = izoh
-    .replace(/\s*\([^()]*TASDIQ[^()]*\)/gu, '')
-    .replace(/\s*\[TASDIQ[^\]]*\]/gu, '')
-    .replace(/\s+;/gu, ';')
-    .trim();
-  const birinchi = toza.split(/\.\s/u)[0]!.replace(/\.$/u, '').trim();
+  const birinchi = (izohTozala(izoh) ?? '').split(/\.\s/u)[0]!.replace(/\.$/u, '').trim();
   return birinchi || null;
 }
 
