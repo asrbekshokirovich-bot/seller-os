@@ -24,6 +24,11 @@ describe('malumotNiyati — savol turi', () => {
     ['Bank hisob raqami kerakmi?', 'bank'],
     ['Qaysi bankda hisob ochay?', 'bank'],
     ['Нужен ли банковский счёт?', 'bank'],
+    // Bank nomi bilan (2026-10-14 jonli: "aniq javob bera olmayman" chiqardi).
+    ['Kapitalbankda 3 bepul oydan keyin paket narxi qancha?', 'bank'],
+    ['Hamkorbankda hisob ochish uchun ofisga borish shartmi?', 'bank'],
+    ['TBCda oylik toʻlov qancha?', 'bank'],
+    ['Hisob ochish uchun nima kerak?', 'bank'],
     ['Uzumda eng koʻp nima sotiladi?', 'top'],
     ['Что больше всего продают на Uzum?', 'top'],
     ['Raqobat kuchlimi?', 'raqobat'],
@@ -40,6 +45,10 @@ describe('malumotNiyati — savol turi', () => {
     expect(malumotNiyati('Kiyimda raqobat kuchlimi?')).toMatchObject({ tur: 'raqobat', sohalar: ['kiyim'] });
     expect(malumotNiyati('Kiyim sotish osonmi?')).toMatchObject({ sohalar: ['kiyim'], sozlar: [] });
     expect(malumotNiyati('Krossovka sotish osonmi?')).toMatchObject({ sohalar: [], sozlar: ['krossovka'] });
+  });
+
+  it('«banka» (idish) — bank savoli emas', () => {
+    expect(malumotNiyati('Shisha banka sotsam boʻladimi?')?.tur).not.toBe('bank');
   });
 
   it('maʼlumot savoli emas — null (bilim bazasi javob beradi)', () => {
@@ -94,6 +103,26 @@ describe('soliqMatni / bankMatni — 7-qadam faktlaridan', () => {
     expect(m).toMatch(/\n• Agrobank: oylik 60 000 soʻm\n\n/);
     expect(m).not.toMatch(/TASDIQ|PDF/);
     expect(m).toMatch(/28\.09\.2026 da bank saytlaridan/);
+  });
+
+  it('bank nomi aytilgan — oʻsha bank toʻliq (usul, ochish, izoh, manba), qolganlari nomi bilan', () => {
+    const f = rasmiyFaktlari(faktlarniOqi(FAKT));
+    const m = bankMatni(f, niyat('Hamkorbankda hisob ochish uchun ofisga borish shartmi?'))!;
+    expect(m).toMatch(/^Hamkorbank — ofisga borib ochiladi, ochish bepul:\nILK QADAM — 220 000\/oy \(aylanma 15 mln gacha\); hujjat ofisda; naqd 1 %\.\nManba: manba\.\n\n/);
+    expect(m).toMatch(/\n\nTariflar 28\.09\.2026 da bank saytlaridan olingan.* Boshqa banklar ham bor: Kapitalbank \(Uzum Business ilovasi\), TBC Bank \(TBC Biznes\), Agrobank — /);
+    expect(m).not.toMatch(/Taqqoslangan banklar|TASDIQ/);
+    // Ikki soʻz («Kapital bankda»), izohsiz bank — oylik toʻlov; ikki bank — ikkalasi.
+    expect(bankMatni(f, niyat('Kapital bankda paket narxi qancha?'))).toMatch(/^Kapitalbank \(Uzum Business ilovasi\) — onlayn ochiladi, ochish bepul:\n3 oy bepul/);
+    expect(bankMatni(f, niyat('Agrobankda oylik qancha?'))).toMatch(/^Agrobank — ochish bepul:\nOylik xizmat — 60 000 soʻm\.\nManba: manba\.\n\n/);
+    const ikki = bankMatni(f, niyat('TBC yoki Hamkorbank — qaysi bank yaxshi?'))!;
+    expect(ikki).toMatch(/^TBC Bank \(TBC Biznes\) — onlayn ochiladi, ochish bepul:\n[^\n]+\nManba: manba\.\n\nHamkorbank — ofisga borib ochiladi/);
+    expect(ikki).toMatch(/Boshqa banklar ham bor: Kapitalbank \(Uzum Business ilovasi\), Agrobank — /);
+  });
+
+  it('bank nomi aytilmagan — umumiy roʻyxat', () => {
+    const m = bankMatni(rasmiyFaktlari(faktlarniOqi(FAKT)), niyat('Qaysi bankda hisob ochay?'))!;
+    expect(m).toMatch(/^Ha, bank hisob raqami kerak/);
+    expect(m).toMatch(/Taqqoslangan banklar/);
   });
 
   it('bank: roʻyxat yoʻq — null', () => {
@@ -202,7 +231,9 @@ describe('suhbat-kod: erkinMalumot — bazadan oʻqiydi', () => {
     const { k, chaqiruvlar } = kod({ so_fakt_oqi: FAKT });
     expect(await k.erkinMalumot!(niyat('Soliq qancha?'), H)).toMatch(/440 000 soʻm/);
     expect(await k.erkinMalumot!(niyat('Bank kerakmi?'), H)).toMatch(/TBC Bank/);
-    expect(chaqiruvlar).toEqual(['so_fakt_oqi', 'so_fakt_oqi']);
+    // Bank nomi savoldan oʻtadi — oʻsha bank toʻliq.
+    expect(await k.erkinMalumot!(niyat('Hamkorbankda ofisga borish shartmi?'), H)).toMatch(/^Hamkorbank — ofisga borib ochiladi/);
+    expect(chaqiruvlar).toEqual(['so_fakt_oqi', 'so_fakt_oqi', 'so_fakt_oqi']);
   });
 
   it('eng koʻp sotiladi va raqobat — 2-qadam keshidan, oʻsha ball bilan', async () => {
