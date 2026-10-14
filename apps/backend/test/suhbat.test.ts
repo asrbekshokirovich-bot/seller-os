@@ -243,6 +243,24 @@ describe('suhbatTurn', () => {
     expect(b.profil()).toEqual({ fullName: 'Aziz Karimov', phone: '+998901234567', hasUzumShop: false, budgetUzs: 10_000_000 });
   });
 
+  it('ism va telefon bitta javobda (nazoratchi, 2026-10-14): chatda ikkalasi, telefon savoli yoʻq, profilga ikkalasi', async () => {
+    const b = soxtaBaza();
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Aziz Karimov, 90 123 45 67' });
+    expect(r.xato).toBeUndefined();
+    expect(r.xabarlar[0]).toMatchObject({ rol: 'obunachi', matn: 'Aziz Karimov, +998 90 123 45 67', savolId: 'ism', javob: 'Aziz Karimov' });
+    if (r.keyingi.tur !== 'savol') throw new Error();
+    expect(r.keyingi.savol.id).toBe('uzum_dokoni');
+    expect(b.profil()).toEqual({ fullName: 'Aziz Karimov', phone: '+998901234567' });
+    // Faqat telefon yozsa — u yoziladi, ism (salomlashishsiz) qayta soʻraladi.
+    const b2 = soxtaBaza();
+    const r2 = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'ism', matn: '+998 90 123 45 67' });
+    expect(r2.xabarlar.map((x) => [x.rol, x.matn])).toEqual([
+      ['obunachi', '+998 90 123 45 67'], ['menejer', expect.stringMatching(/^Rahmat, raqamingizni yozib oldim\. Endi ismingiz/)],
+    ]);
+    expect(b2.holat()!.javoblar).toEqual({ telefon: '+998901234567' });
+    expect(b2.profil()).toEqual({ phone: '+998901234567' });
+  });
+
   it('ism bitta soʻz yoki telefon notoʻgʻri — qayta soʻraladi, sababi aytiladi, holat oʻzgarmaydi', async () => {
     const b = soxtaBaza();
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Aziz' });

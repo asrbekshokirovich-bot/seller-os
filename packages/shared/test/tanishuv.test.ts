@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { byudjetMatni, byudjetniOqi, ismniOqi, mlnMatni, telefonKorinishi, telefonniOqi } from '../src/tanishuv';
+import { byudjetMatni, byudjetniOqi, ismniOqi, ismVaTelefonniOqi, mlnMatni, telefonKorinishi, telefonniOqi } from '../src/tanishuv';
 
 const KURS = 12_650;
 const som = (matn: string, kurs: number | null = KURS) => {
@@ -94,6 +94,27 @@ describe('ismniOqi — ism va familiya', () => {
     expect(ismniOqi('Aziz 123')).toMatchObject({ xato: expect.stringMatching(/raqamsiz/) });
     expect(ismniOqi('')).toMatchObject({ xato: expect.any(String) });
     expect(ismniOqi('a b')).toMatchObject({ xato: expect.any(String) });
+  });
+});
+
+describe('ismVaTelefonniOqi — birinchi savol: ism va telefon bitta javobda (2026-10-14)', () => {
+  it('ikkalasi: tartib, ajratgich va telefon shakli muhim emas; kirill ism ham', () => {
+    const kutilgan = { ism: 'Aziz Karimov', telefon: '+998901234567' };
+    expect(ismVaTelefonniOqi('Aziz Karimov, +998 90 123 45 67')).toEqual(kutilgan);
+    expect(ismVaTelefonniOqi('90-123-45-67; Aziz Karimov')).toEqual(kutilgan);
+    expect(ismVaTelefonniOqi('Mening ismim Aziz Karimov, raqamim 8 (90) 123 45 67')).toEqual(kutilgan);
+    expect(ismVaTelefonniOqi('Азиз Каримов, телефон +998 93 123 45 67')).toEqual({ ism: 'Азиз Каримов', telefon: '+998931234567' });
+  });
+
+  it('bittasi yoʻq — null (boshqasi keyin soʻraladi)', () => {
+    expect(ismVaTelefonniOqi('Aziz Karimov')).toEqual({ ism: 'Aziz Karimov', telefon: null });
+    expect(ismVaTelefonniOqi('tel: +998 90 123 45 67')).toEqual({ ism: null, telefon: '+998901234567' });
+  });
+
+  it('xatolar: chala telefon, bitta soʻz, boʻsh — namunasi bilan', () => {
+    expect(ismVaTelefonniOqi('Aziz Karimov 90 123')).toEqual({ xato: 'Telefon raqamni toʻliq yozing — masalan: Aziz Karimov, +998 90 123 45 67.' });
+    expect(ismVaTelefonniOqi('Aziz +998901234567')).toEqual({ xato: 'Ism va familiyangizni birga yozing — masalan: Aziz Karimov, +998 90 123 45 67.' });
+    expect(ismVaTelefonniOqi('raqamim')).toEqual({ xato: 'Ism, familiya va telefon raqamingizni yozing — masalan: Aziz Karimov, +998 90 123 45 67.' });
   });
 });
 

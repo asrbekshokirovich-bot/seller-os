@@ -25,6 +25,9 @@ const ISM_EMAS = new Set([
   'salom', 'assalom', 'assalomu', 'alaykum', 'aleykum', 'mening', 'meni', 'men', 'ismim', 'ism', 'ismi', 'familiyam',
   'familiya', 'familiyasi', 'sharifim', 'sharif', 'va', 'bu', 'здравствуйте', 'привет', 'меня', 'зовут', 'моё', 'мое',
   'моя', 'имя', 'фамилия', 'я', 'и', 'это',
+  // Ism va telefon bitta javobda (2026-10-14): "Aziz Karimov, tel: 90 …".
+  'tel', 'telefon', 'telefonim', 'telefoni', 'raqam', 'raqamim', 'raqami', 'nomer', 'nomerim', 'mobil',
+  'тел', 'телефон', 'телефоним', 'рақам', 'рақамим', 'номер', 'номерим', 'мой',
 ]);
 
 /** Ota ismi qoʻshimchasi — kichik harf bilan qoladi ("Botir oʻgʻli"). */
@@ -33,17 +36,17 @@ const OTASINING = /^(o['ʻʼ‘’`]?g['ʻʼ‘’`]?li|qizi|оглы|кизи)$
 /**
  * Ism-familiya. Kamida ikki soʻz (ism va familiya), raqamsiz, 60 belgigacha.
  * "aziz karimov" → "Aziz Karimov" (hammasi kichik yoki katta boʻlsa), aks
- * holda yozilgandek.
+ * holda yozilgandek. `misol` — xato matnidagi namuna.
  */
-export function ismniOqi(matn: string): { ism: string } | { xato: string } {
+export function ismniOqi(matn: string, misol = 'Aziz Karimov'): { ism: string } | { xato: string } {
   const t = String(matn ?? '').normalize('NFC').trim();
-  if (/\d/u.test(t)) return { xato: 'Ism va familiyani raqamsiz yozing — masalan: Aziz Karimov.' };
-  if (/[@/\\]|https?:/iu.test(t)) return { xato: 'Ism va familiyangizni yozing — masalan: Aziz Karimov.' };
+  if (/\d/u.test(t)) return { xato: `Ism va familiyani raqamsiz yozing — masalan: ${misol}.` };
+  if (/[@/\\]|https?:/iu.test(t)) return { xato: `Ism va familiyangizni yozing — masalan: ${misol}.` };
   const sozlar = [...t.matchAll(/[\p{L}'ʻʼ‘’`-]+/gu)].map((m) => m[0].replace(/^[-'ʻʼ‘’`]+|[-'ʻʼ‘’`]+$/gu, ''))
     .filter((s) => s.length > 0 && !ISM_EMAS.has(s.toLowerCase()));
-  if (sozlar.length < 2) return { xato: 'Ism va familiyangizni birga yozing — masalan: Aziz Karimov.' };
+  if (sozlar.length < 2) return { xato: `Ism va familiyangizni birga yozing — masalan: ${misol}.` };
   if (sozlar.length > 4 || sozlar.some((s) => [...s].filter((c) => /\p{L}/u.test(c)).length < 2)) {
-    return { xato: 'Ism va familiyangizni yozing — masalan: Aziz Karimov.' };
+    return { xato: `Ism va familiyangizni yozing — masalan: ${misol}.` };
   }
   const birga = sozlar.join(' ');
   const tekis = birga === birga.toLowerCase() || birga === birga.toUpperCase();
@@ -52,6 +55,39 @@ export function ismniOqi(matn: string): { ism: string } | { xato: string } {
     .join(' ');
   if (ism.length > 60) return { xato: 'Juda uzun — faqat ism va familiyani yozing.' };
   return { ism };
+}
+
+/** Birinchi savoldagi namuna — ism va telefon birga. */
+export const ISM_TELEFON_MISOL = 'Aziz Karimov, +998 90 123 45 67';
+
+/**
+ * Birinchi savol — ism-familiya VA telefon bitta javobda (nazoratchi, 2026-10-14:
+ * "ism familiyangiz degan joyiga telefon raqamini ham qoʻshib ket"). Matndan
+ * telefon ajratiladi (kamida 7 raqamli boʻlak: "+998 90 123 45 67", "90-123-45-67",
+ * "8 (90) 123 45 67"), qolgani — ism. Bittasi yoʻq boʻlsa — `null`: telefon
+ * yoʻq — u keyingi savolda alohida soʻraladi, ism yoʻq — ism qayta soʻraladi.
+ */
+export function ismVaTelefonniOqi(matn: string): { ism: string | null; telefon: string | null } | { xato: string } {
+  const t = String(matn ?? '').normalize('NFC').trim();
+  const telefonXato = { xato: `Telefon raqamni toʻliq yozing — masalan: ${ISM_TELEFON_MISOL}.` };
+  const bolak = [...t.matchAll(/\+?\(?\d[\d\s().-]*\d\)?/gu)].find((m) => m[0].replace(/\D/gu, '').length >= 7);
+  let telefon: string | null = null;
+  let qolgan = t;
+  if (bolak) {
+    const r = telefonniOqi(bolak[0]);
+    if ('xato' in r) return telefonXato;
+    telefon = r.telefon;
+    qolgan = `${t.slice(0, bolak.index)} ${t.slice(bolak.index + bolak[0].length)}`;
+  } else if ((t.match(/\d/gu) ?? []).length >= 3) {
+    // Raqam yozgan, lekin telefon emas (juda qisqa) — ism xatosi emas, telefon xatosi.
+    return telefonXato;
+  }
+  const harfli = [...qolgan.matchAll(/\p{L}+/gu)].some((m) => !ISM_EMAS.has(m[0].toLowerCase()));
+  if (!harfli) {
+    return telefon === null ? { xato: `Ism, familiya va telefon raqamingizni yozing — masalan: ${ISM_TELEFON_MISOL}.` } : { ism: null, telefon };
+  }
+  const i = ismniOqi(qolgan, ISM_TELEFON_MISOL);
+  return 'xato' in i ? i : { ism: i.ism, telefon };
 }
 
 // ==================================================================== telefon

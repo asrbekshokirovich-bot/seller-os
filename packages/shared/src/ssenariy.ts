@@ -59,7 +59,7 @@ import type { KartochkaMatniNatijasi } from './kartochka-matn.js';
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.js';
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.js';
 import { matndanSon, valyutami } from './tekshiruv.js';
-import { BYUDJET_DOLLAR, byudjetniOqi, ismniOqi, telefonniOqi } from './tanishuv.js';
+import { BYUDJET_DOLLAR, byudjetniOqi, ISM_TELEFON_MISOL, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.js';
 
 // ==================================================================== turlar
 
@@ -203,8 +203,13 @@ const SALOM = [
   'Uzumda savdo qilishning butun yoʻlida yoningizdaman: nima sotishni tanlashdan tortib, tovarni Xitoydan topish, '
     + 'olib kelish va Uzumda sotishgacha. Har bir qadamda nima qilishni oddiy tilda tushuntiraman — savol tugʻilsa, bemalol soʻrang.',
   '',
-  'Boshlash bepul. Avval tanishib olaylik: ismingiz va familiyangiz?',
+  // Ism va telefon bitta savolda (nazoratchi, 2026-10-14). Faqat ism yozilsa — telefon keyin alohida soʻraladi.
+  `Boshlash bepul. Avval tanishib olaylik: ismingiz, familiyangiz va telefon raqamingizni yozing — masalan: ${ISM_TELEFON_MISOL}. `
+    + 'Raqam faqat siz bilan bogʻlanish uchun, boshqa hech kimga berilmaydi.',
 ].join('\n');
+
+/** Faqat telefon yozilgan boʻlsa — ism qayta soʻraladi (salomlashish takrorlanmaydi). */
+const ISM_QAYTA = 'Rahmat, raqamingizni yozib oldim. Endi ismingiz va familiyangizni yozing — masalan: Aziz Karimov.';
 
 /** Dollar tugmasining dollar summasi (soʻmdagi qiymatidan), boʻlmasa `null`. */
 function tugmaDollari(som: number, usdKurs: number | null): number | null {
@@ -1394,7 +1399,7 @@ export function keyingi(h: YolHolati): Keyingi {
   // byudjet javobi bor-u ism yoʻq boʻlsa — ism va telefon bir marta
   // soʻraladi, keyin yoʻl oʻsha joyidan davom etadi.
   if (!berilgan(h, 'ism')) {
-    return { tur: 'savol', savol: savol('ism', 1, SALOM, 'matn', { erkin: true, profilMaydoni: 'fullName' }) };
+    return { tur: 'savol', savol: savol('ism', 1, berilgan(h, 'telefon') ? ISM_QAYTA : SALOM, 'matn', { erkin: true, profilMaydoni: 'fullName' }) };
   }
   if (!berilgan(h, 'telefon')) {
     const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;
@@ -1975,11 +1980,16 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown): Qa
       const t = String(xom).trim();
       if (!t) return yoz(h, s, null);
       // Ism-familiya va telefon — tekshirib, bir xil shaklda (`tanishuv.ts`).
+      // Birinchi savol — ism va telefon bitta javobda (2026-10-14): nima yozilgan boʻlsa —
+      // shu yoziladi; telefon berilsa, alohida telefon savoli soʻralmaydi.
       if (s.id === 'ism') {
-        const r = ismniOqi(t);
+        const r = ismVaTelefonniOqi(t);
         if ('xato' in r) return { holat: h, xato: r.xato, profil: null };
-        qiymat = r.ism;
-        break;
+        const javoblar = { ...h.javoblar };
+        const profil: Partial<ProfilJavoblari & AloqaJavoblari> = {};
+        if (r.ism !== null) { javoblar['ism'] = r.ism; profil.fullName = r.ism; }
+        if (r.telefon !== null) { javoblar['telefon'] = r.telefon; profil.phone = r.telefon; }
+        return { holat: { ...h, javoblar }, xato: null, profil };
       }
       if (s.id === 'telefon') {
         const r = telefonniOqi(t);
