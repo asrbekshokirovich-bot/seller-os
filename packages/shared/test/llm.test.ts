@@ -218,7 +218,7 @@ describe('javobga munosabat (2026-10-15)', () => {
   const SOROV = {
     savol: 'Oldin savdo qilganmisiz?', xabar: 'oldin sotganman maishiy texnika', tushunilgan: 'Tushunarli — savdo tajribangiz bor ekan.',
     tayyor: null, bilim: null, holat: '- Hozir: 1-qadam «Tanishuv».', tarix: 'Mijoz: oldin sotganman maishiy texnika',
-    keyingi: 'Qaysi sohadagi tovarlar sizga yaqin?', til: 'uz' as const, tuzat: null,
+    keyingi: 'Qaysi sohadagi tovarlar sizga yaqin?', til: 'uz' as const, tuzat: null, savolBor: false,
   };
 
   it('korsatma: keyingi savolni bermaydi, raqam va vaʼda yoʻq; soʻrovda tushunilgan va keyingi savol', async () => {
@@ -232,17 +232,26 @@ describe('javobga munosabat (2026-10-15)', () => {
     expect(matn).toMatch(/TUSHUNILGAN \(dastur javobni shunday tushundi\): Tushunarli/);
     expect(matn).toMatch(/KEYINGI SAVOL \(uni dastur oʻzi beradi — sen takrorlama\): Qaysi sohadagi/);
     expect(matn).toMatch(/ODAM YOZDI: oldin sotganman maishiy texnika$/);
-    expect(matn).not.toMatch(/FAKTLAR|TAYYOR JAVOB/);
+    expect(matn).not.toMatch(/FAKTLAR|DASTUR JAVOBI|SAVOL HAM BERDI/);
     expect((y[0]!.tana.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({ thinkingLevel: 'low' });
   });
 
-  it('gapda savol boʻlsa — faktlar va tayyor javob; rus tilida yozsa — rus tilida', async () => {
+  it('gapda savol: bazada javob boʻlsa — «dastur oʻzi qoʻshadi», takrorlamaydi; rus tilida yozsa — rus tilida', async () => {
     const y: Yozuv[] = [];
     await munosabatBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) },
-      { ...SOROV, bilim: 'Faktlar roʻyxati', tayyor: 'Yoʻnalish qadamida koʻrsataman.', til: 'ru' });
+      { ...SOROV, bilim: 'Faktlar roʻyxati', tayyor: 'Yoʻnalish qadamida koʻrsataman.', til: 'ru', savolBor: true });
     const matn = (y[0]!.tana as { contents: Array<{ parts: Array<{ text: string }> }> }).contents[0]!.parts[0]!.text;
     expect(matn).toMatch(/FAKTLAR:\nFaktlar roʻyxati/);
-    expect(matn).toMatch(/TAYYOR JAVOB \(gapdagi savolga/);
+    expect(matn).toMatch(/DASTUR JAVOBI \(gapdagi savolga; buni dastur oʻzi qoʻshadi — takrorlama\): Yoʻnalish qadamida/);
+    expect(matn).not.toMatch(/SAVOL HAM BERDI/);
     expect(matn).toMatch(/JAVOB TILI: rus tili/);
+  });
+
+  it('gapda savol, bazada javob yoʻq — AI ga «albatta javob ber»', async () => {
+    const y: Yozuv[] = [];
+    await munosabatBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) }, { ...SOROV, bilim: 'Faktlar', savolBor: true });
+    const matn = (y[0]!.tana as { contents: Array<{ parts: Array<{ text: string }> }> }).contents[0]!.parts[0]!.text;
+    expect(matn).toMatch(/ODAM GAPIDA SAVOL HAM BERDI — unga albatta qisqa, aniq javob ber\./);
+    expect(MUNOSABAT_KORSATMA).toMatch(/Savolni eʼtiborsiz qoldirma/);
   });
 });

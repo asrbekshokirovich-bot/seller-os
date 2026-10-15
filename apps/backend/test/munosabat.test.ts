@@ -293,13 +293,27 @@ describe('suhbat: yozilgan javobga munosabat', () => {
     expect(r.keyingi.savol.tanlangan).toEqual(['uy']);
   });
 
-  it('javob + savol: LLM ga faktlar va savol qismi boradi', async () => {
+  it('javob + savol: LLM ga faktlar va savol qismi boradi; bazadagi javobni dastur AI dan keyin oʻzi qoʻshadi', async () => {
+    // Jonli sinov (2026-10-15): AI «…endi nima sotsam boʻladi?» savolini javobsiz qoldirgan edi.
     const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm(['Maishiy texnika tajribangiz asqotadi. Nima sotishni keyingi qadamda baholar bilan birga tanlaymiz.']);
+    const llm = soxtaLlm(['Maishiy texnika tajribangiz asqotadi.']);
     const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'oldin maishiy texnika sotganman, endi nima sotsam boʻladi?' });
-    expect(llm.sorovlar[0]!.bilim).toBeTruthy();
+    const s = llm.sorovlar[0]!;
+    expect(s.bilim).toBeTruthy();
+    expect(s.savolBor).toBe(true);
+    expect(s.xabar).toBe('oldin maishiy texnika sotganman, endi nima sotsam boʻladi?');
+    expect(s.tayyor).toBeTruthy();
     expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai', munosabat: true });
-    expect(llm.sorovlar[0]!.xabar).toBe('oldin maishiy texnika sotganman, endi nima sotsam boʻladi?');
+    expect(r.xabarlar[1]!.matn).toBe(`Maishiy texnika tajribangiz asqotadi.\n\n${s.tayyor}`);
+  });
+
+  it('oddiy javobda (savolsiz) — LLM ga «savol bor» deyilmaydi, faqat AI munosabati', async () => {
+    const b = soxtaBaza(TAJRIBA);
+    const llm = soxtaLlm(['Bozor tajribasi asqotadi.']);
+    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman' });
+    expect(llm.sorovlar[0]!.savolBor).toBe(false);
+    expect(llm.sorovlar[0]!.tayyor).toBeNull();
+    expect(r.xabarlar[1]!.matn).toBe('Bozor tajribasi asqotadi.');
   });
 
   it('bazadan maʼlumot kodi matn emas narsa qaytarsa yoki yiqilsa — javob yiqilmaydi (soxta serverda topilgan)', async () => {
