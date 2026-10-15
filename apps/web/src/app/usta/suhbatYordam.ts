@@ -18,6 +18,19 @@ export interface Savol {
   variantlar: Variant[];
   erkin: boolean;
   otkazishMumkin: boolean;
+  /** Koʻp tanlovda oldindan belgilanganlar — mijoz oldingi javobida aytgani (2026-10-15). */
+  tanlangan?: Array<string | number>;
+}
+
+/**
+ * Yangi savol chiqqanda tanlov nimadan boshlanadi: server oldindan belgilaganlari
+ * (faqat shu savol variantlaridan), boʻlmasa — boʻsh. Nazoratchi (2026-10-15):
+ * «maishiy texnika sotganman» deb yozdim — keyingi savolda hech narsa belgilanmagan.
+ */
+export function boshlangichTanlov(k: Keyingi | null): Array<string | number> {
+  if (k?.tur !== 'savol' || k.savol.turi !== 'kopTanlov' || !Array.isArray(k.savol.tanlangan)) return [];
+  const bor = new Set(k.savol.variantlar.map((v) => String(v.qiymat)));
+  return k.savol.tanlangan.filter((x) => bor.has(String(x)));
 }
 
 export type Keyingi =

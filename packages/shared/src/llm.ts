@@ -1,13 +1,14 @@
 /**
- * LLM adapteri — ikki ish: kod jumlasini odamdek aytish va erkin savolga javob.
+ * LLM adapteri — kod jumlasini odamdek aytish, erkin savolga javob va yozilgan javobga munosabat.
  *
  * LLM hisob qilmaydi, ball qoʻymaydi, savol tartibini tanlamaydi (QOIDALAR.md,
  * 3-boʻlim). (1) `odamlashtir`: kod yozgan oʻzbekcha jumlani maʼnosini va
  * raqamlarini oʻzgartirmasdan, iliq va qisqa qilib qayta aytadi. (2)
  * `erkinJavobBer`: mijoz savol bersa yoki tushunmasa — faktlar, mijoz holati
  * va suhbat bilan aniq javob va umumiy maslahat beradi (nazoratchi qarori,
- * 2026-10-13). Ikkalasining natijasi ham `tekshiruv.ts` darvozasidan oʻtadi:
- * manbasiz raqam yoki kafolat boʻlsa — tashlanadi.
+ * 2026-10-13). (3) `munosabatBer`: mijoz savolga oʻzi yozib javob bersa — uni
+ * eshitganini koʻrsatadigan qisqa munosabat (2026-10-15). Hammasining natijasi
+ * `tekshiruv.ts` darvozasidan oʻtadi: manbasiz raqam yoki kafolat boʻlsa — tashlanadi.
  *
  * Shuning uchun bu fayl juda kichik va provayderga bog'lanmagan:
  * `fetch` bor joyda (Node, Deno) ishlaydi. Kalit `env` dan keladi,
@@ -113,6 +114,38 @@ export const ERKIN_KORSATMA = [
   '- "AI", "model", "sunʼiy intellekt", "tizim" soʻzlarini ishlatma. Lekin odam «siz odammisiz/robotmisiz?» desa —',
   'rostini ayt: «Men ZumSavdo dasturining yordamchisiman, odam emasman».',
   '- Salom bilan boshlama (odam salom bersa — qisqa alik ol).',
+  '- Faqat javob matnini qaytar: markdown, sarlavha, yulduzcha, roʻyxat belgisi yoʻq.',
+].join('\n');
+
+/**
+ * Javobga munosabat (nazoratchi, 2026-10-15: "mijozning javobiga eʼtibor bermay
+ * keyingi savolga oʻtib ketyapti"). Odam savolga oʻzi YOZIB javob berdi va javob
+ * qabul qilindi — yordamchi uni eshitganini koʻrsatadi: gapidagi muhim narsaga
+ * qisqa, iliq munosabat; gapda savol ham boʻlsa — unga javob. Keyingi savolni
+ * dastur oʻzi beradi — bu yerda soʻralmaydi. Natija `tekshiruv.ts` darvozasidan
+ * oʻtadi (`suhbat.ts`, `munosabatYoz`); oʻtmasa — kod jumlasi ketadi.
+ */
+export const MUNOSABAT_KORSATMA = [
+  'Sen «ZumSavdo yordamchisi»san: Uzumda birinchi marta sotuvchi boʻlayotgan odamga yoʻl koʻrsatasan.',
+  'Odam chatdagi savolga oʻzi yozib javob berdi va javobi QABUL QILINDI. Endi uning javobiga qisqa munosabat',
+  'bildir — keyingi savolni sendan keyin dastur oʻzi beradi.',
+  '',
+  'VAZIFA:',
+  '1. Odam yozganini eshitganingni koʻrsat: gapidagi muhim narsaga (tajriba, reja, xavotir, qiyinchilik) aniq va',
+  'iliq munosabat bildir. Uning oʻz soʻzlariga tayan; ortiqcha maqtama, oʻzingdan gap toʻqima.',
+  '2. TUSHUNILGAN berilgan boʻlsa — bu dastur javobni qanday tushungani: maʼnosini va raqamlarini saqla.',
+  '3. Odam gapida SAVOL ham bergan boʻlsa — unga qisqa, aniq javob ber: FAKTLAR va TAYYOR JAVOBdan. Bilmasang —',
+  '«buni keyingi qadamlarda birga koʻramiz» de.',
+  '4. Keyingi savolni BERMA va eslatma, tugmalar haqida gapirma, gapni savol bilan tugatma.',
+  '',
+  'USLUB: doʻstona, «siz» bilan; 1–3 jumla (gapdagi savolga javob bilan — 6 jumlagacha). Odam qaysi tilda va',
+  'yozuvda yozgan boʻlsa (oʻzbek lotin, oʻzbek kirill yoki rus) — oʻshanda yoz.',
+  '',
+  'QOIDALAR:',
+  '- Raqam (summa, foiz, muddat, dona) faqat odamning xabari, TUSHUNILGAN, TAYYOR JAVOB, FAKTLAR yoki MIJOZ',
+  'HOLATIdan. Yangi raqam oʻylab topma va hisoblama; raqamni soʻz bilan ham yozma.',
+  '- Foyda, sotuv yoki daromad vaʼda qilma; "kafolat" («кафолат», «гарантия») soʻzini ishlatma.',
+  '- "AI", "model", "sunʼiy intellekt", "tizim" soʻzlarini ishlatma. Salom bilan boshlama.',
   '- Faqat javob matnini qaytar: markdown, sarlavha, yulduzcha, roʻyxat belgisi yoʻq.',
 ].join('\n');
 
@@ -286,6 +319,34 @@ export async function erkinJavobBer(
   // Bilim va holat bilan batafsil javob uzunroq oʻylanadi — chegara 25 soniya. 14 s da bepul
   // darajadagi `gemini-3.8-flash` ikki marta javobga ulgurmadi (jonli jurnal, 2026-10-14: AbortError).
   return gemini({ ...s, vaqtMs: s.vaqtMs ?? 25_000 }, ERKIN_KORSATMA, matn, 'erkin', 'low');
+}
+
+/**
+ * Yozilgan javobga munosabat (`MUNOSABAT_KORSATMA`). `null` — ishlamadi: kod jumlasi
+ * ketadi. Chegara 12 soniya — javobdan keyin keyingi savol kutib turadi: uzoq
+ * kuttirib boʻlmaydi (erkin savolda 25 s).
+ */
+export async function munosabatBer(
+  s: LlmSozlama,
+  k: {
+    savol: string; xabar: string; tushunilgan: string | null; tayyor: string | null; bilim: string | null;
+    holat: string; tarix: string; keyingi: string | null; til: Yozuv; tuzat: string | null;
+  },
+): Promise<string | null> {
+  const matn = [
+    `MIJOZ HOLATI:\n${k.holat}`,
+    k.tarix ? `\nSUHBAT (oxirgi xabarlar):\n${k.tarix}` : null,
+    `\nSAVOL (odam shunga javob berdi): ${k.savol}`,
+    k.tushunilgan ? `TUSHUNILGAN (dastur javobni shunday tushundi): ${k.tushunilgan}` : null,
+    k.keyingi ? `KEYINGI SAVOL (uni dastur oʻzi beradi — sen takrorlama): ${k.keyingi}` : null,
+    k.bilim ? `\nFAKTLAR:\n${k.bilim}` : null,
+    k.tayyor ? `TAYYOR JAVOB (gapdagi savolga; maʼnosi va raqamlarini saqla): ${k.tayyor}` : null,
+    k.tuzat ? `OLDINGI JAVOBING QAYTARILDI: ${k.tuzat} Shusiz qayta yoz.` : null,
+    k.til === 'ru' ? 'JAVOB TILI: rus tili. Butun javobni faqat rus tilida yoz.' : null,
+    k.til === 'uz-kirill' ? 'JAVOB TILI: oʻzbek tili, KIRILL yozuvida. Butun javobni kirill harflarida yoz.' : null,
+    `ODAM YOZDI: ${k.xabar}`,
+  ].filter(Boolean).join('\n');
+  return gemini({ ...s, vaqtMs: s.vaqtMs ?? 12_000 }, MUNOSABAT_KORSATMA, matn, 'munosabat', 'low');
 }
 
 /**

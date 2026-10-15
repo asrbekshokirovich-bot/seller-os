@@ -50,6 +50,7 @@ export const FAYLLAR = [
   ['packages/shared/src/baho.ts', 'shared/baho.ts'],
   ['packages/shared/src/kartochka-matn.ts', 'shared/kartochka-matn.ts'],
   ['packages/shared/src/erkin-malumot.ts', 'shared/erkin-malumot.ts'],
+  ['packages/shared/src/munosabat.ts', 'shared/munosabat.ts'],
   ['packages/shared/src/suhbatlar.ts', 'shared/suhbatlar.ts'],
   ['packages/shared/src/tarif.ts', 'shared/tarif.ts'],
   ['packages/shared/src/tolov.ts', 'shared/tolov.ts'],

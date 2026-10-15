@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ERKIN_KORSATMA, erkinJavobBer, kartochkaYozBer, odamlashtir } from '../src/llm';
+import { ERKIN_KORSATMA, erkinJavobBer, kartochkaYozBer, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir } from '../src/llm';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Record<string, string> }
 
@@ -211,5 +211,38 @@ describe('kartochka matni (10-qadam, 2026-10-13)', () => {
     const buzuq = await kartochkaYozBer({ kalit: 'K', fetchFn: soxtaFetch({ json: javob('bu JSON emas') }, []) },
       { namuna: 'x', turkum: null, xitoy: null });
     expect(buzuq).toBeNull();
+  });
+});
+
+describe('javobga munosabat (2026-10-15)', () => {
+  const SOROV = {
+    savol: 'Oldin savdo qilganmisiz?', xabar: 'oldin sotganman maishiy texnika', tushunilgan: 'Tushunarli — savdo tajribangiz bor ekan.',
+    tayyor: null, bilim: null, holat: '- Hozir: 1-qadam «Tanishuv».', tarix: 'Mijoz: oldin sotganman maishiy texnika',
+    keyingi: 'Qaysi sohadagi tovarlar sizga yaqin?', til: 'uz' as const, tuzat: null,
+  };
+
+  it('korsatma: keyingi savolni bermaydi, raqam va vaʼda yoʻq; soʻrovda tushunilgan va keyingi savol', async () => {
+    expect(MUNOSABAT_KORSATMA).toMatch(/Keyingi savolni BERMA/);
+    expect(MUNOSABAT_KORSATMA).toMatch(/Yangi raqam oʻylab topma/);
+    expect(MUNOSABAT_KORSATMA).toMatch(/vaʼda qilma/);
+    const y: Yozuv[] = [];
+    const r = await munosabatBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) }, SOROV);
+    expect(r).toBe('Salom! Qancha pul ajratasiz?');
+    const matn = (y[0]!.tana as { contents: Array<{ parts: Array<{ text: string }> }> }).contents[0]!.parts[0]!.text;
+    expect(matn).toMatch(/TUSHUNILGAN \(dastur javobni shunday tushundi\): Tushunarli/);
+    expect(matn).toMatch(/KEYINGI SAVOL \(uni dastur oʻzi beradi — sen takrorlama\): Qaysi sohadagi/);
+    expect(matn).toMatch(/ODAM YOZDI: oldin sotganman maishiy texnika$/);
+    expect(matn).not.toMatch(/FAKTLAR|TAYYOR JAVOB/);
+    expect((y[0]!.tana.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({ thinkingLevel: 'low' });
+  });
+
+  it('gapda savol boʻlsa — faktlar va tayyor javob; rus tilida yozsa — rus tilida', async () => {
+    const y: Yozuv[] = [];
+    await munosabatBer({ kalit: 'K', fetchFn: soxtaFetch({ json: JAVOB }, y) },
+      { ...SOROV, bilim: 'Faktlar roʻyxati', tayyor: 'Yoʻnalish qadamida koʻrsataman.', til: 'ru' });
+    const matn = (y[0]!.tana as { contents: Array<{ parts: Array<{ text: string }> }> }).contents[0]!.parts[0]!.text;
+    expect(matn).toMatch(/FAKTLAR:\nFaktlar roʻyxati/);
+    expect(matn).toMatch(/TAYYOR JAVOB \(gapdagi savolga/);
+    expect(matn).toMatch(/JAVOB TILI: rus tili/);
   });
 });

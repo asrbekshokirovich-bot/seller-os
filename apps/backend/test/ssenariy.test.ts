@@ -304,6 +304,35 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-12)', () => {
     expect(savolId(javob(h, 'uzum_dokoni', 'boshqa'))).toBe('qiziqish');
   });
 
+  it('tajribada sohani yozsa — qiziqish savolida oldindan belgilanadi va aytiladi (nazoratchi, 2026-10-15)', () => {
+    let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
+    h = javob(h, 'telefon', '+998901234567');
+    const qiziqish = (tajriba: string) => {
+      const k = keyingi(javob(h, 'uzum_dokoni', tajriba));
+      if (k.tur !== 'savol' || k.savol.id !== 'qiziqish') throw new Error(k.tur);
+      return k.savol;
+    };
+    const s = qiziqish('oldin sotganman maishiy texnika');
+    expect(s.tanlangan).toEqual(['uy']);
+    expect(s.matn).toBe('Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab «Uy-roʻzgʻor va maishiy texnika» ni belgilab qoʻydim — '
+      + 'toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.');
+    expect(qiziqish('bozorda kiyim va kosmetika sotganman').tanlangan).toEqual(['kiyim', 'gozallik']);
+    // Soha yoʻq yoki tugma — oldingidek: hech narsa belgilanmagan, eski savol.
+    for (const t of ['oldin savdo qilganman', 'yoq', 'boshqa']) {
+      const q = qiziqish(t);
+      expect(q.tanlangan, t).toBeUndefined();
+      expect(q.matn, t).toMatch(/^Qaysi sohadagi tovarlar sizga yaqin\? Bir nechtasini tanlashingiz mumkin/);
+    }
+  });
+
+  it('qiziqishni tovar nomi bilan yozsa ham — soha («krossovka» → kiyim, «changyutgich» → uy-roʻzgʻor)', () => {
+    let h = javob(boshlangichHolat(), 'ism', 'Aziz Karimov');
+    h = javob(javob(h, 'telefon', '+998901234567'), 'uzum_dokoni', 'yoq');
+    expect(javob(h, 'qiziqish', 'krossovka sotmoqchiman').javoblar['qiziqish']).toEqual(['kiyim']);
+    expect(javob(h, 'qiziqish', 'changyutgich').javoblar['qiziqish']).toEqual(['uy']);
+    expect(javob(h, 'qiziqish', 'bilmayman').javoblar['qiziqish']).toEqual(['bilmayman']);
+  });
+
   it('byudjet tugmalari ANIQ son: soʻmda va dollarda (kurs bilan); kurs boʻlmasa — faqat soʻm', () => {
     const k = keyingi(byudjetgacha());
     if (k.tur !== 'savol') throw new Error(k.tur);

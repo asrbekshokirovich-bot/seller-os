@@ -38,6 +38,7 @@ Boshqa ixtiyoriy sozlamalar (hammasi `llm.ts` / `suhbat.ts` da izohlangan):
 | `LLM_ZAXIRA_MODEL` | Asosiy model 503/429 qaytarsa — shu bilan bir marta qayta soʻraladi. Boʻlmasa `gemini-3.5-flash-lite`. |
 | `LLM_AVVAL=1` | AI birinchi: javobi bazada bor savol ham LLM ga (bazaviy javob `tayyor` boʻlib). Gemini toʻlovi yoqilgach. |
 | `LLM_ODAMLASHTIR=1` | Kod jumlalarini ham LLM qayta aytadi (bepul limitni tez yeydi). |
+| `LLM_MUNOSABAT=0` | Mijoz oʻzi yozgan javobga AI munosabatini oʻchiradi (standart — yoqilgan; oʻchsa kod jumlasi qoladi). |
 
 ## Studiya (9-qadam) sirlari
 
