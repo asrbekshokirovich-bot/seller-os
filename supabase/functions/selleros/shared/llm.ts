@@ -134,8 +134,9 @@ export const MUNOSABAT_KORSATMA = [
   '1. Odam yozganini eshitganingni koʻrsat: gapidagi muhim narsaga (tajriba, reja, xavotir, qiyinchilik) aniq va',
   'iliq munosabat bildir. Uning oʻz soʻzlariga tayan; ortiqcha maqtama, oʻzingdan gap toʻqima.',
   '2. TUSHUNILGAN berilgan boʻlsa — bu dastur javobni qanday tushungani: maʼnosini va raqamlarini saqla.',
-  '3. Odam gapida SAVOL ham bergan boʻlsa — unga qisqa, aniq javob ber: FAKTLAR va TAYYOR JAVOBdan. Bilmasang —',
-  '«buni keyingi qadamlarda birga koʻramiz» de.',
+  '3. Odam gapida SAVOL ham bergan boʻlsa: DASTUR JAVOBI berilgan boʻlsa — savolga javobni dastur sendan keyin oʻzi',
+  'qoʻshadi, sen uni takrorlama va unga zid gapirma; berilmagan boʻlsa — savolga qisqa, aniq javob ber (FAKTLARdan).',
+  'Bilmasang — «buni keyingi qadamlarda birga koʻramiz» de. Savolni eʼtiborsiz qoldirma.',
   '4. Keyingi savolni BERMA va eslatma, tugmalar haqida gapirma, gapni savol bilan tugatma.',
   '',
   'USLUB: doʻstona, «siz» bilan; 1–3 jumla (gapdagi savolga javob bilan — 6 jumlagacha). Odam qaysi tilda va',
@@ -331,6 +332,8 @@ export async function munosabatBer(
   k: {
     savol: string; xabar: string; tushunilgan: string | null; tayyor: string | null; bilim: string | null;
     holat: string; tarix: string; keyingi: string | null; til: Yozuv; tuzat: string | null;
+    /** Gapda savol ham bor (javob bilan birga). */
+    savolBor: boolean;
   },
 ): Promise<string | null> {
   const matn = [
@@ -340,7 +343,10 @@ export async function munosabatBer(
     k.tushunilgan ? `TUSHUNILGAN (dastur javobni shunday tushundi): ${k.tushunilgan}` : null,
     k.keyingi ? `KEYINGI SAVOL (uni dastur oʻzi beradi — sen takrorlama): ${k.keyingi}` : null,
     k.bilim ? `\nFAKTLAR:\n${k.bilim}` : null,
-    k.tayyor ? `TAYYOR JAVOB (gapdagi savolga; maʼnosi va raqamlarini saqla): ${k.tayyor}` : null,
+    // Jonli sinov (2026-10-15): «…endi nima sotsam boʻladi?» — AI tajribani tan oldi-yu, savolni
+    // javobsiz qoldirdi. Endi bazada javob boʻlsa — uni dastur qoʻshadi; boʻlmasa — AI aniq javob beradi.
+    k.tayyor ? `DASTUR JAVOBI (gapdagi savolga; buni dastur oʻzi qoʻshadi — takrorlama): ${k.tayyor}` : null,
+    k.savolBor && !k.tayyor ? 'ODAM GAPIDA SAVOL HAM BERDI — unga albatta qisqa, aniq javob ber.' : null,
     k.tuzat ? `OLDINGI JAVOBING QAYTARILDI: ${k.tuzat} Shusiz qayta yoz.` : null,
     k.til === 'ru' ? 'JAVOB TILI: rus tili. Butun javobni faqat rus tilida yoz.' : null,
     k.til === 'uz-kirill' ? 'JAVOB TILI: oʻzbek tili, KIRILL yozuvida. Butun javobni kirill harflarida yoz.' : null,

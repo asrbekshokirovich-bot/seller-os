@@ -180,8 +180,13 @@ export interface MunosabatSorovi {
   xabar: string;
   /** Kod javobni qanday tushungani (`munosabat.ts`) — maʼnosi va raqamlari saqlanadi. `null` — yoʻq. */
   tushunilgan: string | null;
-  /** Gapda savol ham bor boʻlsa — unga bazadagi javob, boʻlmasa `null`. */
+  /**
+   * Gapda savol ham bor boʻlsa — unga bazadagi javob, boʻlmasa `null`. Bor boʻlsa uni dastur
+   * oʻzi LLM munosabatidan keyin qoʻshadi (LLM takrorlamaydi).
+   */
   tayyor: string | null;
+  /** Gapda savol ham bor (javob bilan birga) — bazada javob boʻlmasa LLM unga oʻzi javob beradi. */
+  savolBor: boolean;
   /** Gapda savol ham bor boʻlsa — faktlar (`bilim.ts`), boʻlmasa `null`. */
   bilim: string | null;
   /** Mijoz holati — shaxsiy maʼlumotsiz (`yordamchi.ts`). */
@@ -585,7 +590,7 @@ async function munosabatYoz(
     for (let urinish = 0; urinish < 2; urinish++) {
       const taklif: string | null = (await d.munosabatLlm!({
         savol: s.matn, xabar: matn, tushunilgan: asos, tayyor, bilim, holat, tarix,
-        keyingi: k.tur === 'savol' ? qisqaSavol(k.savol.matn) : null, til, tuzat,
+        keyingi: k.tur === 'savol' ? qisqaSavol(k.savol.matn) : null, til, tuzat, savolBor: savolHam,
       }).catch(() => null))?.trim() || null;
       if (!taklif) break;
       const tk = tekshir(taklif, manba);
@@ -593,7 +598,12 @@ async function munosabatYoz(
       // Savol bilan tugasa — keyingi savolni oʻzi bergan (u alohida chiqadi): ikki savol boʻlib qolardi.
       const savolsiz: boolean = !/[?？]["»”)]*$/u.test(taklif);
       if (tk.ok && tilMos && savolsiz && taklif.length <= max) {
-        return { rol: 'menejer', matn: taklif, savolId: s.id, javob: { erkin: true, manba: 'ai', munosabat: true } };
+        // Gapdagi savolga bazada javob boʻlsa — AI munosabatidan keyin u ham (jonli sinov, 2026-10-15:
+        // AI «…endi nima sotsam boʻladi?» savolini javobsiz qoldirgan edi).
+        return {
+          rol: 'menejer', matn: tayyor ? `${taklif}\n\n${tayyor}` : taklif, savolId: s.id,
+          javob: { erkin: true, manba: 'ai', munosabat: true },
+        };
       }
       tuzat = [
         tk.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
