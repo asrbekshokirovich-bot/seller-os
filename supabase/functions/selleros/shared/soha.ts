@@ -21,7 +21,8 @@
 export const SAVDO_SOHALARI = [
   { id: 'kiyim', nom: 'Kiyim va poyabzal', ru: 'Одежда и обувь' },
   { id: 'gozallik', nom: 'Goʻzallik va parvarish', ru: 'Красота и уход' },
-  { id: 'uy', nom: 'Uy-roʻzgʻor', ru: 'Дом и быт' },
+  // «Maishiy texnika» (changyutgich, sovutgich, dazmol…) shu sohada — nomida ham (nazoratchi, 2026-10-15).
+  { id: 'uy', nom: 'Uy-roʻzgʻor va maishiy texnika', ru: 'Дом и бытовая техника' },
   { id: 'bolalar', nom: 'Bolalar tovarlari', ru: 'Детские товары' },
   { id: 'elektronika', nom: 'Elektronika', ru: 'Электроника' },
   { id: 'kanstovar', nom: 'Kanstovar va kitob', ru: 'Канцтовары и книги' },
@@ -137,20 +138,57 @@ export function sohaniTop(matn: string): string[] {
   const t = normla(matn);
   if (!t) return [];
   if (/bilmayman|bilmadim|farqi yo'q|hammasi|не знаю|без разницы|любой/u.test(t)) return [BILMAYMAN];
+  return sinonimSohalari(t);
+}
+
+/** Soha nomi va uning sinonimlari boʻyicha (`normla` dan oʻtgan matn). */
+function sinonimSohalari(t: string): SohaId[] {
   const topildi = new Set<SohaId>();
+  // Gapning ichida ham ishlaydi (tajriba savoliga yozilgan matn, 2026-10-15) — shuning
+  // uchun: «pasport», «transport» — sport emas; «3 soat» — aksessuar emas; «kir yuvish
+  // mashinasi», «avtomat» — avto emas; «maishiy texnika» — uy-roʻzgʻor (elektronika emas).
   const SINONIM: ReadonlyArray<[SohaId, RegExp]> = [
     ['kiyim', /kiyim|poyabzal|oyoq kiyim|одежд|обув/u],
     ['gozallik', /kosmetika|go'zallik|parvarish|atir|parfyum|космет|красот|парфюм/u],
     ['uy', /uy-ro'zg'or|uy ro'zg'or|ro'zg'or|maishiy|oshxona|idish|для дома|быт|посуд/u],
     ['bolalar', /bola|o'yinchoq|детск|игрушк/u],
-    ['elektronika', /elektronika|telefon|gadjet|texnika|электрон|телефон|гаджет/u],
+    ['elektronika', /elektronika|telefon|gadjet|(?<!maishiy )texnika|электрон|телефон|гаджет/u],
     ['kanstovar', /kanstovar|kantstovar|kanselyar|ruchka|daftar|kitob|канц|книг/u],
-    ['aksessuar', /aksessuar|zargar|taqinchoq|sumka|soat|аксессуар|украшен|сумк/u],
-    ['sport', /sport|fitnes|спорт/u],
-    ['avto', /avto|mashina|авто/u],
+    ['aksessuar', /aksessuar|zargar|taqinchoq|sumka|(?<!\d\s?)soat|аксессуар|украшен|сумк/u],
+    ['sport', /(?<!\p{L})sport|fitnes|спорт/u],
+    ['avto', /(?<!\p{L})avto(?!mat)|(?<!(?:yuvish|tikuv) )mashina|авто/u],
   ];
   for (const [soha, re] of SINONIM) if (re.test(t)) topildi.add(soha);
   return [...topildi];
+}
+
+/**
+ * Tovar soʻzidan soha — `gapdagiSohalar` uchun. `sohaniTop` ga qoʻshilmaydi: u erkin
+ * savol turini ham aniqlaydi va «Krossovka sotish osonmi?» butun kiyim sohasi haqida
+ * emas, krossovka turkumlari haqida (`erkin-malumot.ts`). Soʻz boshi bilan: «mashina»
+ * ichidagi «shina» avto emas.
+ */
+const TOVAR_SOZLARI: ReadonlyArray<[SohaId, RegExp]> = [
+  ['kiyim', /krossovka|futbolka|ko'ylak|kurtka|jinsi|(?<!\p{L})shim|кроссовк|футболк|плать|куртк/u],
+  ['gozallik', /pomada|(?<!\p{L})krem|shampun|духи|помад|шампун/u],
+  ['uy', /changyutgich|sovutgich|muzlatgich|dazmol|choynak|kir yuvish|gilam|parda|choyshab|sochiq|пылесос|холодильник|утюг|чайник/u],
+  ['bolalar', /chaqaloq|aravacha|коляск/u],
+  ['elektronika', /smartfon|noutbuk|kompyuter|quloqchin|naushnik|televizor|planshet|ноутбук|наушник|телевизор|смартфон|планшет/u],
+  ['sport', /velosiped|samokat|trenajor|gantel|велосипед|самокат|тренажер|тренажёр/u],
+  ['avto', /(?<!\p{L})shina|(?<!\p{L})шин/u],
+];
+
+/**
+ * Gapdan sohalar (2026-10-15): soha nomi ham, tovar soʻzi ham — tajriba yoki qiziqish
+ * savoliga yozilgan «velosiped sotganman», «krossovka sotmoqchiman», «oldin sotganman
+ * maishiy texnika». «Bilmayman» kirmaydi. Tartib — `SAVDO_SOHALARI` dagi.
+ */
+export function gapdagiSohalar(matn: string): SohaId[] {
+  const t = normla(matn);
+  // «Bilmayman» boʻlsa ham gapdagi soha olinadi: «nima sotishni bilmayman, oldin kiyim sotganman».
+  const topildi = new Set<SohaId>(sinonimSohalari(t));
+  for (const [soha, re] of TOVAR_SOZLARI) if (re.test(t)) topildi.add(soha);
+  return SAVDO_SOHALARI.map((s) => s.id).filter((id) => topildi.has(id));
 }
 
 /**

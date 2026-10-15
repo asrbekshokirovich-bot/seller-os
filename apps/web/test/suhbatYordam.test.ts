@@ -10,11 +10,27 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
+import { boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
 const ru = tarjima('ru');
+
+describe('boshlangichTanlov (2026-10-15: tajribada yozgan soha oldindan belgilanadi)', () => {
+  const savol = {
+    id: 'qiziqish', qadam: 1, matn: 'Qaysi sohada?', turi: 'kopTanlov' as const, erkin: true, otkazishMumkin: true,
+    variantlar: [{ qiymat: 'kiyim', nom: 'Kiyim' }, { qiymat: 'uy', nom: 'Uy-roʻzgʻor va maishiy texnika' }],
+  };
+
+  it('server belgilaganlari — faqat shu savol variantlaridan; boʻlmasa boʻsh', () => {
+    expect(boshlangichTanlov({ tur: 'savol', savol: { ...savol, tanlangan: ['uy'] } })).toEqual(['uy']);
+    expect(boshlangichTanlov({ tur: 'savol', savol: { ...savol, tanlangan: ['uy', 'notanish'] } })).toEqual(['uy']);
+    expect(boshlangichTanlov({ tur: 'savol', savol })).toEqual([]);
+    expect(boshlangichTanlov({ tur: 'savol', savol: { ...savol, turi: 'tanlov', tanlangan: ['uy'] } })).toEqual([]);
+    expect(boshlangichTanlov({ tur: 'kod', harakat: 'kurs', qadam: 1 })).toEqual([]);
+    expect(boshlangichTanlov(null)).toEqual([]);
+  });
+});
 
 describe('keyingiKaliti', () => {
   it('savol — id boʻyicha; kutish matni oʻzgarsa ham kalit oʻsha', () => {

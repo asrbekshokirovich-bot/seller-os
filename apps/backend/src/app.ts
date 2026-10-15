@@ -15,6 +15,7 @@ import {
   KESH_ESKI_SOAT,
   demping,
   erkinJavobBer,
+  munosabatBer,
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
@@ -61,6 +62,7 @@ import {
   type NomzodJavobi,
   type ObunaXom,
   type ErkinSorov,
+  type MunosabatSorovi,
   type RejaNatijasi,
   type TovarHolati,
   type TovarNomzodi,
@@ -433,6 +435,10 @@ export function build(): FastifyInstance {
           ? { llm: (m: string) => odamlashtir(llmSozlama(), m) }
           : {}),
         erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama(), k),
+        // Oʻzi yozgan javobga munosabat — `LLM_MUNOSABAT=0` oʻchiradi (Edge bilan bir xil).
+        ...(process.env.LLM_MUNOSABAT === '0'
+          ? {}
+          : { munosabatLlm: (k: MunosabatSorovi) => munosabatBer(llmSozlama(), k) }),
         // AI birinchi — faqat `LLM_AVVAL=1` (Gemini toʻlovi yoqilgach; Edge bilan bir xil).
         erkinAvval: process.env.LLM_AVVAL === '1',
       }

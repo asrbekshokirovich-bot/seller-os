@@ -49,7 +49,7 @@ import type { ProfilJavoblari } from './profil.ts';
 import type { XitoyTovar } from './xitoy.ts';
 import { minglik, type KargoStavkasi } from './fakt.ts';
 import { sotuvToifasi, type SotuvToifasi } from './qadamlar.ts';
-import { BILMAYMAN, SAVDO_SOHALARI, sohaNomi, sohaniTop } from './soha.ts';
+import { BILMAYMAN, gapdagiSohalar, SAVDO_SOHALARI, sohaNomi, sohaniTop } from './soha.ts';
 import type { Kurs } from './kurs.ts';
 import { SHAHARLAR } from './savollar.ts';
 import type { OylikSoliq, RasmiyFaktlar } from './rasmiy.ts';
@@ -85,6 +85,11 @@ export interface SuhbatSavoli {
   otkazishMumkin: boolean;
   /** Bu javob profilning qaysi maydoniga tushadi (bo'lsa). */
   profilMaydoni: keyof (ProfilJavoblari & AloqaJavoblari) | null;
+  /**
+   * Koʻp tanlovda oldindan belgilanganlar (2026-10-15): mijoz oldingi javobida
+   * oʻzi aytgani (tajriba matnidan soha). Sahifa tanlovni shu bilan boshlaydi.
+   */
+  tanlangan?: readonly (string | number)[];
 }
 
 /**
@@ -231,6 +236,18 @@ export const UZUM_DOKONI = [
   { qiymat: 'boshqa', nom: 'Boshqa joyda sotganman (bozor, Instagram…)' },
   { qiymat: 'yoq', nom: 'Yoʻq, birinchi marta' },
 ] as const;
+
+/**
+ * Tajriba savoliga oʻzi yozgan matndan sohalar (nazoratchi, 2026-10-15: «oldin
+ * sotganman maishiy texnika» deb yozdim — keyingi savolda maishiy texnika ham
+ * yoʻq, hech narsa belgilanmagan). Qiziqish savolida shular oldindan belgilanadi.
+ * Tugma bosilgan boʻlsa — boʻsh.
+ */
+export function tajribadanSohalar(h: YolHolati): string[] {
+  const t = h.javoblar['uzum_dokoni'];
+  if (typeof t !== 'string' || UZUM_DOKONI.some((v) => v.qiymat === t)) return [];
+  return gapdagiSohalar(t);
+}
 
 /** `uzum_dokoni` javobidan Uzum doʻkoni bormi: tugma — ha/yoʻq, oʻzi yozgan matn — bilmaymiz. */
 export function uzumDokoniBormi(javob: unknown): boolean | null {
@@ -1285,6 +1302,7 @@ function savol(
     erkin: q.erkin ?? false,
     otkazishMumkin: q.otkazishMumkin ?? false,
     profilMaydoni: q.profilMaydoni ?? null,
+    ...(q.tanlangan?.length ? { tanlangan: q.tanlangan } : {}),
   };
 }
 
@@ -1494,11 +1512,16 @@ function keyingiAsl(h: YolHolati): Keyingi {
   }
   // Qiziqish (nazoratchi, 2026-10-13): yoʻnalish roʻyxati shunga qarab
   // aralashtiriladi. Yoʻnalishi tanlangan eski suhbatda soʻralmaydi.
+  // Tajribada sohani oʻzi yozgan boʻlsa — oʻsha oldindan belgilanadi va savolda aytiladi (2026-10-15).
   if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) {
+    const oldindan = tajribadanSohalar(h);
     return { tur: 'savol', savol: savol('qiziqish', 1,
-      'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
-        + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.',
-      'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true }) };
+      oldindan.length
+        ? `Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab ${oldindan.map((x) => `«${sohaNomi(x)}»`).join(', ')} ni `
+          + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
+        : 'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
+          + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.',
+      'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true, tanlangan: oldindan }) };
   }
   if (!berilgan(h, 'byudjet')) {
     // Dollar tugmalari va dollarni soʻmga oʻgirish uchun — CBU kursi (jim harakat).
@@ -2034,11 +2057,11 @@ export function javobniQabulQil(h: YolHolati, savolId: string, xom: unknown, dar
       break;
     }
     case 'kopTanlov': {
-      // Qiziqish: oʻzi yozgan boʻlsa ("kanstovar sotmoqchiman") — soha nomi va
+      // Qiziqish: oʻzi yozgan boʻlsa ("kanstovar sotmoqchiman", "krossovka") — soha nomi va
       // tovar soʻzlaridan (`soha.ts`). «Bilmayman» boshqalari bilan — tashlanadi.
       if (s.id === 'qiziqish') {
         const tanlov = typeof xom === 'string' && !QIZIQISH_TUGMALARI.some((v) => v.qiymat === xom)
-          ? sohaniTop(xom)
+          ? (sohaniTop(xom).includes(BILMAYMAN) ? [BILMAYMAN] : gapdagiSohalar(xom))
           : (Array.isArray(xom) ? xom : [xom]).map(String).filter((x) => QIZIQISH_TUGMALARI.some((v) => v.qiymat === x));
         if (!tanlov.length) {
           return { holat: h, xato: 'Roʻyxatdan tanlang yoki soha nomini yozing — masalan: kanstovar, kiyim, kosmetika.', profil: null };

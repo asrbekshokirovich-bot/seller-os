@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  qidiruvMos, sohaniTop, THRESHOLDS, turkumSohasi, yonalishlar, type TurkumNomzodi,
+  gapdagiSohalar, qidiruvMos, SAVDO_SOHALARI, sohaniTop, THRESHOLDS, turkumSohasi, yonalishlar, type TurkumNomzodi,
 } from '@selleros/shared';
 
 describe('turkum → soha', () => {
@@ -37,6 +37,49 @@ describe('qiziqish matni → sohalar', () => {
     expect(sohaniTop('канцтовары')).toEqual(['kanstovar']);
     expect(sohaniTop('bilmayman')).toEqual(['bilmayman']);
     expect(sohaniTop('salom')).toEqual([]);
+  });
+
+  it('gap ichida adashmaydi (2026-10-15): pasport/transport, «3 soat», kir yuvish mashinasi, maishiy texnika', () => {
+    expect(sohaniTop('pasportim bor, transportda ishlaganman')).toEqual([]);
+    expect(sohaniTop('kuniga 3 soat ishlayman')).toEqual([]);
+    expect(sohaniTop('avtomat kir yuvish mashinasi')).toEqual([]);
+    expect(sohaniTop('maishiy texnika')).toEqual(['uy']);
+    expect(sohaniTop('texnika sotganman')).toEqual(['elektronika']);
+    expect(sohaniTop('mashina ehtiyot qismlari')).toEqual(['avto']);
+    expect(sohaniTop('sport kiyimlari')).toEqual(['kiyim', 'sport']);
+    expect(sohaniTop('qoʻl soatlar')).toEqual(['aksessuar']);
+  });
+});
+
+describe('gapdan sohalar — tajriba va qiziqish matni (nazoratchi, 2026-10-15)', () => {
+  it.each([
+    ['oldin sotganman maishiy texnika', ['uy']],
+    ['Bozorda kanstovar sotganman', ['kanstovar']],
+    ["Sotganman, velosiped opkeb sotganman. Lekin o'xshamagan biznesim. Uzumga vapshe aloqam yoq", ['sport']],
+    ['krossovka sotmoqchiman', ['kiyim']],
+    ['kir yuvish mashinasi va changyutgich sotganman', ['uy']],
+    ['maishiy texnika va telefonlar', ['uy', 'elektronika']],
+    ['avto shinalar', ['avto']],
+    ['продавал одежду на рынке', ['kiyim']],
+    ['bilmayman', []],
+    ['nima sotishni bilmayman, oldin kiyim sotganman', ['kiyim']],
+    ['oldin savdo qilganman', []],
+  ])('%s → %j', (matn, sohalar) => {
+    expect(gapdagiSohalar(matn)).toEqual(sohalar);
+  });
+
+  it('tovar soʻzi erkin savol turini oʻzgartirmaydi: «Krossovka sotish osonmi?» — butun kiyim sohasi emas', () => {
+    expect(sohaniTop('Krossovka sotish osonmi?')).toEqual([]);
+  });
+
+  it('«Uy-roʻzgʻor va maishiy texnika» — nomi rost: bazadagi maishiy texnika turkumlari shu sohada', () => {
+    expect(SAVDO_SOHALARI.find((s) => s.id === 'uy')).toMatchObject({ nom: 'Uy-roʻzgʻor va maishiy texnika', ru: 'Дом и бытовая техника' });
+    // Bazadagi haqiqiy yoʻnalish nomlari (`so_yonalish_nomzodlari`, 2026-10-15).
+    for (const nom of ['Changyutgichlar', 'Dazmollar', 'Sovutgichlar', 'Elektr choynaklar', 'Havo namlagichlar', 'Isitgichlar',
+      'Mini-ventilyatorlar', 'Maishiy texnika uchun boshqa aksessuarlar va ehtiyot qismlar']) {
+      expect(turkumSohasi(nom), nom).toBe('uy');
+    }
+    expect(turkumSohasi('Televizorlar')).toBe('elektronika');
   });
 });
 

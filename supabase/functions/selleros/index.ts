@@ -28,11 +28,13 @@ import {
   KESH_ESKI_SOAT,
   REJA_QADAMI,
   erkinJavobBer,
+  munosabatBer,
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
   odamlashtir,
   type ErkinSorov,
+  type MunosabatSorovi,
   suhbatBoshdan,
   suhbatBolagi,
   suhbatlarOqi,
@@ -456,6 +458,10 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           : {}),
         // Obunachi javob oʻrniga boshqa narsa yozsa — menejer javobi (tekshiruv bilan).
         erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama, k),
+        // Oʻzi yozgan javobga munosabat (2026-10-15) — `LLM_MUNOSABAT=0` oʻchiradi (kod jumlasi qoladi).
+        ...(Deno.env.get('LLM_MUNOSABAT') === '0'
+          ? {}
+          : { munosabatLlm: (k: MunosabatSorovi) => munosabatBer(llmSozlama, k) }),
         // AI birinchi: bazada javobi bor savol ham LLM ga (doʻstona, batafsil, mijoz tilida).
         // FAQAT `LLM_AVVAL=1` boʻlsa — nazoratchi Gemini toʻlovini yoqqach (2026-10-13).
         erkinAvval: Deno.env.get('LLM_AVVAL') === '1',

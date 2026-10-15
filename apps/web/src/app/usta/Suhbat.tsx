@@ -38,7 +38,7 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 
 /**
@@ -161,7 +161,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     const almashdi = kalit !== savolKaliti.current;
     savolKaliti.current = kalit;
     if (almashdi || o.tozala || (o.javobKetdi && !r.xato)) {
-      setTanlangan([]);
+      // Yangi savol — server oldindan belgilaganlari bilan (tajriba matnidan soha, 2026-10-15).
+      setTanlangan(boshlangichTanlov(r.keyingi));
       setMatn('');
     } else if (o.matnKetdi && !r.xato) {
       setMatn('');
