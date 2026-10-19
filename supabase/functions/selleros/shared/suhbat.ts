@@ -590,7 +590,7 @@ async function munosabatYoz(
     for (let urinish = 0; urinish < 2; urinish++) {
       const taklif: string | null = (await d.munosabatLlm!({
         savol: s.matn, xabar: matn, tushunilgan: asos, tayyor, bilim, holat, tarix,
-        keyingi: k.tur === 'savol' ? qisqaSavol(k.savol.matn) : null, til, tuzat, savolBor: savolHam,
+        keyingi: k.tur === 'savol' ? qisqaSavol(k.savol.matn, k.savol.id) : null, til, tuzat, savolBor: savolHam,
       }).catch(() => null))?.trim() || null;
       if (!taklif) break;
       const tk = tekshir(taklif, manba);
@@ -713,12 +713,14 @@ function gap(t: string): string {
  * bir nechta tovar boʻlganda «Birinchi partiya uchun nechta olasiz?» qaysi
  * tovar haqida ekani bilinmasdi (tekshiruv, 2026-10-05).
  */
-function qisqaSavol(matn: string): string {
+function qisqaSavol(matn: string, savolId = ''): string {
   const jumlalar = matn.split(/(?<=[.!?])\s+/u).filter(Boolean);
   const soroq = [...jumlalar].reverse().find((j) => j.trim().endsWith('?'));
   let t = (soroq ?? matn).trim();
   const nom = /«[^»]+»/u.exec(matn)?.[0];
-  if (soroq && nom && !t.includes(nom)) t = `${nom} — ${t}`;
+  // Faqat tovarga oid savolda (`miqdor:123`, `uzum_havola:…`): qiziqish savolidagi «…» — oldindan
+  // belgilangan soha, tovar emas; «««Goʻzallik va parvarish» — Qaysi sohadagi…?»» chiqardi (2026-10-19).
+  if (soroq && nom && savolId.includes(':') && !t.includes(nom)) t = `${nom} — ${t}`;
   return t.length > 180 ? `${t.slice(0, 180)}…` : t;
 }
 
@@ -790,7 +792,7 @@ function erkinShablon(
   // Salom — butun soʻz: "hisob…" "hi" bilan boshlanadi, lekin salomlashish emas.
   const salom = /^(salom|assalomu?\s*alaykum|assalom|hello|hi|привет|здравствуй\p{L}*|добрый)(?!\p{L})/iu.test(t);
   const tayyor = tayyorJavob(t, tarifCheklovi);
-  const savol = qisqaSavol(s.matn);
+  const savol = qisqaSavol(s.matn, s.id);
   // Bilimdan javob (`bilim-javob.ts`): LLM ishlamasa ham "ball nima?", "pul
   // qachon tushadi?" kabi savolga aniq javob — jonli sinovda (2026-10-13)
   // Gemini limiti tugab, 33 savoldan 22 tasiga "javob bera olmayman" chiqqan edi.

@@ -350,7 +350,7 @@ describe('soʻroq soʻzi gap ichida — savol (nazoratchi sinovi, 2026-10-19)', 
     expect(r.keyingi.savol.tanlangan).toEqual(['gozallik']);
     // AI siz ham — bazadan aniq javob: sohaga nimalar kiradi.
     expect(r.xabarlar[1]!.matn).toMatch(/«Goʻzallik va parvarish» sohasiga, masalan: atirlar/);
-    expect(r.xabarlar[1]!.matn).toMatch(/Hozirgi savol/);
+    expect(r.xabarlar[1]!.matn).toMatch(/Hozirgi savol: «Qaysi sohadagi tovarlar sizga yaqin[?]»$/);
   });
 
   it('«komissiya qancha», «nechta olsam» — savol; «bir necha marta kiyim sotganman» — javob', async () => {
