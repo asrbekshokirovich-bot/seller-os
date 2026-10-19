@@ -73,7 +73,11 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
       if (e instanceof Anthropic.APIError) {
         console.warn(`llm ${c.belgi} (${model}): HTTP ${e.status ?? '?'} ${String(e.message).slice(0, 160)}`);
       } else {
-        console.warn(`llm ${c.belgi} (${model}): ${(e as Error)?.name ?? 'xato'}`);
+        // Muhit xatosi (jonli, 2026-10-19: Supabase Edge da `TypeError` — matnsiz logdan sababi koʻrinmadi):
+        // nomi, matni va ikki stek qatori.
+        const x = e as Error | undefined;
+        const stek = String(x?.stack ?? '').split('\n').slice(1, 3).map((q) => q.trim()).join(' | ');
+        console.warn(`llm ${c.belgi} (${model}): ${x?.name ?? 'xato'}: ${String(x?.message ?? '').slice(0, 200)} @ ${stek.slice(0, 300)}`);
       }
       return null;
     } finally {
