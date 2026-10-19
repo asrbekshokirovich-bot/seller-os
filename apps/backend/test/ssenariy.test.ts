@@ -1926,7 +1926,13 @@ describe('2-qadam — qiziqish, aralash roʻyxat, «Yana koʻrsatish», qidiruv 
   it('xabar: qiziqish boʻyicha nechta, boshqa sohalardan nechta; «faqat boshlangʻich taklif»', () => {
     const m = tushuntir('yonalishlar', ARALASH);
     expect(m).toMatch(/Siz tanlagan soha \(Kanstovar va kitob\) boʻyicha 4 ta va boshqa sohalardan 2 ta yoʻnalish\./);
-    expect(m).toMatch(/Eng yuqorisi — «Sumkalar» \(78 ball\)/);
+    // Tanlagan sohasidan eng yuqorisi birinchi (nazoratchi, 2026-10-19: kiyim tanlaganga «Sumkalar» maqtalgan edi).
+    expect(m).toMatch(/Siz tanlagan sohadan eng yuqorisi — «Ruchkalar» \(70 ball\); boshqa sohalardan — «Sumkalar» \(78 ball\)\./);
+    // Sohasi tanlanmagan boʻlsa — avvalgidek: hammasidan eng yuqorisi.
+    expect(tushuntir('yonalishlar', { ...ARALASH, qiziqishlar: [] })).toMatch(/Eng yuqorisi — «Sumkalar» \(78 ball\)\./);
+    // Tanlagan sohasidagisi eng yuqori boʻlsa — boshqasi aytilmaydi.
+    expect(tushuntir('yonalishlar', { ...ARALASH, qiziqishlar: ['aksessuar'] }))
+      .toMatch(/Siz tanlagan sohadan eng yuqorisi — «Sumkalar» \(78 ball\)\. /);
     expect(m).toMatch(/Bu faqat boshlangʻich taklif: Uzumdagi 300 ta yoʻnalishni kuzatyapman\. Boshqalarini «Yana koʻrsatish» bilan koʻring yoki pastga tovar nomini yozing\./);
     const hamma = tushuntir('yonalishlar', { ...ARALASH, qiziqishlar: [], keyingilar: [] });
     expect(hamma).toMatch(/Hamma sohadan 6 ta yoʻnalish — har biri boshqa sohadan\./);

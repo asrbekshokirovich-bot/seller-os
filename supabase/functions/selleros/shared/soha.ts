@@ -201,7 +201,8 @@ function sinonimSohalari(t: string): SohaId[] {
  * ichidagi «shina» avto emas.
  */
 const TOVAR_SOZLARI: ReadonlyArray<[SohaId, RegExp]> = [
-  ['kiyim', /krossovka|futbolka|ko'ylak|kurtka|jinsi|(?<!\p{L})shim|кроссовк|футболк|плать|куртк/u],
+  // Oyoq kiyim (nazoratchi, 2026-10-19: «potinka sotganman» — soha belgilanmadi).
+  ['kiyim', /krossovka|futbolka|ko'ylak|kurtka|jinsi|(?<!\p{L})shim|potinka|botinka|(?<!\p{L})etik(?!et)|tufli|poyabzal|shippak|кроссовк|футболк|плать|куртк|ботинк|туфл|сапог|обув/u],
   ['gozallik', /pomada|(?<!\p{L})krem|shampun|духи|помад|шампун/u],
   ['uy', /changyutgich|sovutgich|muzlatgich|dazmol|choynak|kir yuvish|gilam|parda|choyshab|sochiq|пылесос|холодильник|утюг|чайник/u],
   ['bolalar', /chaqaloq|aravacha|коляск/u],

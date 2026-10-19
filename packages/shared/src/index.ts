@@ -15,6 +15,7 @@ export * from './ssenariy.js';
 export * from './suhbat.js';
 export * from './chegara.js';
 export * from './llm.js';
+export * from './ai-suhbat.js';
 export * from './tekshiruv.js';
 export * from './tanishuv.js';
 export * from './erkin.js';

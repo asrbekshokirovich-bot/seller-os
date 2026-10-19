@@ -39,7 +39,7 @@ export function yonalishSatri(y: Yonalish): string {
 }
 
 /** Katalog kartasidagi sotuv holati — oddiy gap bilan. */
-function tovarSatri(t: TovarTavsiyasi): string {
+export function tovarSatri(t: TovarTavsiyasi): string {
   const n = t.nomzod;
   const toifa = sotuvToifasi(n);
   const sotuv = toifa === 'sotildi' ? `oxirgi 30 kunda ~${guruh(n.soldUnits30d ?? 0)} dona sotilgan (oʻlchangan)`

@@ -244,6 +244,13 @@ export const UZUM_DOKONI = [
  * Tugma bosilgan boʻlsa — boʻsh.
  */
 export function tajribadanSohalar(h: YolHolati): string[] {
+  // AI suhbat (2026-10-19): AI mijoz gapidan qaysi sohaga yaqinligini tushungan boʻlsa — oʻsha
+  // («potinka sotganman» → kiyim; soʻzlar roʻyxati buni bilmasdi).
+  const ai = h.javoblar['qiziqish_taklif'];
+  if (Array.isArray(ai)) {
+    const t = ai.map(String).filter((x) => SAVDO_SOHALARI.some((s) => s.id === x));
+    if (t.length) return t;
+  }
   const t = h.javoblar['uzum_dokoni'];
   if (typeof t !== 'string' || UZUM_DOKONI.some((v) => v.qiymat === t)) return [];
   return gapdagiSohalar(t);
@@ -1466,6 +1473,48 @@ function xitoyHavolasiz(n: unknown): unknown {
   };
 }
 
+// ------------------------------------------------------------ tanishuv savollari
+
+function uzumDokoniSavoli(): SuhbatSavoli {
+  return savol('uzum_dokoni', 1,
+    'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.',
+    'tanlov', { variantlar: UZUM_DOKONI, erkin: true, profilMaydoni: 'hasUzumShop' });
+}
+
+function qiziqishSavoli(h: YolHolati): SuhbatSavoli {
+  const oldindan = tajribadanSohalar(h);
+  return savol('qiziqish', 1,
+    oldindan.length
+      ? `Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab ${oldindan.map((x) => `«${sohaNomi(x)}»`).join(', ')} ni `
+        + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
+      : 'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
+        + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.',
+    'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true, tanlangan: oldindan });
+}
+
+function byudjetSavoli(h: YolHolati): SuhbatSavoli {
+  const kurs = usdKursi(h);
+  return savol('byudjet', 1,
+    kurs !== null
+      ? `Qancha pul bilan savdoni boshlamoqchisiz? Soʻmda yoki dollarda (1 $ = ${minglik(Math.round(kurs))} soʻm, Markaziy bank kursi) — tugmani bosing yoki oʻzingiz yozing (masalan: 70 mln yoki 5000 $).`
+      : 'Qancha pul bilan savdoni boshlamoqchisiz? Tugmani bosing yoki soʻmda yozing (masalan: 70 mln) — dollar kursini hozir ololmadim.',
+    'son', { variantlar: byudjetTugmalari(kurs), erkin: true, otkazishMumkin: true, profilMaydoni: 'budgetUzs' });
+}
+
+/**
+ * Tanishuvning hali javobsiz savollari, tartibi bilan (AI suhbat, 2026-10-19): mijoz bitta gapda
+ * bir nechtasiga javob bersa («kiyim sotganman, 70 mln bilan boshlayman») — AI hammasini ajratsin.
+ * Javobni baribir `javobniQabulQil` navbat bilan qabul qiladi.
+ */
+export function kelgusiTanishuvSavollari(h: YolHolati): SuhbatSavoli[] {
+  if (!berilgan(h, 'ism') || !berilgan(h, 'telefon')) return [];
+  const r: SuhbatSavoli[] = [];
+  if (!berilgan(h, 'uzum_dokoni')) r.push(uzumDokoniSavoli());
+  if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) r.push(qiziqishSavoli(h));
+  if (!berilgan(h, 'byudjet')) r.push(byudjetSavoli(h));
+  return r;
+}
+
 /**
  * KEYINGI HARAKAT — mashinaning yuragi.
  *
@@ -1498,11 +1547,7 @@ function keyingiAsl(h: YolHolati): Keyingi {
       `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.`,
       'matn', { erkin: true, profilMaydoni: 'phone' }) };
   }
-  if (!berilgan(h, 'uzum_dokoni')) {
-    return { tur: 'savol', savol: savol('uzum_dokoni', 1,
-      'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.',
-      'tanlov', { variantlar: UZUM_DOKONI, erkin: true, profilMaydoni: 'hasUzumShop' }) };
-  }
+  if (!berilgan(h, 'uzum_dokoni')) return { tur: 'savol', savol: uzumDokoniSavoli() };
   if (h.javoblar['uzum_dokoni'] === 'sotyapman' && !berilgan(h, 'dokon_nomi')) {
     // Vaʼda yoʻq: doʻkon nomi boʻyicha sotuv raqamlari kodda koʻrsatilmaydi
     // (oʻz sotuvi 11-qadamda kartochka havolasidan oʻlchanadi).
@@ -1513,25 +1558,11 @@ function keyingiAsl(h: YolHolati): Keyingi {
   // Qiziqish (nazoratchi, 2026-10-13): yoʻnalish roʻyxati shunga qarab
   // aralashtiriladi. Yoʻnalishi tanlangan eski suhbatda soʻralmaydi.
   // Tajribada sohani oʻzi yozgan boʻlsa — oʻsha oldindan belgilanadi va savolda aytiladi (2026-10-15).
-  if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) {
-    const oldindan = tajribadanSohalar(h);
-    return { tur: 'savol', savol: savol('qiziqish', 1,
-      oldindan.length
-        ? `Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab ${oldindan.map((x) => `«${sohaNomi(x)}»`).join(', ')} ni `
-          + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
-        : 'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
-          + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.',
-      'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true, tanlangan: oldindan }) };
-  }
+  if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) return { tur: 'savol', savol: qiziqishSavoli(h) };
   if (!berilgan(h, 'byudjet')) {
     // Dollar tugmalari va dollarni soʻmga oʻgirish uchun — CBU kursi (jim harakat).
     if (h.natijalar.kurs === undefined) return { tur: 'kod', harakat: 'kurs', qadam: 1 };
-    const kurs = usdKursi(h);
-    return { tur: 'savol', savol: savol('byudjet', 1,
-      kurs !== null
-        ? `Qancha pul bilan savdoni boshlamoqchisiz? Soʻmda yoki dollarda (1 $ = ${minglik(Math.round(kurs))} soʻm, Markaziy bank kursi) — tugmani bosing yoki oʻzingiz yozing (masalan: 70 mln yoki 5000 $).`
-        : 'Qancha pul bilan savdoni boshlamoqchisiz? Tugmani bosing yoki soʻmda yozing (masalan: 70 mln) — dollar kursini hozir ololmadim.',
-      'son', { variantlar: byudjetTugmalari(kurs), erkin: true, otkazishMumkin: true, profilMaydoni: 'budgetUzs' }) };
+    return { tur: 'savol', savol: byudjetSavoli(h) };
   }
 
   // ---------------------------------------------------------- 2. Yo'nalish
@@ -2333,12 +2364,13 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     }
     // Aralash roʻyxatda (qiziqish + boshqa sohalar) birinchisi eng yuqori balli
     // boʻlishi shart emas — "eng yuqorisi" koʻrsatilganlar ichidan.
-    const eng = [...n.royxat].sort((a, b) => (b.ball?.value ?? 0) - (a.ball?.value ?? 0))[0]!;
+    const tartib = (r: readonly YonalishQisqa[]) => [...r].sort((a, b) => (b.ball?.value ?? 0) - (a.ball?.value ?? 0));
+    const eng = tartib(n.royxat)[0]!;
     const yetadi = n.royxat.filter((y) => y.yetadi === true).length;
     // `false` — byudjet MAʼLUM va yetmaydi; `null` — bilmaymiz. Ikkisi bitta
     // "hali aytib boʻlmaydi" boʻlib qolmaydi (QOIDALAR.md, 4-boʻlim).
     const yetmaydi = n.royxat.filter((y) => y.yetadi === false).length;
-    const ball = eng.ball?.value ?? null;
+    const ballda = (y: YonalishQisqa) => (y.ball?.value !== null && y.ball?.value !== undefined ? ` (${Math.round(y.ball.value)} ball)` : '');
     // Sodda til (nazoratchi, 2026-10-13): birinchi marta kirgan odam "ball",
     // "ulush", "byudjet: —" ni tushunmay chiqib ketmasin. Baho nima ekani
     // shu yerda bir marta aytiladi; kartalarda — oddiy xulosalar (sahifa).
@@ -2360,9 +2392,16 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
         ? `Siz tanlagan ${qiziq.length > 1 ? 'sohalar' : 'soha'} (${nomlar}) boʻyicha ${qiziqSoni} ta${n.royxat.length > qiziqSoni ? ` va boshqa sohalardan ${n.royxat.length - qiziqSoni} ta` : ''} yoʻnalish.`
         : `Siz tanlagan sohada (${nomlar}) hozir kuzatayotgan yoʻnalishimiz yoʻq — boshqa sohalardan ${n.royxat.length} ta yoʻnalish.`;
     const yana = (n.keyingilar?.length ?? 0) > 0;
+    // Tanlagan sohasidan eng yuqorisi — birinchi (nazoratchi, 2026-10-19: kiyim tanlagan odamga
+    // xulosa boshqa sohadagi «Sumkalar» ni maqtadi). Boshqa sohada undan yuqorisi boʻlsa — u ham aytiladi.
+    const ozi = qiziqSoni ? tartib(n.royxat.filter((y) => y.soha !== undefined && qiziq.includes(y.soha)))[0]! : null;
+    const engGap = ozi
+      ? `Siz tanlagan sohadan eng yuqorisi — «${ozi.name}»${ballda(ozi)}`
+        + `${ozi !== eng && (eng.ball?.value ?? 0) > (ozi.ball?.value ?? 0) ? `; boshqa sohalardan — «${eng.name}»${ballda(eng)}` : ''}. `
+      : `Eng yuqorisi — «${eng.name}»${ballda(eng)}. `;
     return `Uzumda nima yaxshi sotilayotganini tekshirdim. ${kimga} `
       + 'Har biriga 100 ballik «imkoniyat bahosi» berdim: xaridor qanchalik koʻp va bozorda yangi sotuvchiga joy bormi. '
-      + `Baho qancha yuqori — boshlash shuncha osonroq. Eng yuqorisi — «${eng.name}»${ball !== null ? ` (${Math.round(ball)} ball)` : ''}. `
+      + `Baho qancha yuqori — boshlash shuncha osonroq. ${engGap}`
       + pul
       + `\n\nBu faqat boshlangʻich taklif: Uzumdagi ${n.nomzod_soni ? `${n.nomzod_soni} ta` : 'koʻplab'} yoʻnalishni kuzatyapman. `
       + (yana ? 'Boshqalarini «Yana koʻrsatish» bilan koʻring yoki' : 'Boshqasini qidirish uchun')

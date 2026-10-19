@@ -12,8 +12,8 @@
  * (`supabase/functions/tayyorlash.mjs`).
  *
  * Sozlama: kalit — `ANTHROPIC_API_KEY`, model — `CLAUDE_MODEL` (boʻlmasa
- * `claude-opus-5-5`). Opus 5.5 da fikrlash oʻchmaydi — chuqurligi `effort`:
- * chat javobi tez va arzon boʻlsin — `low`, kartochka matni — `medium`.
+ * `claude-opus-5-5`). Opus 5.5 da fikrlash oʻchmaydi — chuqurligi `effort`
+ * (`LlmChaqiruvi.kuch`): chat javobi tez va arzon boʻlsin — `low`, kartochka matni — `medium`.
  * Rad etilsa (`refusal`) — server tomonda `fallbacks: 'default'` uni boshqa
  * modelda qayta bajaradi; baribir rad boʻlsa — `null` (kod javobi ketadi).
  * Tizim koʻrsatmasi har chaqiruvda bir xil — keshlanadi (`cache_control`).
@@ -85,9 +85,11 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
         max_tokens: c.json ? 8_000 : 4_000,
         system: [{ type: 'text', text: c.korsatma, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: c.matn }],
-        output_config: c.json
-          ? { effort: 'medium', format: { type: 'json_schema', schema: c.json } }
-          : { effort: 'low' },
+        // Chat — `low` (tez); kartochka matni — `medium` (`c.kuch`). JSON kerak boʻlsa — sxema bilan.
+        output_config: {
+          effort: c.kuch ?? 'low',
+          ...(c.json ? { format: { type: 'json_schema' as const, schema: c.json } } : {}),
+        },
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
       }, { signal: nazorat.signal, timeout: c.vaqtMs });

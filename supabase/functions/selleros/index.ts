@@ -31,6 +31,10 @@ import {
   REJA_QADAMI,
   erkinJavobBer,
   munosabatBer,
+  aiTushunBer,
+  aiYozBer,
+  type AiTushunSorovi,
+  type AiYozSorovi,
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
@@ -195,6 +199,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         llm: Boolean(Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('GEMINI_API_KEY')),
         // Qaysi provayder: Anthropic kaliti boʻlsa — Claude (2026-10-19), boʻlmasa — Gemini.
         llmProvayder: Deno.env.get('ANTHROPIC_API_KEY') ? 'claude' : Deno.env.get('GEMINI_API_KEY') ? 'gemini' : null,
+        // AI suhbat (2026-10-19): Claude bilan, `AI_SUHBAT=0` boʻlmasa — hamma xabarni AI yozadi.
+        aiSuhbat: Boolean(Deno.env.get('ANTHROPIC_API_KEY')) && Deno.env.get('AI_SUHBAT') !== '0',
         // Payme/Click sozlanganmi (kalitlar emas, faqat bor-yoʻqligi) — 0067.
         tolov: tolovHolati(),
       },
@@ -475,6 +481,14 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         // FAQAT `LLM_AVVAL=1` boʻlsa — nazoratchi Gemini toʻlovini yoqqach (2026-10-13).
         erkinAvval: Deno.env.get('LLM_AVVAL') === '1',
       } : {}),
+      // AI SUHBAT (nazoratchi, 2026-10-19: "hamma xabarni AI yozsin, javobni AI tushunsin, natijani AI
+      // tushuntirsin; 12 qadam qolsin"). Faqat Claude bilan; `AI_SUHBAT=0` — oʻchiradi (eski yoʻl).
+      ...(claude !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {
+        ai: {
+          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama, vaqtMs: ms }, k),
+          yoz: (k: AiYozSorovi, ms: number) => aiYozBer({ ...llmSozlama, vaqtMs: ms }, k),
+        },
+      } : {}),
     };
     if (req.method === 'GET') {
       const r = await suhbatOqi(d, token);
@@ -503,6 +517,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
         // 5-qadam: yurish tugadimi — mijoz har 8 s da soʻraydi.
         ...(tana.tekshir === true ? { tekshir: true } : {}),
+        // Sahifa tili: tugma bosilganda AI shu tilda yozadi (yozgan boʻlsa — yozgan tilida).
+        ...(tana.til === 'ru' ? { til: 'ru' as const } : {}),
       });
       if (r.xato && r.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(r.xato)) {
         return javob(r, r.xato.includes('baza') ? 503 : 401);

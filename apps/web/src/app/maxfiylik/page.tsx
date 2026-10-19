@@ -262,8 +262,14 @@ export default function Maxfiylik() {
           </li>
           <li>
             <strong>Anthropic (Claude)</strong> — sunʼiy intellekt (ulangan boʻlsa; ulanmagan
-            boʻlsa — <strong>Google Gemini</strong>). Toʻrt holatda matn yuboriladi.
-            Birinchisi: yordamchi savolini tabiiyroq qilish uchun kod yozgan jumla
+            boʻlsa — <strong>Google Gemini</strong>). Quyidagi holatlarda matn yuboriladi.
+            Asosiysi (2026-10-19 dan): suhbatni sunʼiy intellekt olib boradi — yozgan
+            har bir xabaringiz (500 belgigacha) yoki bosgan tugmangiz nomi, joriy va
+            keyingi savollar, suhbatdagi holatingiz, oxirgi xabarlar va shu qadamda
+            chiqqan natijalar (yoʻnalishlar, tovarlar, hisoblar — havola va rasmlarsiz)
+            yuboriladi: u javobingizni tushunadi va yordamchi xabarini yozadi;
+            javobingizni va raqamlarni baribir kod tekshiradi. Bu sozlama oʻchirilgan
+            boʻlsa — quyidagi toʻrt holatda. Birinchisi: yordamchi savolini tabiiyroq qilish uchun kod yozgan jumla
             yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
             Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
             va h.k.) va u javob sifatida qabul qilinmasa —{' '}

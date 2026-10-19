@@ -9,7 +9,8 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CLAUDE_MODELI, claudeProvayderi, kalitniAjrat, sirsiz } from '../src/llm-claude';
-import { erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir } from '../src/llm';
+import { aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir } from '../src/llm';
+import { AI_YOZ_SXEMA } from '../src/ai-suhbat';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Headers }
 
@@ -85,6 +86,20 @@ describe('Claude provayderi', () => {
     expect(t.output_config.format.type).toBe('json_schema');
     expect(t.output_config.format.schema.required).toEqual(['nom_uz', 'nom_ru', 'qisqa_uz', 'qisqa_ru', 'tavsif_uz', 'tavsif_ru']);
     expect(t.output_config.format.schema.additionalProperties).toBe(false);
+  });
+
+  it('AI suhbat — JSON sxema bilan, lekin effort low (chat tez boʻlsin; medium faqat kartochkada)', async () => {
+    const y: Yozuv[] = [];
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json: MATN('{"oldin":"","izoh":"","savol":"Qaysi soha?"}') }], y) });
+    const r = await aiYozBer({ kalit: null, provayder }, {
+      mijoz: null, tanlov: false, qabul: [], rad: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
+      keyingi: null, keyingiMatn: 'Kutamiz', holat: '-', tarix: '', til: 'uz', tuzat: null,
+    });
+    expect(r).toEqual({ oldin: '', izoh: '', savol: 'Qaysi soha?' });
+    const t = y[0]!.tana as { output_config: { effort: string; format: { type: string; schema: unknown } }; max_tokens: number };
+    expect(t.output_config.effort).toBe('low');
+    expect(t.output_config.format).toEqual({ type: 'json_schema', schema: AI_YOZ_SXEMA });
+    expect(t.max_tokens).toBe(8_000);
   });
 
   it('rad etildi (zaxira modeli ham) yoki max_tokens da kesildi — null: chala javob chiqmaydi', async () => {
