@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { bilimJavobi, mijozHolati, suhbatTarixi, UZUM_BILIMI, yordamchiBilimi, type YolHolati } from '@selleros/shared';
+import { bilimJavobi, mijozHolati, SAVDO_SOHALARI, SOHA_MISOLLARI, suhbatTarixi, UZUM_BILIMI, yordamchiBilimi, type YolHolati } from '@selleros/shared';
 
 describe('Uzum bilimi', () => {
   it('har fakt manbasi bilan; "kafolat" yoʻq (darvoza uni taqiqlaydi)', () => {
@@ -139,3 +139,25 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
     expect(bilimJavobi('80 mln yoki 100 mln, qaysi biri yaxshi?', 'byudjet', H)).toBeNull();
   });
 });
+
+describe('soha tarkibi (nazoratchi sinovi, 2026-10-19: «gozallik va parvarish qanday tovarlar»)', () => {
+  it('har sohaga misollar bor; AI bilimida hammasi bor', () => {
+    expect(Object.keys(SOHA_MISOLLARI).sort()).toEqual(SAVDO_SOHALARI.map((s) => s.id).sort());
+    const b = yordamchiBilimi('salom');
+    expect(b).toMatch(/Savdo sohalari/);
+    for (const s of SAVDO_SOHALARI) expect(b, s.id).toContain(`«${s.nom}» sohasiga, masalan:`);
+  });
+
+  it('savolga bazadan aniq javob — sohaga nimalar kiradi', () => {
+    const g = bilimJavobi('gozallik va parvarish qanday tovarlar', 'qiziqish');
+    expect(g).toMatch(/^«Goʻzallik va parvarish» sohasiga, masalan: atirlar va parfyumlangan suv/);
+    expect(g).toMatch(/2-qadamda shu turdagi yoʻnalishlar/);
+    expect(bilimJavobi('elektronikaga nimalar kiradi', 'byudjet')).toMatch(/«Elektronika» sohasiga, masalan: smartfonlar/);
+    expect(bilimJavobi('maishiy texnika qanday tovarlar', 'qiziqish')).toMatch(/changyutgichlar/);
+  });
+
+  it('soha aytilmasa — bu mavzu emas («qanday tovar sotsam boʻladi»)', () => {
+    expect(bilimJavobi('qanday tovar sotsam boʻladi', 'qiziqish') ?? '').not.toMatch(/sohasiga, masalan|Bu sohani tanlasangiz/);
+  });
+});
+

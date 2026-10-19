@@ -14,6 +14,7 @@
  */
 
 import { LUGAT, MASLAHAT } from './bilim.js';
+import { gapdagiSohalar, sohaTarkibi } from './soha.js';
 import type { Yonalish } from './qadamlar.js';
 import type { YolHolati } from './ssenariy.js';
 import { UZUM_BILIMI } from './uzum-bilim.js';
@@ -173,9 +174,21 @@ function tilgaOlingan(t: string, h: YolHolati | null): Yonalish[] {
  * Bilimdan javob (oʻzbekcha) yoki `null` — mos mavzu topilmadi. Ekrandagi
  * yoʻnalish tilga olinsa — uning kartasidagi maʼlumot (solishtirish uchun).
  */
+/**
+ * Soha tarkibi soʻralyapti: «gozallik va parvarish qanday tovarlar», «elektronikaga nimalar kiradi»
+ * (nazoratchi sinovi, 2026-10-19). Gapda soha yoki tovar soʻzi ham boʻlishi kerak (`gapdagiSohalar`).
+ */
+const SOHA_TARKIBI = /qanday tovar|qanaqa tovar|qaysi tovarlar|nima(lar)? kiradi|ichida nima|nimalar bor|nima(lar)? sotiladi|какие товары|что входит/u;
+
 export function bilimJavobi(matn: string, savolId: string, h: YolHolati | null = null): string | null {
   const t = norm(matn);
   if (!t) return null;
+  if (SOHA_TARKIBI.test(t)) {
+    const sohalar = gapdagiSohalar(t);
+    if (sohalar.length) {
+      return `${sohalar.map((id) => sohaTarkibi(id)).join(' ')} Bu sohani tanlasangiz, 2-qadamda shu turdagi yoʻnalishlar imkoniyat bahosi bilan chiqadi.`;
+    }
+  }
   // `miqdor:123` kabi idlar — oldingi qismi boʻyicha.
   const id = savolId.split(':')[0] ?? savolId;
   const birinchi = MAVZULAR
