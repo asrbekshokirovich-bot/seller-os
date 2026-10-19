@@ -335,3 +335,45 @@ describe('suhbat: yozilgan javobga munosabat', () => {
     expect(r.keyingi.savol.id).toBe('uzum_dokoni');
   });
 });
+
+describe('soʻroq soʻzi gap ichida — savol (nazoratchi sinovi, 2026-10-19)', () => {
+  it('qiziqishga «gozallik va parvarish qanday tovarlar» — javob deb OLINMAYDI: savolga javob, savol oʻsha', async () => {
+    const b = soxtaBaza({ javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', uzum_dokoni: 'oldin ayollar kosmetikasi sotganman' }, natijalar: {} });
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'qiziqish', matn: 'gozallik va parvarish qanday tovarlar' });
+    expect(r.xato).toBeUndefined();
+    expect(b.holat().javoblar['qiziqish']).toBeUndefined();
+    expect(r.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
+    expect(r.xabarlar[1]!.javob).toMatchObject({ erkin: true });
+    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
+    expect(r.keyingi.savol.id).toBe('qiziqish');
+    // Oldindan belgilangan soha joyida qoladi.
+    expect(r.keyingi.savol.tanlangan).toEqual(['gozallik']);
+  });
+
+  it('«komissiya qancha», «nechta olsam» — savol; «bir necha marta kiyim sotganman» — javob', async () => {
+    for (const matn of ['uzumda komissiya qancha', 'birinchi partiyaga nechta olsam', 'kosmetika nima degani']) {
+      const b = soxtaBaza(TAJRIBA);
+      await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn });
+      expect(b.holat().javoblar['uzum_dokoni'], matn).toBeUndefined();
+    }
+    const b = soxtaBaza(TAJRIBA);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'bir necha marta kiyim sotganman' });
+    expect(b.holat().javoblar['uzum_dokoni']).toBe('bir necha marta kiyim sotganman');
+    // Savol yoʻq — munosabatda «savolingizga…» qismi ham yoʻq.
+    expect(r.xabarlar[1]!.matn).toBe('Tushunarli — savdo tajribangiz bor ekan, bu katta yordam beradi.');
+  });
+
+  it('«nimadir», «kimdir» — soʻroq emas; tajriba + gap ichidagi savol — javob ham, savol ham', async () => {
+    const b = soxtaBaza(TAJRIBA);
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'nimadir sotganman bozorda' });
+    expect(b.holat().javoblar['uzum_dokoni']).toBe('nimadir sotganman bozorda');
+    // Tajriba gapi yoʻq joyda ham: «nimadir» — soʻroq emas, qiziqish javobi qabul qilinadi.
+    const bq = soxtaBaza(QIZIQISH);
+    await suhbatTurn(bogliq(bq), 'tok', { savolId: 'qiziqish', matn: 'kosmetika va yana nimadir' });
+    expect(bq.holat().javoblar['qiziqish']).toEqual(['gozallik']);
+    const b2 = soxtaBaza(TAJRIBA);
+    const r = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'uzum_dokoni', matn: 'kiyim sotganman, uzumda komissiya qancha' });
+    expect(b2.holat().javoblar['uzum_dokoni']).toBe('kiyim sotganman, uzumda komissiya qancha');
+    expect(r.xabarlar[1]!.javob).toMatchObject({ erkin: true, munosabat: true });
+  });
+});

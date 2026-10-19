@@ -664,8 +664,21 @@ function savolmi(t: string, savolId: string | null = null): boolean {
   if (savolId !== null && SHAXSIY_SAVOLLAR.has(savolId)) return false;
   if (/[?？]/u.test(s)) return true;
   if (/maslahat|nima deysiz|nima qilay|nima qilsam|nima qilish kerak|qaysi biri|qaysi birini|qanday qilib|tushunmadim|tushunmayapman|tushuntir|nima degani|nimani anglatadi|aytib bering|посовет|подскаж|что лучше|не понял|не понимаю|объясни/u.test(s)) return true;
+  if (SOROQ_ICHIDA.test(s.replace(SOROQ_EMAS, ' '))) return true;
   return /\p{L}{2,}(mik[ai]n|[bdgkqlmnrtyxzh']mi|dimi)(?!\p{L})|(to'g'ri|yaxshi|foydali|xavfli)mi(?!\p{L})|(^|\s)mi(?!\p{L})/u.test(s);
 }
+
+/**
+ * Soʻroq soʻzi gapning ICHIDA ham — «?» siz yozilgan savol (nazoratchi sinovi,
+ * 2026-10-19): qiziqish savoliga «gozallik va parvarish qanday tovarlar» deb
+ * yozdi — chat uni javob deb oldi («Goʻzallik va parvarish» belgilandi) va
+ * savolga javob bermay byudjet savoliga oʻtib ketdi. Ilgari soʻroq soʻzi faqat
+ * gap BOSHIDA tanilardi. Butun soʻz sifatida: «nimadir», «kimdir», «qachondir» —
+ * soʻroq emas.
+ */
+const SOROQ_ICHIDA = /(^|[^\p{L}'])(nima|nimaga|nimani|nimalar|nega|qanday|qanaqa|qancha|qachon|qayer(?:da|ga|dan)?|qaysi|kim|kimga|nechta|necha|что|как|почему|зачем|сколько|когда|где|какой|какая|какие|каких)(?![\p{L}'-])/u;
+/** Soʻroq soʻzli, lekin savol boʻlmagan iboralar: «bir necha marta», «potomu chto», «chto-to». */
+const SOROQ_EMAS = /bir necha|nima bo'lsa ham|qancha bo'lsa ham|потому что|так как|что-то|как-то|когда-то|где-то|кто-то/gu;
 
 /**
  * Yozilgan matn — variant nomi yoki uning BUTUN soʻzlar bilan boshi ("ha" →

@@ -224,9 +224,12 @@ describe('erkin xabar — tekshiruv tuzatishlari (2026-10-05)', () => {
   });
 
   it('F25: javob oʻtmasa VA tayyor javob bor — avval sabab, keyin tayyor javob; boshqa mavzu tarifga burilmaydi', async () => {
-    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'obuna qancha turadi' });
+    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'obuna narxi' });
     const m = r.xabarlar[1]!.matn;
     expect(m).toMatch(/^Summani yozing — masalan: 30 mln yoki 3000 \$\. 1–5-qadamlar/);
+    // 2026-10-19: «obuna qancha turadi» — «?» siz ham SAVOL (soʻroq soʻzi gap ichida): sababsiz, darrov tayyor javob.
+    const q = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'obuna qancha turadi' });
+    expect(q.xabarlar[1]!.matn).toMatch(/^1–5-qadamlar/);
     const s = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'soliq toʻlovi qachon?' });
     expect(s.xabarlar[1]!.matn).not.toMatch(/obuna: 149 000/);
   });
