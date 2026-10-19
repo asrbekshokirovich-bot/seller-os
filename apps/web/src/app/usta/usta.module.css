@@ -485,6 +485,11 @@
   font-weight: 500;
 }
 
+/* Yuborilgan, javobi kutilayotgan gap — server javobi kelguncha biroz xira. */
+.yuborilmoqda {
+  opacity: 0.7;
+}
+
 /* Kod xulosasi — karta chizilmaydigan natija (ochiq ishlar va h.k.). */
 .xulosa {
   display: flex;

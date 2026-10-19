@@ -356,6 +356,8 @@ export async function suhbatTurn(
   let navbat = aiNavbati(holat);
   // Navbatdan olingan javoblar — AI yozolmasa kod jumlasi ularni aytadi.
   const navbatdan: string[] = [];
+  // Shu gapda keyingi savollarga aytilgan javoblar — AI «eslab qoldim» desin (jonli sinov: «keyin soʻrayman» dedi).
+  let eslab: AiJavob[] = [];
 
   // ---- 1b. kutilayotgan ishni tekshirish (`tekshir`)
   if (kirish.tekshir === true) {
@@ -391,7 +393,14 @@ export async function suhbatTurn(
     // yoʻl holati oʻzgarmaydi. Eskirgan savolId — avvalgidek navbat xatosi.
     const yozgan = kirish.javob === undefined && typeof kirish.matn === 'string' && kirish.matn.trim()
       ? kirish.matn.trim() : null;
-    if (yozgan !== null) ak.til = yozuvi(yozgan);
+    // Javob tili — yozgan gapidan. Ism va telefondan emas (jonli sinov, 2026-10-19: «Синов Кирилл»
+    // — kirillda, lekin oʻzbekcha harfsiz: rus deb olindi va oʻzbekka ruscha javob ketdi).
+    if (yozgan !== null && !SHAXSIY_SAVOLLAR.has(k0.savol.id)) ak.til = yozuvi(yozgan);
+    // Joriy savol jurnalda yoʻq boʻlsa (birinchi tashrif: salomlashish `keyingi` dan chiziladi) —
+    // avval uning oʻzi yoziladi: aks holda birinchi javobdan keyin salomlashish chatdan yoʻqolardi.
+    if (!songgiSuhbat(o.xabarlar ?? []).some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id)) {
+      yangi.push({ rol: 'menejer', matn: k0.savol.matn, savolId: k0.savol.id });
+    }
     let aiOldi = false;
     // ---- 2a. AI SUHBAT: yozilgan gapni AI tushunadi. Tugma, shaxsiy savol (ism va telefon AI ga
     // ketmaydi) va variant nomining oʻzi («ha», «yoʻq») — AI siz, darhol.
@@ -412,16 +421,16 @@ export async function suhbatTurn(
         holat = qiziqishTaklifi(holat, t.taklif_qiziqish);
         const j0 = t.javoblar.find((x) => x.savol_id === k0.savol.id);
         // Keyingi savollarga javoblar — navbatga; shu gapda yangisi bor boʻlsa — eskisining oʻrniga.
-        navbat = [
-          ...navbat.filter((x) => !t.javoblar.some((y) => y.savol_id === x.savol_id)),
-          ...t.javoblar.filter((x) => x.savol_id !== k0.savol.id),
-        ];
+        eslab = t.javoblar.filter((x) => x.savol_id !== k0.savol.id);
+        navbat = [...navbat.filter((x) => !t.javoblar.some((y) => y.savol_id === x.savol_id)), ...eslab];
         const q0 = j0 ? aiQiymat(k0.savol, j0) : undefined;
         const r0 = q0 === undefined ? null : javobniQabulQil(holat, k0.savol.id, q0, dz);
         if (r0 === null || r0.xato) {
           // Javob yoʻq (savol, salom, tushunarsiz gap) yoki qabul qilinmadi — AI javob beradi, savol oʻsha.
-          return aiErkinXabar(d, token, aiNavbatYoz(holat, navbat), k0, matn,
-            { savolBor: t.savol_bor, sabab: r0?.xato ?? null, qiymat: q0 }, o.xabarlar ?? [], qoldi);
+          const h1 = aiNavbatYoz(holat, navbat);
+          return aiErkinXabar(d, token, h1, k0, matn,
+            { savolBor: t.savol_bor, sabab: r0?.xato ?? null, qiymat: q0, eslab: eslabGaplari(h1, eslab, aiNavbati(h1)) },
+            o.xabarlar ?? [], qoldi);
         }
         holat = r0.holat;
         profil = r0.profil;
@@ -578,7 +587,7 @@ export async function suhbatTurn(
       }),
       keyingi: k.tur === 'savol' ? k.savol : null, keyingiMatn: k.tur === 'savol' ? null : k.matn,
       holat: mijozHolati(holat, joriyQadam(holat)), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
-      til: ak.til, tuzat: null,
+      eslab: eslabGaplari(holat, eslab, navbat), til: ak.til, tuzat: null,
     }, kodlar.flatMap((i) => natijaSonlari(yangi[i]!.javob)), qoldi);
     if (y) {
       aiXabarlariniQoy(yangi, y, ak, kodlar, k);
@@ -1185,6 +1194,22 @@ function radGapi(s: SuhbatSavoli, q: unknown, sabab: string): string {
   return `«${qisqaSavol(s.matn, s.id)}» — mijozdan «${javobMatni(s.variantlar, q)}» tushunildi, lekin qabul qilinmadi: ${sabab}`;
 }
 
+/**
+ * Shu gapda aytilgan, navbatda qolgan javoblar — AI uchun: «savol» → javob. Navbatdan shu
+ * turnning oʻzida olinganlari (qabul) kirmaydi.
+ */
+function eslabGaplari(h: YolHolati, eslab: readonly AiJavob[], navbat: readonly AiJavob[]): string[] {
+  const savollar = kelgusiTanishuvSavollari(h);
+  return eslab
+    .filter((x) => navbat.some((y) => y.savol_id === x.savol_id && y.qiymatlar.join() === x.qiymatlar.join()))
+    .flatMap((x) => {
+      const s = savollar.find((y) => y.id === x.savol_id);
+      if (!s) return [];
+      const javob = x.otkazish ? 'oʻtkazib yuboradi' : javobMatni(s.variantlar, s.turi === 'kopTanlov' ? x.qiymatlar : x.qiymatlar[0]);
+      return [`«${qisqaSavol(s.matn, s.id)}» → ${javob}`];
+    });
+}
+
 /** AI tushungan, navbati kelmagan javoblar — holatda (`ai_navbat`). */
 function aiNavbati(h: YolHolati): AiJavob[] {
   const n = h.javoblar['ai_navbat'];
@@ -1280,7 +1305,7 @@ function aiXabarlariniQoy(yangi: SuhbatXabari[], y: AiYozuv, ak: AiKirish, kodla
  */
 async function aiErkinXabar(
   d: SuhbatBogliqliklari, token: string, holat: YolHolati, k0: JoriySavol, matn: string,
-  t: { savolBor: boolean; sabab: string | null; qiymat: unknown },
+  t: { savolBor: boolean; sabab: string | null; qiymat: unknown; eslab: string[] },
   xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>, qoldi: () => number,
 ): Promise<SuhbatJavobi> {
   // Taklif qiziqish savolining belgilanganini oʻzgartirgan boʻlishi mumkin — savol yangi holatdan.
@@ -1294,7 +1319,7 @@ async function aiErkinXabar(
     mijoz: matn, tanlov: false, qabul: [], rad: t.sabab ? [radGapi(k0.savol, t.qiymat, t.sabab)] : [],
     // Javob ham, rad ham boʻlmasa — mijoz nimadir soʻradi yoki aytdi: unga javob kerak.
     savolBor: t.savolBor || t.sabab === null, bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor: baza?.matn ?? null,
-    natijalar: [], keyingi: k1.savol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
+    natijalar: [], eslab: t.eslab, keyingi: k1.savol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
     tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), tuzat: null,
   }, [], qoldi) : null;
   if (!y) return erkinXabar(llmsiz(d), token, holat, k0, matn, t.sabab, xabarlar);

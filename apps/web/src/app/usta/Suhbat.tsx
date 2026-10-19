@@ -114,6 +114,12 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
   const [matn, setMatn] = useState('');
   const [tanlangan, setTanlangan] = useState<Array<string | number>>([]);
+  /**
+   * Yuborilgan gap — darhol chatda (2026-10-19): AI javobi 10–20 s kelishi mumkin, shu orada
+   * mijoz oʻz xabarini koʻrib tursin. Javob kelgach oʻrnini serverdagi xabar oladi; xato boʻlsa —
+   * yoʻqoladi, yozilgan matn maydonga qaytadi.
+   */
+  const [yuborilgan, setYuborilgan] = useState<string | null>(null);
 
   const [mavzu, mavzuniTanla] = useMavzu();
   const [til, tilniTanla] = useTil(boshTil);
@@ -280,9 +286,11 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    * (boshlangʻich savol) va `qadam: 1` qaytaradi — ilgari mijoz ularni
    * qoʻllab, 8-qadamdagi odamni 1-qadamga otib yuborardi (audit, 2026-10-05).
    */
-  async function yubor(tana: Record<string, unknown>, jim = false, qoralamaQolsin = false): Promise<void> {
+  async function yubor(tana: Record<string, unknown>, jim = false, qoralamaQolsin = false, korinish: string | null = null): Promise<void> {
     const mening = avlod.current;
     if (!jim) { bandQil(true); setXato(null); }
+    if (!jim && korinish) setYuborilgan(korinish);
+    let qabulQilindi = false;
     try {
       let r: Response;
       try {
@@ -336,8 +344,17 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         javobKetdi: Object.prototype.hasOwnProperty.call(tana, 'javob'),
         matnKetdi: typeof tana.matn === 'string' && !qoralamaQolsin,
       });
+      qabulQilindi = true;
     } finally {
       if (!jim) bandQil(false);
+      if (korinish) {
+        setYuborilgan(null);
+        // Qabul qilinmadi (tarmoq, server xatosi) — yozgani yoʻqolmasin: maydonga qaytadi.
+        if (!qabulQilindi && typeof tana.matn === 'string' && !qoralamaQolsin) {
+          const t = tana.matn;
+          setMatn((m) => m || t);
+        }
+      }
     }
   }
 
@@ -359,12 +376,23 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     }
   }
 
-  const javobBer = (savolId: string, javob: unknown) => (savolId === 'obuna' ? void obunaTugmasi(javob) : void yubor({ savolId, javob }));
+  /** Bosilgan tugma nomi — darhol chatda koʻrinadi (`yuborilgan`); topilmasa — koʻrsatilmaydi. */
+  const tugmaNomi = (javob: unknown): string | null => {
+    const v = keyingi?.tur === 'savol' ? keyingi.savol.variantlar : [];
+    const nom = (x: unknown) => v.find((y) => String(y.qiymat) === String(x))?.nom ?? null;
+    if (!Array.isArray(javob)) return nom(javob);
+    const n = javob.map(nom).filter((x): x is string => x !== null);
+    return n.length ? n.join(', ') : null;
+  };
+  const javobBer = (savolId: string, javob: unknown) => (savolId === 'obuna'
+    ? void obunaTugmasi(javob)
+    : void yubor({ savolId, javob }, false, false, tugmaNomi(javob)));
   // Yozilgan matn: server javob sifatida oʻqiydi ("10 mln" ham) yoki erkin xabar
   // deb menejer javob beradi ("salom", "bu nima?") — chatda ikkalasi ham qoladi.
-  const matnYubor = (savolId: string, t: string) => void yubor({ savolId, matn: t });
+  // Maydon darhol boʻshaydi, gap chatda turadi; xato boʻlsa matn maydonga qaytadi.
+  const matnYubor = (savolId: string, t: string) => { setMatn(''); void yubor({ savolId, matn: t }, false, false, t); };
   // Tayyor savol (bosiladi): yozilgan savol kabi ketadi, lekin pastdagi qoralama oʻchmaydi.
-  const tezSoroq = (savolId: string, t: string) => void yubor({ savolId, matn: t }, false, true);
+  const tezSoroq = (savolId: string, t: string) => void yubor({ savolId, matn: t }, false, true, t);
 
   // Eng soʻnggi `yubor` — taymer va effektlar eski yopilmani chaqirmasin.
   const yuborRef = useRef(yubor);
@@ -659,6 +687,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
             )}
             {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={tezOrada.matn} /></div>}
             {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
+            {yuborilgan !== null && <div className={`${u.pufak} ${u.men} ${u.yuborilmoqda}`}>{yuborilgan}</div>}
 
             {band && (
               <div className={u.yozmoqda} role="status">

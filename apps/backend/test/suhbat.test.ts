@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boshlangichHolat, deklaratsiyaQadamlari, eskiSavolsiz, hisobotFaktlari, oyHisobi, suhbatBoshdan, suhbatOqi, suhbatTurn,
+  boshlangichHolat, deklaratsiyaQadamlari, eskiSavolsiz, hisobotFaktlari, keyingi, oyHisobi, suhbatBoshdan, suhbatOqi, suhbatTurn,
   type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
@@ -106,13 +106,21 @@ const KURS_N = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', s
 /** Tanishuv byudjet savoligacha yetgan: ism, telefon, tajriba, qiziqish («Bilmayman»), kurs. */
 const BYUDJETGACHA: YolHolati = { javoblar: { ...TANISH, uzum_dokoni: 'yoq', qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS_N } };
 const TELEFON_SAVOLI = 'Aziz, telefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.';
+/** Birinchi savol — salomlashish (yangi sessiyada jurnalda yoʻq, birinchi javob bilan yoziladi). */
+const SALOM_K = keyingi(boshlangichHolat());
+const SALOM = SALOM_K.tur === 'savol' ? SALOM_K.savol.matn : '';
 const TAJRIBA_SAVOLI = 'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.';
 /** Telefon savoli turgan holat — javobidan keyin tajriba savoli (LLM odamlashtiradi). */
 const TELEFONGACHA: YolHolati = { javoblar: { ism: 'Aziz Karimov' }, natijalar: {} };
 
-/** Xotiradagi soxta baza — so_suhbat_* RPC lari. */
+/**
+ * Xotiradagi soxta baza — so_suhbat_* RPC lari. Yoʻl oʻrtasidan boshlansa — jurnalda joriy
+ * savol bor (uni oldingi turn yozgan, haqiqiy bazadagidek). Yangi sessiyada jurnal boʻsh:
+ * birinchi savol sahifada `keyingi` dan chiziladi, birinchi javob bilan jurnalga tushadi.
+ */
 function soxtaBaza(boshlangich: YolHolati | null = null) {
-  const jurnal: unknown[] = [];
+  const k = boshlangich ? keyingi(boshlangich) : null;
+  const jurnal: unknown[] = k?.tur === 'savol' ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id }] : [];
   let holat: YolHolati | null = boshlangich;
   let profil: Record<string, unknown> = {};
   const rpc = async <T>(nom: string, arg: unknown): Promise<T | null> => {
@@ -213,7 +221,8 @@ describe('suhbatTurn', () => {
     const d = bogliq(b);
     const r1 = await suhbatTurn(d, 'tok', { savolId: 'ism', matn: 'mening ismim aziz karimov' });
     expect(r1.xato).toBeUndefined();
-    expect(r1.xabarlar.map((x) => [x.rol, x.matn])).toEqual([['obunachi', 'Aziz Karimov'], ['menejer', TELEFON_SAVOLI]]);
+    // Birinchi savol (salomlashish) jurnalda yoʻq edi — birinchi javob bilan yoziladi: chatdan yoʻqolmaydi (2026-10-19).
+    expect(r1.xabarlar.map((x) => [x.rol, x.matn])).toEqual([['menejer', SALOM], ['obunachi', 'Aziz Karimov'], ['menejer', TELEFON_SAVOLI]]);
     if (r1.keyingi.tur !== 'savol') throw new Error();
     expect(r1.keyingi.savol.id).toBe('telefon');
 
@@ -247,7 +256,8 @@ describe('suhbatTurn', () => {
     const b = soxtaBaza();
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Aziz Karimov, 90 123 45 67' });
     expect(r.xato).toBeUndefined();
-    expect(r.xabarlar[0]).toMatchObject({ rol: 'obunachi', matn: 'Aziz Karimov, +998 90 123 45 67', savolId: 'ism', javob: 'Aziz Karimov' });
+    expect(r.xabarlar[0]).toMatchObject({ rol: 'menejer', matn: SALOM, savolId: 'ism' });
+    expect(r.xabarlar[1]).toMatchObject({ rol: 'obunachi', matn: 'Aziz Karimov, +998 90 123 45 67', savolId: 'ism', javob: 'Aziz Karimov' });
     if (r.keyingi.tur !== 'savol') throw new Error();
     expect(r.keyingi.savol.id).toBe('uzum_dokoni');
     expect(b.profil()).toEqual({ fullName: 'Aziz Karimov', phone: '+998901234567' });
@@ -255,6 +265,7 @@ describe('suhbatTurn', () => {
     const b2 = soxtaBaza();
     const r2 = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'ism', matn: '+998 90 123 45 67' });
     expect(r2.xabarlar.map((x) => [x.rol, x.matn])).toEqual([
+      ['menejer', SALOM],
       ['obunachi', '+998 90 123 45 67'], ['menejer', expect.stringMatching(/^Rahmat, raqamingizni yozib oldim\. Endi ismingiz/)],
     ]);
     expect(b2.holat()!.javoblar).toEqual({ telefon: '+998901234567' });
@@ -389,7 +400,7 @@ describe('suhbatTurn', () => {
     const yuborilgan: string[] = [];
     const d = bogliq(b, async (m) => { yuborilgan.push(m); return `Yaxshi! ${m}`; });
     const r = await suhbatTurn(d, 'tok', { savolId: 'ism', javob: 'Aziz Karimov' });
-    expect(r.xabarlar[1]!.matn).toBe(TELEFON_SAVOLI);
+    expect(r.xabarlar[2]!.matn).toBe(TELEFON_SAVOLI);
     expect(yuborilgan).toEqual([]);
   });
 
@@ -571,14 +582,16 @@ describe('suhbatTurn', () => {
     expect(t23.qadam).toBe(11);
     // Har turnda bitta menejer gapi: 7 javob + (1688 tekshir, tanlov, shahar, raqam, boshlaymiz, shakl, bank, kabinet)
     // + (yuk_keldi, yuk_mos, studiya tekshir, studiya_tayyor, kartochka, qadoq, yetkazish, taymslot, topshirildi)
-    // + (havola, signal, oy hisoboti, hisobot oyi, sotuv summasi, komissiya, deklaratsiya, yangi oy).
+    // + (havola, signal, oy hisoboti, hisobot oyi, sotuv summasi, komissiya, deklaratsiya, yangi oy)
+    // + birinchi savol (salomlashish) — birinchi javob bilan jurnalga tushadi (2026-10-19).
     const menejer = b.jurnal.filter((x) => (x as { rol: string }).rol === 'menejer');
-    expect(menejer.length).toBe(qadamlar.length + 25);
+    expect(menejer.length).toBe(qadamlar.length + 26);
   });
 
   it('tekshir: studiya qidiruvi hali tugamagan — xabar yoʻq, holat 9-qadam kutishida qoladi', async () => {
     const b = soxtaBaza({ javoblar: { yuk_keldi: 'keldi', yuk_mos: 'mos' },
       natijalar: { qabul: QABUL_N, qabul_yakun: QABUL_YAKUN_N, studiya: STUDIYA_KUTISH_N } });
+    const jurnalOldin = b.jurnal.length;
     const d = bogliq(b);
     d.kod.studiya = async () => STUDIYA_KUTISH_N;
     let chaqirildi = 0;
@@ -588,7 +601,7 @@ describe('suhbatTurn', () => {
     expect(r.xabarlar).toEqual([]);
     expect((b.holat()!.natijalar.studiya as { kutilmoqda: unknown }).kutilmoqda).toEqual(STUDIYA_KUTISH_N.kutilmoqda);
     expect(chaqirildi).toBe(0);
-    expect(b.jurnal.length).toBe(0);
+    expect(b.jurnal.length).toBe(jurnalOldin);
   });
 
   it('tekshir: yurish hali tugamagan — xabar yoʻq, jurnal oʻzgarmaydi, holat kutishda qoladi', async () => {
@@ -628,23 +641,24 @@ describe('suhbatTurn', () => {
   it('boshdan — YANGI suhbat (nazoratchi, 2026-10-12): holat tozalanadi, jurnal bazada qoladi, chatga faqat yangisi', async () => {
     const b = soxtaBaza();
     await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', javob: 'Aziz Karimov' });
-    expect(b.jurnal.length).toBe(2);
+    // Salomlashish, javob va telefon savoli.
+    expect(b.jurnal.length).toBe(3);
     const r = await suhbatBoshdan(bogliq(b), 'tok');
     expect(r.xato).toBeUndefined();
     expect(r.yozildi).toBe(true);
     expect(b.holat()).toEqual(boshlangichHolat());
-    // Eski 2 xabar bazada QOLDI, ustiga belgi va birinchi savol.
-    expect(b.jurnal.length).toBe(4);
-    expect(b.jurnal[2]).toMatchObject({ rol: 'kod', savolId: 'boshdan' });
-    expect(b.jurnal[3]).toMatchObject({ rol: 'menejer', savolId: 'ism' });
+    // Eski 3 xabar bazada QOLDI, ustiga belgi va birinchi savol.
+    expect(b.jurnal.length).toBe(5);
+    expect(b.jurnal[3]).toMatchObject({ rol: 'kod', savolId: 'boshdan' });
+    expect(b.jurnal[4]).toMatchObject({ rol: 'menejer', savolId: 'ism' });
     // Chatga belgi ham, eski yoʻl ham chiqmaydi — faqat yangi savol.
-    expect(r.xabarlar).toEqual([b.jurnal[3]]);
+    expect(r.xabarlar).toEqual([b.jurnal[4]]);
     expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'ism' } });
     expect(r.qadam).toBe(1);
     // Sahifa yangilansa ham — eski tarix koʻrinmaydi.
     const o = await suhbatOqi(bogliq(b), 'tok');
     if (!('tarix' in o)) throw new Error(o.xato);
-    expect(o.tarix).toEqual([b.jurnal[3]]);
+    expect(o.tarix).toEqual([b.jurnal[4]]);
   });
 
   it('boshdan: shu brauzerda tanishgan boʻlsa — ism va telefon QAYTA SOʻRALMAYDI, ism bilan kutib oladi (2026-10-19)', async () => {

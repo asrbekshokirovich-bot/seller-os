@@ -92,7 +92,7 @@ describe('Claude provayderi', () => {
     const y: Yozuv[] = [];
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json: MATN('{"oldin":"","izoh":"","savol":"Qaysi soha?"}') }], y) });
     const r = await aiYozBer({ kalit: null, provayder }, {
-      mijoz: null, tanlov: false, qabul: [], rad: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
+      mijoz: null, tanlov: false, qabul: [], rad: [], eslab: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
       keyingi: null, keyingiMatn: 'Kutamiz', holat: '-', tarix: '', til: 'uz', tuzat: null,
     });
     expect(r).toEqual({ oldin: '', izoh: '', savol: 'Qaysi soha?' });

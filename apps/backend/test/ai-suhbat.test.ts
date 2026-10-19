@@ -19,10 +19,11 @@ import {
   type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv, type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
-function soxtaBaza(boshlangich: YolHolati) {
+/** `bosh` — jurnalda joriy savol bor (yoʻq boʻlsa — birinchi tashrif: salomlashish `keyingi` dan chiziladi). */
+function soxtaBaza(boshlangich: YolHolati, bosh = true) {
   const k = keyingi(boshlangich);
   const jurnal: Array<{ rol: string; matn: string; savolId?: string; javob?: unknown }> =
-    k.tur === 'savol' ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id }] : [];
+    k.tur === 'savol' && bosh ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id }] : [];
   let holat: YolHolati = boshlangich;
   const rpc = async <T>(nom: string, arg: unknown): Promise<T | null> => {
     const a = arg as Record<string, unknown>;
@@ -139,6 +140,8 @@ describe('AI tushunadi — javobni kod qabul qiladi', () => {
     const d = bogliq(b, s.ai);
     const r1 = await suhbatTurn(d, 't', { savolId: 'uzum_dokoni', matn: 'kiyim sotganman, 70 mln bilan boshlayman' });
     expect(r1.keyingi.tur === 'savol' && r1.keyingi.savol.id).toBe('qiziqish');
+    // AI biladi: pul eslab qolindi — «keyin soʻrayman» demaydi (jonli sinov, 2026-10-19).
+    expect(s.yozlar[0]!.k.eslab).toEqual(['«Qancha pul bilan savdoni boshlamoqchisiz?» → 70 mln']);
     expect(b.holat().javoblar['byudjet']).toBeUndefined();
     expect(b.holat().javoblar['ai_navbat']).toEqual([{ savol_id: 'byudjet', qiymatlar: ['70 mln'], otkazish: false }]);
 
@@ -265,6 +268,26 @@ describe('AI yozadi — tugma bosilganda ham', () => {
     expect(r.xabarlar[r.xabarlar.length - 1]).toEqual({
       rol: 'menejer', matn: 'Tanishganimdan xursandman! Oldin savdo qilganmisiz?', savolId: 'uzum_dokoni',
     });
+  });
+
+  it('ism kirillda (oʻzbekcha harfsiz) — javob tili ism boʻyicha emas: sahifa tili (oʻzbek)', async () => {
+    const b = soxtaBaza(boshlangichHolat());
+    const s = soxtaAi([], [{ oldin: '', izoh: '', savol: 'Oldin savdo qilganmisiz?' }]);
+    await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Синов Кирилл, +998 90 000 02 03' });
+    expect(s.yozlar[0]!.k.til).toBe('uz');
+  });
+
+  it('birinchi tashrif: salomlashish jurnalga yoziladi — birinchi javobdan keyin chatdan yoʻqolmaydi', async () => {
+    const b = soxtaBaza(boshlangichHolat(), false);
+    const s = soxtaAi([], [{ oldin: '', izoh: '', savol: 'Oldin savdo qilganmisiz?' }]);
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Aziz Karimov +998901234567' });
+    const salom = keyingi(boshlangichHolat());
+    expect(r.xabarlar[0]).toEqual({ rol: 'menejer', matn: salom.tur === 'savol' ? salom.savol.matn : '', savolId: 'ism' });
+    expect(r.xabarlar[1]!.rol).toBe('obunachi');
+    // Jurnalda bor boʻlsa — ikkinchi marta yozilmaydi.
+    const b2 = soxtaBaza(boshlangichHolat());
+    const r2 = await suhbatTurn(bogliq(b2, s.ai), 't', { savolId: 'ism', matn: 'Aziz Karimov +998901234567' });
+    expect(r2.xabarlar[0]!.rol).toBe('obunachi');
   });
 
   it('faqat ism yozsa — keyingi savol telefon (unda ism bor): AI yozmaydi, kod savoli', async () => {
