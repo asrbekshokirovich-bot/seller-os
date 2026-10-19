@@ -14,6 +14,7 @@
  */
 
 import { erkinBilimi } from './erkin.ts';
+import { SAVDO_SOHALARI, sohaTarkibi } from './soha.ts';
 import { UZUM_BILIMI } from './uzum-bilim.ts';
 
 const QADAMLAR = [
@@ -84,6 +85,9 @@ const ASOS = [
   ...LUGAT.map((q) => `- ${q}`),
   'Umumiy maslahatlar (yangi sotuvchi uchun, raqamsiz):',
   ...MASLAHAT.map((q) => `- ${q}`),
+  // «Goʻzallik va parvarish qanday tovarlar?» — AI aniq sanasin (nazoratchi sinovi, 2026-10-19).
+  'Savdo sohalari (qiziqish savolidagi tugmalar; 2-qadam roʻyxati shu sohalarga boʻlinadi; misollar — kuzatuvimizdagi Uzum yoʻnalishlari):',
+  ...SAVDO_SOHALARI.map((s) => `- ${sohaTarkibi(s.id)}`),
 ].join('\n');
 
 const norm = (t: string) => String(t ?? '').normalize('NFC').toLowerCase().replace(/[ʻʼ‘’`´]/gu, "'");

@@ -43,6 +43,38 @@ export function sohaNomi(id: string): string {
   return SAVDO_SOHALARI.find((s) => s.id === id)?.nom ?? 'Boshqa';
 }
 
+/**
+ * Har sohaga nimalar kiradi — kuzatuvimizdagi Uzum yoʻnalishlaridan (`so_yonalish_nomzodlari`,
+ * 300 ta, 2026-10-19) misollar. Nazoratchi sinovi: «gozallik va parvarish qanday tovarlar»
+ * savoliga AI aniq tovar sanay olmadi — bilimda yoʻq edi. Endi AI ham, bazaviy javob ham shundan.
+ */
+export const SOHA_MISOLLARI: Readonly<Record<SohaId, string>> = {
+  kiyim: 'futbolkalar, koʻylaklar, jinsi va shimlar, sviter va kardiganlar, qishki kurtkalar, ichki kiyim va pijamalar, '
+    + 'paypoqlar, krossovka va kedalar, shlepanslar, uy shippaklari',
+  gozallik: 'atirlar va parfyumlangan suv, lab boʻyogʻi, tonal krem va upa, kiprik tushi, yuz va qoʻl kremlari, zardob va '
+    + 'niqoblar, shampun va balzamlar, dush geli va sovun, dezodorantlar, tish pastasi va choʻtkalari, soch quritgich va '
+    + 'trimmerlar, prokladkalar',
+  uy: 'idishlar toʻplami, kostryulka va tovalar, krujkalar, oshxona pichoqlari, konteyner va termoslar, sochiq va choyshab '
+    + 'toʻplamlari, kir yuvish kukuni va kapsulalari, idish yuvish vositalari, shvabra va lattalar, organayzerlar, shamlar va '
+    + 'dekor; maishiy texnika: changyutgichlar, dazmollar, elektr choynaklar, sovutgichlar, isitgichlar, havo namlagichlar',
+  bolalar: 'yumshoq oʻyinchoqlar, qoʻgʻirchoqlar, oʻyinchoq mashinalar, radioboshqaruvli oʻyinchoqlar, pazl va stol oʻyinlari, '
+    + 'oʻquv va STEM oʻyinchoqlari, aravachalar, tagliklar, emizgichlar, chaqaloq bodi va kombinezonlari',
+  elektronika: 'smartfonlar, simsiz quloqchinlar, aqlli soatlar, telefon gʻiloflari va himoya oynalari, zaryadlovchi va kabellar, '
+    + 'powerbanklar, portativ kolonkalar, noutbuk va planshetlar, sichqoncha va klaviaturalar, televizorlar, routerlar, '
+    + 'fleshka va xotira kartalari',
+  kanstovar: 'ruchka va qalamlar, daftar va bloknotlar, penallar, papkalar, stikerlar, boʻyoqlar va olmos mozaika; kitoblar: '
+    + 'badiiy adabiyot, bolalar kitoblari, psixologiya va biznes, xorijiy til oʻrganish',
+  aksessuar: 'sumka va ryukzaklar, hamyonlar, soatlar, uzuk, zirak va bilaguzuklar, marjon va zanjirlar, quyoshdan himoya '
+    + 'koʻzoynaklari, kamarlar, roʻmol va sharflar, kepkalar, soch toʻgʻnagʻichlari',
+  sport: 'futbol formasi va butsilar, sport butilka va sheykerlar (sport kiyimi — «Kiyim va poyabzal» da)',
+  avto: 'avtomobil aromatizatorlari, avtomobil kolonkalari, brelok gʻiloflari va boshqa avto aksessuarlari',
+};
+
+/** «Goʻzallik va parvarish» sohasiga, masalan: … kiradi. */
+export function sohaTarkibi(id: SohaId): string {
+  return `«${sohaNomi(id)}» sohasiga, masalan: ${SOHA_MISOLLARI[id]} kiradi.`;
+}
+
 /** Kichik harf, apostroflar bitta shaklda ("o‘yinchoq" = "oʻyinchoq" = "o'yinchoq"). */
 export function normla(t: string): string {
   return String(t ?? '').normalize('NFC').toLowerCase()
