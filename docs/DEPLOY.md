@@ -45,6 +45,7 @@ Boshqa ixtiyoriy sozlamalar (hammasi `llm.ts` / `suhbat.ts` da izohlangan):
 | `LLM_AVVAL=1` | AI birinchi: javobi bazada bor savol ham LLM ga (bazaviy javob `tayyor` boʻlib). Pullik kalit (Claude yoki Gemini toʻlovi) bilan. |
 | `LLM_ODAMLASHTIR=1` | Kod jumlalarini ham LLM qayta aytadi (bepul limitni tez yeydi). |
 | `LLM_MUNOSABAT=0` | Mijoz oʻzi yozgan javobga AI munosabatini oʻchiradi (standart — yoqilgan; oʻchsa kod jumlasi qoladi). |
+| `AI_SUHBAT=0` | **AI suhbatni** oʻchiradi (2026-10-19, `ai-suhbat.ts`). Standart — Claude kaliti boʻlsa yoqilgan: mijoz yozganini AI tushunadi (bir gapdagi bir nechta javob ham), har xabarni AI yozadi, natijalarni tushuntiradi; 12 qadam va raqamlar — koddan. Oʻchsa — eski yoʻl (kod jumlalari + erkin/munosabat AI). `/health` → `live.aiSuhbat`. |
 
 ## Studiya (9-qadam) sirlari
 

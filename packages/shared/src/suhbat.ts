@@ -18,6 +18,17 @@
  *
  * LLM YIQILSA HECH NARSA YIQILMAYDI: kodning jumlasi ketadi.
  *
+ * AI SUHBAT (nazoratchi, 2026-10-19: "hamma xabarni AI yozsin, javobni AI
+ * tushunsin, natijani AI tushuntirsin; 12 qadam qolsin"; `ai-suhbat.ts`).
+ * `ai` berilsa: mijoz YOZGAN gapni AI tushunadi — joriy savolga va
+ * tanishuvning keyingi savollariga javoblar (navbatdagilari holatda kutib
+ * turadi), qiziqish taklifi, gapda savol bormi; qiymatni baribir
+ * `javobniQabulQil` tekshiradi. Har turnda xabarni AI yozadi: munosabat
+ * (savoliga javob), yangi natijalar izohi (kod xabari pufagida), keyingi
+ * savol oʻz soʻzi bilan; darvoza (`tekshir`) oʻtkazmasa — bir marta qayta,
+ * keyin kod qoliplari. Ism va telefon AI ga ketmaydi. Turnga vaqt —
+ * `AI_TURN_MS` (Vercel vositachisi 60 s da uziladi).
+ *
  * KUTISH (5-qadam). 1688 qidiruvi 30–90 s — bitta HTTP soʻrovga
  * sigʻmaydi. Kod harakati yurishni boshlab `kutilmoqda` qaytaradi,
  * `keyingi()` esa `kutish` beradi (kod EMAS — aks holda aylanib qolardi).
@@ -26,9 +37,9 @@
  * tugagach kod xabari + keyingi savol odatdagidek yoziladi.
  */
 
-import { type AloqaJavoblari, type Keyingi, type KodHarakati, type YolHolati, boshlangichHolat, havolalarsiz, JIM_HARAKATLAR,
-  javobniQabulQil, joriyQadam, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, usdKursi, uzumDokoniBormi, yiqilganNatija,
-  yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.js';
+import { type AloqaJavoblari, type Keyingi, type KodHarakati, type SuhbatSavoli, type YolHolati, boshlangichHolat, havolalarsiz,
+  JIM_HARAKATLAR, javobniQabulQil, joriyQadam, kelgusiTanishuvSavollari, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, usdKursi,
+  uzumDokoniBormi, yiqilganNatija, yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.js';
 import type { Darvoza } from './tarif.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
@@ -41,6 +52,10 @@ import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './ta
 import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.js';
 import { malumotNiyati, type MalumotNiyati } from './erkin-malumot.js';
 import { boyMatnmi, javobgaMunosabat, javobHamBormi } from './munosabat.js';
+import {
+  aiQiymat, natijaTavsifi, savolTavsifi, type AiJavob, type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
+} from './ai-suhbat.js';
+import { SAVDO_SOHALARI } from './soha.js';
 
 export interface SuhbatXabari {
   rol: 'obunachi' | 'menejer' | 'kod';
@@ -135,6 +150,45 @@ export interface SuhbatBogliqliklari {
    * har turnda bazadan oʻqiydi (`darvozaHolati`). Berilmasa — darvoza yoʻq, yoʻl ochiq.
    */
   darvoza?: Darvoza | null;
+  /**
+   * AI SUHBAT (nazoratchi, 2026-10-19): `tushun` — mijoz yozgan gapdan javoblar,
+   * `yoz` — mijozga xabar (`ai-suhbat.ts`). `vaqtMs` — shu chaqiruvga qolgan vaqt.
+   * `null` — ishlamadi: kod qoliplari ketadi. Berilmasa — eski yoʻl (erkin va
+   * munosabat LLM lari, kod jumlalari).
+   */
+  ai?: {
+    tushun: (k: AiTushunSorovi, vaqtMs: number) => Promise<AiTushuncha | null>;
+    yoz: (k: AiYozSorovi, vaqtMs: number) => Promise<AiYozuv | null>;
+  } | null;
+}
+
+/** AI suhbat: bitta turnga vaqt — Vercel vositachisi 60 s da uziladi (`apps/web/src/app/api/suhbat`). */
+const AI_TURN_MS = 50_000;
+/** Tushunishga eng koʻpi; qolgani — kod harakatlari va yozishga (`AI_YOZGA_QOLSIN`). */
+const AI_TUSHUN_MS = 18_000;
+const AI_YOZGA_QOLSIN = 20_000;
+/** Yozishga eng koʻpi. */
+const AI_YOZ_MS = 30_000;
+/** Shundan kam vaqt qolsa AI chaqirilmaydi — kod qoliplari. */
+const AI_KAM_MS = 6_000;
+/** AI xabarining uch qismi birga — shundan uzun boʻlsa qisqaroq yozish soʻraladi. */
+const AI_YOZ_MAX = 3_500;
+
+/**
+ * Shu turnda AI uchun: mijoz nima yubordi, nima qabul qilindi va qilinmadi.
+ * `boshi` — munosabat pufagi qayerga qoʻyiladi (mijoz xabaridan keyin, kod xabarlaridan oldin).
+ */
+interface AiKirish {
+  /** Mijoz yozgani yoki bosgan tugmasi; `null` — hech narsa (natija oʻzi keldi) yoki shaxsiy maʼlumot. */
+  mijoz: string | null;
+  tanlov: boolean;
+  qabul: string[];
+  rad: string[];
+  savolBor: boolean;
+  /** Javob berilgan savol — munosabat pufagi shunga bogʻlanadi (👍/👎). */
+  savolId: string | null;
+  boshi: number;
+  til: Yozuv;
 }
 
 /**
@@ -275,19 +329,33 @@ export async function suhbatOqi(d: Pick<SuhbatBogliqliklari, 'rpc' | 'darvoza'>,
 export async function suhbatTurn(
   d: SuhbatBogliqliklari,
   token: string,
-  kirish: { savolId?: string; javob?: unknown; matn?: string; tekshir?: boolean },
+  kirish: { savolId?: string; javob?: unknown; matn?: string; tekshir?: boolean; til?: 'uz' | 'ru' },
 ): Promise<SuhbatJavobi> {
   const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
   if (o === null) return { xato: 'baza javob bermadi', xabarlar: [], keyingi: keyingi(boshlangichHolat()), qadam: 1, yozildi: false };
   if (o.xato) return { xato: o.xato, xabarlar: [], keyingi: keyingi(boshlangichHolat()), qadam: 1, yozildi: false };
   // Obuna darvozasi har chaqiruvda bir xil (`keyingi`, `joriyQadam`, `javobniQabulQil`).
   const dz = d.darvoza;
+  // AI suhbat: turnga umumiy vaqt — AI chaqiruvlari qolgan vaqtga sigʻadi.
+  const muddat = Date.now() + AI_TURN_MS;
+  const qoldi = () => muddat - Date.now();
 
   let holat = o.holat ?? boshlangichHolat();
   const yangi: SuhbatXabari[] = [];
   let profil: Partial<ProfilJavoblari & AloqaJavoblari> | null = null;
   // Oʻzi yozgan javob — kod harakatlaridan keyin unga munosabat qoʻshiladi (obunachi xabaridan keyin).
   let yozilganJavob: { savol: JoriySavol['savol']; matn: string; savolHam: boolean; orni: number } | null = null;
+  // Shu turnda yozilgan kod xabarlari (oʻrni) — AI izohi oxirgisining pufagiga.
+  const kodlar: number[] = [];
+  const ak: AiKirish = {
+    mijoz: null, tanlov: false, qabul: [], rad: [], savolBor: false, savolId: null, boshi: 0,
+    til: kirish.til === 'ru' ? 'ru' : 'uz',
+  };
+  // AI tushungan, navbati hali kelmagan javoblar: «kiyim sotganman, 70 mln bilan boshlayman» —
+  // byudjet qiziqishdan keyin soʻraladi; oʻshanda qayta soʻralmaydi, shu javob olinadi.
+  let navbat = aiNavbati(holat);
+  // Navbatdan olingan javoblar — AI yozolmasa kod jumlasi ularni aytadi.
+  const navbatdan: string[] = [];
 
   // ---- 1b. kutilayotgan ishni tekshirish (`tekshir`)
   if (kirish.tekshir === true) {
@@ -305,6 +373,7 @@ export async function suhbatTurn(
       return { xabarlar: [], keyingi: keyingi(yangiHolat, dz), qadam: joriyQadam(yangiHolat), yozildi: true };
     }
     holat = yangiHolat;
+    kodlar.push(yangi.length);
     yangi.push({ rol: 'kod', matn: tushuntir(kutilgan, natija), savolId: kutilgan, javob: natija });
   }
 
@@ -322,54 +391,99 @@ export async function suhbatTurn(
     // yoʻl holati oʻzgarmaydi. Eskirgan savolId — avvalgidek navbat xatosi.
     const yozgan = kirish.javob === undefined && typeof kirish.matn === 'string' && kirish.matn.trim()
       ? kirish.matn.trim() : null;
-    // Gapda savol bilan birga aniq javob ham boʻlsa («maishiy texnika sotganman, endi nima
-    // sotsam boʻladi?», 2026-10-15) — javob qabul qilinadi, savolga munosabatda javob beriladi.
-    const javobHam = yozgan !== null && savolmi(yozgan, k0.savol.id) && javobHamBormi(k0.savol.id, yozgan);
-    const savolBerdi = yozgan !== null && savolmi(yozgan, k0.savol.id) && !javobHam;
-    // Tanlov savolida variant nomini yozsa ("ha", "yoʻq") — oʻsha variant.
-    // Son savolida ham tugma matnini yozsa ("60 kunlik") — oʻsha tugma: aks
-    // holda "60 kunlik" 60 dona boʻlib ketardi (tugma — 90 dona). Faqat raqam
-    // ("30") — oʻsha son, tugma emas.
-    const tugmaMatni = k0.savol.turi === 'tanlov' || (k0.savol.turi === 'son' && yozgan !== null && /\p{L}/u.test(yozgan));
-    // Oʻzbek kirillda yozsa ("ҳа", "йўқ") — tugma nomi lotinda: tushunish uchun lotinga oʻgiriladi.
-    const tanlanganVariant = yozgan !== null && !savolBerdi && tugmaMatni
-      ? variantniTop(k0.savol.variantlar, tushunishUchun(yozgan)) : undefined;
-    const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom, dz);
-    if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
-      return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null, o.xabarlar ?? []);
+    if (yozgan !== null) ak.til = yozuvi(yozgan);
+    let aiOldi = false;
+    // ---- 2a. AI SUHBAT: yozilgan gapni AI tushunadi. Tugma, shaxsiy savol (ism va telefon AI ga
+    // ketmaydi) va variant nomining oʻzi («ha», «yoʻq») — AI siz, darhol.
+    const variantOzi = yozgan !== null && k0.savol.turi === 'tanlov' && !savolmi(yozgan, k0.savol.id)
+      && variantniTop(k0.savol.variantlar, tushunishUchun(yozgan)) !== undefined;
+    const tushunVaqti = Math.min(AI_TUSHUN_MS, qoldi() - AI_YOZGA_QOLSIN);
+    if (d.ai && yozgan !== null && savolId === k0.savol.id && !SHAXSIY_SAVOLLAR.has(k0.savol.id) && !variantOzi
+      && tushunVaqti >= AI_KAM_MS) {
+      const matn = qisqartir(yozgan);
+      const t = await d.ai.tushun({
+        savollar: [k0.savol, ...kelgusiTanishuvSavollari(holat).filter((s) => s.id !== k0.savol.id)],
+        xabar: matn, holat: mijozHolati(holat, k0.savol.qadam), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
+      }, tushunVaqti).catch(() => null);
+      if (t === null) {
+        // Tushunmadi (yiqildi, vaqt tugadi) — bu turn kod bilan (pastdagi yoʻl), LLM siz: yana kutmasin.
+        d = llmsiz(d);
+      } else {
+        holat = qiziqishTaklifi(holat, t.taklif_qiziqish);
+        const j0 = t.javoblar.find((x) => x.savol_id === k0.savol.id);
+        // Keyingi savollarga javoblar — navbatga; shu gapda yangisi bor boʻlsa — eskisining oʻrniga.
+        navbat = [
+          ...navbat.filter((x) => !t.javoblar.some((y) => y.savol_id === x.savol_id)),
+          ...t.javoblar.filter((x) => x.savol_id !== k0.savol.id),
+        ];
+        const q0 = j0 ? aiQiymat(k0.savol, j0) : undefined;
+        const r0 = q0 === undefined ? null : javobniQabulQil(holat, k0.savol.id, q0, dz);
+        if (r0 === null || r0.xato) {
+          // Javob yoʻq (savol, salom, tushunarsiz gap) yoki qabul qilinmadi — AI javob beradi, savol oʻsha.
+          return aiErkinXabar(d, token, aiNavbatYoz(holat, navbat), k0, matn,
+            { savolBor: t.savol_bor, sabab: r0?.xato ?? null, qiymat: q0 }, o.xabarlar ?? [], qoldi);
+        }
+        holat = r0.holat;
+        profil = r0.profil;
+        const yozildi = javobQiymati(holat, k0.savol.id, q0);
+        yangi.push({ rol: 'obunachi', matn, savolId: k0.savol.id, javob: yozildi ?? null });
+        ak.mijoz = matn;
+        ak.savolBor = t.savol_bor;
+        ak.savolId = k0.savol.id;
+        ak.boshi = yangi.length;
+        ak.qabul.push(qabulGapi(k0.savol, yozildi, holat));
+        // AI yozolmasa — kod munosabati (3b) shu bilan.
+        yozilganJavob = { savol: k0.savol, matn, savolHam: t.savol_bor, orni: yangi.length - 1 };
+        aiOldi = true;
+      }
     }
-    if (q === null || q.xato) {
-      return { xato: q?.xato ?? 'javob qabul qilinmadi', xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false };
-    }
-    const oldin = holat;
-    holat = q.holat;
-    profil = q.profil;
-    // Ayrim javoblar yoʻlni qayta ochadi («Yangilash», «Qayta qidir», «Boshlaymiz»
-    // — yangi oy): `yoz()` ularni holatdan oʻchiradi. Chatda baribir obunachi
-    // BOSGAN narsa koʻrinsin, "oʻtkazib yuborildi" emas.
-    const yozilgan = Object.prototype.hasOwnProperty.call(holat.javoblar, savolId)
-      ? holat.javoblar[savolId]
-      : k0.savol.variantlar.find((v) => String(v.qiymat) === String(xom))?.qiymat ?? xom ?? null;
-    // Byudjetni oʻzi yozgan boʻlsa ("100 mln bor, lekin 70 mln bilan…") —
-    // chatda yozgani oʻzicha, keyin menejer qanday tushunganini aytadi
-    // ("70 000 000 soʻm", "$5 000 (≈ 63,3 mln soʻm)"). Telefon — bir xil shaklda.
-    const usdJavob = holat.javoblar['byudjet_usd'];
-    const usd = typeof usdJavob === 'number' ? usdJavob : null;
-    const byudjetSoni = savolId === 'byudjet' && typeof yozilgan === 'number';
-    // Gap yozgan (tugma nomi yoki shunchaki son emas) — gapi oʻzicha + menejer tushunganini aytadi.
-    const byudjetGapi = byudjetSoni && yozgan !== null && tanlanganVariant === undefined && !/^[\d\s.,]+$/u.test(yozgan);
-    const tugma = k0.savol.variantlar.find((v) => String(v.qiymat) === String(yozilgan));
-    // Oʻzi yozgan javob (tugma emas) — munosabat uchun (3b).
-    if (yozgan !== null && tanlanganVariant === undefined) {
-      yozilganJavob = {
-        savol: k0.savol, matn: yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan, savolHam: javobHam, orni: yangi.length,
-      };
-    }
-    // Qiziqishni oʻzi yozgan boʻlsa — pufakda yozgani; qanday tushunilgani — munosabatda.
-    const qiziqishGapi = savolId === 'qiziqish' && yozilganJavob !== null;
-    yangi.push({
-      rol: 'obunachi',
-      matn: byudjetGapi && yozgan !== null
+    if (!aiOldi) {
+      // Gapda savol bilan birga aniq javob ham boʻlsa («maishiy texnika sotganman, endi nima
+      // sotsam boʻladi?», 2026-10-15) — javob qabul qilinadi, savolga munosabatda javob beriladi.
+      const javobHam = yozgan !== null && savolmi(yozgan, k0.savol.id) && javobHamBormi(k0.savol.id, yozgan);
+      const savolBerdi = yozgan !== null && savolmi(yozgan, k0.savol.id) && !javobHam;
+      // Tanlov savolida variant nomini yozsa ("ha", "yoʻq") — oʻsha variant.
+      // Son savolida ham tugma matnini yozsa ("60 kunlik") — oʻsha tugma: aks
+      // holda "60 kunlik" 60 dona boʻlib ketardi (tugma — 90 dona). Faqat raqam
+      // ("30") — oʻsha son, tugma emas.
+      const tugmaMatni = k0.savol.turi === 'tanlov' || (k0.savol.turi === 'son' && yozgan !== null && /\p{L}/u.test(yozgan));
+      // Oʻzbek kirillda yozsa ("ҳа", "йўқ") — tugma nomi lotinda: tushunish uchun lotinga oʻgiriladi.
+      const tanlanganVariant = yozgan !== null && !savolBerdi && tugmaMatni
+        ? variantniTop(k0.savol.variantlar, tushunishUchun(yozgan)) : undefined;
+      const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom, dz);
+      if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
+        return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null, o.xabarlar ?? []);
+      }
+      if (q === null || q.xato) {
+        return { xato: q?.xato ?? 'javob qabul qilinmadi', xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false };
+      }
+      const oldin = holat;
+      holat = q.holat;
+      profil = q.profil;
+      // Ayrim javoblar yoʻlni qayta ochadi («Yangilash», «Qayta qidir», «Boshlaymiz»
+      // — yangi oy): `yoz()` ularni holatdan oʻchiradi. Chatda baribir obunachi
+      // BOSGAN narsa koʻrinsin, "oʻtkazib yuborildi" emas.
+      const yozilgan = Object.prototype.hasOwnProperty.call(holat.javoblar, savolId)
+        ? holat.javoblar[savolId]
+        : k0.savol.variantlar.find((v) => String(v.qiymat) === String(xom))?.qiymat ?? xom ?? null;
+      // Byudjetni oʻzi yozgan boʻlsa ("100 mln bor, lekin 70 mln bilan…") —
+      // chatda yozgani oʻzicha, keyin menejer qanday tushunganini aytadi
+      // ("70 000 000 soʻm", "$5 000 (≈ 63,3 mln soʻm)"). Telefon — bir xil shaklda.
+      const usdJavob = holat.javoblar['byudjet_usd'];
+      const usd = typeof usdJavob === 'number' ? usdJavob : null;
+      const byudjetSoni = savolId === 'byudjet' && typeof yozilgan === 'number';
+      // Gap yozgan (tugma nomi yoki shunchaki son emas) — gapi oʻzicha + menejer tushunganini aytadi.
+      const byudjetGapi = byudjetSoni && yozgan !== null && tanlanganVariant === undefined && !/^[\d\s.,]+$/u.test(yozgan);
+      const tugma = k0.savol.variantlar.find((v) => String(v.qiymat) === String(yozilgan));
+      // Oʻzi yozgan javob (tugma emas) — munosabat uchun (3b).
+      if (yozgan !== null && tanlanganVariant === undefined) {
+        yozilganJavob = {
+          savol: k0.savol, matn: yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan, savolHam: javobHam, orni: yangi.length,
+        };
+      }
+      // Qiziqishni oʻzi yozgan boʻlsa — pufakda yozgani; qanday tushunilgani — munosabatda.
+      const qiziqishGapi = savolId === 'qiziqish' && yozilganJavob !== null;
+      const obunachiMatn = byudjetGapi && yozgan !== null
         ? (yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan)
         // Dollar tugmasi ("$1 000") — soʻmdagisi bilan: "$1 000 (≈ 12,7 mln soʻm)".
         : byudjetSoni && (!tugma || usd !== null)
@@ -381,26 +495,61 @@ export async function suhbatTurn(
               ? ismTelefonMatni(oldin, holat)
               : qiziqishGapi && yozilganJavob
                 ? yozilganJavob.matn
-                : javobMatni(k0.savol.variantlar, yozilgan),
-      savolId,
-      javob: savolId === 'ism' ? (holat.javoblar['ism'] ?? null) : (yozilgan ?? null),
-    });
+                : javobMatni(k0.savol.variantlar, yozilgan);
+      yangi.push({
+        rol: 'obunachi',
+        matn: obunachiMatn,
+        savolId,
+        javob: savolId === 'ism' ? (holat.javoblar['ism'] ?? null) : (yozilgan ?? null),
+      });
+      // AI uchun: shaxsiy maʼlumot (ism, telefon) — koʻrsatilmaydi.
+      ak.mijoz = SHAXSIY_SAVOLLAR.has(savolId) ? null : obunachiMatn;
+      ak.tanlov = yozgan === null || tanlanganVariant !== undefined;
+      ak.savolBor = javobHam;
+      ak.savolId = savolId;
+      ak.boshi = yangi.length;
+      ak.qabul.push(qabulGapi(k0.savol, yozilgan, holat));
+    }
   }
 
-  // ---- 3. kod harakatlari, savol chiqquncha
+  // ---- 3. kod harakatlari va navbatdagi javoblar (AI oldin tushungan) — javobsiz savol chiqquncha
   let k = keyingi(holat, dz);
-  let himoya = 0;
-  while (k.tur === 'kod' && himoya++ < 5) {
-    const natija = await bajar(d, k.harakat, holat);
-    holat = natijaniYoz(holat, k.harakat, natija);
-    // Yurish endigina boshlangan bo'lsa kod xabari YOZILMAYDI — natija
-    // kelganda (`tekshir`) yoziladi; hozircha menejerning "kutish" gapi yetadi.
-    // Jim harakat (dollar kursi) — chatga hech qachon yozilmaydi.
-    if (!JIM_HARAKATLAR.has(k.harakat) && !(natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
-      yangi.push({ rol: 'kod', matn: tushuntir(k.harakat, natija), savolId: k.harakat, javob: natija });
+  let kodSoni = 0;
+  for (let himoya = 0; himoya < 16; himoya++) {
+    if (k.tur === 'kod') {
+      if (kodSoni++ >= 5) break;
+      const natija = await bajar(d, k.harakat, holat);
+      holat = natijaniYoz(holat, k.harakat, natija);
+      // Yurish endigina boshlangan bo'lsa kod xabari YOZILMAYDI — natija
+      // kelganda (`tekshir`) yoziladi; hozircha menejerning "kutish" gapi yetadi.
+      // Jim harakat (dollar kursi) — chatga hech qachon yozilmaydi.
+      if (!JIM_HARAKATLAR.has(k.harakat) && !(natija as { kutilmoqda?: unknown } | null)?.kutilmoqda) {
+        kodlar.push(yangi.length);
+        yangi.push({ rol: 'kod', matn: tushuntir(k.harakat, natija), savolId: k.harakat, javob: natija });
+      }
+      k = keyingi(holat, dz);
+      continue;
     }
+    if (k.tur !== 'savol') break;
+    const s = k.savol;
+    const i = navbat.findIndex((x) => x.savol_id === s.id);
+    if (i < 0) break;
+    const j = navbat.splice(i, 1)[0]!;
+    const q = aiQiymat(s, j);
+    if (q === undefined) break;
+    const r = javobniQabulQil(holat, s.id, q, dz);
+    if (r.xato) {
+      ak.rad.push(radGapi(s, q, r.xato));
+      break;
+    }
+    holat = r.holat;
+    if (r.profil) profil = { ...(profil ?? {}), ...r.profil };
+    const gap = qabulGapi(s, javobQiymati(holat, s.id, q), holat);
+    ak.qabul.push(`${gap} (mijoz buni oldingi gapida aytgan edi)`);
+    navbatdan.push(gap);
     k = keyingi(holat, dz);
   }
+  holat = aiNavbatYoz(holat, navbat);
 
   // ---- 4. menejer jumlasi (+ ixtiyoriy odamlashtirish, tekshiruv bilan)
   //
@@ -413,15 +562,45 @@ export async function suhbatTurn(
       xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false,
     };
   }
-  // ---- 3b. oʻzi yozgan javobga munosabat — obunachi xabaridan keyin (kod xabarlaridan oldin)
-  if (yozilganJavob) {
-    const m = await munosabatYoz(d, yozilganJavob, holat, k, songgiSuhbat(o.xabarlar ?? []));
-    if (m) yangi.splice(yozilganJavob.orni + 1, 0, m);
+  // ---- 4a. AI SUHBAT: xabarlarni AI yozadi. Keyingi savol shaxsiy (telefon savolida ism bor) — AI siz.
+  let aiYozdi = false;
+  if (d.ai && !(k.tur === 'savol' && SHAXSIY_SAVOLLAR.has(k.savol.id)) && k.tur !== 'tezOrada' && qoldi() >= AI_KAM_MS + 2_000) {
+    const tt = ak.mijoz !== null && !ak.tanlov ? tushunishUchun(ak.mijoz) : '';
+    const tayyor = ak.savolBor && ak.mijoz !== null && tt
+      ? bazaJavobi(tt, ruschami(ak.mijoz), ak.savolId ?? '', null, holat, d.tarifCheklovi, await bazadanMalumot(d, tt, holat))?.matn ?? null
+      : null;
+    const y = await aiYozTekshirib(d.ai, {
+      mijoz: ak.mijoz, tanlov: ak.tanlov, qabul: ak.qabul, rad: ak.rad, savolBor: ak.savolBor,
+      bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor,
+      natijalar: kodlar.map((i) => {
+        const x = yangi[i]!;
+        return { harakat: x.savolId as KodHarakati, matn: natijaTavsifi(x.savolId as KodHarakati, x.javob) };
+      }),
+      keyingi: k.tur === 'savol' ? k.savol : null, keyingiMatn: k.tur === 'savol' ? null : k.matn,
+      holat: mijozHolati(holat, joriyQadam(holat)), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
+      til: ak.til, tuzat: null,
+    }, kodlar.flatMap((i) => natijaSonlari(yangi[i]!.javob)), qoldi);
+    if (y) {
+      aiXabarlariniQoy(yangi, y, ak, kodlar, k);
+      aiYozdi = true;
+    } else {
+      // AI yozolmadi — kod jumlalari, LLM siz (yana kutmasin).
+      d = llmsiz(d);
+    }
   }
-  const kodJumla = k.tur === 'savol' ? k.savol.matn : k.matn;
-  // Shaxsiy savol (ism, telefon) LLM ga yuborilmaydi — telefon savolida ism bor.
-  const menejerMatn = k.tur === 'savol' && SHAXSIY_SAVOLLAR.has(k.savol.id) ? kodJumla : await odamlashtirTekshirib(d, kodJumla, yangi);
-  yangi.push({ rol: 'menejer', matn: menejerMatn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
+  if (!aiYozdi) {
+    // Navbatdan olingan javob (oldingi gapida aytgan) — kod aytadi: savol soʻralmay oʻtib ketdi.
+    if (navbatdan.length) yangi.splice(ak.boshi, 0, { rol: 'menejer', matn: `Oldin yozganingizdan oldim: ${navbatdan.join('; ')}.` });
+    // ---- 3b. oʻzi yozgan javobga munosabat — obunachi xabaridan keyin (kod xabarlaridan oldin)
+    if (yozilganJavob) {
+      const m = await munosabatYoz(d, yozilganJavob, holat, k, songgiSuhbat(o.xabarlar ?? []));
+      if (m) yangi.splice(yozilganJavob.orni + 1, 0, m);
+    }
+    const kodJumla = k.tur === 'savol' ? k.savol.matn : k.matn;
+    // Shaxsiy savol (ism, telefon) LLM ga yuborilmaydi — telefon savolida ism bor.
+    const menejerMatn = k.tur === 'savol' && SHAXSIY_SAVOLLAR.has(k.savol.id) ? kodJumla : await odamlashtirTekshirib(d, kodJumla, yangi);
+    yangi.push({ rol: 'menejer', matn: menejerMatn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
+  }
 
   // ---- 5. yozish
   const qadam = joriyQadam(holat);
@@ -932,6 +1111,19 @@ async function bazadanMalumot(d: SuhbatBogliqliklari, t: string, h: YolHolati): 
   return typeof m === 'string' ? m : null;
 }
 
+/**
+ * Byudjet savolida summalar aytilgan boʻlsa ("80 mlnmi, 100 mlnmi?") — javobdan
+ * keyin ular TUGMA boʻlib chiqadi: bittasini bossa, oʻsha summa bilan boshlanadi.
+ */
+function summaTugmalari(k0: JoriySavol, yozgan: string, holat: YolHolati): JoriySavol {
+  if (k0.savol.id !== 'byudjet') return k0;
+  const bor = new Set(k0.savol.variantlar.map((v) => String(v.qiymat)));
+  const qoshimcha = byudjetSummalari(yozgan, usdKursi(holat))
+    .filter((x) => !bor.has(String(x.som)))
+    .map((x) => ({ qiymat: x.som, nom: x.usd !== null ? byudjetMatni(x.som, x.usd) : mlnMatni(x.som) }));
+  return qoshimcha.length ? { ...k0, savol: { ...k0.savol, variantlar: [...qoshimcha, ...k0.savol.variantlar] } } : k0;
+}
+
 /** Erkin xabarni chatga yozadi: holat va qadam oʻzgarmaydi. */
 async function erkinXabar(
   d: SuhbatBogliqliklari, token: string, holat: YolHolati, k0: JoriySavol, yozgan: string, sabab: string | null,
@@ -939,16 +1131,7 @@ async function erkinXabar(
 ): Promise<SuhbatJavobi> {
   const matn = yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan;
   const javob = await erkinJavob(d, k0.savol, matn, sabab, holat, songgiSuhbat(xabarlar));
-  // Byudjet savolida summalar aytilgan boʻlsa ("80 mlnmi, 100 mlnmi?") — javobdan
-  // keyin ular TUGMA boʻlib chiqadi: bittasini bossa, oʻsha summa bilan boshlanadi.
-  let k1: JoriySavol = k0;
-  if (k0.savol.id === 'byudjet') {
-    const bor = new Set(k0.savol.variantlar.map((v) => String(v.qiymat)));
-    const qoshimcha = byudjetSummalari(yozgan, usdKursi(holat))
-      .filter((x) => !bor.has(String(x.som)))
-      .map((x) => ({ qiymat: x.som, nom: x.usd !== null ? byudjetMatni(x.som, x.usd) : mlnMatni(x.som) }));
-    if (qoshimcha.length) k1 = { ...k0, savol: { ...k0.savol, variantlar: [...qoshimcha, ...k0.savol.variantlar] } };
-  }
+  const k1 = summaTugmalari(k0, yozgan, holat);
   // Joriy savol jurnalda hali yoʻq boʻlsa — avval savolning oʻzi yoziladi. Birinchi
   // tashrifda savol `keyingi` dan chiziladi, jurnalga esa POST da tushadi: birinchi
   // savolda tayyor savol bosilsa, salomlashish matni chatdan yoʻqolardi (tayyor
@@ -966,6 +1149,169 @@ async function erkinXabar(
   });
   const yozildi = y !== null && !y.xato;
   return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
+}
+
+// ------------------------------------------------------------ AI suhbat
+
+/** LLM siz bogʻliqliklar — AI yiqilgan turnda kod qoliplari tez chiqsin (yana kutmasin). */
+function llmsiz(d: SuhbatBogliqliklari): SuhbatBogliqliklari {
+  const r: SuhbatBogliqliklari = { ...d, ai: null };
+  delete r.llm;
+  delete r.erkinLlm;
+  delete r.munosabatLlm;
+  return r;
+}
+
+/** Chat va LLM uchun matn uzunligi chegarasi. */
+function qisqartir(t: string): string {
+  return t.length > ERKIN_MAX ? `${t.slice(0, ERKIN_MAX)}…` : t;
+}
+
+/** Holatga yozilgan javob (ayrim javoblarni `yoz()` boshqacha saqlaydi); yoʻq boʻlsa — berilgani. */
+function javobQiymati(h: YolHolati, savolId: string, q: unknown): unknown {
+  return Object.prototype.hasOwnProperty.call(h.javoblar, savolId) ? h.javoblar[savolId] : q;
+}
+
+/** Qabul qilingan javob — AI uchun: «savol» → qanday tushunildi (byudjet — soʻmda va dollarda). */
+function qabulGapi(s: SuhbatSavoli, q: unknown, h: YolHolati): string {
+  if (SHAXSIY_SAVOLLAR.has(s.id)) return 'Mijoz ism va telefonini berdi (shaxsiy maʼlumot — senga koʻrsatilmaydi).';
+  const usd = h.javoblar['byudjet_usd'];
+  const javob = s.id === 'byudjet' && typeof q === 'number' ? byudjetMatni(q, typeof usd === 'number' ? usd : null) : javobMatni(s.variantlar, q);
+  return `«${qisqaSavol(s.matn, s.id)}» → ${javob}`;
+}
+
+/** Qabul qilinmagan javob — AI uchun: nima tushunildi va nega oʻtmadi. */
+function radGapi(s: SuhbatSavoli, q: unknown, sabab: string): string {
+  return `«${qisqaSavol(s.matn, s.id)}» — mijozdan «${javobMatni(s.variantlar, q)}» tushunildi, lekin qabul qilinmadi: ${sabab}`;
+}
+
+/** AI tushungan, navbati kelmagan javoblar — holatda (`ai_navbat`). */
+function aiNavbati(h: YolHolati): AiJavob[] {
+  const n = h.javoblar['ai_navbat'];
+  if (!Array.isArray(n)) return [];
+  return n.filter((x): x is AiJavob => !!x && typeof (x as AiJavob).savol_id === 'string' && Array.isArray((x as AiJavob).qiymatlar))
+    .map((x) => ({ savol_id: x.savol_id, qiymatlar: x.qiymatlar.map(String), otkazish: x.otkazish === true }));
+}
+
+/** Navbatni holatga yozadi — faqat tanishuvning hali soʻralmagan savollariga; boʻsh boʻlsa — oʻchiradi. */
+function aiNavbatYoz(h: YolHolati, navbat: readonly AiJavob[]): YolHolati {
+  const kelgusi = new Set(kelgusiTanishuvSavollari(h).map((s) => s.id));
+  const qoldi = navbat.filter((x) => kelgusi.has(x.savol_id));
+  if (!qoldi.length) {
+    if (!Object.prototype.hasOwnProperty.call(h.javoblar, 'ai_navbat')) return h;
+    const javoblar = { ...h.javoblar };
+    delete javoblar['ai_navbat'];
+    return { ...h, javoblar };
+  }
+  return { ...h, javoblar: { ...h.javoblar, ai_navbat: qoldi } };
+}
+
+/**
+ * AI qiziqish taklifi (`potinka sotganman` → kiyim): qiziqish savolida oldindan belgilanadi
+ * (`tajribadanSohalar`). Qiziqish yoki yoʻnalish tanlangan boʻlsa, taklif boʻsh yoki notanish — oʻzgarmaydi.
+ */
+function qiziqishTaklifi(h: YolHolati, taklif: readonly string[]): YolHolati {
+  if (Object.prototype.hasOwnProperty.call(h.javoblar, 'qiziqish') || Object.prototype.hasOwnProperty.call(h.javoblar, 'yonalish')) return h;
+  const t = [...new Set(taklif)].filter((x) => SAVDO_SOHALARI.some((s) => s.id === x));
+  return t.length ? { ...h, javoblar: { ...h.javoblar, qiziqish_taklif: t } } : h;
+}
+
+/**
+ * AI xabari — darvoza bilan: raqam faqat manbalardan (mijoz gapi, qabul, natijalar,
+ * keyingi savol, holat, suhbat, faktlar), kafolat yoʻq, til mijozniki, keyingi savol
+ * berilgan. Oʻtmasa — sababi bilan bir marta qayta; baribir oʻtmasa yoki vaqt
+ * qolmasa — `null` (kod qoliplari). Mijoz soʻragan-u, «oldin» boʻsh — birinchi
+ * urinishda qayta soʻraladi, ikkinchisida qabul qilinadi (xavfsizlik emas, sifat).
+ */
+async function aiYozTekshirib(
+  ai: NonNullable<SuhbatBogliqliklari['ai']>, s: AiYozSorovi, sonlar: number[], qoldi: () => number,
+): Promise<AiYozuv | null> {
+  const manba = {
+    matnlar: [s.mijoz ?? '', ...s.qabul, ...s.rad, s.bilim ?? '', s.tayyor ?? '', ...s.natijalar.map((x) => x.matn),
+      s.keyingi ? savolTavsifi(s.keyingi) : '', s.keyingiMatn ?? '', s.holat, s.tarix],
+    sonlar,
+  };
+  let tuzat: string | null = null;
+  for (let urinish = 0; urinish < 2; urinish++) {
+    const vaqt = Math.min(AI_YOZ_MS, qoldi() - 2_000);
+    if (vaqt < AI_KAM_MS) return null;
+    const y: AiYozuv | null = await ai.yoz({ ...s, tuzat }, vaqt).catch(() => null);
+    if (!y) return null;
+    const hammasi: string = [y.oldin, y.izoh, y.savol].filter(Boolean).join('\n');
+    const tk = tekshir(hammasi, manba);
+    const tilMos: boolean = s.til === 'uz' || kirillUlushi(hammasi) >= 0.5;
+    const savolBerdi: boolean = s.keyingi === null || y.savol.length > 0;
+    const javobBerdi: boolean = !s.savolBor || y.oldin.length > 0 || urinish > 0;
+    const qisqa: boolean = hammasi.length <= AI_YOZ_MAX || urinish > 0;
+    if (tk.ok && tilMos && savolBerdi && javobBerdi && qisqa && hammasi) return y;
+    tuzat = [
+      tk.dalilsiz.length ? `bu raqamlar manbalarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
+      tk.taqiq.length ? `taqiqlangan gap: ${tk.taqiq.join(', ')}.` : null,
+      tilMos ? null : s.til === 'ru' ? 'javob rus tilida emas — hammasini rus tilida yoz.' : 'javob kirill yozuvida emas — hammasini oʻzbek kirillda yoz.',
+      savolBerdi ? null : '«savol» boʻsh — KEYINGI SAVOLni albatta ber.',
+      javobBerdi ? null : 'mijoz savol berdi, «oldin» boʻsh — avval savoliga javob ber.',
+      qisqa ? null : 'juda uzun — qisqaroq yoz.',
+    ].filter(Boolean).join(' ') || 'javob boʻsh.';
+  }
+  return null;
+}
+
+/**
+ * AI yozganini xabarlarga qoʻyadi: izoh — oxirgi kod xabarining pufagiga (karta tepasida),
+ * munosabat — mijoz xabaridan keyin, savol — oxirida (tugmalar shu pufakka).
+ */
+function aiXabarlariniQoy(yangi: SuhbatXabari[], y: AiYozuv, ak: AiKirish, kodlar: readonly number[], k: Keyingi): void {
+  const oxirgi = kodlar[kodlar.length - 1];
+  if (y.izoh && oxirgi !== undefined) yangi[oxirgi] = { ...yangi[oxirgi]!, matn: y.izoh };
+  if (y.oldin) {
+    yangi.splice(ak.boshi, 0, ak.savolId !== null && ak.mijoz !== null
+      ? { rol: 'menejer', matn: y.oldin, savolId: ak.savolId, javob: { erkin: true, manba: 'ai', munosabat: true } }
+      : { rol: 'menejer', matn: y.oldin });
+  }
+  const kodJumla = k.tur === 'savol' ? k.savol.matn : k.tur === 'kod' ? '' : k.matn;
+  yangi.push({ rol: 'menejer', matn: y.savol || kodJumla, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
+}
+
+/**
+ * AI erkin xabari: mijoz yozdi, lekin joriy savolga javob yoʻq (savol, salom, tushunarsiz)
+ * yoki AI tushungan javob qabul qilinmadi. AI javob beradi va savolni qayta soʻraydi;
+ * yo'l holati oʻzgarmaydi (faqat qiziqish taklifi va navbatdagi javoblar). AI yozolmasa —
+ * kod shabloni (`erkinXabar`, LLM siz).
+ */
+async function aiErkinXabar(
+  d: SuhbatBogliqliklari, token: string, holat: YolHolati, k0: JoriySavol, matn: string,
+  t: { savolBor: boolean; sabab: string | null; qiymat: unknown },
+  xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>, qoldi: () => number,
+): Promise<SuhbatJavobi> {
+  // Taklif qiziqish savolining belgilanganini oʻzgartirgan boʻlishi mumkin — savol yangi holatdan.
+  const kj = keyingi(holat, d.darvoza);
+  const k1 = summaTugmalari(kj.tur === 'savol' && kj.savol.id === k0.savol.id ? kj : k0, matn, holat);
+  const songgi = songgiSuhbat(xabarlar);
+  const tt = tushunishUchun(matn);
+  const malumot = t.sabab ? null : await bazadanMalumot(d, tt, holat);
+  const baza = bazaJavobi(tt, ruschami(matn), k0.savol.id, t.sabab, holat, d.tarifCheklovi, malumot);
+  const y = d.ai ? await aiYozTekshirib(d.ai, {
+    mijoz: matn, tanlov: false, qabul: [], rad: t.sabab ? [radGapi(k0.savol, t.qiymat, t.sabab)] : [],
+    // Javob ham, rad ham boʻlmasa — mijoz nimadir soʻradi yoki aytdi: unga javob kerak.
+    savolBor: t.savolBor || t.sabab === null, bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor: baza?.matn ?? null,
+    natijalar: [], keyingi: k1.savol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
+    tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), tuzat: null,
+  }, [], qoldi) : null;
+  if (!y) return erkinXabar(llmsiz(d), token, holat, k0, matn, t.sabab, xabarlar);
+  const savolBor = songgi.some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);
+  const yangi: SuhbatXabari[] = [
+    ...(savolBor ? [] : [{ rol: 'menejer' as const, matn: k0.savol.matn, savolId: k0.savol.id }]),
+    { rol: 'obunachi', matn },
+    // `javob` — erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
+    ...(y.oldin ? [{ rol: 'menejer' as const, matn: y.oldin, savolId: k0.savol.id, javob: { erkin: true, manba: 'ai' } }] : []),
+    { rol: 'menejer', matn: y.savol || k0.savol.matn, savolId: k0.savol.id },
+  ];
+  const qadam = joriyQadam(holat);
+  const w = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {
+    p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
+  });
+  const yozildi = w !== null && !w.xato;
+  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? {} : { xato: w?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 /** Birinchi savol javobi chatda: shu turnda yozilgan ism va/yoki telefon. */

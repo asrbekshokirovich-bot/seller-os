@@ -44,6 +44,10 @@
 
 import type { KartochkaMatni } from './kartochka-matn.js';
 import type { Yozuv } from './yozuv.js';
+import {
+  AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA, AI_YOZ_SXEMA, aiTushunchaniOqi, aiTushunMatni, aiYozMatni, aiYozuvniOqi,
+  type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
+} from './ai-suhbat.js';
 
 export interface LlmSozlama {
   /** Gemini kaliti. `provayder` berilsa — ishlatilmaydi. */
@@ -74,6 +78,11 @@ export interface LlmChaqiruvi {
   json: Record<string, unknown> | null;
   /** Vaqt chegarasi, ms. */
   vaqtMs: number;
+  /**
+   * Qancha oʻylasin: `low` — chat (tez, arzon), `medium` — kartochka matni (Uzum qoidalari koʻp).
+   * Berilmasa — `low`.
+   */
+  kuch?: 'low' | 'medium';
 }
 
 /** Bitta chaqiruv — javob matni yoki `null` (ishlamadi; oqim toʻxtamaydi). */
@@ -234,11 +243,11 @@ function fikrDarajasi(model: string, fikr: 'minimal' | 'low'): 'minimal' | 'low'
  */
 async function chaqir(
   s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low',
-  json: Record<string, unknown> | null = null,
+  json: Record<string, unknown> | null = null, kuch: 'low' | 'medium' = 'low',
 ): Promise<string | null> {
   if (!matn.trim()) return null;
   if (s.provayder) {
-    return s.provayder({ korsatma, matn, belgi, json, vaqtMs: s.vaqtMs ?? 8_000 }).catch(() => null);
+    return s.provayder({ korsatma, matn, belgi, json, vaqtMs: s.vaqtMs ?? 8_000, kuch }).catch(() => null);
   }
   return gemini(s, korsatma, matn, belgi, fikr, json !== null);
 }
@@ -419,7 +428,7 @@ export async function kartochkaYozBer(
     `1688 TAKLIFI NOMI (xitoycha): ${k.xitoy ?? 'yoʻq'}`,
     k.tuzat ? `OLDINGI MATNING QAYTARILDI: ${k.tuzat}. Shularsiz qayta yoz.` : null,
   ].filter(Boolean).join('\n');
-  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, KARTOCHKA_KORSATMA, matn, 'kartochka', 'low', KARTOCHKA_SXEMA);
+  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, KARTOCHKA_KORSATMA, matn, 'kartochka', 'low', KARTOCHKA_SXEMA, 'medium');
   if (!javob) return null;
   try {
     const j = JSON.parse(javob.replace(/^```(?:json)?\s*|\s*```$/gu, '')) as Record<string, unknown>;
@@ -432,4 +441,28 @@ export async function kartochkaYozBer(
     console.warn('llm kartochka: JSON emas');
     return null;
   }
+}
+
+/**
+ * AI SUHBAT — mijoz yozgan gapni tushunish (`ai-suhbat.ts`): qaysi savolga qanday javob,
+ * qiziqish taklifi, gapda savol bormi. `null` — ishlamadi yoki JSON buzuq: kod oʻzi tushunadi.
+ */
+export async function aiTushunBer(s: LlmSozlama, k: AiTushunSorovi): Promise<AiTushuncha | null> {
+  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 20_000 }, AI_TUSHUN_KORSATMA, aiTushunMatni(k), 'ai-tushun', 'low', AI_TUSHUN_SXEMA);
+  if (!javob) return null;
+  const t = aiTushunchaniOqi(javob);
+  if (!t) console.warn('llm ai-tushun: JSON shakli buzuq');
+  return t;
+}
+
+/**
+ * AI SUHBAT — mijozga xabar (`ai-suhbat.ts`): munosabat va savoliga javob, yangi natijalar
+ * izohi, keyingi savol. `null` — ishlamadi yoki JSON buzuq: kod qoliplari ketadi.
+ */
+export async function aiYozBer(s: LlmSozlama, k: AiYozSorovi): Promise<AiYozuv | null> {
+  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, AI_YOZ_KORSATMA, aiYozMatni(k), 'ai-yoz', 'low', AI_YOZ_SXEMA);
+  if (!javob) return null;
+  const y = aiYozuvniOqi(javob);
+  if (!y) console.warn('llm ai-yoz: JSON shakli buzuq');
+  return y;
 }

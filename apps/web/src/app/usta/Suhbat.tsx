@@ -289,7 +289,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         r = await fetch('/api/suhbat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
-          body: JSON.stringify(tana),
+          // Sahifa tili — tugma bosilganda yordamchi shu tilda yozadi (AI suhbat, 2026-10-19).
+          body: JSON.stringify({ ...tana, til }),
         });
       } catch (q) {
         if (jim || mening !== avlod.current) return;

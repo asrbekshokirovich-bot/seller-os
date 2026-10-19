@@ -16,6 +16,10 @@ import {
   demping,
   erkinJavobBer,
   munosabatBer,
+  aiTushunBer,
+  aiYozBer,
+  type AiTushunSorovi,
+  type AiYozSorovi,
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
@@ -448,6 +452,15 @@ export function build(): FastifyInstance {
         erkinAvval: process.env.LLM_AVVAL === '1',
       }
       : {}),
+    // AI suhbat (2026-10-19) — Edge bilan bir xil: faqat Claude bilan, `AI_SUHBAT=0` oʻchiradi.
+    ...(claude !== null && process.env.AI_SUHBAT !== '0'
+      ? {
+        ai: {
+          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama(), vaqtMs: ms }, k),
+          yoz: (k: AiYozSorovi, ms: number) => aiYozBer({ ...llmSozlama(), vaqtMs: ms }, k),
+        },
+      }
+      : {}),
   });
 
   app.get('/suhbat', async (request, javob) => {
@@ -482,6 +495,7 @@ export function build(): FastifyInstance {
       ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
       ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
       ...(tana.tekshir === true ? { tekshir: true } : {}),
+      ...(tana.til === 'ru' ? { til: 'ru' as const } : {}),
     });
     // Sessiya/baza xatosi — HTTP kodi bilan. Navbat xatosi esa 200:
     // u obunachiga ko'rsatiladigan oddiy javob, nosozlik emas.

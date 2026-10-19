@@ -64,6 +64,13 @@ describe('gapdan sohalar — tajriba va qiziqish matni (nazoratchi, 2026-10-15)'
     ['bilmayman', []],
     ['nima sotishni bilmayman, oldin kiyim sotganman', ['kiyim']],
     ['oldin savdo qilganman', []],
+    // Oyoq kiyim (nazoratchi, 2026-10-19: «potinka» — soha belgilanmagan edi).
+    ['Instagramda potinka sotganman', ['kiyim']],
+    ['botinka va etik', ['kiyim']],
+    ['ayollar tuflisi', ['kiyim']],
+    ['продавал женскую обувь и сапоги', ['kiyim']],
+    // «etiketka» — etik emas.
+    ['etiketka yopishtirishni bilmayman', []],
   ])('%s → %j', (matn, sohalar) => {
     expect(gapdagiSohalar(matn)).toEqual(sohalar);
   });
