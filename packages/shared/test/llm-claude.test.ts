@@ -7,8 +7,8 @@
  * (chat toʻxtamaydi — kod javobi ketadi) shu yerda tekshiriladi. Tarmoq — soxta.
  */
 
-import { describe, expect, it } from 'vitest';
-import { CLAUDE_MODELI, claudeProvayderi } from '../src/llm-claude';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { CLAUDE_MODELI, claudeProvayderi, kalitniAjrat, sirsiz } from '../src/llm-claude';
 import { erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir } from '../src/llm';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Headers }
@@ -155,5 +155,77 @@ describe('provayder tanlovi (llm.ts)', () => {
   it('provayder yiqilsa (istisno) — null, oqim toʻxtamaydi', async () => {
     const provayder = async () => { throw new Error('tarmoq'); };
     expect(await munosabatBer({ kalit: null, provayder }, MUNOSABAT)).toBeNull();
+  });
+});
+
+/*
+ * Jonli (2026-10-19): sirga kalit oʻrniga butun `curl …` buyrugʻi qoʻyilgan edi. SDK uni
+ * sarlavhaga qoʻydi, `fetch` "Invalid header value: …" TypeError otdi — va xato MATNI
+ * (kalit bilan) logga tushdi. Endi: kalit matndan ajratiladi, logga ketadigan har matn
+ * `sirsiz` dan oʻtadi.
+ */
+describe('kalit va log xavfsizligi', () => {
+  const KALIT = 'sk-ant-api03-SINOV_kalit-123';
+  const CURL = `curl https://api.anthropic.com/v1/messages \\n  --header "x-api-key: ${KALIT}" \\n  --header "anthropic-version: 2023-06-01"`;
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('kalitniAjrat: butun buyruqdan, boʻsh joy/qatordan — faqat kalit; kalitsiz gap — null', () => {
+    expect(kalitniAjrat(CURL)).toBe(KALIT);
+    expect(kalitniAjrat(`  ${KALIT}\n`)).toBe(KALIT);
+    expect(kalitniAjrat('"' + KALIT + '"')).toBe(KALIT);
+    expect(kalitniAjrat('bu kalit emas')).toBeNull();
+    expect(kalitniAjrat('  ')).toBeNull();
+    expect(kalitniAjrat(undefined)).toBeNull();
+  });
+
+  it('sirsiz: kalit va x-api-key qiymati yashiriladi', () => {
+    const t = sirsiz(`Invalid header value: "${CURL}"`);
+    expect(t).not.toContain(KALIT);
+    expect(t).not.toContain('SINOV_kalit');
+    expect(sirsiz('x-api-key: abc123def')).toBe('x-api-key: ***');
+  });
+
+  it('sirga butun buyruq qoʻyilsa ham — soʻrovga faqat kalit ketadi', async () => {
+    const y: Yozuv[] = [];
+    const provayder = claudeProvayderi({ kalit: CURL, fetchFn: soxtaFetch([{ json: MATN('ok') }], y) });
+    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBe('ok');
+    expect(y[0]!.sarlavha.get('x-api-key')).toBe(KALIT);
+  });
+
+  it('sirda kalit topilmasa — provayder yoʻq; logda qiymat yoʻq', () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    expect(claudeProvayderi({ kalit: 'notoʻgʻri qiymat bor' })).toBeNull();
+    expect(log.mock.calls.flat().join(' ')).not.toContain('notoʻgʻri qiymat');
+  });
+
+  it('API xato javobida kalit boʻlsa — logda yashirin', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const xato = { type: 'error', error: { type: 'invalid_request_error', message: `notoʻgʻri sarlavha ${KALIT}` } };
+    const provayder = claudeProvayderi({ kalit: KALIT, fetchFn: soxtaFetch([{ status: 400, json: xato }], []) });
+    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBeNull();
+    const yozilgan = log.mock.calls.flat().join(' ');
+    expect(yozilgan).toMatch(/HTTP 400/);
+    expect(yozilgan).not.toContain('SINOV_kalit');
+  });
+
+  it('SDK dan tashqari xato (buzuq JSON) matnida kalit boshi boʻlsa ham — logda yashirin', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const buzuq = (async () => new Response(`${KALIT} bu JSON emas`, { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
+    const provayder = claudeProvayderi({ kalit: KALIT, fetchFn: buzuq });
+    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBeNull();
+    const yozilgan = log.mock.calls.flat().join(' ');
+    expect(yozilgan).toMatch(/llm odamlashtir/);
+    expect(yozilgan).not.toMatch(/sk-ant-a/);
+  });
+
+  it('xato matnida kalit boʻlsa — logga YASHIRIB yoziladi (jonli hodisa)', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const yiqil = (async () => { throw new TypeError(`Invalid header value: "${CURL}"`); }) as unknown as typeof fetch;
+    const provayder = claudeProvayderi({ kalit: KALIT, fetchFn: yiqil });
+    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBeNull();
+    const yozilgan = log.mock.calls.flat().join(' ');
+    expect(yozilgan).toMatch(/llm odamlashtir/);
+    expect(yozilgan).not.toContain(KALIT);
+    expect(yozilgan).not.toContain('SINOV_kalit');
   });
 });

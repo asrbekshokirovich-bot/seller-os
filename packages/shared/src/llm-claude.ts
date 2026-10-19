@@ -35,11 +35,42 @@ export interface ClaudeSozlama {
   fetchFn?: typeof fetch;
 }
 
+/** Anthropic kaliti: `sk-ant-` va harf, raqam, `_`, `-`. */
+const KALIT_SHAKLI = /sk-ant-[A-Za-z0-9_-]+/;
+
+/**
+ * Sirdan faqat kalitning oʻzi (jonli, 2026-10-19: sirga butun buyruq qoʻyilgan edi —
+ * `curl https://api.anthropic.com/… --header "x-api-key: sk-ant-…"`; SDK uni sarlavhaga
+ * qoʻydi va soʻrov `TypeError` bilan yiqildi). Matn ichida kalit boʻlsa — oʻsha;
+ * boʻlmasa, ichida boʻsh joy boʻlsa — kalit emas (`null`); aks holda — matnning oʻzi.
+ */
+export function kalitniAjrat(xom: string | null | undefined): string | null {
+  const t = String(xom ?? '').trim();
+  if (!t) return null;
+  const k = KALIT_SHAKLI.exec(t);
+  if (k) return k[0];
+  return /\s/.test(t) ? null : t;
+}
+
+/**
+ * Logga ketadigan matndan sirlarni olib tashlaydi. Jonli (2026-10-19): `fetch` ning
+ * TypeError matni notoʻgʻri sarlavha QIYMATINI — kalitni — oʻz ichiga olgan edi va u
+ * logga tushdi. Endi har qanday xato matni shundan oʻtadi.
+ */
+export function sirsiz(matn: string): string {
+  return matn
+    .replace(new RegExp(KALIT_SHAKLI.source, 'g'), 'sk-ant-***')
+    .replace(/(x-api-key|authorization)["'\s:=]+[^\s"',]+/gi, '$1: ***');
+}
+
 /** Kalit boʻlmasa — `null`: provayder yoʻq (Gemini yoki kod javobi ishlaydi). */
 export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
-  // Sirni nusxalashda qolgan boʻsh joy/yangi qator kalitni buzmasin.
-  const kalit = s.kalit?.trim();
-  if (!kalit) return null;
+  const kalit = kalitniAjrat(s.kalit);
+  if (!kalit) {
+    // Sir bor-u, ichida kalit topilmadi — sababi logda (qiymati emas).
+    if (s.kalit?.trim()) console.warn('llm: ANTHROPIC_API_KEY ichida kalit topilmadi — faqat sk-ant-… qiymatini qoʻying');
+    return null;
+  }
   const model = s.model?.trim() || CLAUDE_MODELI;
   // Bitta qayta urinish (429/5xx, tarmoq) — umumiy vaqt chegarasi ichida (`signal`).
   const mijoz = new Anthropic({ apiKey: kalit, maxRetries: 1, ...(s.fetchFn ? { fetch: s.fetchFn } : {}) });
@@ -69,15 +100,13 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
       const matn = r.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('').trim();
       return matn || null;
     } catch (e) {
-      // Sababi logda (holat kodi va turi) — Anthropic xato matnida kalit qaytmaydi; baribir qisqa.
+      // Sababi logda — faqat `sirsiz` dan oʻtgan matn (kalit hech qachon logga tushmasin), qisqa;
+      // stek yozilmaydi (unda ham xato matni takrorlanadi).
       if (e instanceof Anthropic.APIError) {
-        console.warn(`llm ${c.belgi} (${model}): HTTP ${e.status ?? '?'} ${String(e.message).slice(0, 160)}`);
+        console.warn(`llm ${c.belgi} (${model}): HTTP ${e.status ?? '?'} ${sirsiz(String(e.message)).slice(0, 160)}`);
       } else {
-        // Muhit xatosi (jonli, 2026-10-19: Supabase Edge da `TypeError` — matnsiz logdan sababi koʻrinmadi):
-        // nomi, matni va ikki stek qatori.
         const x = e as Error | undefined;
-        const stek = String(x?.stack ?? '').split('\n').slice(1, 3).map((q) => q.trim()).join(' | ');
-        console.warn(`llm ${c.belgi} (${model}): ${x?.name ?? 'xato'}: ${String(x?.message ?? '').slice(0, 200)} @ ${stek.slice(0, 300)}`);
+        console.warn(`llm ${c.belgi} (${model}): ${x?.name ?? 'xato'}: ${sirsiz(String(x?.message ?? '')).slice(0, 160)}`);
       }
       return null;
     } finally {
