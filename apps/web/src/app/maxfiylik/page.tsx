@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-13';
+const YANGILANDI = '2026-10-19';
 
 export default function Maxfiylik() {
   return (
@@ -39,7 +39,7 @@ export default function Maxfiylik() {
           <p>
             <strong>Suhbat boshida ism-familiya va telefon raqam soʻraladi</strong> — faqat
             siz bilan bogʻlanish uchun. Ular boshqa hech kimga berilmaydi va sunʼiy intellektga
-            (Gemini) yuborilmaydi. Elektron pochta va parol soʻralmaydi, roʻyxatdan oʻtish yoʻq.
+            yuborilmaydi. Elektron pochta va parol soʻralmaydi, roʻyxatdan oʻtish yoʻq.
           </p>
         </div>
 
@@ -261,7 +261,8 @@ export default function Maxfiylik() {
             keshida 30 kungacha turadi.
           </li>
           <li>
-            <strong>Google Gemini</strong> (ulangan boʻlsa) — uch holatda.
+            <strong>Anthropic (Claude)</strong> — sunʼiy intellekt (ulangan boʻlsa; ulanmagan
+            boʻlsa — <strong>Google Gemini</strong>). Toʻrt holatda matn yuboriladi.
             Birinchisi: yordamchi savolini tabiiyroq qilish uchun kod yozgan jumla
             yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
             Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
@@ -270,17 +271,21 @@ export default function Maxfiylik() {
             savol ham shunday), joriy savol va uning variantlari, mahsulot va Uzum
             haqidagi tayyor faktlar, suhbatdagi holatingiz (qaysi qadam, boshlash
             puli, qiziqqan sohangiz, ekrandagi yoʻnalish va tovarlar) va oxirgi
-            xabarlar — ism-familiya va telefonsiz — yuboriladi: javobni Gemini
-            soʻzlaydi. Ikkala holatda ham javobni kod tekshiradi —
-            yangi raqam yoki kafolat soʻzi boʻlsa, u tashlanadi va kodning oʻz
-            jumlasi ketadi. Sessiya kaliti yuborilmaydi. Ism-familiya va telefon
-            savollari (ularga yozgan matningiz ham) Gemini ga umuman
-            yuborilmaydi. Boshqa joyda suhbatga pasport kabi shaxsiy maʼlumot
-            yozmang. Uchinchisi: 10-qadamda «Kartochka matnini yozib ber»
-            bossangiz — tanlangan tovarlarning Uzumdagi va 1688 dagi nomi hamda
-            yoʻnalish nomi yuboriladi (shaxsiy maʼlumot emas); kelgan matnni kod
-            Uzum qoidalari va raqamlar boʻyicha tekshiradi. Hozircha Gemini ning
-            <strong>bepul darajasi</strong> ishlatiladi: Google shartlariga koʻra bepul
+            xabarlar — ism-familiya va telefonsiz — yuboriladi: javobni sunʼiy
+            intellekt soʻzlaydi. Uchinchisi: savolga oʻzingiz yozib javob bersangiz
+            (masalan, «oldin maishiy texnika sotganman») — yordamchi munosabat
+            bildirishi uchun shu matn, savol, holatingiz va oxirgi xabarlar
+            (ism-familiya va telefonsiz) yuboriladi. Bu holatlarning hammasida
+            javobni kod tekshiradi — yangi raqam yoki kafolat soʻzi boʻlsa, u
+            tashlanadi va kodning oʻz jumlasi ketadi. Sessiya kaliti yuborilmaydi.
+            Ism-familiya va telefon savollari (ularga yozgan matningiz ham) sunʼiy
+            intellektga umuman yuborilmaydi. Boshqa joyda suhbatga pasport kabi
+            shaxsiy maʼlumot yozmang. Toʻrtinchisi: 10-qadamda «Kartochka matnini
+            yozib ber» bossangiz — tanlangan tovarlarning Uzumdagi va 1688 dagi nomi
+            hamda yoʻnalish nomi yuboriladi (shaxsiy maʼlumot emas); kelgan matnni kod
+            Uzum qoidalari va raqamlar boʻyicha tekshiradi. Anthropic bilan
+            ishlash shartlari — anthropic.com/legal. Gemini ishlatilsa — uning{' '}
+            <strong>bepul darajasi</strong>: Google shartlariga koʻra bepul
             darajada yuborilgan matnlardan Google oʻz mahsulotlarini yaxshilash uchun
             foydalanishi mumkin. Shuning uchun suhbatga shaxsiy maʼlumot yozmang.
           </li>

@@ -23,6 +23,8 @@ import {
   type TurkumXaritasi,
 } from './tahlil.ts';
 import { suhbatKodHarakatlari } from './suhbat-kod.ts';
+// Claude SDK faqat serverda (2026-10-19) — `shared/index.ts` dan eksport qilinmaydi.
+import { claudeProvayderi } from './shared/llm-claude.ts';
 import {
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
@@ -190,7 +192,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         // yoʻq, yoqilsa hech kim 3-qadamga oʻta olmasdi.
         tarifCheklovi: tarifCheklovi(),
         // LLM kaliti bormi (qiymati emas) — "LLM ishlayaptimi?" ni tashqaridan bilish uchun.
-        llm: Boolean(Deno.env.get('GEMINI_API_KEY')),
+        llm: Boolean(Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('GEMINI_API_KEY')),
+        // Qaysi provayder: Anthropic kaliti boʻlsa — Claude (2026-10-19), boʻlmasa — Gemini.
+        llmProvayder: Deno.env.get('ANTHROPIC_API_KEY') ? 'claude' : Deno.env.get('GEMINI_API_KEY') ? 'gemini' : null,
         // Payme/Click sozlanganmi (kalitlar emas, faqat bor-yoʻqligi) — 0067.
         tolov: tolovHolati(),
       },
@@ -429,9 +433,14 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   if (yol === '/suhbat') {
     const token = req.headers.get('x-sessiya') ?? '';
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
-    const kalit = Deno.env.get('GEMINI_API_KEY');
-    // Model env dan (`LLM_MODEL`); 503/429 da — zaxira model (`LLM_ZAXIRA_MODEL`, boʻlmasa `llm.ts` dagisi).
-    const llmSozlama = { kalit, model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL') };
+    // LLM (nazoratchi, 2026-10-19): Anthropic kaliti boʻlsa — Claude (`CLAUDE_MODEL`, boʻlmasa
+    // `claude-opus-5-5`); boʻlmasa — Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
+    const claude = claudeProvayderi({ kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_MODEL') });
+    const kalit = claude !== null || Boolean(Deno.env.get('GEMINI_API_KEY'));
+    const llmSozlama = {
+      kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
+      provayder: claude,
+    };
     // Obuna darvozasi (nazoratchi, 2026-10-14): cheklov yoqilgan boʻlsa — har soʻrovda bazadan.
     // 5-qadamdan keyin obunasiz yoʻl ochilmaydi (`keyingi`); baza javob bermasa — «nomaʼlum».
     const darvoza = tarifCheklovi()
@@ -447,7 +456,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         { kalit: Deno.env.get('XITOY_API_KEY') ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
           // 9-qadam studiyasi: Cloudflare Worker manzili va imzo kaliti (docs/STUDIYA.md).
           studiya: { url: Deno.env.get('STUDIYA_URL') ?? null, kalit: Deno.env.get('STUDIYA_KALIT') ?? null },
-          // 10-qadam kartochka matni — Gemini (kalit boʻlmasa qolip). Faqat tovar nomlari ketadi.
+          // 10-qadam kartochka matni — AI (kalit boʻlmasa qolip). Faqat tovar nomlari ketadi.
           ...(kalit ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}) }),
       ...(kalit ? {
         // Kod jumlasini qayta aytish — FAQAT `LLM_ODAMLASHTIR=1` boʻlsa (nazoratchi, 2026-10-13):

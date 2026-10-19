@@ -72,6 +72,8 @@ import {
   type XitoyTovar,
   kursniOl,
 } from '@selleros/shared';
+// Claude SDK faqat serverda (2026-10-19) — paketning asosiy eksportida yoʻq (sayt brauzerga oladi).
+import { claudeProvayderi } from '@selleros/shared/llm-claude';
 
 // ── Javob vaqtini oʻlchash (KPI: qadam_tezligi) ──────────────
 const TEZLIK_HAJMI = 200;
@@ -411,9 +413,12 @@ export function build(): FastifyInstance {
   //
   // Bu uch Edge Function dagi `/suhbat` bilan BIR XIL javob berishi
   // SHART — ikkalasi ham `suhbatTurn` ni chaqiradi.
-  // Model env dan (`LLM_MODEL`); 503/429 da — zaxira model (`LLM_ZAXIRA_MODEL`; Edge bilan bir xil).
+  // LLM (2026-10-19, Edge bilan bir xil): Anthropic kaliti boʻlsa — Claude (`CLAUDE_MODEL`), boʻlmasa —
+  // Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
+  const claude = claudeProvayderi({ kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_MODEL });
+  const llmBor = claude !== null || Boolean(process.env.GEMINI_API_KEY);
   const llmSozlama = () => ({
-    kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL,
+    kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL, provayder: claude,
   });
   const suhbatBogliq = async (token: string) => ({
     rpc,
@@ -425,10 +430,10 @@ export function build(): FastifyInstance {
     kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
-        ...(process.env.GEMINI_API_KEY
+        ...(llmBor
           ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(), k) }
           : {}) }),
-    ...(process.env.GEMINI_API_KEY
+    ...(llmBor
       ? {
         // Kod jumlasini qayta aytish — faqat `LLM_ODAMLASHTIR=1` (2026-10-13: bepul limit savollarga qoladi).
         ...(process.env.LLM_ODAMLASHTIR === '1'

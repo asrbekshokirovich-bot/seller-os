@@ -26,17 +26,23 @@ Supabase muhitidan o'zi oladi.
 
 ## Suhbat uchun ixtiyoriy sir
 
-Edge Function da `GEMINI_API_KEY` (va ixtiyoriy `LLM_MODEL`) — `supabase secrets set`
-bilan. **Boʻlmasa ham suhbat ishlaydi**: LLM faqat jumlani odamdek aytadi,
-kalit yoʻq boʻlsa kodning jumlasi ketadi. Kalit qoʻyilgach javob
-`tekshiruv.ts` darvozasidan oʻtadi — LLM raqam qoʻshsa kod jumlasi qoladi.
+Edge Function da (Supabase → Edge Functions → **Secrets**, yoki `supabase secrets set`):
+
+- `ANTHROPIC_API_KEY` — **Claude** (2026-10-19 dan asosiy; `llm-claude.ts`). Model —
+  `CLAUDE_MODEL` (boʻlmasa `claude-opus-5-5`). Narx, 1M token: Opus 5.5 — $4 kirish /
+  $20 chiqish; Sonnet 5.5 — $2 / $10; Haiku 5.5 — $0.10 / $0.50. Kalit qoʻyilgach
+  `/health` → `live.llmProvayder: "claude"`.
+- `GEMINI_API_KEY` (va ixtiyoriy `LLM_MODEL`) — Anthropic kaliti **boʻlmasa** ishlatiladi.
+
+**Hech biri boʻlmasa ham suhbat ishlaydi**: kalit yoʻq boʻlsa kodning jumlasi ketadi. Kalit
+qoʻyilgach javob `tekshiruv.ts` darvozasidan oʻtadi — LLM raqam qoʻshsa kod jumlasi qoladi.
 
 Boshqa ixtiyoriy sozlamalar (hammasi `llm.ts` / `suhbat.ts` da izohlangan):
 
 | Sir | Nima qiladi |
 |---|---|
-| `LLM_ZAXIRA_MODEL` | Asosiy model 503/429 qaytarsa — shu bilan bir marta qayta soʻraladi. Boʻlmasa `gemini-3.5-flash-lite`. |
-| `LLM_AVVAL=1` | AI birinchi: javobi bazada bor savol ham LLM ga (bazaviy javob `tayyor` boʻlib). Gemini toʻlovi yoqilgach. |
+| `LLM_ZAXIRA_MODEL` | Gemini: asosiy model 503/429 qaytarsa — shu bilan bir marta qayta soʻraladi. Boʻlmasa `gemini-3.5-flash-lite`. Claude da — server zaxirasi (`fallbacks`) va SDK qayta urinishi. |
+| `LLM_AVVAL=1` | AI birinchi: javobi bazada bor savol ham LLM ga (bazaviy javob `tayyor` boʻlib). Pullik kalit (Claude yoki Gemini toʻlovi) bilan. |
 | `LLM_ODAMLASHTIR=1` | Kod jumlalarini ham LLM qayta aytadi (bepul limitni tez yeydi). |
 | `LLM_MUNOSABAT=0` | Mijoz oʻzi yozgan javobga AI munosabatini oʻchiradi (standart — yoqilgan; oʻchsa kod jumlasi qoladi). |
 
