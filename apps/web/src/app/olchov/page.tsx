@@ -552,7 +552,7 @@ function YetishmaganMaydonlar({ x }: { x: TuzoqXulosa }) {
  */
 /** Javob manbasi — `suhbat.ts` `ErkinManba`. */
 const MANBA_NOMI: Readonly<Record<string, string>> = {
-  ai: 'Sunʼiy intellekt (Gemini)',
+  ai: 'Sunʼiy intellekt (Claude yoki Gemini)',
   baza: 'Tayyor javob / bilim bazasi',
   shablon: 'Umumiy shablon',
 };

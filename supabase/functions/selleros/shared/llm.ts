@@ -14,8 +14,11 @@
  * `fetch` bor joyda (Node, Deno) ishlaydi. Kalit `env` dan keladi,
  * kodda hech qachon turmaydi.
  *
- * Provayder: Gemini (bepul daraja, function calling shart emas — biz
- * asbob chaqirmaymiz). Model nomi env dan (`LLM_MODEL`); bo'lmasa `gemini-3.8-flash`.
+ * PROVAYDER (2026-10-19): Claude (Anthropic) — `LlmSozlama.provayder`,
+ * `llm-claude.ts` (`ANTHROPIC_API_KEY`); nazoratchi: "Anthropic kaliti bor —
+ * Gemini ga muhtoj boʻlmaymiz". Provayder berilmasa — Gemini (bepul daraja,
+ * function calling shart emas — biz asbob chaqirmaymiz). Gemini model nomi env
+ * dan (`LLM_MODEL`); bo'lmasa `gemini-3.8-flash`.
  *
  * 2.5 → 3.5 (2026-10-06): yangi kalit bilan `gemini-2.5-flash` 404 qaytardi —
  * "no longer available to new users"; Google yangi loyihalarga 3.5/3.8 ni
@@ -43,6 +46,7 @@ import type { KartochkaMatni } from './kartochka-matn.ts';
 import type { Yozuv } from './yozuv.ts';
 
 export interface LlmSozlama {
+  /** Gemini kaliti. `provayder` berilsa — ishlatilmaydi. */
   kalit: string | null | undefined;
   model?: string | null | undefined;
   /** 503/429 da bir marta shu model bilan qayta soʻraladi. Berilmasa — `ZAXIRA_MODEL`; boʻsh satr — zaxirasiz. */
@@ -50,7 +54,30 @@ export interface LlmSozlama {
   /** Bir chaqiruv uchun chegara, ms. Edge Function vaqt chegarasi bor. */
   vaqtMs?: number;
   fetchFn?: typeof fetch;
+  /**
+   * Boshqa provayder (2026-10-19: Claude — `llm-claude.ts`, `claudeProvayderi`).
+   * Berilsa — Gemini oʻrniga shu chaqiriladi; `kalit`, `model`, `zaxiraModel`,
+   * `fetchFn` faqat Gemini uchun.
+   */
+  provayder?: LlmProvayder | null;
 }
+
+/** Provayderga bitta chaqiruv: koʻrsatma, matn va qanday javob kerakligi. */
+export interface LlmChaqiruvi {
+  /** Tizim koʻrsatmasi — bir turdagi har chaqiruvda bir xil (keshlanadi). */
+  korsatma: string;
+  /** Faktlar, holat, savol — har chaqiruvda boshqa. */
+  matn: string;
+  /** Log belgisi: `odamlashtir`, `erkin`, `munosabat`, `kartochka`. */
+  belgi: string;
+  /** Javob shu JSON sxemaga mos boʻlsin; `null` — oddiy matn. */
+  json: Record<string, unknown> | null;
+  /** Vaqt chegarasi, ms. */
+  vaqtMs: number;
+}
+
+/** Bitta chaqiruv — javob matni yoki `null` (ishlamadi; oqim toʻxtamaydi). */
+export type LlmProvayder = (c: LlmChaqiruvi) => Promise<string | null>;
 
 const KORSATMA =
   'Sen ZumSavdo yordamchisisan. Quyida KOD yozgan o\'zbekcha jumla bor. Uni odamdek, ' +
@@ -175,6 +202,14 @@ export const KARTOCHKA_KORSATMA = [
   '{"nom_uz": "...", "nom_ru": "...", "qisqa_uz": "...", "qisqa_ru": "...", "tavsif_uz": "...", "tavsif_ru": "..."}',
 ].join('\n');
 
+/** Kartochka javobi sxemasi — Claude javobni aynan shunga moslaydi (structured outputs). */
+const KARTOCHKA_SXEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: Object.fromEntries(['nom_uz', 'nom_ru', 'qisqa_uz', 'qisqa_ru', 'tavsif_uz', 'tavsif_ru'].map((k) => [k, { type: 'string' }])),
+  required: ['nom_uz', 'nom_ru', 'qisqa_uz', 'qisqa_ru', 'tavsif_uz', 'tavsif_ru'],
+  additionalProperties: false,
+};
+
 export const ASOSIY_MODEL = 'gemini-3.8-flash';
 /** Asosiy model band (503) yoki limiti tugagan (429) boʻlsa — shu bilan bir marta qayta. */
 export const ZAXIRA_MODEL = 'gemini-3.5-flash-lite';
@@ -193,6 +228,21 @@ function fikrDarajasi(model: string, fikr: 'minimal' | 'low'): 'minimal' | 'low'
  * vaqt chegarasi ichida). Yiqilsa `null` va logda faqat sababi (kalit ham, matn
  * ham emas). `json` — javob JSON boʻlsin.
  */
+/**
+ * Bitta chaqiruv: provayder berilgan boʻlsa (Claude) — u, boʻlmasa — Gemini.
+ * `json` — javob sxemasi: Claude unga aniq moslaydi, Gemini faqat «JSON boʻlsin» ni biladi.
+ */
+async function chaqir(
+  s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low',
+  json: Record<string, unknown> | null = null,
+): Promise<string | null> {
+  if (!matn.trim()) return null;
+  if (s.provayder) {
+    return s.provayder({ korsatma, matn, belgi, json, vaqtMs: s.vaqtMs ?? 8_000 }).catch(() => null);
+  }
+  return gemini(s, korsatma, matn, belgi, fikr, json !== null);
+}
+
 async function gemini(
   s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low', json = false,
 ): Promise<string | null> {
@@ -284,7 +334,7 @@ async function geminiSorov(
  * Jumlani qayta aytadi. `null` — ishlamadi, kod jumlasini ishlating.
  */
 export async function odamlashtir(s: LlmSozlama, matn: string): Promise<string | null> {
-  return gemini(s, KORSATMA, matn, 'odamlashtir', 'minimal');
+  return chaqir(s, KORSATMA, matn, 'odamlashtir', 'minimal');
 }
 
 /** Erkin xabarga javob. `null` — ishlamadi, kod shablonini ishlating. */
@@ -319,7 +369,7 @@ export async function erkinJavobBer(
   ].filter(Boolean).join('\n');
   // Bilim va holat bilan batafsil javob uzunroq oʻylanadi — chegara 25 soniya. 14 s da bepul
   // darajadagi `gemini-3.8-flash` ikki marta javobga ulgurmadi (jonli jurnal, 2026-10-14: AbortError).
-  return gemini({ ...s, vaqtMs: s.vaqtMs ?? 25_000 }, ERKIN_KORSATMA, matn, 'erkin', 'low');
+  return chaqir({ ...s, vaqtMs: s.vaqtMs ?? 25_000 }, ERKIN_KORSATMA, matn, 'erkin', 'low');
 }
 
 /**
@@ -352,7 +402,7 @@ export async function munosabatBer(
     k.til === 'uz-kirill' ? 'JAVOB TILI: oʻzbek tili, KIRILL yozuvida. Butun javobni kirill harflarida yoz.' : null,
     `ODAM YOZDI: ${k.xabar}`,
   ].filter(Boolean).join('\n');
-  return gemini({ ...s, vaqtMs: s.vaqtMs ?? 12_000 }, MUNOSABAT_KORSATMA, matn, 'munosabat', 'low');
+  return chaqir({ ...s, vaqtMs: s.vaqtMs ?? 12_000 }, MUNOSABAT_KORSATMA, matn, 'munosabat', 'low');
 }
 
 /**
@@ -369,7 +419,7 @@ export async function kartochkaYozBer(
     `1688 TAKLIFI NOMI (xitoycha): ${k.xitoy ?? 'yoʻq'}`,
     k.tuzat ? `OLDINGI MATNING QAYTARILDI: ${k.tuzat}. Shularsiz qayta yoz.` : null,
   ].filter(Boolean).join('\n');
-  const javob = await gemini({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, KARTOCHKA_KORSATMA, matn, 'kartochka', 'low', true);
+  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, KARTOCHKA_KORSATMA, matn, 'kartochka', 'low', KARTOCHKA_SXEMA);
   if (!javob) return null;
   try {
     const j = JSON.parse(javob.replace(/^```(?:json)?\s*|\s*```$/gu, '')) as Record<string, unknown>;

@@ -38,6 +38,7 @@ export const FAYLLAR = [
   ['packages/shared/src/suhbat.ts', 'shared/suhbat.ts'],
   ['packages/shared/src/chegara.ts', 'shared/chegara.ts'],
   ['packages/shared/src/llm.ts', 'shared/llm.ts'],
+  ['packages/shared/src/llm-claude.ts', 'shared/llm-claude.ts'],
   ['packages/shared/src/tekshiruv.ts', 'shared/tekshiruv.ts'],
   ['packages/shared/src/tanishuv.ts', 'shared/tanishuv.ts'],
   ['packages/shared/src/erkin.ts', 'shared/erkin.ts'],
@@ -94,12 +95,21 @@ function asosiy() {
 const tekshirish = process.argv.includes('--tekshir');
 let farq = 0;
 
+// Tashqi paket (2026-10-19: Claude SDK, `llm-claude.ts`) — Deno da `npm:` bilan, versiyasi
+// shared paketdagi bilan BIR XIL (manba bitta: packages/shared/package.json).
+const paketlar = JSON.parse(readFileSync(join(ILDIZ, 'packages/shared/package.json'), 'utf8')).dependencies ?? {};
+
 for (const [manba, nusxa] of FAYLLAR) {
   let matn = readFileSync(join(ILDIZ, manba), 'utf8')
     // Deno `.ts` talab qiladi.
     .replace(/from '(\.[^']*)\.js'/g, "from '$1.ts'")
     // `tahlil.ts` paket nomi bilan import qiladi; nusxada — nisbiy yoʻl.
-    .replace(/from '@selleros\/shared'/g, "from './shared/index.ts'");
+    .replace(/from '@selleros\/shared'/g, "from './shared/index.ts'")
+    // npm paketi: `from '@anthropic-ai/sdk'` → `from 'npm:@anthropic-ai/sdk@0.133.0'`.
+    .replace(/from '(@?[a-z][\w.-]*(?:\/[\w.-]+)?)'/g, (butun, nom) => {
+      const asosi = nom.startsWith('@') ? nom.split('/').slice(0, 2).join('/') : nom.split('/')[0];
+      return paketlar[asosi] ? `from 'npm:${asosi}@${paketlar[asosi]}${nom.slice(asosi.length)}'` : butun;
+    });
 
   const chiqish = join(MAQSAD, nusxa);
   if (tekshirish) {
