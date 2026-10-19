@@ -449,24 +449,31 @@ export async function suhbatTurn(
  * tranzaksiyada — yarmi yozilib qolmaydi.
  */
 export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Promise<SuhbatJavobi> {
-  const h = boshlangichHolat();
-  const k = keyingi(h);
-  const savol: SuhbatXabari[] = k.tur === 'savol' ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id }] : [];
   // Eski suhbat «Suhbatlarim»da qoladi (2026-10-14): belgida uning holati — keyin davom ettirish uchun (0066).
   const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
   if (o === null || o.xato) {
-    return { xato: o?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: k, qadam: 1, yozildi: false };
+    return { xato: o?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: keyingi(boshlangichHolat()), qadam: 1, yozildi: false };
   }
+  // Shu brauzerda oldin tanishgan boʻlsa — ism va telefon QAYTA SOʻRALMAYDI (nazoratchi, 2026-10-19:
+  // "ikkinchi marta kirsa chat yana ism familya telefon soʻrayapti"): yangi suhbat ular bilan boshlanadi.
+  const ej = o.holat?.javoblar ?? {};
+  const tanish = typeof ej['ism'] === 'string' && typeof ej['telefon'] === 'string';
+  const h: YolHolati = tanish
+    ? { ...boshlangichHolat(), javoblar: { ism: ej['ism'], telefon: ej['telefon'] } }
+    : boshlangichHolat();
+  const k = keyingi(h);
+  const salom = tanish ? `${String(ej['ism']).split(' ')[0]}, xush kelibsiz! Yangi suhbatni boshladik — ism va telefoningiz saqlangan.\n\n` : '';
+  const savol: SuhbatXabari[] = k.tur === 'savol' ? [{ rol: 'menejer', matn: `${salom}${k.savol.matn}`, savolId: k.savol.id }] : [];
   const eski = o.holat ? { holat: o.holat, qadam: o.qadam ?? joriyQadam(o.holat) } : null;
   const y = await d.rpc<{ xato?: string }>('so_suhbat_yoz', {
     p_token: token,
     p_xabarlar: [{ rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan', javob: eski }, ...savol],
-    p_holat: h, p_qadam: 1, p_profil: null,
+    p_holat: h, p_qadam: joriyQadam(h), p_profil: null,
   });
   if (y === null || y.xato) {
     return { xato: y?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: k, qadam: 1, yozildi: false };
   }
-  return { xabarlar: savol, keyingi: k, qadam: 1, yozildi: true };
+  return { xabarlar: savol, keyingi: k, qadam: joriyQadam(h), yozildi: true };
 }
 
 /** 1-qadam qiziqishi (sohalar) — `null`: soʻralmagan yoki oʻtkazib yuborilgan. */

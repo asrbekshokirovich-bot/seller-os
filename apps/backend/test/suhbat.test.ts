@@ -647,6 +647,20 @@ describe('suhbatTurn', () => {
     expect(o.tarix).toEqual([b.jurnal[3]]);
   });
 
+  it('boshdan: shu brauzerda tanishgan boʻlsa — ism va telefon QAYTA SOʻRALMAYDI, ism bilan kutib oladi (2026-10-19)', async () => {
+    const b = soxtaBaza();
+    await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Aziz Karimov, +998 90 123 45 67' });
+    expect(b.holat()!.javoblar).toMatchObject({ ism: 'Aziz Karimov', telefon: '+998901234567' });
+    const r = await suhbatBoshdan(bogliq(b), 'tok');
+    expect(r.xato).toBeUndefined();
+    expect(b.holat()!.javoblar).toEqual({ ism: 'Aziz Karimov', telefon: '+998901234567' });
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'uzum_dokoni' } });
+    expect(r.xabarlar).toHaveLength(1);
+    expect(r.xabarlar[0]).toMatchObject({ rol: 'menejer', savolId: 'uzum_dokoni' });
+    expect(r.xabarlar[0]!.matn).toMatch(/^Aziz, xush kelibsiz! Yangi suhbatni boshladik/);
+    expect(r.xabarlar[0]!.matn).toMatch(/Oldin savdo qilganmisiz\?/);
+  });
+
   it('boshdan: baza yozmasa — xato, xabar yoʻq (sahifa ekranni oʻzgartirmaydi)', async () => {
     const b = soxtaBaza();
     await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', javob: 'Aziz Karimov' });
