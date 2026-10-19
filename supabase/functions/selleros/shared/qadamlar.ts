@@ -327,13 +327,16 @@ export function miqdor(
   if (oylikSotuv === null || oylikSotuv < 0) return null;
   const bizniki = (oylikSotuv * ulushFoiz) / 100;
   const dona = Math.max(1, Math.round((bizniki * zaxiraKun) / 30));
+  // Bir donadan kam chiqsa — «oyiga ~0 dona» emas (jonli sinov, 2026-10-19: «oyiga ~0 dona
+  // chiqadi, 30 kunlik zaxira esa 1 dona» — oʻqigan odam tushunmaydi).
+  const oylik = bizniki < 1 ? 'oyiga 1 donadan kam' : `oyiga ~${minglik(Math.round(bizniki))} dona`;
   return {
     dona,
     // Ulush — TAXMIN (`THRESHOLDS.usta.yangiSotuvchiUlushi`, oʻlchanmagan):
     // matnda bozor fakti ("odatda oladi") boʻlib koʻrinmasin (QOIDALAR.md, 4-boʻlim).
     hisob:
       `oyiga ~${minglik(Math.round(oylikSotuv))} dona sotiladi · ` +
-      `yangi sotuvchi ~${ulushFoiz}% oladi deb taxmin qilindi (oʻlchanmagan) → oyiga ~${minglik(Math.round(bizniki))} dona · ` +
+      `yangi sotuvchi ~${ulushFoiz}% oladi deb taxmin qilindi (oʻlchanmagan) → ${oylik} · ` +
       `${zaxiraKun} kunlik zaxira = ${minglik(dona)} dona`,
   };
 }

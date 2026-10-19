@@ -68,6 +68,11 @@ export interface AiYozSorovi {
   qabul: string[];
   /** Qabul qilinmaganlar: «savol» — sabab. */
   rad: string[];
+  /**
+   * Mijoz keyingi savollarga ham javob berdi — eslab qolindi: oʻsha savol kelganda soʻralmaydi,
+   * shu javob olinadi («savol» → javob).
+   */
+  eslab: string[];
   /** Mijoz gapida savol bor. */
   savolBor: boolean;
   /** Faktlar (`bilim.ts`). */
@@ -152,8 +157,10 @@ export const AI_YOZ_KORSATMA = [
   'Javobni JSON da uch qism bilan yoz — har qism chatda alohida pufak, boʻsh qism chiqmaydi:',
   '- oldin: mijoz SAVOL bergan, xavotir yoki tushunmovchilik bildirgan boʻlsa — avval shunga aniq javob (FAKTLAR, TAYYOR',
   'JAVOB, MIJOZ HOLATIdan; savolini eʼtiborsiz qoldirma). QABUL QILINMADI boʻlsa — nimasi tushunarsiz ekanini muloyim ayt.',
-  'Yozgan gapida muhim narsa boʻlsa (tajribasi, rejasi, qiyinchiligi) — unga qisqa, iliq munosabat. Oddiy tugma',
-  'bosilgan va aytadigan gap boʻlmasa — boʻsh qoldir.',
+  'Yozgan gapida muhim narsa boʻlsa (tajribasi, rejasi, qiyinchiligi) — unga qisqa, iliq munosabat. ESLAB QOLINDI boʻlsa —',
+  'buni qisqa ayt (masalan: «Pulni ham yozib qoʻydim — keyin qayta soʻramayman»). Oddiy tugma bosilgan yoki mijoz',
+  'shaxsiy maʼlumotini bergan va aytadigan muhim gap boʻlmasa — boʻsh qoldir: qisqa rahmat yoki bogʻlovchi gapni',
+  '«savol» boshida ayt.',
   '- izoh: YANGI NATIJALAR boʻlsa — ularni shu mijozga tushuntir: nima chiqdi, unga qaysi biri koʻproq mos va nega',
   '(tajribasi, qiziqqan sohasi, puli bilan bogʻlab). Asosiylarini nomi va raqami bilan ayt; hammasini sanab oʻtirma —',
   'kartalar ekranda turibdi. Natija boʻlmasa — boʻsh.',
@@ -207,6 +214,9 @@ export function aiYozMatni(k: AiYozSorovi): string {
       : '\nMIJOZ hozir hech narsa yozmadi (natija tayyor boʻldi yoki u shaxsiy maʼlumotini berdi — u senga koʻrsatilmaydi).',
     k.qabul.length ? `QABUL QILINDI:\n${k.qabul.map((x) => `- ${x}`).join('\n')}` : null,
     k.rad.length ? `QABUL QILINMADI:\n${k.rad.map((x) => `- ${x}`).join('\n')}` : null,
+    k.eslab.length
+      ? `ESLAB QOLINDI (mijoz keyingi savollarga ham javob berdi — oʻsha savol kelganda soʻralmaydi, shu javob olinadi):\n${k.eslab.map((x) => `- ${x}`).join('\n')}`
+      : null,
     k.savolBor ? 'MIJOZ GAPIDA SAVOL (yoki xavotir) BOR — «oldin» da avval unga javob ber.' : null,
     k.tayyor ? `TAYYOR JAVOB (savoliga; maʼnosi va raqamlarini saqla, oʻz soʻzing bilan ayt): ${k.tayyor}` : null,
     k.natijalar.length

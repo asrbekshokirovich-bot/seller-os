@@ -24,7 +24,7 @@ const SAVOL: SuhbatSavoli = {
 };
 
 const YOZ: AiYozSorovi = {
-  mijoz: null, tanlov: false, qabul: [], rad: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
+  mijoz: null, tanlov: false, qabul: [], rad: [], eslab: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
   keyingi: SAVOL, keyingiMatn: null, holat: '- Hozir: 1-qadam', tarix: '', til: 'uz', tuzat: null,
 };
 

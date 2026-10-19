@@ -152,6 +152,9 @@ describe('3-qadam — miqdor', () => {
 
   it('kichik bozorda ham kamida 1 dona', () => {
     expect(miqdor(1)!.dona).toBe(1);
+    // Bir donadan kam — «oyiga ~0 dona» emas (jonli sinov, 2026-10-19).
+    expect(miqdor(4)!.hisob).toContain('→ oyiga 1 donadan kam · 30 kunlik zaxira = 1 dona');
+    expect(miqdor(600)!.hisob).toContain('→ oyiga ~30 dona ·');
   });
 
   it('zaxira kuni ko\'paysa miqdor ham ko\'payadi', () => {
