@@ -40,6 +40,7 @@ import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
 import { boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
+import Yordamchi from '../Yordamchi';
 
 /**
  * Kengaytma rejimi (0.2.0): sahifa Chrome yon panelidagi ramkada ochiladi,
@@ -628,6 +629,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
       <div className={u.asosiy} inert={modal}>
         {obunaOchiq && <Obuna tr={tr} mavzu={mavzu} mavzuniTanla={mavzuniTanla} orqaga={() => yop('obuna')} sarlavha={sessiyaSarlavhasi} />}
+        {/* «Rejalar» ochiq — suhbat yashirin: savolni shu yerda bersin (nazoratchi, 2026-10-19: har sahifada AI). */}
+        {obunaOchiq && <Yordamchi sahifa="obuna" til={til} sarlavha={sessiyaSarlavhasi} boshlashHavolasi={false} />}
         <header className={u.tepa} style={yashir}>
           <div className={u.tepaChap}>
             <button type="button" className={u.burger} aria-label={tr('Menyu', 'Меню')} aria-expanded={menyu} onClick={menyuOch}>

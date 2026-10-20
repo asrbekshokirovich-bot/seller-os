@@ -24,6 +24,7 @@ import { useTil } from '@/lib/useTil';
 import { Havola } from '../Havola';
 import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
+import Yordamchi from '../Yordamchi';
 import k from './kirish.module.css';
 
 /** SMS provayder ulangach `true` — kod ekrani (w3) ochiladi. */
@@ -177,6 +178,8 @@ export default function Kirish({ tovar, til: boshTil }: { tovar: number | null; 
           </div>
         )}
       </main>
+      {/* «Savol bering» — har sahifada AI yordamchi (nazoratchi, 2026-10-19). */}
+      <Yordamchi sahifa="kirish" til={til} />
     </div>
   );
 }
