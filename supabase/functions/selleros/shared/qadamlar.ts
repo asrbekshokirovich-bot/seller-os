@@ -358,6 +358,22 @@ export interface TovarNomzodi extends TovarToliq {
   sharhSoni: number | null;
   /** Uzum rasmi (`product.image_key` dan, 0054). Kalit yoʻq boʻlsa — yoʻq. */
   rasmUrl?: string | null;
+  /** Oxirgi oʻlchov vaqti (ISO; `so_tovar_royxati` — `observed_at`). */
+  olchandi?: string | null;
+}
+
+/**
+ * Oʻlchov shundan eski boʻlsa — «hozir» deyilmaydi (jonli sinov, 2026-10-20: katalogdagi 20 tovarning
+ * 15 tasi «Uzumda hozir tugagan» edi, holbuki ularning oxirgi oʻlchovi 3-oktyabr va 24-avgust edi).
+ */
+export const ESKI_OLCHOV_KUN = 7;
+
+/** Oxirgi oʻlchov eski boʻlsa — uning sanasi (`YYYY-MM-DD`), yangi yoki nomaʼlum boʻlsa — `null`. */
+export function eskiOlchov(n: { olchandi?: string | null }, hozir: Date = new Date()): string | null {
+  if (!n.olchandi) return null;
+  const t = Date.parse(n.olchandi);
+  if (!Number.isFinite(t)) return null;
+  return hozir.getTime() - t > ESKI_OLCHOV_KUN * 86_400_000 ? n.olchandi.slice(0, 10) : null;
 }
 
 /**
