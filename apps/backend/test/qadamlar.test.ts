@@ -8,7 +8,29 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { miqdor, THRESHOLDS, yonalishlar, type TurkumNomzodi } from '@selleros/shared';
+import { eskiOlchov, miqdor, THRESHOLDS, tovarSatri, yonalishlar, type TovarTavsiyasi, type TurkumNomzodi } from '@selleros/shared';
+
+describe('eski oʻlchov (jonli sinov, 2026-10-20: «hozir tugagan» — 24-avgustdagi oʻlchov edi)', () => {
+  const HOZIR = new Date('2026-10-20T07:00:00.000Z');
+  it('7 kundan eski — sanasi; yangi, yoʻq yoki buzuq — null', () => {
+    expect(eskiOlchov({ olchandi: '2026-10-03T10:16:48.925879+00:00' }, HOZIR)).toBe('2026-10-03');
+    expect(eskiOlchov({ olchandi: '2026-10-19T19:19:47+00:00' }, HOZIR)).toBeNull();
+    expect(eskiOlchov({ olchandi: '2026-10-13T08:00:00+00:00' }, HOZIR)).toBeNull();
+    expect(eskiOlchov({ olchandi: null }, HOZIR)).toBeNull();
+    expect(eskiOlchov({}, HOZIR)).toBeNull();
+    expect(eskiOlchov({ olchandi: 'buzuq' }, HOZIR)).toBeNull();
+  });
+
+  it('AI faktida: eski tugagan — sanasi bilan, «hozir» emas; yangi — «hozir tugagan»', () => {
+    const t = (olchandi: string): TovarTavsiyasi => ({
+      nomzod: { productId: 1, title: 'Krossovka', soldUnits30d: 0, sotuvManbasi: 'olchandi', qoldiq: 0, olchandi,
+        olchanganKun: 29, shopName: null, narxSom: 100_000, reyting: null, sharhSoni: null } as TovarTavsiyasi['nomzod'],
+      miqdor: null, miqdorSababi: null, miqdorSababKodi: null, bayroqlar: [], baholanmadi: [],
+    });
+    expect(tovarSatri(t('2020-08-24T06:49:56+00:00'))).toContain('oxirgi oʻlchovda (24.08.2020) Uzumda qoldiq yoʻq edi, keyin qayta oʻlchanmagan');
+    expect(tovarSatri(t(new Date().toISOString()))).toContain('Uzumda hozir tugagan');
+  });
+});
 
 const U = THRESHOLDS.usta;
 const TOLIQ_MAVSUM = Array(12).fill(1.0);

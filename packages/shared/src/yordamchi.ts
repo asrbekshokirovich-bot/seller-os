@@ -12,7 +12,7 @@
  */
 
 import type { TovarTavsiyasi, Yonalish } from './qadamlar.js';
-import { sotuvToifasi } from './qadamlar.js';
+import { eskiOlchov, sotuvToifasi } from './qadamlar.js';
 import { SUHBAT_QADAMLARI, UZUM_DOKONI, type YolHolati } from './ssenariy.js';
 import { sohaNomi } from './soha.js';
 import { byudjetMatni } from './tanishuv.js';
@@ -42,8 +42,11 @@ export function yonalishSatri(y: Yonalish): string {
 export function tovarSatri(t: TovarTavsiyasi): string {
   const n = t.nomzod;
   const toifa = sotuvToifasi(n);
+  // Oʻlchov eski boʻlsa — «hozir tugagan» emas: qachon oʻlchangani aytiladi (2026-10-20).
+  const eski = eskiOlchov(n);
   const sotuv = toifa === 'sotildi' ? `oxirgi 30 kunda ~${guruh(n.soldUnits30d ?? 0)} dona sotilgan (oʻlchangan)`
-    : toifa === 'tugagan' ? 'Uzumda hozir tugagan'
+    : toifa === 'tugagan'
+      ? eski ? `oxirgi oʻlchovda (${eski.split('-').reverse().join('.')}) Uzumda qoldiq yoʻq edi, keyin qayta oʻlchanmagan` : 'Uzumda hozir tugagan'
       : toifa === 'sotilmadi' ? '30 kunda sotuv koʻrinmadi' : 'sotuvi hali oʻlchanmagan';
   const narx = n.narxSom ? `${guruh(n.narxSom)} soʻm` : 'narx nomaʼlum';
   const baho = n.reyting && n.sharhSoni ? `, baho ${n.reyting} (${guruh(n.sharhSoni)} ta sharh)` : '';
