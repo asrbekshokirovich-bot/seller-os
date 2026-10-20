@@ -1219,7 +1219,9 @@ function deklaratsiyaMatni(n: HisobotHisobNatijasi, shakl: unknown): string {
   const aylanma = f.aylanmaFoiz !== null ? `${f.aylanmaFoiz} % aylanmadan — ${soliqSom(n.soliq.aylanmaSom)}` : 'aylanma soligʻi foizi faktda yoʻq';
   const ijtimoiy = n.soliq.ijtimoiySom !== null ? `ijtimoiy soliq ${som(n.soliq.ijtimoiySom)}` : 'ijtimoiy soliq miqdori faktda yoʻq';
   // Bu muddat — ijtimoiy soliq toʻlovi muddati; shunday aytiladi (deklaratsiya muddati emas).
-  const muddat = n.ijtimoiyMuddat ? `Ijtimoiy soliq muddati — ${sanaMatni(n.ijtimoiyMuddat)} gacha.` : 'Ijtimoiy soliq muddati faktda yoʻq.';
+  const muddat = !n.ijtimoiyMuddat ? 'Ijtimoiy soliq muddati faktda yoʻq.'
+    : n.ijtimoiyOtgan ? `Ijtimoiy soliq muddati ${sanaMatni(n.ijtimoiyMuddat)} edi — oʻtib ketdi: toʻlanmagan boʻlsa, imkon qadar tezroq toʻlang.`
+      : `Ijtimoiy soliq muddati — ${sanaMatni(n.ijtimoiyMuddat)} gacha.`;
   return `${bosh} Sotuv ${som(n.sotuvSom)}${manba}, komissiya ${n.komissiyaSom !== null ? som(n.komissiyaSom) : 'yozilmagan'}, sof ${sof}. Soliq: YATT uchun ${aylanma}; ${ijtimoiy}.${shaklIzohi(shakl, true)} ${muddat} Deklaratsiyani tayyorlaymizmi?`;
 }
 

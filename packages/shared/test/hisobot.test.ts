@@ -98,6 +98,24 @@ describe('hisobotMuddati — aylanma soligʻi hisoboti davri faktdan', () => {
   });
 });
 
+describe('ijtimoiy soliq muddati oʻtgan (jonli sinov, 2026-10-20: 20-oktyabrda «15.10.2026 gacha toʻlang»)', () => {
+  const f = hisobotFaktlari(FAKT);
+  const hisob = (bugun?: string) => oyHisobi({ oy: '2026-09', kabinetSotuv: 5_000_000, olchovSotuv: null, komissiya: null, f, ...(bugun ? { bugun } : {}) });
+
+  it('bugun muddatdan keyin — oʻtgan; shu kuni yoki oldin — oʻtmagan; bugun berilmasa — oʻtmagan', () => {
+    expect(hisob('2026-10-20').ijtimoiyOtgan).toBe(true);
+    expect(hisob('2026-10-15').ijtimoiyOtgan).toBe(false);
+    expect(hisob('2026-10-03').ijtimoiyOtgan).toBe(false);
+    expect(hisob().ijtimoiyOtgan).toBe(false);
+  });
+
+  it('deklaratsiya qadami: oʻtgan boʻlsa — «oʻtib ketdi … tezroq toʻlang», «gacha toʻlang» emas', () => {
+    const q = deklaratsiyaQadamlari(hisob('2026-10-20'), f);
+    expect(q[2]).toBe('Ijtimoiy soliq: 440 000 soʻm, muddati 15.10.2026 edi — oʻtib ketdi: toʻlanmagan boʻlsa, imkon qadar tezroq toʻlang.');
+    expect(deklaratsiyaQadamlari(hisob('2026-10-03'), f)[2]).toMatch(/15\.10\.2026 gacha toʻlang/);
+  });
+});
+
 describe('deklaratsiyaQadamlari', () => {
   it('beshta qadam, raqamlar va manzillar faktdan; tasdiqlanmagan qoida shunday aytiladi', () => {
     const f = hisobotFaktlari(FAKT);

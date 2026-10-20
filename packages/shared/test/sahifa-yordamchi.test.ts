@@ -9,8 +9,10 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  SAHIFA_TAVSIFI, sahifaJavobi, sahifaSoroviMatni, sahifaTarixi, type SahifaSorovi,
+  SAHIFA_KORSATMA, SAHIFA_TAVSIFI, sahifaJavobi, sahifaSoroviMatni, sahifaTarixi, type SahifaSorovi,
 } from '../src/sahifa-yordamchi';
+import { AI_YOZ_KORSATMA, SAYT_NOMLARI } from '../src/ai-suhbat';
+import { tayyorJavob } from '../src/erkin';
 
 /** Soxta AI: soʻrovlarni yozadi, javoblarni navbat bilan qaytaradi (oxirgisi takrorlanadi). */
 function soxta(javoblar: Array<string | null>) {
@@ -69,9 +71,9 @@ describe('sahifa yordamchisi', () => {
     expect(r1.manba).toBe('baza');
     const r2 = await sahifaJavobi({ ai: null }, { ...K, savol: 'qwerty zxcv' });
     expect(r2.manba).toBe('shablon');
-    expect(r2.matn).toContain('«Boshlash»');
+    expect(r2.matn).toContain('«Yoʻlni boshlash»');
     const r3 = await sahifaJavobi({ ai: null }, { ...K, savol: 'йцукен фыва' });
-    expect(r3.matn).toContain('«Начать»');
+    expect(r3.matn).toContain('«Начать путь»');
   });
 
   it('AI yiqilsa (null yoki xato) — bazadagi javob', async () => {
@@ -98,5 +100,23 @@ describe('sahifa yordamchisi', () => {
     const t = sahifaTarixi(kop);
     expect(t).toHaveLength(6);
     expect(t[0]!.matn).toBe('3'.repeat(500));
+  });
+
+  it('sayt nomlari — AI tarjima qilib toʻqimasin (jonli sinov, 2026-10-20: «Рејаларни солиштириш»)', () => {
+    expect(SAYT_NOMLARI).toContain('«Rejalarni solishtirish»');
+    expect(SAYT_NOMLARI).toContain('(«Сравнить тарифы»)');
+    expect(SAYT_NOMLARI).toContain('(«Мой профиль»)');
+    expect(SAHIFA_KORSATMA).toContain(SAYT_NOMLARI);
+    expect(AI_YOZ_KORSATMA).toContain(SAYT_NOMLARI);
+    // Boshlash — oynadagi havola nomi bilan; «Rejalar» suhbat ichida — boshlashni taklif qilmaydi.
+    expect(SAHIFA_KORSATMA).toContain('«Yoʻlni boshlash» havolasi (rus tilida — «Начать путь»)');
+    expect(SAHIFA_TAVSIFI.obuna).toContain('suhbatni boshlashni taklif');
+    expect(SAHIFA_TAVSIFI.bosh).toContain('«Suhbatni boshlash»');
+  });
+
+  it('maxfiylik javobida eski provayder nomi yoʻq (Gemini → Claude, 2026-10-19)', () => {
+    const j = tayyorJavob('telefon raqamim kimga ketadi?');
+    expect(j).not.toBeNull();
+    expect(`${j!.uz} ${j!.ru}`).not.toMatch(/Gemini/u);
   });
 });

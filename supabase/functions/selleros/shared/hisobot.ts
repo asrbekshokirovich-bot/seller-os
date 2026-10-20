@@ -157,6 +157,11 @@ export interface OyHisobi {
   soliq: OylikSoliq;
   /** Ijtimoiy soliq toʻlov muddati (keyingi oyning `tolovKuni`-sanasi). */
   ijtimoiyMuddat: string | null;
+  /**
+   * Muddat bugundan oldin — oʻtib ketgan (jonli sinov, 2026-10-20: sentyabr hisobotida 20-oktyabrda
+   * «15.10.2026 gacha toʻlang» deyildi). Eski natijada yoʻq — `undefined` (oʻtmagan deb olinadi).
+   */
+  ijtimoiyOtgan?: boolean;
   /** Uzum komissioner hisoboti tayyor boʻladigan sana (keyingi oy). */
   komissionerSana: string | null;
   yetishmaydi: string[];
@@ -173,6 +178,8 @@ function son(x: unknown): number | null {
  */
 export function oyHisobi(q: {
   oy: string; kabinetSotuv: unknown; olchovSotuv: unknown; komissiya: unknown; f: HisobotFaktlar;
+  /** Bugun (Toshkent, `YYYY-MM-DD`) — muddat oʻtganini bilish uchun. */
+  bugun?: string;
 }): OyHisobi {
   const kabinet = son(q.kabinetSotuv);
   const olchov = son(q.olchovSotuv);
@@ -181,6 +188,7 @@ export function oyHisobi(q: {
   const soliq = oylikSoliq(q.f.soliq, sotuvSom);
   const yetishmaydi = [...soliq.yetishmaydi];
   if (komissiyaSom === null) yetishmaydi.push('komissiya summasi');
+  const ijtimoiyMuddat = keyingiOySanasi(q.oy, q.f.soliq.tolovKuni);
   return {
     oy: q.oy,
     sotuvSom,
@@ -188,7 +196,8 @@ export function oyHisobi(q: {
     komissiyaSom,
     sofSom: sotuvSom !== null && komissiyaSom !== null ? sotuvSom - komissiyaSom : null,
     soliq,
-    ijtimoiyMuddat: keyingiOySanasi(q.oy, q.f.soliq.tolovKuni),
+    ijtimoiyMuddat,
+    ijtimoiyOtgan: Boolean(ijtimoiyMuddat && q.bugun && ijtimoiyMuddat < q.bugun),
     komissionerSana: keyingiOySanasi(q.oy, q.f.komissionerKun),
     yetishmaydi,
   };
@@ -207,7 +216,9 @@ export function deklaratsiyaQadamlari(h: OyHisobi, f: HisobotFaktlar): string[] 
   // Fakt yoʻq boʻlsa gap butunicha boshqacha quriladi: "muddat faktda yoʻq
   // gacha", "(? %)" kabi chala gap chiqmasin (tekshiruv, 2026-10-05).
   const ijtimoiy = s.ijtimoiySom !== null ? `${minglik(s.ijtimoiySom)} soʻm` : 'miqdori faktda yoʻq';
-  const muddat = h.ijtimoiyMuddat ? `${sanaMatni(h.ijtimoiyMuddat)} gacha toʻlang, sotuv boʻlmasa ham` : 'toʻlov muddati faktda yoʻq — sotuv boʻlmasa ham toʻlanadi';
+  const muddat = !h.ijtimoiyMuddat ? 'toʻlov muddati faktda yoʻq — sotuv boʻlmasa ham toʻlanadi'
+    : h.ijtimoiyOtgan ? `muddati ${sanaMatni(h.ijtimoiyMuddat)} edi — oʻtib ketdi: toʻlanmagan boʻlsa, imkon qadar tezroq toʻlang`
+      : `${sanaMatni(h.ijtimoiyMuddat)} gacha toʻlang, sotuv boʻlmasa ham`;
   return [
     `Uzum kabinetidan ${oyNomi(h.oy)} uchun komissioner hisobotini yuklab oling${h.komissionerSana ? ` (${sanaMatni(h.komissionerSana)} gacha tayyor boʻladi)` : ''} — soliq hisobotining asos hujjati.`,
     f.portalUrl ? `${f.portalUrl} ga E-imzo (ERI) bilan kiring.` : 'Soliq portaliga E-imzo (ERI) bilan kiring (portal manzili faktda yoʻq).',

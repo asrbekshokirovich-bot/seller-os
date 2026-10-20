@@ -43,6 +43,7 @@ import { type AloqaJavoblari, type Keyingi, type KodHarakati, type SuhbatSavoli,
 import type { Darvoza } from './tarif.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
+import { sanaMatni, toshkentSanasi } from './hisobot.js';
 import { tayyorJavob } from './erkin.js';
 import { yordamchiBilimi } from './bilim.js';
 import { bilimJavobi, PUL_GAPI } from './bilim-javob.js';
@@ -587,7 +588,7 @@ export async function suhbatTurn(
       }),
       keyingi: k.tur === 'savol' ? k.savol : null, keyingiMatn: k.tur === 'savol' ? null : k.matn,
       holat: mijozHolati(holat, joriyQadam(holat)), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
-      eslab: eslabGaplari(holat, eslab, navbat), til: ak.til, tuzat: null,
+      eslab: eslabGaplari(holat, eslab, navbat), til: ak.til, bugun: bugunMatni(), tuzat: null,
     }, kodlar.flatMap((i) => natijaSonlari(yangi[i]!.javob)), qoldi);
     if (y) {
       aiXabarlariniQoy(yangi, y, ak, kodlar, k);
@@ -1171,6 +1172,11 @@ function llmsiz(d: SuhbatBogliqliklari): SuhbatBogliqliklari {
   return r;
 }
 
+/** Bugun — Toshkent vaqti, `kk.oo.yyyy` (AI muddatlar haqida rost gapirsin). */
+function bugunMatni(): string {
+  return sanaMatni(toshkentSanasi(new Date()));
+}
+
 /** Chat va LLM uchun matn uzunligi chegarasi. */
 function qisqartir(t: string): string {
   return t.length > ERKIN_MAX ? `${t.slice(0, ERKIN_MAX)}…` : t;
@@ -1320,7 +1326,7 @@ async function aiErkinXabar(
     // Javob ham, rad ham boʻlmasa — mijoz nimadir soʻradi yoki aytdi: unga javob kerak.
     savolBor: t.savolBor || t.sabab === null, bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor: baza?.matn ?? null,
     natijalar: [], eslab: t.eslab, keyingi: k1.savol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
-    tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), tuzat: null,
+    tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), bugun: bugunMatni(), tuzat: null,
   }, [], qoldi) : null;
   if (!y) return erkinXabar(llmsiz(d), token, holat, k0, matn, t.sabab, xabarlar);
   const savolBor = songgi.some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);

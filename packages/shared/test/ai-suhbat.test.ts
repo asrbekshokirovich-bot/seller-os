@@ -25,7 +25,7 @@ const SAVOL: SuhbatSavoli = {
 
 const YOZ: AiYozSorovi = {
   mijoz: null, tanlov: false, qabul: [], rad: [], eslab: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
-  keyingi: SAVOL, keyingiMatn: null, holat: '- Hozir: 1-qadam', tarix: '', til: 'uz', tuzat: null,
+  keyingi: SAVOL, keyingiMatn: null, holat: '- Hozir: 1-qadam', tarix: '', til: 'uz', bugun: '20.10.2026', tuzat: null,
 };
 
 describe('javobni oʻqish', () => {
@@ -70,6 +70,8 @@ describe('soʻrov matni', () => {
     expect(m).toContain('YANGI NATIJALAR: yoʻq.');
     expect(m).toContain('KEYINGI SAVOL:\nid: qiziqish');
     expect(m).not.toContain('JAVOB TILI');
+    // Bugun — muddatlar haqida rost gapirsin (2026-10-20).
+    expect(m).toContain('BUGUN: 20.10.2026 (Toshkent vaqti).');
     const ru = aiYozMatni({ ...YOZ, mijoz: 'Ha', tanlov: true, til: 'ru', tuzat: 'juda uzun.', rad: ['«X» — sabab'] });
     expect(ru).toContain('MIJOZ TUGMANI BOSDI: «Ha»');
     expect(ru).toContain('JAVOB TILI: rus tili');
