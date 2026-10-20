@@ -38,9 +38,13 @@ from .manbalar.uzum_client import Natija, sorov
 from .store import Store, StoreError
 from .token import TokenProvider
 
-#: Bir ishda Uzumga nechta tekshiruv so'rovi. 3 so'rov/soniyada ~11 daqiqa —
-#: «O'lchash» (6 000 tovar) bilan birga 180 daqiqalik ishga sig'adi.
+#: Bir ishda Uzumga nechta tekshiruv so'rovi. Birinchi jonli ish (2026-10-20): 2 000
+#: so'rov 22 daqiqa (javob kutish bilan ~0,66 s) — «O'lchash» (6 000 tovar) bilan birga
+#: 180 daqiqalik ishga sig'adi.
 MAX_SOROV = 2_000
+#: Vaqt chegarasi ham: Uzum sekinlatsa (429 — kechikish 8 barobargacha) so'rovlar soni
+#: yetmasdan vaqt tugashi mumkin — «O'lchash» ga vaqt qolsin (u asosiy ish).
+MAX_DAQIQA = 30.0
 
 
 @dataclass
@@ -54,6 +58,7 @@ class AlmashtirHisobot:
     juftlar: list[dict[str, Any]] = field(default_factory=list)
     rad: list[int] = field(default_factory=list)
     toxtadi: str | None = None
+    vaqt_tugadi: bool = False
 
     @property
     def xato_darajasi(self) -> float:
@@ -67,14 +72,18 @@ def almashtir(
     tokens: TokenProvider,
     limits: Limits | None = None,
     max_sorov: int = MAX_SOROV,
+    max_daqiqa: float = MAX_DAQIQA,
     uxla: Callable[[float], None] = time.sleep,
+    soat: Callable[[], float] = time.monotonic,
 ) -> AlmashtirHisobot:
     """Har o'lik o'rin uchun nomzodlarni tartib bilan o'lchaydi; birinchi sotuvdagisi — juft.
 
     Bir nomzod shu ishda bir marta so'raladi (qo'shni o'ringa ham taklif qilingan
-    bo'lishi mumkin) va bir marta juft bo'ladi.
+    bo'lishi mumkin) va bir marta juft bo'ladi. So'rovlar soni yoki vaqt tugasa —
+    topilgan juftlar bilan to'xtaydi (ular baribir yoziladi).
     """
     limits = limits or Limits()
+    muddat = soat() + max_daqiqa * 60
     h = AlmashtirHisobot(olik=int(nomzodlar.get("olik_jami") or 0))
     #: id -> yaroqlimi (qoldig'i bor, turkumi mos). Shu ishda qayta so'ralmaydi.
     yaroqli: dict[int, bool] = {}
@@ -82,7 +91,7 @@ def almashtir(
     token = tokens.get(client)
 
     for slot in nomzodlar.get("slotlar") or []:
-        if h.toxtadi or h.sorovlar >= max_sorov:
+        if h.toxtadi or h.vaqt_tugadi or h.sorovlar >= max_sorov:
             break
         h.slotlar += 1
         turkum = slot.get("turkum")
@@ -92,6 +101,9 @@ def almashtir(
                 continue
             if pid not in yaroqli:
                 if h.sorovlar >= max_sorov:
+                    break
+                if soat() >= muddat:
+                    h.vaqt_tugadi = True
                     break
                 h.sorovlar += 1
                 javob = sorov(client, tokens.headers(token), pid, stok=True)
@@ -139,6 +151,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="selleros_scraper almashtir",
                                 description="Uzoq tugagan kuzatuv tovarlarini sotuvdagisi bilan almashtiradi.")
     p.add_argument("--max-sorov", type=int, default=MAX_SOROV, help="Uzumga eng ko'p so'rov.")
+    p.add_argument("--max-daqiqa", type=float, default=MAX_DAQIQA, help="Tekshiruvga eng ko'p vaqt, daqiqa.")
     p.add_argument("--kun", type=int, default=14, help="Necha kun qoldiqsiz bo'lsa — o'lik.")
     p.add_argument("--rps", type=float, default=Limits.per_second, help="So'rov/soniya.")
     p.add_argument("--quruq", action="store_true",
@@ -155,7 +168,8 @@ def main(argv: list[str] | None = None) -> int:
     limits = Limits(per_second=args.rps)
     with httpx.Client(timeout=120.0) as baza, httpx.Client(timeout=limits.timeout_s) as uzum:
         nomzodlar = store.almashtir_nomzodlari(baza, kun=args.kun)
-        h = almashtir(nomzodlar, client=uzum, tokens=tokens, limits=limits, max_sorov=args.max_sorov)
+        h = almashtir(nomzodlar, client=uzum, tokens=tokens, limits=limits,
+                      max_sorov=args.max_sorov, max_daqiqa=args.max_daqiqa)
         # Avval yoziladi, keyin hisobot: hisobot niyatni emas, bazadan qaytganini aytsin.
         yozildi = None
         if not args.quruq and (h.juftlar or h.rad):
@@ -169,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         "juftlar": len(h.juftlar),
         "rad": len(h.rad),
         "to'xtadi": h.toxtadi,
+        "vaqt_tugadi": h.vaqt_tugadi,
         "sabab": nomzodlar.get("sabab"),
         "bazada": yozildi,
         "quruq": args.quruq,

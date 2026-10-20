@@ -106,6 +106,17 @@ def test_sorov_byudjeti():
     assert h.juftlar == []
 
 
+def test_VAQT_TUGASA_TOXTAYDI_TOPILGANI_QOLADI():
+    """Uzum sekinlatsa — vaqt tugaydi; «O'lchash» ga vaqt qolsin, topilgan juftlar yo'qolmasin."""
+    c, soralgan = uzum({11: tovar(11), 21: tovar(21, qoldiq=0), 22: tovar(22)})
+    vaqt = iter([0.0, 10.0, 70.0, 130.0])  # boshlanish, 1-so'rov, 2-so'rov oldidan; chegara 1 daqiqa
+    h = almashtir({"slotlar": [slot(1, 11), slot(2, 21, 22)]}, client=c, tokens=tokens(),
+                  max_daqiqa=1.0, uxla=UXLAMA, soat=lambda: next(vaqt))
+    assert h.vaqt_tugadi is True
+    assert soralgan == [11]
+    assert [j["yangi"] for j in h.juftlar] == [11]
+
+
 def test_token_olsa_yangilab_osha_id_qayta_soraladi():
     holat = {"marta": 0}
 
