@@ -132,6 +132,17 @@ yoʻq" emas. 12-qadam faktlari (0060): `soliq.agent`,
 `soliq.aylanma.hisobot_davri`, `soliq.aylanma.hisobot_kun`,
 `soliq.portal.url`, `uzum.hisobot.komissioner_kun`.
 
+### `kuzatuv_rad` (0068) va kuzatuvni yangilash
+Kuzatuv namunasi (0014, 2026-08-24) endi har skreyper ishida yangilanadi:
+14 kun qoldiqsiz (yoki oʻlchanmagan) turkum oʻrni — oʻsha turkumning sotuvdagi
+tovari bilan almashtiriladi. `so_almashtir_nomzodlari(p_kun, p_turkum, p_nomzod)`
+— oʻrinlar va nomzodlar (perepis, talab boʻlagi yaqini; turkumlar navbat bilan);
+skreyper nomzodni Uzumda oʻlchaydi (`almashtir.py`); `so_almashtir(p_juftlar,
+p_rad)` — eskisi `active = false`, yangisi oʻsha turkum va boʻlak bilan.
+`kuzatuv_rad`: `external_id`, `tekshirildi_at` — qoldigʻi yoʻq yoki turkumi
+boshqa chiqqan nomzod, 14 kun qayta taklif qilinmaydi. `so_tovar_royxati` —
+faqat faol namuna (`tracked_product.active`, shu turkumniki).
+
 ## 2. Kunlik tarix
 
 ### `product_observation` — xom o'lchov
