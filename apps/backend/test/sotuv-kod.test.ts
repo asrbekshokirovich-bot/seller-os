@@ -189,6 +189,21 @@ describe('hisobot (12-qadam)', () => {
     expect(hh).toMatchObject({ oy: '2026-09', sotuvSom: 4_000_000, sotuvManbasi: 'kabinet', komissiyaSom: 600_000, sofSom: 3_400_000, ijtimoiyMuddat: '2026-10-15', komissionerSana: '2026-10-19' });
     expect(hh.soliq).toMatchObject({ aylanmaSom: 40_000, ijtimoiySom: 440_000, jamiSom: 480_000 });
     expect(hh.qadamlar).toHaveLength(5);
+    // 30-sentyabrda 15-oktyabr muddati hali oldinda.
+    expect(hh.ijtimoiyOtgan).toBe(false);
+  });
+
+  it('hisobotHisob: ijtimoiy soliq muddati oʻtib ketgan — bugun (Toshkent) bilan aniqlanadi (jonli sinov, 2026-10-20)', async () => {
+    const k = kod(soxtaBaza(), true, () => new Date('2026-10-20T07:00:00.000Z'));
+    const hn = await k.hisobot(holatYasa());
+    const hh = await k.hisobotHisob(holatYasa({ oy_sotuv: 4_000_000, oy_komissiya: 600_000 }, { hisobot: { ...hn, oy: '2026-09' } }));
+    expect(hh.ijtimoiyMuddat).toBe('2026-10-15');
+    expect(hh.ijtimoiyOtgan).toBe(true);
+    expect(hh.qadamlar[2]).toContain('oʻtib ketdi');
+    // Toshkentda 15-oktyabr hali tugamagan (UTC 18:00 = 23:00) — oʻtmagan.
+    const k2 = kod(soxtaBaza(), true, () => new Date('2026-10-15T18:00:00.000Z'));
+    const hh2 = await k2.hisobotHisob(holatYasa({ oy_sotuv: 4_000_000, oy_komissiya: 600_000 }, { hisobot: { ...hn, oy: '2026-09' } }));
+    expect(hh2.ijtimoiyOtgan).toBe(false);
   });
 
   it('hisobotYakun: bajarilmagan — toʻlov va kutyapman ishlari, muddat bilan; reja har tovarga', async () => {

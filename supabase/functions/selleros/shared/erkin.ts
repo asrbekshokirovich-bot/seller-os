@@ -87,12 +87,13 @@ const JAVOBLAR: Record<string, TayyorJavob> = {
       + 'за единицу (предельная цена), на 5-м — найдём похожие предложения на 1688. Дальше заказ, оформление, приёмка, '
       + 'фото и загрузка на Uzum — на каждом шаге покажу, что делать.',
   },
-  // Maxfiylik sahifasidagi gap bilan bir xil (ism va telefon Gemini ga yuborilmaydi — `SHAXSIY_SAVOLLAR`).
+  // Maxfiylik sahifasidagi gap bilan bir xil (ism va telefon sunʼiy intellektga yuborilmaydi — `SHAXSIY_SAVOLLAR`).
+  // Provayder nomi yozilmaydi: 2026-10-19 da Gemini dan Claude ga oʻtildi va bu gap eskirgan edi (jonli sinov, 10-20).
   maxfiylik: {
     uz: 'Ism va telefon raqamingiz faqat siz bilan bogʻlanish uchun soʻraladi. Ular boshqa hech kimga berilmaydi va '
-      + 'sunʼiy intellektga (Gemini) yuborilmaydi. Batafsil — «Maxfiylik siyosati» sahifasida.',
+      + 'sunʼiy intellektga yuborilmaydi. Batafsil — «Maxfiylik siyosati» sahifasida.',
     ru: 'Имя и номер телефона нужны только для связи с вами. Они никому не передаются и не отправляются '
-      + 'искусственному интеллекту (Gemini). Подробнее — в «Политике конфиденциальности».',
+      + 'искусственному интеллекту. Подробнее — в «Политике конфиденциальности».',
   },
 };
 

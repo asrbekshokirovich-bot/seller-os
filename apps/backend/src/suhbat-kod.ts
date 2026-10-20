@@ -1164,7 +1164,9 @@ export function suhbatKodHarakatlari(
       const hn = holat.natijalar.hisobot as HisobotNatijasi | undefined;
       const faktlar = hn?.faktlar ?? hisobotFaktlari({});
       const oy = hn?.oy ?? oyKaliti((xitoy?.hozir ?? (() => new Date()))());
-      const hisob = oyHisobi({ oy, kabinetSotuv: holat.javoblar['oy_sotuv'], olchovSotuv: hn?.olchovSotuv ?? null, komissiya: holat.javoblar['oy_komissiya'], f: faktlar });
+      // Bugun (Toshkent) — ijtimoiy soliq muddati oʻtib ketgan boʻlsa, «… gacha toʻlang» deyilmaydi (2026-10-20).
+      const bugun = toshkentSanasi((xitoy?.hozir ?? (() => new Date()))());
+      const hisob = oyHisobi({ oy, kabinetSotuv: holat.javoblar['oy_sotuv'], olchovSotuv: hn?.olchovSotuv ?? null, komissiya: holat.javoblar['oy_komissiya'], f: faktlar, bugun });
       // Soliq hisobi YATT uchun — 7-qadamda boshqa shakl aytilgan boʻlsa matn shuni aytadi.
       const shakl = typeof holat.javoblar['huquqiy_shakl'] === 'string' ? holat.javoblar['huquqiy_shakl'] : null;
       return { ...hisob, tugagan: hn?.tugagan ?? true, qamrov: hn ? hisobotQamrovi(hn) : null, shakl, faktlar, qadamlar: deklaratsiyaQadamlari(hisob, faktlar), izoh: IZOH };

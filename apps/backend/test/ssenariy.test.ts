@@ -1477,6 +1477,11 @@ describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
     if (k2.tur !== 'savol') throw new Error(k2.tur);
     expect(k2.savol.id).toBe('deklaratsiya');
     expect(k2.savol.matn).toBe('Oy tugadi (2026-yil sentyabr). Sotuv 2 600 000 soʻm, komissiya 400 000 soʻm, sof 2 200 000 soʻm. Soliq: YATT uchun 1 % aylanmadan — 26 000 soʻm; ijtimoiy soliq 440 000 soʻm. Ijtimoiy soliq muddati — 15.10.2026 gacha. Deklaratsiyani tayyorlaymizmi?');
+    // Muddat oʻtib ketgan boʻlsa — «gacha» emas (jonli sinov, 2026-10-20).
+    const kOtgan = keyingi(natijaniYoz(h, 'hisobot_hisob', { ...HISOBOT_HISOB, ijtimoiyOtgan: true }));
+    if (kOtgan.tur !== 'savol') throw new Error(kOtgan.tur);
+    expect(kOtgan.savol.matn).toContain('Ijtimoiy soliq muddati 15.10.2026 edi — oʻtib ketdi: toʻlanmagan boʻlsa, imkon qadar tezroq toʻlang.');
+    expect(kOtgan.savol.matn).not.toContain('15.10.2026 gacha');
     h = javob(h, 'deklaratsiya', 'tayyorlaymiz');
     const k3 = keyingi(h);
     if (k3.tur !== 'savol') throw new Error(k3.tur);

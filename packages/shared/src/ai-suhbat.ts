@@ -88,6 +88,11 @@ export interface AiYozSorovi {
   holat: string;
   tarix: string;
   til: Yozuv;
+  /**
+   * Bugun (Toshkent, `kk.oo.yyyy`) — muddatlar haqida rost gapirsin: oʻtgan sanaga «… gacha» demasin
+   * (jonli sinov, 2026-10-20: 20-oktyabrda «15.10.2026 gacha toʻlang»).
+   */
+  bugun: string;
   /** Oldingi javob darvozadan oʻtmadi — nima uchun. */
   tuzat: string | null;
 }
@@ -148,6 +153,18 @@ export const AI_TUSHUN_KORSATMA = [
   '- Mijoz shevada, ruscha, lotin yoki kirillda, xato bilan yozishi mumkin («potinka», «vapshe», «telfon») — maʼnosini tushun.',
 ].join('\n');
 
+/**
+ * Sayt tugma va boʻlim nomlari — AI ularni oʻzidan tarjima qilmasin (jonli sinov, 2026-10-20: rus
+ * javobida «Профилим» → «Рејаларни солиштириш» chiqdi; sahifada esa «Мой профиль» → «Сравнить тарифы»).
+ * Javob variantlari (tugmalar) serverdan — rus sahifasida ham oʻzbekcha.
+ */
+export const SAYT_NOMLARI = [
+  '- Sayt tugma va boʻlim nomlarini aynan shunday yoz (rus tilida javob bersang — qavs ichidagisini): «Davom etish»',
+  '(«Продолжить»), «Oʻtkazib yuborish» («Пропустить»), «Profilim» («Мой профиль»), «Rejalarni solishtirish»',
+  '(«Сравнить тарифы»), «Boshidan boshlash» («Начать заново»), «Suhbatlarim» («Мои чаты»), «Suhbatni boshlash»',
+  '(«Начать чат»). Javob variantlari (tugmalar) nomi ikkala tilda ham oʻzbekcha koʻrinadi — ularni aynan, tarjima qilmay yoz.',
+].join('\n');
+
 export const AI_YOZ_KORSATMA = [
   'Sen «ZumSavdo yordamchisi»san: Uzumda birinchi marta sotuvchi boʻlayotgan odamni 12 qadamli yoʻl boʻyicha olib',
   'borasan — nima sotishni tanlashdan tortib Xitoydan olib kelib Uzumda sotishgacha. Suhbatni sen olib borasan: erkin,',
@@ -177,9 +194,11 @@ export const AI_YOZ_KORSATMA = [
   '- Foyda, sotuv yoki daromad vaʼda qilma; «kafolat» («кафолат», «гарантия») soʻzi yoʻq. Qaror mijozniki.',
   '- Roʻyxatda yoʻq tovar yoki yoʻnalishni oʻzingdan taklif qilma.',
   '- QABUL QILINMADI boʻlsa — KEYINGI SAVOL oʻsha savolning oʻzi: uni qayta soʻra.',
+  '- Muddat yoki sana BUGUNdan oldin boʻlsa — «… gacha» dema: muddati oʻtganini ochiq ayt.',
   '- «AI», «model», «sunʼiy intellekt», «tizim» soʻzlari yoʻq; mijoz «robotmisiz?» desa — «ZumSavdo dasturining',
   'yordamchisiman, odam emasman».',
   '- Mijoz salom bermagan boʻlsa salom bilan boshlama. Markdown, sarlavha, yulduzcha, roʻyxat belgisi yoʻq.',
+  SAYT_NOMLARI,
 ].join('\n');
 
 /** Savol tavsifi — AI uchun: id, qadam, turi, matni, variantlari (qiymat = nom). */
@@ -207,6 +226,7 @@ export function aiTushunMatni(k: AiTushunSorovi): string {
 export function aiYozMatni(k: AiYozSorovi): string {
   return [
     k.bilim ? `FAKTLAR:\n${k.bilim}\n` : null,
+    `BUGUN: ${k.bugun} (Toshkent vaqti).`,
     `MIJOZ HOLATI:\n${k.holat}`,
     k.tarix ? `\nSUHBAT (oxirgi xabarlar):\n${k.tarix}` : null,
     k.mijoz !== null

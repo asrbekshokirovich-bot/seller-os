@@ -19,6 +19,7 @@ import { yordamchiBilimi } from './bilim.ts';
 import { bilimJavobi } from './bilim-javob.ts';
 import { tekshir } from './tekshiruv.ts';
 import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.ts';
+import { SAYT_NOMLARI } from './ai-suhbat.ts';
 
 export type Sahifa = 'bosh' | 'kirish' | 'maxfiylik' | 'obuna';
 export const SAHIFALAR: readonly Sahifa[] = ['bosh', 'kirish', 'maxfiylik', 'obuna'];
@@ -26,12 +27,14 @@ export const SAHIFALAR: readonly Sahifa[] = ['bosh', 'kirish', 'maxfiylik', 'obu
 /** Sahifa nima haqida — AI javobni shunga bogʻlasin. */
 export const SAHIFA_TAVSIFI: Record<Sahifa, string> = {
   bosh: 'Bosh sahifa: ZumSavdo nima qilishi, 12 qadamli yoʻl (nima sotishni tanlashdan Uzumda sotishgacha), bazada nechta '
-    + 'tovar kuzatilayotgani. «Boshlash» tugmasi yordamchi suhbatini ochadi — u yerda 12 qadam bilan olib boriladi.',
+    + 'tovar kuzatilayotgani. «Suhbatni boshlash» tugmasi yordamchi suhbatini ochadi — u yerda 12 qadam bilan olib boriladi.',
   kirish: 'Kirish sahifasi: suhbatni hisobga bogʻlab, istalgan qurilmada ochish. Kirmasa ham yordamchidan foydalanish mumkin '
     + '(suhbat shu brauzerda saqlanadi).',
   maxfiylik: 'Maxfiylik sahifasi: ZumSavdo qanday maʼlumot yigʻadi, kimga yuboradi (sunʼiy intellekt, surat xizmati), '
     + 'qancha saqlaydi va qanday oʻchirtirish mumkin.',
-  obuna: '«Rejalar» sahifasi: obuna narxi va nima berishi, toʻlov (Payme, Click). Hozir hamma qadam bepul boʻlsa — faktlarda shunday yozilgan.',
+  obuna: '«Rejalar» sahifasi: obuna narxi va nima berishi, toʻlov (Payme, Click). Hozir hamma qadam bepul boʻlsa — faktlarda '
+    + 'shunday yozilgan. Odam ALLAQACHON yordamchi suhbatida (bu sahifa suhbat ichida ochilgan): suhbatni boshlashni taklif '
+    + 'qilma — tepadagi orqaga tugmasi bilan suhbatga qaytadi.',
 };
 
 export interface SahifaXabari { rol: 'mijoz' | 'yordamchi'; matn: string }
@@ -68,8 +71,9 @@ export const SAHIFA_KORSATMA = [
   '',
   'VAZIFA:',
   '- Savolga aniq, doʻstona javob ber — FAKTLAR, TAYYOR JAVOB va (boʻlsa) MIJOZ HOLATIdan. Sahifaga oid savol boʻlsa — SAHIFAni hisobga ol.',
-  '- Odam boshlamoqchi yoki tovar tanlashni soʻrasa — yordamchi suhbatini ochishni tavsiya qil («Boshlash» tugmasi): u yerda',
-  'tovar va raqamlar Uzum bazasidan hisoblanadi. Roʻyxatda yoʻq tovarni oʻzingdan taklif qilma.',
+  '- Odam boshlamoqchi yoki tovar tanlashni soʻrasa — yordamchi suhbatini ochishni tavsiya qil: shu oynaning pastidagi',
+  '«Yoʻlni boshlash» havolasi (rus tilida — «Начать путь»); u yerda tovar va raqamlar Uzum bazasidan hisoblanadi.',
+  'Roʻyxatda yoʻq tovarni oʻzingdan taklif qilma.',
   '- Bilmasang — ochiq ayt va umumiy maslahat ber. Toʻqima.',
   '',
   'USLUB: «siz» bilan, sodda; 2–6 jumla, kerak boʻlsa 2 qisqa xatboshi. Odam qaysi tilda va yozuvda yozgan boʻlsa (oʻzbek',
@@ -82,6 +86,7 @@ export const SAHIFA_KORSATMA = [
   '- Savdoga aloqasiz savolga bir jumlada muloyim javob berib, nima bilan yordam bera olishingni ayt.',
   '- «AI», «model», «sunʼiy intellekt», «tizim» soʻzlari yoʻq; «robotmisiz?» — «ZumSavdo dasturining yordamchisiman, odam emasman».',
   '- Markdown, sarlavha, yulduzcha, roʻyxat belgisi yoʻq. Faqat javob matni.',
+  SAYT_NOMLARI,
 ].join('\n');
 
 /** AI soʻrovi matni. */
@@ -163,8 +168,8 @@ export async function sahifaJavobi(
   return {
     manba: 'shablon',
     matn: til === 'ru'
-      ? 'На этот вопрос сейчас точно не отвечу. Нажмите «Начать» — в чате помощника пройдём путь по шагам, и там я подробно подскажу.'
-      : 'Bu savolga hozir aniq javob bera olmayman. «Boshlash» ni bosing — yordamchi suhbatida yoʻlni qadamma-qadam oʻtamiz, '
-        + 'u yerda batafsil yordam beraman.',
+      ? 'На этот вопрос сейчас точно не отвечу. Нажмите «Начать путь» внизу — в чате помощника пройдём путь по шагам, и там я подробно подскажу.'
+      : 'Bu savolga hozir aniq javob bera olmayman. Pastdagi «Yoʻlni boshlash» ni bosing — yordamchi suhbatida yoʻlni qadamma-qadam '
+        + 'oʻtamiz, u yerda batafsil yordam beraman.',
   };
 }

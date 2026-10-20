@@ -74,6 +74,8 @@ describe('ism va telefon savolida bosilgan tayyor savol — javob, ism/telefon e
     const r = await suhbatTurn({ rpc: b.rpc, kod: KOD }, 'tok', { savolId: 'telefon', matn });
     expect(r.xato).toBeUndefined();
     expect(b.holat()?.javoblar['telefon']).toBeUndefined();
-    expect(r.xabarlar.at(-1)!.matn).toMatch(/Gemini/);
+    // Maxfiylik javobi — sunʼiy intellektga yuborilmasligi aytiladi; provayder nomisiz (Gemini → Claude, 2026-10-19).
+    expect(r.xabarlar.at(-1)!.matn).toMatch(/sunʼiy intellektga yuborilmaydi|не отправляются искусственному интеллекту/u);
+    expect(r.xabarlar.at(-1)!.matn).not.toMatch(/Gemini/u);
   });
 });
