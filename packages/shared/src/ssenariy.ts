@@ -48,7 +48,7 @@
 import type { ProfilJavoblari } from './profil.js';
 import type { XitoyTovar } from './xitoy.js';
 import { minglik, type KargoStavkasi } from './fakt.js';
-import { eskiOlchov, sotuvToifasi, type SotuvToifasi } from './qadamlar.js';
+import { sotuvToifasi, type SotuvToifasi } from './qadamlar.js';
 import { BILMAYMAN, gapdagiSohalar, SAVDO_SOHALARI, sohaNomi, sohaniTop } from './soha.js';
 import type { Kurs } from './kurs.js';
 import { SHAHARLAR } from './savollar.js';
@@ -320,8 +320,6 @@ interface TovarQisqa {
     productId: number; title: string; narxSom?: number | null; rasmUrl?: string | null;
     /** Kod xabari kartadagi bilan bir xil sotuv toifasini sanashi uchun (`sotuvToifasi`). */
     soldUnits30d?: number | null; sotuvManbasi?: 'olchandi' | 'taxmin' | null; qoldiq?: number | null;
-    /** Oxirgi oʻlchov vaqti — eski boʻlsa «hozir tugagan» deyilmaydi (`eskiOlchov`). */
-    olchandi?: string | null;
   };
   miqdor: { dona: number; hisob: string } | null;
   miqdorSababi?: string | null;
@@ -2450,20 +2448,11 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
       qoldiq: t.nomzod.qoldiq ?? null,
     }));
     const soni = (x: SotuvToifasi) => toifa.filter((y) => y === x).length;
-    // Tugaganlarning oʻlchovi eski boʻlsa — «hozir tugagan» deyilmaydi (jonli sinov, 2026-10-20: 15 tadan 15 tasi
-    // 3-oktyabr va 24-avgustdagi oʻlchov edi). Eng eski sana aytiladi.
-    const eskiSana = r.map((t, i) => (toifa[i] === 'tugagan' ? eskiOlchov(t.nomzod) : null))
-      .filter((x): x is string => x !== null).sort();
-    const tugaganYangi = soni('tugagan') - eskiSana.length;
     const holatlar = [
       soni('sotildi') ? `${soni('sotildi')} tasining sotuvi oʻlchandi` : '',
       soni('olchanmagan') ? `${soni('olchanmagan')} tasining sotuvini hali oʻlchab ulgurmadik` : '',
       soni('sotilmadi') ? `${soni('sotilmadi')} tasida 30 kunda sotuv boʻlmadi` : '',
-      tugaganYangi ? `${tugaganYangi} tasi Uzumda hozir tugagan` : '',
-      eskiSana.length
-        ? `${eskiSana.length} tasining oxirgi oʻlchovida qoldiq yoʻq edi (eng eskisi ${eskiSana[0]!.split('-').reverse().join('.')}), `
-          + 'keyin qayta oʻlchanmagan — hozir sotuvda boʻlishi ham mumkin'
-        : '',
+      soni('tugagan') ? `${soni('tugagan')} tasi Uzumda hozir tugagan` : '',
     ].filter(Boolean);
     // Sodda til (nazoratchi, 2026-10-13: "mijoz tushunmaydi; bu maʼlumotlarni
     // qayerdan olyapsan? oxirgi 30 kun, mavsum, yil"). Raqam qayerdan, nimasi

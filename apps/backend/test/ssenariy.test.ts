@@ -1756,16 +1756,6 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
     expect(hechBiri).toMatch(/Shu 1 tadan: 1 tasi Uzumda hozir tugagan\. Qancha olishni keyin oʻzingiz yozasiz\./);
   });
 
-  it('F14c: tugaganning oʻlchovi eski — «hozir tugagan» emas, eng eski sana bilan (jonli sinov, 2026-10-20)', () => {
-    const kecha = new Date(Date.now() - 86_400_000).toISOString();
-    const q = (productId: number, qoldiq: number | null, olchandi: string) =>
-      ({ nomzod: { productId, title: String(productId), soldUnits30d: 0, sotuvManbasi: 'olchandi' as const, qoldiq, olchandi }, miqdor: null, bayroqlar: [] });
-    const m = tushuntir('tovarlar', { olchov_yoq: false, chiqarildi: [], royxat: [
-      q(1, 0, kecha), q(2, 0, '2026-10-03T10:16:48.925879+00:00'), q(3, 0, '2026-08-24T06:49:56+00:00'),
-    ] });
-    expect(m).toMatch(/1 tasi Uzumda hozir tugagan, 2 tasining oxirgi oʻlchovida qoldiq yoʻq edi \(eng eskisi 24\.08\.2026\), keyin qayta oʻlchanmagan — hozir sotuvda boʻlishi ham mumkin\./);
-  });
-
   it('F15: komissiya sotuvdan katta — sof manfiy (zarar) koʻrsatiladi, 0 emas', () => {
     const hisob = oyHisobi({ oy: '2026-09', kabinetSotuv: 100_000, olchovSotuv: null, komissiya: 150_000, f: HISOBOT_F });
     let h = natijaniYoz(hisobotBoshi(), 'hisobot', HISOBOT);

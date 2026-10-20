@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { eskiOlchov, izohTozala, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
+import { izohTozala, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -1193,12 +1193,8 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
                       : <Xulosa tur="yaxshi" hukm={tr(`Oxirgi 30 kunda ~${son(sold)} dona sotildi`, `За 30 дней продано ~${son(sold)} шт`)}
                         izoh={tr(`oʻzimiz oʻlchadik: qoldiq kamayishidan, ${n.olchanganKun ?? '—'} kun`, `наш замер: по снижению остатка, ${n.olchanganKun ?? '—'} дн`)} />
                     : toifa === 'tugagan'
-                      // Oʻlchov eski boʻlsa — «hozir» emas: qachon oʻlchangani (jonli sinov, 2026-10-20).
-                      ? eskiOlchov(n)
-                        ? <Xulosa tur="oddiy" hukm={tr(`Oxirgi oʻlchovda (${sanaMatni(eskiOlchov(n)!)}) qoldiq yoʻq edi`, `На последнем замере (${sanaMatni(eskiOlchov(n)!)}) остатка не было`)}
-                          izoh={tr('keyin qayta oʻlchanmagan — hozir sotuvda boʻlishi ham mumkin', 'потом не перемерялся — сейчас может быть в продаже')} />
-                        : <Xulosa tur="ogoh" hukm={tr('Uzumda hozir qoldiq koʻrinmayapti', 'На Uzum сейчас нет остатка')}
-                          izoh={tr('tugagan boʻlishi mumkin — sotuvini oʻlchab boʻlmadi', 'возможно, закончился — продажи не измерить')} />
+                      ? <Xulosa tur="ogoh" hukm={tr('Uzumda hozir qoldiq koʻrinmayapti', 'На Uzum сейчас нет остатка')}
+                        izoh={tr('tugagan boʻlishi mumkin — sotuvini oʻlchab boʻlmadi', 'возможно, закончился — продажи не измерить')} />
                       : toifa === 'sotilmadi'
                         ? <Xulosa tur="oddiy" hukm={tr('Oxirgi 30 kunda sotuv koʻrinmadi', 'За 30 дней продаж не видно')} izoh={tr('qoldiq kamaymadi', 'остаток не уменьшался')} />
                         : <Xulosa tur="oddiy" hukm={tr('Sotuvi hali oʻlchanmagan', 'Продажи ещё не измерены')} izoh={tr('kuzatuv kunlari yetarli emas', 'мало дней наблюдения')} />}
