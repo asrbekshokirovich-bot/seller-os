@@ -17,6 +17,7 @@ export * from './chegara.js';
 export * from './llm.js';
 export * from './ai-suhbat.js';
 export * from './sahifa-yordamchi.js';
+export * from './oqim.js';
 export * from './tekshiruv.js';
 export * from './tanishuv.js';
 export * from './erkin.js';

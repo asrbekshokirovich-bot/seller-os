@@ -55,6 +55,7 @@ import { malumotNiyati, type MalumotNiyati } from './erkin-malumot.ts';
 import { boyMatnmi, javobgaMunosabat, javobHamBormi } from './munosabat.ts';
 import {
   aiQiymat, natijaTavsifi, savolTavsifi, type AiJavob, type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
+  type AiYozuvQismi,
 } from './ai-suhbat.ts';
 import { SAVDO_SOHALARI } from './soha.ts';
 
@@ -159,8 +160,28 @@ export interface SuhbatBogliqliklari {
    */
   ai?: {
     tushun: (k: AiTushunSorovi, vaqtMs: number) => Promise<AiTushuncha | null>;
-    yoz: (k: AiYozSorovi, vaqtMs: number) => Promise<AiYozuv | null>;
+    /** `qism` — oqim: yozilayotgan xabar (qoralama); berilmasa — xabar oxirida birdan. */
+    yoz: (k: AiYozSorovi, vaqtMs: number, qism?: (y: AiYozuvQismi) => void) => Promise<AiYozuv | null>;
   } | null;
+  /**
+   * OQIM (2026-10-20, nazoratchi: «matn yozilgan sari chiqib borsin»): berilsa — turn davomida
+   * nima qilinayotgani va AI yozayotgan xabar shu yerga beriladi (sahifa uni darhol chizadi).
+   * Natija oʻzgarmaydi: oxirida xuddi oqimsizdagi `SuhbatJavobi` qaytadi.
+   */
+  oqim?: SuhbatOqimi | null;
+}
+
+/**
+ * Turn davomidagi hodisalar (oqim). Qoralama darvozadan hali oʻtmagan: oʻtmasa — `qayta`
+ * (sahifa uni olib tashlaydi), keyin yangisi yoki kod qolipi keladi.
+ */
+export interface SuhbatOqimi {
+  /** Nima qilinyapti: `tushunmoqda` — mijoz gapini oʻqiyapti, `yozmoqda` — javob yozilyapti. */
+  holat: (h: 'tushunmoqda' | 'yozmoqda') => void;
+  /** AI yozayotgan xabar — shu paytgacha yozilgani (har safar boshidan). */
+  qism: (y: AiYozuvQismi) => void;
+  /** Qoralama oʻtmadi — ekrandan olinsin. */
+  qayta: () => void;
 }
 
 /** AI suhbat: bitta turnga vaqt — Vercel vositachisi 60 s da uziladi (`apps/web/src/app/api/suhbat`). */
@@ -411,6 +432,7 @@ export async function suhbatTurn(
     if (d.ai && yozgan !== null && savolId === k0.savol.id && !SHAXSIY_SAVOLLAR.has(k0.savol.id) && !variantOzi
       && tushunVaqti >= AI_KAM_MS) {
       const matn = qisqartir(yozgan);
+      d.oqim?.holat('tushunmoqda');
       const t = await d.ai.tushun({
         savollar: [k0.savol, ...kelgusiTanishuvSavollari(holat).filter((s) => s.id !== k0.savol.id)],
         xabar: matn, holat: mijozHolati(holat, k0.savol.qadam), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
@@ -589,7 +611,7 @@ export async function suhbatTurn(
       keyingi: k.tur === 'savol' ? k.savol : null, keyingiMatn: k.tur === 'savol' ? null : k.matn,
       holat: mijozHolati(holat, joriyQadam(holat)), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
       eslab: eslabGaplari(holat, eslab, navbat), til: ak.til, bugun: bugunMatni(), tuzat: null,
-    }, kodlar.flatMap((i) => natijaSonlari(yangi[i]!.javob)), qoldi);
+    }, kodlar.flatMap((i) => natijaSonlari(yangi[i]!.javob)), qoldi, d.oqim);
     if (y) {
       aiXabarlariniQoy(yangi, y, ak, kodlar, k);
       aiYozdi = true;
@@ -1256,6 +1278,7 @@ function qiziqishTaklifi(h: YolHolati, taklif: readonly string[]): YolHolati {
  */
 async function aiYozTekshirib(
   ai: NonNullable<SuhbatBogliqliklari['ai']>, s: AiYozSorovi, sonlar: number[], qoldi: () => number,
+  oqim?: SuhbatOqimi | null,
 ): Promise<AiYozuv | null> {
   const manba = {
     matnlar: [s.mijoz ?? '', ...s.qabul, ...s.rad, s.bilim ?? '', s.tayyor ?? '', ...s.natijalar.map((x) => x.matn),
@@ -1263,18 +1286,25 @@ async function aiYozTekshirib(
     sonlar,
   };
   let tuzat: string | null = null;
+  // Qoralama ekranda boʻlsa-yu, xabar oʻtmasa — olib tashlanadi (yangisi yoki kod qolipi keladi).
+  let qoralama = false;
+  const qism = oqim ? (y: AiYozuvQismi) => { qoralama = true; oqim.qism(y); } : undefined;
+  const tashla = () => { if (qoralama) { qoralama = false; oqim?.qayta(); } };
   for (let urinish = 0; urinish < 2; urinish++) {
     const vaqt = Math.min(AI_YOZ_MS, qoldi() - 2_000);
-    if (vaqt < AI_KAM_MS) return null;
-    const y: AiYozuv | null = await ai.yoz({ ...s, tuzat }, vaqt).catch(() => null);
-    if (!y) return null;
+    if (vaqt < AI_KAM_MS) { tashla(); return null; }
+    oqim?.holat('yozmoqda');
+    const y: AiYozuv | null = await ai.yoz({ ...s, tuzat }, vaqt, qism).catch(() => null);
+    if (!y) { tashla(); return null; }
     const hammasi: string = [y.oldin, y.izoh, y.savol].filter(Boolean).join('\n');
     const tk = tekshir(hammasi, manba);
     const tilMos: boolean = s.til === 'uz' || kirillUlushi(hammasi) >= 0.5;
     const savolBerdi: boolean = s.keyingi === null || y.savol.length > 0;
     const javobBerdi: boolean = !s.savolBor || y.oldin.length > 0 || urinish > 0;
     const qisqa: boolean = hammasi.length <= AI_YOZ_MAX || urinish > 0;
+    // Oʻtdi — qoralama ekranda qoladi: uning oʻrnini shu xabar oladi (sahifa — turn oxirida).
     if (tk.ok && tilMos && savolBerdi && javobBerdi && qisqa && hammasi) return y;
+    tashla();
     tuzat = [
       tk.dalilsiz.length ? `bu raqamlar manbalarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
       tk.taqiq.length ? `taqiqlangan gap: ${tk.taqiq.join(', ')}.` : null,
@@ -1327,7 +1357,7 @@ async function aiErkinXabar(
     savolBor: t.savolBor || t.sabab === null, bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor: baza?.matn ?? null,
     natijalar: [], eslab: t.eslab, keyingi: k1.savol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
     tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), bugun: bugunMatni(), tuzat: null,
-  }, [], qoldi) : null;
+  }, [], qoldi, d.oqim) : null;
   if (!y) return erkinXabar(llmsiz(d), token, holat, k0, matn, t.sabab, xabarlar);
   const savolBor = songgi.some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);
   const yangi: SuhbatXabari[] = [

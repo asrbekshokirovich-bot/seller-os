@@ -59,9 +59,14 @@ export interface SahifaJavobi { matn: string; manba: SahifaManba }
 
 export interface SahifaBogliqliklari {
   /** AI chaqiruvi (`llm.ts`, `sahifaJavobBer`); `null` — AI yoʻq. `vaqtMs` — shu chaqiruvga vaqt. */
-  ai: ((k: SahifaSorovi, vaqtMs: number) => Promise<string | null>) | null;
+  ai: ((k: SahifaSorovi, vaqtMs: number, qism?: (matn: string) => void) => Promise<string | null>) | null;
   /** Saytda tarif cheklovi yoqilganmi — «Bu bepulmi?» rost javob olsin. */
   tarifCheklovi?: boolean;
+  /**
+   * Oqim (2026-10-20, «matn yozilgan sari chiqib borsin»): AI yozayotgan javob — qoralama
+   * (shu paytgacha, har safar boshidan); darvozadan oʻtmasa — `qayta` (olib tashlansin).
+   */
+  oqim?: { qism: (matn: string) => void; qayta: () => void } | null;
 }
 
 export const SAHIFA_KORSATMA = [
@@ -147,15 +152,21 @@ export async function sahifaJavobi(
       sonlar: [],
     };
     let tuzat: string | null = null;
+    // Qoralama ekranda boʻlsa-yu, javob oʻtmasa — olib tashlanadi (yangisi yoki bazadagisi keladi).
+    const oqim = d.oqim ?? null;
+    let qoralama = false;
+    const qism = oqim ? (m: string) => { qoralama = true; oqim.qism(m.trim()); } : undefined;
+    const tashla = () => { if (qoralama) { qoralama = false; oqim?.qayta(); } };
     for (let urinish = 0; urinish < 2; urinish++) {
       const taklif: string | null = (await d.ai({
         savol, sahifa: k.sahifa, tarix: k.tarix, holat: k.holat, bilim, tayyor: baza, til, tuzat,
-      }, SAHIFA_AI_MS).catch(() => null))?.trim() || null;
-      if (!taklif) break;
+      }, SAHIFA_AI_MS, qism).catch(() => null))?.trim() || null;
+      if (!taklif) { tashla(); break; }
       const tk = tekshir(taklif, manba);
       const tilMos: boolean = til === 'uz' || kirillUlushi(taklif) >= 0.5;
       const qisqa: boolean = taklif.length <= SAHIFA_JAVOB_MAX;
       if (tk.ok && tilMos && qisqa) return { matn: taklif, manba: 'ai' };
+      tashla();
       tuzat = [
         tk.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
         tk.taqiq.length ? `taqiqlangan gap: ${tk.taqiq.join(', ')}.` : null,

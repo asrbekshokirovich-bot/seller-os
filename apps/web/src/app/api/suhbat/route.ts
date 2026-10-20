@@ -10,6 +10,7 @@
  * POST — {savolId, javob} yoki {matn}; {boshdan: true} — boshidan.
  */
 
+import { OQIM_SARLAVHALARI, oqimmi } from '@selleros/shared';
 import { apigaSessiya, sozlanganmi } from '@/lib/sessiya';
 
 /**
@@ -42,6 +43,9 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const r = await apigaSessiya(request, '/suhbat', { method: 'POST', body: tana });
     if (!r) return javob({ xato: 'sessiya ochilmadi' }, 503);
+    // Oqim (2026-10-20, `{oqim: true}`): Edge javobni yozilgan sari yuboradi — shundayligicha
+    // uzatiladi, yigʻib turilmaydi (`@selleros/shared` `oqim.ts`).
+    if (oqimmi(r) && r.body) return new Response(r.body, { status: r.status, headers: OQIM_SARLAVHALARI });
     return new Response(await r.text(), {
       status: r.status,
       headers: { 'Content-Type': 'application/json; charset=utf-8' },

@@ -7,6 +7,7 @@
  * yangi sessiya OCHILMAYDI (savol bergani — yoʻlni «boshladi» degani emas).
  */
 
+import { OQIM_SARLAVHALARI, oqimmi } from '@selleros/shared';
 import { apiga, sozlanganmi, token } from '@/lib/sessiya';
 import { sorovTokeni } from '@/lib/sessiya-sarlavha';
 
@@ -22,6 +23,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const t = sorovTokeni(request) ?? (await token()) ?? '';
     const r = await apiga('/yordamchi', t, { method: 'POST', body: tana });
+    // Oqim (2026-10-20, `{oqim: true}`): javob yozilgan sari — shundayligicha uzatiladi.
+    if (oqimmi(r) && r.body) return new Response(r.body, { status: r.status, headers: OQIM_SARLAVHALARI });
     return new Response(await r.text(), {
       status: r.status,
       headers: { 'Content-Type': 'application/json; charset=utf-8' },

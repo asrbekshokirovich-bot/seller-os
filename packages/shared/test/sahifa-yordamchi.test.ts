@@ -45,6 +45,40 @@ describe('sahifa yordamchisi', () => {
     expect(r.matn).not.toContain('7 777');
   });
 
+  it('oqim (2026-10-20): qoralama darhol; oʻtmasa — «qayta», yangisi; ikkinchisi ham oʻtmasa — yana «qayta»', async () => {
+    const h: string[] = [];
+    const oqim = { qism: (m: string) => { h.push(`qism:${m}`); }, qayta: () => { h.push('qayta'); } };
+    // AI yozayotganda qism chaqiradi (yarmi, keyin hammasi), soʻng javobni qaytaradi.
+    const oqimli = (javoblar: string[]) => {
+      let n = 0;
+      return async (_k: SahifaSorovi, _ms: number, qism?: (m: string) => void) => {
+        const j = javoblar[Math.min(n++, javoblar.length - 1)]!;
+        qism?.(j.slice(0, 5));
+        qism?.(j);
+        return j;
+      };
+    };
+    const yaxshi = 'Hozir hamma qadam bepul.';
+    const r = await sahifaJavobi({ ai: oqimli(['Obuna atigi 7 777 soʻm.', yaxshi]), oqim }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });
+    expect(r).toEqual({ matn: yaxshi, manba: 'ai' });
+    expect(h).toEqual(['qism:Obuna', 'qism:Obuna atigi 7 777 soʻm.', 'qayta', 'qism:Hozir', `qism:${yaxshi}`]);
+
+    h.length = 0;
+    const r2 = await sahifaJavobi({ ai: oqimli(['Obuna atigi 7 777 soʻm.']), oqim }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });
+    expect(r2.manba).toBe('baza');
+    expect(h.filter((x) => x === 'qayta')).toHaveLength(2);
+    expect(h.at(-1)).toBe('qayta');
+  });
+
+  it('oqim: qoralama chiqqan-u, AI oxirida yiqilsa — «qayta», bazadagi javob', async () => {
+    const h: string[] = [];
+    const oqim = { qism: (m: string) => { h.push(`qism:${m}`); }, qayta: () => { h.push('qayta'); } };
+    const ai = async (_k: SahifaSorovi, _ms: number, qism?: (m: string) => void) => { qism?.('Obuna'); return null; };
+    const r = await sahifaJavobi({ ai, oqim }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });
+    expect(r.manba).toBe('baza');
+    expect(h).toEqual(['qism:Obuna', 'qayta']);
+  });
+
   it('kafolat yozsa — oʻtmaydi', async () => {
     const s = soxta(['Kafolat beraman — foyda boʻladi.', 'Foyda vaʼda qilolmayman, lekin yoʻlni birga oʻtamiz.']);
     const r = await sahifaJavobi({ ai: s.ai }, { ...K, savol: 'foyda boʻladimi?' });

@@ -379,3 +379,111 @@ describe('AI yiqilsa — kod qoliplari (chat toʻxtamaydi)', () => {
     expect(r.xabarlar[r.xabarlar.length - 1]!.matn).toBe(r.keyingi.tur === 'savol' ? r.keyingi.savol.matn : '');
   });
 });
+
+/** Oqim hodisalari — tartibi bilan (qism — faqat `oldin`, qisqa boʻlsin). */
+function oqimYozuvchi() {
+  const h: Array<[string, unknown?]> = [];
+  const oqim: NonNullable<SuhbatBogliqliklari['oqim']> = {
+    holat: (x) => { h.push(['holat', x]); },
+    qism: (y) => { h.push(['qism', y.oldin || y.savol]); },
+    qayta: () => { h.push(['qayta']); },
+  };
+  return { h, oqim };
+}
+
+/** Soxta AI, yozishi oqim bilan: avval yarmi, keyin hammasi (`qism`), soʻng javob. */
+function oqimliAi(tushunJavob: Array<AiTushuncha | null>, yozJavob: Array<AiYozuv | null>) {
+  const s = soxtaAi(tushunJavob, yozJavob);
+  const yoz = async (k: AiYozSorovi, ms: number, qism?: (y: AiYozuv) => void) => {
+    const y = await s.ai.yoz(k, ms);
+    if (y && qism) {
+      const m = y.oldin || y.savol;
+      const yarim = m.slice(0, Math.ceil(m.length / 2));
+      qism(y.oldin ? { oldin: yarim, izoh: '', savol: '' } : { oldin: '', izoh: '', savol: yarim });
+      qism(y);
+    }
+    return y;
+  };
+  return { ...s, ai: { tushun: s.ai.tushun, yoz } };
+}
+
+describe('oqim — matn yozilgan sari (2026-10-20)', () => {
+  const yarmi = (m: string) => m.slice(0, Math.ceil(m.length / 2));
+  it('yozilgan gap: tushunmoqda → yozmoqda → qoralama; natija oqimsizdagi bilan AYNAN bir xil', async () => {
+    const TUSHUN: AiTushuncha = { javoblar: [{ savol_id: 'uzum_dokoni', qiymatlar: ['boshqa'], otkazish: false }], taklif_qiziqish: ['kiyim'], savol_bor: false };
+    const b1 = soxtaBaza(TAJRIBA);
+    const oddiy = await suhbatTurn(bogliq(b1, soxtaAi([TUSHUN], [YOZUV]).ai), 't', { savolId: 'uzum_dokoni', matn: 'Instagramda potinka sotganman' });
+    const b2 = soxtaBaza(TAJRIBA);
+    const o = oqimYozuvchi();
+    const r = await suhbatTurn({ ...bogliq(b2, oqimliAi([TUSHUN], [YOZUV]).ai), oqim: o.oqim }, 't',
+      { savolId: 'uzum_dokoni', matn: 'Instagramda potinka sotganman' });
+    expect(r).toEqual(oddiy);
+    expect(b2.jurnal).toEqual(b1.jurnal);
+    expect(o.h).toEqual([
+      ['holat', 'tushunmoqda'], ['holat', 'yozmoqda'], ['qism', yarmi(YOZUV.oldin)], ['qism', YOZUV.oldin],
+    ]);
+  });
+
+  it('tugma: tushunish yoʻq — birinchi hodisa «yozmoqda»', async () => {
+    const o = oqimYozuvchi();
+    await suhbatTurn({ ...bogliq(soxtaBaza(QIZIQISH), oqimliAi([], [YOZUV]).ai), oqim: o.oqim }, 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(o.h[0]).toEqual(['holat', 'yozmoqda']);
+    expect(o.h.some(([n]) => n === 'qayta')).toBe(false);
+  });
+
+  it('darvoza oʻtkazmasa — «qayta» (qoralama olinadi), keyin yangi qoralama va u qoladi', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const yaxshi: AiYozuv = { oldin: '', izoh: '', savol: 'Qancha pul bilan boshlaysiz?' };
+    const YOMON = 'Kamida 999 mln kerak — qancha bilan?';
+    const s = oqimliAi([], [{ oldin: '', izoh: '', savol: YOMON }, yaxshi]);
+    const o = oqimYozuvchi();
+    const r = await suhbatTurn({ ...bogliq(b, s.ai), oqim: o.oqim }, 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(r.xabarlar[r.xabarlar.length - 1]!.matn).toBe(yaxshi.savol);
+    expect(o.h).toEqual([
+      ['holat', 'yozmoqda'], ['qism', yarmi(YOMON)], ['qism', YOMON], ['qayta'],
+      ['holat', 'yozmoqda'], ['qism', yarmi(yaxshi.savol)], ['qism', yaxshi.savol],
+    ]);
+  });
+
+  it('ikkalasi ham oʻtmasa — oxirida «qayta»: ekranda faqat kod savoli qoladi', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const s = oqimliAi([], [{ oldin: '', izoh: '', savol: 'Kamida 999 mln kerak — qancha bilan?' }]);
+    const o = oqimYozuvchi();
+    const r = await suhbatTurn({ ...bogliq(b, s.ai), oqim: o.oqim }, 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(o.h.at(-1)).toEqual(['qayta']);
+    expect(o.h.filter(([n]) => n === 'qayta')).toHaveLength(2);
+    expect(r.xabarlar[r.xabarlar.length - 1]!.matn).toBe(r.keyingi.tur === 'savol' ? r.keyingi.savol.matn : '');
+  });
+
+  it('qoralama chiqqan-u, AI oxirida yiqilsa (oqim uzildi, rad) — «qayta»: ekranda faqat kod savoli', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const yiqiluvchi = {
+      tushun: async () => null,
+      yoz: async (_k: AiYozSorovi, _ms: number, qism?: (y: AiYozuv) => void) => {
+        qism?.({ oldin: '', izoh: '', savol: 'Qancha pul' });
+        return null;
+      },
+    };
+    const o = oqimYozuvchi();
+    const r = await suhbatTurn({ ...bogliq(b, yiqiluvchi), oqim: o.oqim }, 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(o.h).toEqual([['holat', 'yozmoqda'], ['qism', 'Qancha pul'], ['qayta']]);
+    expect(r.xabarlar[r.xabarlar.length - 1]!.matn).toBe(r.keyingi.tur === 'savol' ? r.keyingi.savol.matn : '');
+  });
+
+  it('erkin savol (javob emas): AI javobi ham qoralama boʻlib keladi', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const s = oqimliAi([{ javoblar: [], taklif_qiziqish: [], savol_bor: true }],
+      [{ oldin: 'Ha, tajribasiz ham boshlasa boʻladi.', izoh: '', savol: 'Qaysi soha?' }]);
+    const o = oqimYozuvchi();
+    const r = await suhbatTurn({ ...bogliq(b, s.ai), oqim: o.oqim }, 't', { savolId: 'qiziqish', matn: 'tajribasiz ham boshlasa boʻladimi' });
+    expect(r.xabarlar.map((x) => x.matn)).toContain('Ha, tajribasiz ham boshlasa boʻladi.');
+    expect(o.h.map(([n]) => n)).toEqual(['holat', 'holat', 'qism', 'qism']);
+  });
+
+  it('AI berilmasa yoki shaxsiy savol — hodisa yoʻq (sahifa oddiy JSON oladi)', async () => {
+    const o = oqimYozuvchi();
+    await suhbatTurn({ ...bogliq(soxtaBaza(QIZIQISH), null), oqim: o.oqim }, 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    await suhbatTurn({ ...bogliq(soxtaBaza(boshlangichHolat()), oqimliAi([], [YOZUV]).ai), oqim: o.oqim }, 't', { savolId: 'ism', matn: 'Aziz' });
+    expect(o.h).toEqual([]);
+  });
+});

@@ -29,9 +29,12 @@ Supabase muhitidan o'zi oladi.
 Edge Function da (Supabase → Edge Functions → **Secrets**, yoki `supabase secrets set`):
 
 - `ANTHROPIC_API_KEY` — **Claude** (2026-10-19 dan asosiy; `llm-claude.ts`). Model —
-  `CLAUDE_MODEL` (boʻlmasa `claude-opus-5-5`). Narx, 1M token: Opus 5.5 — $4 kirish /
+  `CLAUDE_MODEL` (boʻlmasa `claude-sonnet-5-5`; 2026-10-20 gacha `claude-opus-5-5` edi —
+  nazoratchi «tezroq va arzonroq» dedi). Narx, 1M token: Opus 5.5 — $4 kirish /
   $20 chiqish; Sonnet 5.5 — $2 / $10; Haiku 5.5 — $0.10 / $0.50. Kalit qoʻyilgach
-  `/health` → `live.llmProvayder: "claude"`.
+  `/health` → `live.llmProvayder: "claude"`, `live.claudeModel` — qaysi model ishlayapti.
+  Suhbat va «Savol bering» javobi yozilgan sari chiqadi (oqim, `oqim.ts`): sayt `{oqim: true}`
+  yuboradi, Edge `text/event-stream` qaytaradi, Vercel vositachisi uni ushlab turmay uzatadi.
 - `GEMINI_API_KEY` (va ixtiyoriy `LLM_MODEL`) — Anthropic kaliti **boʻlmasa** ishlatiladi.
 
 **Hech biri boʻlmasa ham suhbat ishlaydi**: kalit yoʻq boʻlsa kodning jumlasi ketadi. Kalit

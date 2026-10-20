@@ -27,7 +27,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { izohTozala, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
+import { izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { hashTokeni } from '@/lib/sessiya-sarlavha';
@@ -121,6 +121,13 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    * yoʻqoladi, yozilgan matn maydonga qaytadi.
    */
   const [yuborilgan, setYuborilgan] = useState<string | null>(null);
+  /**
+   * Oqim (2026-10-20, nazoratchi: «matn yozilgan sari chiqib borsin»): AI yozayotgan xabar —
+   * qoralama, server tekshirmagan. Javob kelgach oʻrnini tekshirilgan xabarlar oladi; oʻtmasa
+   * (`qayta`) — olib tashlanadi. `oqimHolati` — «Oʻylayapti…» yoki «Yozmoqda…».
+   */
+  const [qoralama, setQoralama] = useState<AiYozuvQismi | null>(null);
+  const [oqimHolati, setOqimHolati] = useState<'tushunmoqda' | 'yozmoqda' | null>(null);
 
   const [mavzu, mavzuniTanla] = useMavzu();
   const [til, tilniTanla] = useTil(boshTil);
@@ -257,7 +264,9 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    * yangi obyekt qilib qaytaradi — ilgari shu ham har 8 s da pastga
    * sakratardi va tepadagi kartalarni oʻqib boʻlmasdi (audit, 2026-10-05).
    */
-  const aylantirKaliti = `${xabarlar.length}|${keyingiKaliti(keyingi)}|${band ? 1 : 0}|${xato ?? ''}`;
+  // Qoralama oʻsgani sari ham (har ~2 qator) — yozilayotgan matn koʻrinib tursin.
+  const qoralamaUzunligi = qoralama ? qoralama.oldin.length + qoralama.izoh.length + qoralama.savol.length : 0;
+  const aylantirKaliti = `${xabarlar.length}|${keyingiKaliti(keyingi)}|${band ? 1 : 0}|${xato ?? ''}|${Math.floor(qoralamaUzunligi / 120)}`;
   useEffect(() => {
     const el = oqim.current;
     if (!el) return;
@@ -299,7 +308,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
           // Sahifa tili — tugma bosilganda yordamchi shu tilda yozadi (AI suhbat, 2026-10-19).
-          body: JSON.stringify({ ...tana, til }),
+          // Oqim — javob yozilgan sari chiqadi (2026-10-20); fon tekshiruviga kerak emas.
+          body: JSON.stringify({ ...tana, til, ...(jim ? {} : { oqim: true }) }),
         });
       } catch (q) {
         if (jim || mening !== avlod.current) return;
@@ -310,9 +320,25 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         setXato(XATO.tarmoq);
         return;
       }
-      const d = await jsonOl(r);
+      // Oqim: hodisalar kelgan sari chiziladi; oxirgisi — oqimsiz javobning aynan oʻzi. Oxiri
+      // kelmay uzilsa — tarmoq xatosi kabi: turn serverda yozilgan boʻlishi mumkin, holat qayta oʻqiladi.
+      let ok = r.ok;
+      let d: SuhbatJavobi | null;
+      if (oqimmi(r) && r.body) {
+        const o = await oqimniOqi(r.body, mening);
+        if (mening !== avlod.current) return;
+        if (o === null) {
+          if (jim) return;
+          await yukla();
+          setXato(XATO.tarmoq);
+          return;
+        }
+        ({ ok, d } = o);
+      } else {
+        d = await jsonOl(r);
+      }
       if (mening !== avlod.current) return;
-      if (!r.ok || d === null || !d.keyingi) {
+      if (!ok || d === null || !d.keyingi) {
         if (jim) return;
         if (d?.xato) console.warn('suhbat:', d.xato);
         if (d === null) await yukla();
@@ -347,6 +373,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       });
       qabulQilindi = true;
     } finally {
+      // Qoralama — tekshirilgan xabarlar bilan bir render da almashadi (React ularni birga chizadi).
+      if (!jim) { setQoralama(null); setOqimHolati(null); }
       if (!jim) bandQil(false);
       if (korinish) {
         setYuborilgan(null);
@@ -357,6 +385,27 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         }
       }
     }
+  }
+
+  /**
+   * Oqim hodisalari (`@selleros/shared` `oqim.ts`): holat va qoralama — darhol ekranga; oxiri —
+   * javob (`tayyor`) yoki server xatosi (`xato`). `null` — oxiri kelmadi (oqim uzildi).
+   */
+  async function oqimniOqi(tana: ReadableStream<Uint8Array>, mening: number): Promise<{ ok: boolean; d: SuhbatJavobi | null } | null> {
+    let oxiri: { ok: boolean; d: SuhbatJavobi | null } | null = null;
+    try {
+      await sseOqi(tana, (h, q) => {
+        if (mening !== avlod.current) return;
+        if (h === 'holat') setOqimHolati((q as { holat?: unknown }).holat === 'tushunmoqda' ? 'tushunmoqda' : 'yozmoqda');
+        else if (h === 'qism') setQoralama(q as AiYozuvQismi);
+        else if (h === 'qayta') setQoralama(null);
+        else if (h === 'tayyor') oxiri = { ok: true, d: q as SuhbatJavobi };
+        else if (h === 'xato') oxiri = { ok: false, d: q as SuhbatJavobi };
+      });
+    } catch (q) {
+      console.warn('suhbat oqimi:', q);
+    }
+    return oxiri;
   }
 
   /**
@@ -691,11 +740,15 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
             {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={tezOrada.matn} /></div>}
             {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
             {yuborilgan !== null && <div className={`${u.pufak} ${u.men} ${u.yuborilmoqda}`}>{yuborilgan}</div>}
+            {/* AI yozayotgan xabar (oqim) — javob kelgach oʻrnini tekshirilgani oladi; ekran oʻquvchiga — oxirgisi. */}
+            {qoralama && (['oldin', 'izoh', 'savol'] as const).map((q) => (qoralama[q]
+              ? <div key={q} className={`${u.pufak} ${u.ai}`} aria-hidden="true"><Havolali matn={qoralama[q]} /></div>
+              : null))}
 
             {band && (
               <div className={u.yozmoqda} role="status">
                 <span className={u.nuqtalar} aria-hidden="true"><i /><i /><i /></span>
-                <span>{tr('Yozmoqda…', 'Пишет…')}</span>
+                <span>{oqimHolati === 'tushunmoqda' ? tr('Oʻylayapti…', 'Думает…') : tr('Yozmoqda…', 'Пишет…')}</span>
               </div>
             )}
 

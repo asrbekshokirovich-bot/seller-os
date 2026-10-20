@@ -17,6 +17,7 @@ export * from './chegara.ts';
 export * from './llm.ts';
 export * from './ai-suhbat.ts';
 export * from './sahifa-yordamchi.ts';
+export * from './oqim.ts';
 export * from './tekshiruv.ts';
 export * from './tanishuv.ts';
 export * from './erkin.ts';

@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { oqimmi, sseOqi } from '@selleros/shared';
 import { Ikon } from './Ikon';
 import y from './yordamchi.module.css';
 
@@ -38,15 +39,18 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
   const [matn, setMatn] = useState('');
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState<string | null>(null);
+  /** Oqim (2026-10-20): yozilayotgan javob — qoralama; tekshirilgani kelgach oʻrnini u oladi. */
+  const [qoralama, setQoralama] = useState<string | null>(null);
   const oqim = useRef<HTMLDivElement>(null);
   const maydon = useRef<HTMLTextAreaElement>(null);
   const tugma = useRef<HTMLButtonElement>(null);
 
-  // Yangi xabar yoki «Yozmoqda…» — pastga.
+  // Yangi xabar, «Yozmoqda…» yoki oʻsayotgan qoralama (har ~2 qator) — pastga.
+  const qoralamaBolagi = Math.floor((qoralama?.length ?? 0) / 120);
   useEffect(() => {
     const el = oqim.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [xabarlar, band, ochiq]);
+  }, [xabarlar, band, ochiq, qoralamaBolagi]);
   // Ochilganda — yozish maydoniga; Esc — yopadi (fokus tugmaga qaytadi).
   useEffect(() => {
     if (!ochiq) return;
@@ -72,11 +76,25 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
       const r = await fetch('/api/yordamchi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(sarlavha?.() ?? {}) },
-        body: JSON.stringify({ savol: s, sahifa, tarix, til }),
+        // Oqim — javob yozilgan sari chiqadi (2026-10-20).
+        body: JSON.stringify({ savol: s, sahifa, tarix, til, oqim: true }),
       });
-      const d = (await r.json().catch(() => null)) as { matn?: unknown } | null;
-      if (!r.ok || typeof d?.matn !== 'string' || !d.matn) throw new Error(String(r.status));
-      const javob = d.matn;
+      let ok = r.ok;
+      let d: { matn?: unknown } | null = null;
+      if (oqimmi(r) && r.body) {
+        // Qoralama — darhol; oxiri — tekshirilgan javob (`tayyor`) yoki server xatosi (`xato`).
+        ok = false;
+        await sseOqi(r.body, (h, q) => {
+          const m = (q as { matn?: unknown } | null)?.matn;
+          if (h === 'qism') setQoralama(typeof m === 'string' && m ? m : null);
+          else if (h === 'qayta') setQoralama(null);
+          else if (h === 'tayyor') { ok = true; d = q as { matn?: unknown }; }
+        });
+      } else {
+        d = (await r.json().catch(() => null)) as { matn?: unknown } | null;
+      }
+      const javob = (d as { matn?: unknown } | null)?.matn;
+      if (!ok || typeof javob !== 'string' || !javob) throw new Error(String(r.status));
       setXabarlar((x) => [...x, { rol: 'yordamchi', matn: javob }]);
     } catch {
       // Javob kelmadi — savol oʻchmaydi: maydonga qaytadi, qayta yuborish mumkin.
@@ -84,6 +102,7 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
       setMatn((m) => m || s);
       setXato(tr('Javob kelmadi — birozdan keyin qayta yuboring.', 'Ответ не пришёл — отправьте ещё раз чуть позже.'));
     } finally {
+      setQoralama(null);
       setBand(false);
     }
   }
@@ -116,6 +135,8 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
               </div>
             )}
             {xabarlar.map((x, i) => <div key={i} className={`${y.pufak} ${x.rol === 'mijoz' ? y.men : y.ai}`}>{x.matn}</div>)}
+            {/* Yozilayotgan javob — ekran oʻquvchiga emas (u tekshirilganini oʻqiydi). */}
+            {qoralama !== null && <div className={`${y.pufak} ${y.ai}`} aria-hidden="true">{qoralama}</div>}
             {band && <div className={y.yozmoqda} role="status">{tr('Yozmoqda…', 'Пишет…')}</div>}
             {xato !== null && <div className={y.xato} role="alert">{xato}</div>}
           </div>
