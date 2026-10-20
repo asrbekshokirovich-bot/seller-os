@@ -142,6 +142,9 @@ p_rad)` — eskisi `active = false`, yangisi oʻsha turkum va boʻlak bilan.
 `kuzatuv_rad`: `external_id`, `tekshirildi_at` — qoldigʻi yoʻq yoki turkumi
 boshqa chiqqan nomzod, 14 kun qayta taklif qilinmaydi. `so_tovar_royxati` —
 faqat faol namuna (`tracked_product.active`, shu turkumniki).
+Nomzod tartibi (0069, birinchi ishdan oʻlchandi): boʻlak ichida perepis kursoridan keyingi
+(yangi, 36 % sotuvda) → sharhi oʻsgan (23 %) → soʻnggi oʻtishda yoʻq (12 %) → qolgani (6 %);
+har birida id kattasi birinchi. Xaridor belgisi faqat boʻlakni (talab qatlamini) belgilaydi.
 
 ## 2. Kunlik tarix
 
