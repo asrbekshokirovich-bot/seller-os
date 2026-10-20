@@ -16,6 +16,7 @@ yolg'on gapiradi, shuning uchun har tavsiya 8 ta hiyla-filtrdan o'tadi.
 | [`FORMULA.md`](FORMULA.md) | Ball tizimi (v0 — tasdiq kutmoqda) |
 | [`TUZOQLAR.md`](TUZOQLAR.md) | 8 hiyla-filtr |
 | [`BACKLOG.md`](BACKLOG.md) | Yangi g'oyalar — joriy bosqichga emas |
+| [`docs/SKREYPER.md`](docs/SKREYPER.md) | Uzum ma'lumotini yig'ish: ish oqimlari, jadvallar, kuzatuv namunasini yangilash, tekshirish, ma'lum muammolar |
 
 ## Tuzilishi
 
