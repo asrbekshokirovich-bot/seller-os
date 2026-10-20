@@ -1,0 +1,102 @@
+/**
+ * Sahifa yordamchisi — «Savol bering» (nazoratchi, 2026-10-19: «Har sahifada AI yordamchi»).
+ *
+ * NEGA BU TESTLAR BOR. Bosh sahifa, kirish, maxfiylik va «Rejalar» da odam istalgan
+ * savolni yozadi. AI javobi darvozadan oʻtadi (raqam faqat faktlardan, kafolat yoʻq,
+ * til — odamniki); oʻtmasa — bir marta qayta, keyin bazadagi javob yoki umumiy gap.
+ * AI yoʻq yoki yiqilsa ham javob bor. Brauzerdan kelgan tarix tekshiriladi.
+ */
+
+import { describe, expect, it } from 'vitest';
+import {
+  SAHIFA_TAVSIFI, sahifaJavobi, sahifaSoroviMatni, sahifaTarixi, type SahifaSorovi,
+} from '../src/sahifa-yordamchi';
+
+/** Soxta AI: soʻrovlarni yozadi, javoblarni navbat bilan qaytaradi (oxirgisi takrorlanadi). */
+function soxta(javoblar: Array<string | null>) {
+  const sorovlar: SahifaSorovi[] = [];
+  const ai = async (k: SahifaSorovi) => {
+    sorovlar.push(k);
+    return javoblar[Math.min(sorovlar.length - 1, javoblar.length - 1)] ?? null;
+  };
+  return { ai, sorovlar };
+}
+
+const K = { sahifa: 'bosh' as const, tarix: [], holat: null };
+
+describe('sahifa yordamchisi', () => {
+  it('AI javobi darvozadan oʻtsa — u; soʻrovda sahifa, faktlar va tayyor javob', async () => {
+    const s = soxta(['ZumSavdo sizni 12 qadamda olib boradi — nima sotishni tanlashdan Uzumda sotishgacha.']);
+    const r = await sahifaJavobi({ ai: s.ai }, { ...K, savol: 'ZumSavdo nima qiladi?' });
+    expect(r).toEqual({ matn: 'ZumSavdo sizni 12 qadamda olib boradi — nima sotishni tanlashdan Uzumda sotishgacha.', manba: 'ai' });
+    expect(s.sorovlar[0]!.sahifa).toBe('bosh');
+    expect(s.sorovlar[0]!.bilim.length).toBeGreaterThan(100);
+    expect(s.sorovlar[0]!.til).toBe('uz');
+  });
+
+  it('AI raqam toʻqisa — sababi bilan qayta; yana toʻqisa — bazadagi javob', async () => {
+    const s = soxta(['Obuna atigi 7 777 soʻm.']);
+    const r = await sahifaJavobi({ ai: s.ai }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });
+    expect(s.sorovlar).toHaveLength(2);
+    expect(s.sorovlar[1]!.tuzat).toContain('7 777');
+    expect(r.manba).toBe('baza');
+    expect(r.matn).not.toContain('7 777');
+  });
+
+  it('kafolat yozsa — oʻtmaydi', async () => {
+    const s = soxta(['Kafolat beraman — foyda boʻladi.', 'Foyda vaʼda qilolmayman, lekin yoʻlni birga oʻtamiz.']);
+    const r = await sahifaJavobi({ ai: s.ai }, { ...K, savol: 'foyda boʻladimi?' });
+    expect(s.sorovlar[1]!.tuzat).toContain('kafolat');
+    expect(r).toEqual({ matn: 'Foyda vaʼda qilolmayman, lekin yoʻlni birga oʻtamiz.', manba: 'ai' });
+  });
+
+  it('ruscha savol — ruscha javob talab qilinadi; lotincha javob qaytariladi', async () => {
+    const s = soxta(['ZumSavdo yordam beradi.', 'ZumSavdo помогает пройти путь до продаж на Uzum.']);
+    const r = await sahifaJavobi({ ai: s.ai }, { ...K, savol: 'Что делает ZumSavdo?' });
+    expect(s.sorovlar[0]!.til).toBe('ru');
+    expect(s.sorovlar[1]!.tuzat).toContain('rus tilida');
+    expect(r.manba).toBe('ai');
+  });
+
+  it('rus sahifasida raqamli savol («?») — javob ruscha', async () => {
+    const s = soxta(['Подскажу по шагам.']);
+    await sahifaJavobi({ ai: s.ai }, { ...K, savol: '???', til: 'ru' });
+    expect(s.sorovlar[0]!.til).toBe('ru');
+  });
+
+  it('AI yoʻq — bazadagi javob; u ham boʻlmasa — umumiy gap (javobsiz qolmaydi)', async () => {
+    const r1 = await sahifaJavobi({ ai: null }, { ...K, savol: 'Bu bepulmi?' });
+    expect(r1.manba).toBe('baza');
+    const r2 = await sahifaJavobi({ ai: null }, { ...K, savol: 'qwerty zxcv' });
+    expect(r2.manba).toBe('shablon');
+    expect(r2.matn).toContain('«Boshlash»');
+    const r3 = await sahifaJavobi({ ai: null }, { ...K, savol: 'йцукен фыва' });
+    expect(r3.matn).toContain('«Начать»');
+  });
+
+  it('AI yiqilsa (null yoki xato) — bazadagi javob', async () => {
+    const r = await sahifaJavobi({ ai: async () => { throw new Error('tarmoq'); } }, { ...K, savol: 'Bu bepulmi?' });
+    expect(r.manba).toBe('baza');
+  });
+
+  it('soʻrov matni: sahifa tavsifi, mijoz holati, oldingi savol-javoblar', () => {
+    const m = sahifaSoroviMatni({
+      savol: 'qaysi biri yaxshi?', sahifa: 'obuna', bilim: 'FAKT', tayyor: null, til: 'uz', tuzat: null,
+      holat: '- Hozir: 2-qadam', tarix: [{ rol: 'mijoz', matn: 'salom' }, { rol: 'yordamchi', matn: 'Vaalaykum assalom!' }],
+    });
+    expect(m).toContain(SAHIFA_TAVSIFI.obuna);
+    expect(m).toContain('MIJOZ HOLATI (u yordamchi suhbatida shu yerda):\n- Hozir: 2-qadam');
+    expect(m).toContain('Odam: salom\nYordamchi: Vaalaykum assalom!');
+    expect(m.endsWith('ODAM YOZDI: qaysi biri yaxshi?')).toBe(true);
+  });
+
+  it('brauzerdan kelgan tarix tekshiriladi: notoʻgʻrisi tashlanadi, oxirgi 6 tasi, 500 belgigacha', () => {
+    expect(sahifaTarixi('x')).toEqual([]);
+    expect(sahifaTarixi([{ rol: 'admin', matn: 'x' }, { rol: 'mijoz', matn: 5 }, null, { rol: 'mijoz', matn: 'ha' }]))
+      .toEqual([{ rol: 'mijoz', matn: 'ha' }]);
+    const kop = Array.from({ length: 9 }, (_, i) => ({ rol: 'mijoz', matn: `${i}`.repeat(600) }));
+    const t = sahifaTarixi(kop);
+    expect(t).toHaveLength(6);
+    expect(t[0]!.matn).toBe('3'.repeat(500));
+  });
+});

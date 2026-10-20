@@ -15,6 +15,7 @@
 
 import type { Metadata } from 'next';
 import { SahifaTepa } from '../SahifaTepa';
+import Yordamchi from '../Yordamchi';
 import u from './maxfiylik.module.css';
 
 export const metadata: Metadata = {
@@ -268,7 +269,10 @@ export default function Maxfiylik() {
             keyingi savollar, suhbatdagi holatingiz, oxirgi xabarlar va shu qadamda
             chiqqan natijalar (yoʻnalishlar, tovarlar, hisoblar — havola va rasmlarsiz)
             yuboriladi: u javobingizni tushunadi va yordamchi xabarini yozadi;
-            javobingizni va raqamlarni baribir kod tekshiradi. Bu sozlama oʻchirilgan
+            javobingizni va raqamlarni baribir kod tekshiradi. Saytning boshqa
+            sahifalaridagi «Savol bering» oynasida esa — yozgan savolingiz, oynadagi
+            oldingi savol-javoblar va (suhbatingiz boʻlsa) holatingiz, ism-familiya va
+            telefonsiz; ZumSavdo ularni saqlamaydi. Bu sozlama oʻchirilgan
             boʻlsa — quyidagi toʻrt holatda. Birinchisi: yordamchi savolini tabiiyroq qilish uchun kod yozgan jumla
             yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
             Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
@@ -334,6 +338,8 @@ export default function Maxfiylik() {
           Ommaviy oferta alohida hujjat va u alohida chiqariladi.
         </p>
       </main>
+      {/* «Savol bering» — har sahifada AI yordamchi (nazoratchi, 2026-10-19). */}
+      <Yordamchi sahifa="maxfiylik" til="uz" />
     </div>
   );
 }

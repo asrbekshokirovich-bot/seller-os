@@ -27,6 +27,7 @@ import { useTil } from '@/lib/useTil';
 import { Havola } from './Havola';
 import { Ikon } from './Ikon';
 import { MavzuTugma } from './MavzuTugma';
+import Yordamchi from './Yordamchi';
 import b from './bosh.module.css';
 
 interface Bekat {
@@ -336,6 +337,8 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
         <Havola href="/maxfiylik">{tr('Maxfiylik siyosati', 'Политика конфиденциальности')}</Havola>
         <span>{tr('Toshkent', 'Ташкент')} · 2026</span>
       </footer>
+      {/* «Savol bering» — har sahifada AI yordamchi (nazoratchi, 2026-10-19). */}
+      <Yordamchi sahifa="bosh" til={til} />
     </div>
   );
 }

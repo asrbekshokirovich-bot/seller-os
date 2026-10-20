@@ -48,6 +48,7 @@ import {
   AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA, AI_YOZ_SXEMA, aiTushunchaniOqi, aiTushunMatni, aiYozMatni, aiYozuvniOqi,
   type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
 } from './ai-suhbat.ts';
+import { SAHIFA_KORSATMA, sahifaSoroviMatni, type SahifaSorovi } from './sahifa-yordamchi.ts';
 
 export interface LlmSozlama {
   /** Gemini kaliti. `provayder` berilsa — ishlatilmaydi. */
@@ -465,4 +466,12 @@ export async function aiYozBer(s: LlmSozlama, k: AiYozSorovi): Promise<AiYozuv |
   const y = aiYozuvniOqi(javob);
   if (!y) console.warn('llm ai-yoz: JSON shakli buzuq');
   return y;
+}
+
+/**
+ * Sahifa yordamchisi (`sahifa-yordamchi.ts`): bosh sahifa, kirish, maxfiylik, «Rejalar» dagi
+ * «Savol bering» oynasi. Oddiy matn; `null` — ishlamadi (bazaviy javob ketadi).
+ */
+export async function sahifaJavobBer(s: LlmSozlama, k: SahifaSorovi): Promise<string | null> {
+  return chaqir({ ...s, vaqtMs: s.vaqtMs ?? 25_000 }, SAHIFA_KORSATMA, sahifaSoroviMatni(k), 'sahifa', 'low');
 }

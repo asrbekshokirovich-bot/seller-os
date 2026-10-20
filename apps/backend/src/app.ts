@@ -20,6 +20,14 @@ import {
   aiYozBer,
   type AiTushunSorovi,
   type AiYozSorovi,
+  SAHIFALAR,
+  sahifaJavobBer,
+  sahifaJavobi,
+  sahifaTarixi,
+  type SahifaSorovi,
+  mijozHolati,
+  joriyQadam,
+  type YolHolati,
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
@@ -503,6 +511,24 @@ export function build(): FastifyInstance {
       return javob.code(r.xato.includes('baza') ? 503 : 401).send(r);
     }
     return r;
+  });
+
+  // Sahifa yordamchisi (2026-10-19, «Har sahifada AI yordamchi») — Edge bilan bir xil:
+  // holat oʻzgarmaydi; sessiya boʻlsa — mijoz qayerdaligi (ism va telefonsiz) qoʻshiladi.
+  app.post('/yordamchi', async (request, javob) => {
+    const tana = (request.body ?? {}) as Record<string, unknown>;
+    const savol = typeof tana.savol === 'string' ? tana.savol.trim() : '';
+    if (!savol) return javob.code(400).send({ xato: 'savol boʻsh' });
+    const sahifa = SAHIFALAR.find((x) => x === tana.sahifa) ?? 'bosh';
+    const token = request.headers['x-sessiya'];
+    const o = typeof token === 'string' && token
+      ? await rpc<{ xato?: string; holat?: YolHolati | null }>('so_suhbat_oqi', { p_token: token })
+      : null;
+    const holat = o && !o.xato && o.holat ? mijozHolati(o.holat, joriyQadam(o.holat)) : null;
+    return sahifaJavobi({
+      ai: llmBor ? (k: SahifaSorovi, ms: number) => sahifaJavobBer({ ...llmSozlama(), vaqtMs: ms }, k) : null,
+      tarifCheklovi: tarifCheklovi(),
+    }, { savol, sahifa, tarix: sahifaTarixi(tana.tarix), holat, ...(tana.til === 'ru' ? { til: 'ru' as const } : {}) });
   });
 
   // «Suhbatlarim» (0066): roʻyxat va bitta eski suhbat — Edge bilan bir xil.

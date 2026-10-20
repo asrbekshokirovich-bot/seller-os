@@ -35,6 +35,14 @@ import {
   aiYozBer,
   type AiTushunSorovi,
   type AiYozSorovi,
+  SAHIFALAR,
+  sahifaJavobBer,
+  sahifaJavobi,
+  sahifaTarixi,
+  type SahifaSorovi,
+  mijozHolati,
+  joriyQadam,
+  type YolHolati,
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
@@ -525,6 +533,35 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       }
       return javob(r);
     }
+  }
+
+  /*
+   * Sahifa yordamchisi (nazoratchi, 2026-10-19: «Har sahifada AI yordamchi») — bosh sahifa,
+   * kirish, maxfiylik, «Rejalar» dagi «Savol bering». Holat oʻzgarmaydi, hech narsa yozilmaydi.
+   * Sessiya boʻlsa — mijoz suhbatda qayerdaligi (ism va telefonsiz) javobga qoʻshiladi;
+   * boʻlmasa ham ishlaydi (bosh sahifadagi odamga sessiya ochilmaydi).
+   */
+  if (yol === '/yordamchi' && req.method === 'POST') {
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+    const savol = typeof tana.savol === 'string' ? tana.savol.trim() : '';
+    if (!savol) return javob({ xato: 'savol boʻsh' }, 400);
+    const sahifa = SAHIFALAR.find((x) => x === tana.sahifa) ?? 'bosh';
+    const token = req.headers.get('x-sessiya') ?? '';
+    const o = token ? await rpc<{ xato?: string; holat?: YolHolati | null }>('so_suhbat_oqi', { p_token: token }) : null;
+    const holat = o && !o.xato && o.holat ? mijozHolati(o.holat, joriyQadam(o.holat)) : null;
+    // LLM — `/suhbat` dagidek: Anthropic kaliti boʻlsa Claude, boʻlmasa Gemini.
+    const claude = claudeProvayderi({ kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_MODEL') });
+    const llmBor = claude !== null || Boolean(Deno.env.get('GEMINI_API_KEY'));
+    const llmSozlama = {
+      kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
+      provayder: claude,
+    };
+    const r = await sahifaJavobi({
+      ai: llmBor ? (k: SahifaSorovi, ms: number) => sahifaJavobBer({ ...llmSozlama, vaqtMs: ms }, k) : null,
+      tarifCheklovi: tarifCheklovi(),
+    }, { savol, sahifa, tarix: sahifaTarixi(tana.tarix), holat, ...(tana.til === 'ru' ? { til: 'ru' as const } : {}) });
+    return javob(r);
   }
 
   /*
