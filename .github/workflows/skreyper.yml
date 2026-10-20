@@ -87,6 +87,25 @@ jobs:
           fi
           echo "Frontier bazada: $n"
 
+      # Kuzatuv roʻyxatini yangilash (0068, 2026-10-20).
+      #
+      # NEGA. Roʻyxat 2026-08-24 da bir marta tanlangan va hech qachon
+      # yangilanmagan: 10-20 da 5 999 dan 4 536 tasi Uzumda «Tugadi»
+      # (14 kundan beri qoldiqsiz). 3-qadam katalogi shularni koʻrsatardi.
+      # Har ishda oʻlik oʻrinlar (turkumlar navbat bilan) sotuvdagi tovar
+      # bilan almashtiriladi — nomzod OLDIN Uzumda oʻlchanadi (`almashtir.py`).
+      #
+      # «Oʻlchash» dan OLDIN: yangi tovarlar shu ishning oʻzida oʻlchanadi
+      # va katalogga darhol chiqadi. `continue-on-error` — yangilash
+      # yiqilsa ham oʻlchov qolmaydi (u asosiy ish).
+      - name: Kuzatuv roʻyxatini yangilash
+        continue-on-error: true
+        working-directory: apps/scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python -m selleros_scraper almashtir
+
       - name: Oʻlchash
         working-directory: apps/scraper
         env:

@@ -94,6 +94,26 @@ class Store:
             raise StoreError(f"so_select_tracked ro'yxat qaytarmadi: {type(javob).__name__}")
         return [int(x) for x in javob]
 
+    def almashtir_nomzodlari(self, client: httpx.Client, kun: int = 14) -> dict[str, Any]:
+        """Uzoq tugagan kuzatuv o'rinlari va har biriga nomzodlar (0068).
+
+        Bitta jsonb obyekt: `{slotlar: [{eski, turkum, bolak, nomzodlar: [{id, xaridor}]}], ...}`.
+        Hisob ~20 soniya (perepis katta) — mijoz vaqt chegarasi shunga yetsin.
+        """
+        javob = self._rpc(client, "so_almashtir_nomzodlari", {"p_kun": kun})
+        if not isinstance(javob, dict) or not isinstance(javob.get("slotlar"), list):
+            raise StoreError(f"so_almashtir_nomzodlari kutilmagan javob: {type(javob).__name__}")
+        return javob
+
+    def almashtir(
+        self, client: httpx.Client, juftlar: list[dict[str, Any]], rad: list[int]
+    ) -> dict[str, Any]:
+        """Juftlarni bitta tranzaksiyada qo'llaydi, rad etilganlarni yozadi. Bazadan qaytganini beradi."""
+        javob = self._rpc(client, "so_almashtir", {"p_juftlar": juftlar, "p_rad": rad})
+        if not isinstance(javob, dict):
+            raise StoreError(f"so_almashtir kutilmagan javob: {type(javob).__name__}")
+        return javob
+
     def turkum_royxati(self, client: httpx.Client, limit: int) -> list[int]:
         """Qaysi turkumlarning hajmi oʻlchanadi (talab boʻyicha).
 

@@ -61,7 +61,8 @@ def id_lar(args: argparse.Namespace) -> list[int]:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="selleros_scraper", description="Uzum o'lchovi.")
     p.add_argument("buyruq", nargs="?", default=None,
-                   help="Subbuyruq: 'frontier' — eng katta id zondi.")
+                   help="Subbuyruq: 'frontier' — eng katta id zondi; "
+                        "'almashtir' — uzoq tugagan kuzatuv tovarlarini almashtirish.")
     p.add_argument("--id", type=int, action="append", help="Bitta id (bir necha marta berish mumkin).")
     p.add_argument("--dan", type=int, help="Oraliq boshi.")
     p.add_argument("--gacha", type=int, help="Oraliq oxiri (kiradi).")
@@ -77,6 +78,12 @@ def main(argv: list[str] | None = None) -> int:
                    help="Bazaga yozmaydi. Sir ham kerak emas.")
     p.add_argument("--rps", type=float, default=Limits.per_second,
                    help=f"So'rov/soniya (standart {Limits.per_second}).")
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv[:1] == ["almashtir"]:
+        # O'z bayroqlari bor (`--max-sorov`, `--kun`) — o'zi o'qiydi.
+        from .almashtir import main as almashtir_main
+        return almashtir_main(argv[1:])
     args = p.parse_args(argv)
 
     if args.buyruq == "frontier":
