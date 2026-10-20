@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+import type { ReadableStream as WebOqim } from 'node:stream/web';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Sifat, holat } from './sifat.js';
 import {
@@ -20,6 +22,10 @@ import {
   aiYozBer,
   type AiTushunSorovi,
   type AiYozSorovi,
+  type AiYozuvQismi,
+  OQIM_SARLAVHALARI,
+  oqimYokiNatija,
+  siyrak,
   SAHIFALAR,
   sahifaJavobBer,
   sahifaJavobi,
@@ -465,7 +471,7 @@ export function build(): FastifyInstance {
       ? {
         ai: {
           tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama(), vaqtMs: ms }, k),
-          yoz: (k: AiYozSorovi, ms: number) => aiYozBer({ ...llmSozlama(), vaqtMs: ms }, k),
+          yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama(), vaqtMs: ms }, k, qism),
         },
       }
       : {}),
@@ -499,12 +505,28 @@ export function build(): FastifyInstance {
       }
       return q;
     }
-    const r = await suhbatTurn(d, token, {
+    const kirish = {
       ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
       ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
       ...(tana.tekshir === true ? { tekshir: true } : {}),
       ...(tana.til === 'ru' ? { til: 'ru' as const } : {}),
-    });
+    };
+    // Oqim (2026-10-20) — Edge bilan bir xil: `oqim: true` boʻlsa AI yozayotgan xabar darhol keladi.
+    const g = tana.oqim === true
+      ? await oqimYokiNatija((yubor) => {
+        const qism = siyrak((y: AiYozuvQismi) => yubor('qism', y), 120);
+        return suhbatTurn({
+          ...d,
+          oqim: {
+            holat: (h) => yubor('holat', { holat: h }),
+            qism,
+            qayta: () => { qism.bekor(); yubor('qayta', {}); },
+          },
+        }, token, kirish).finally(() => qism.bekor());
+      })
+      : { natija: await suhbatTurn(d, token, kirish) };
+    if ('oqim' in g) return javob.headers(OQIM_SARLAVHALARI).send(Readable.fromWeb(g.oqim as WebOqim));
+    const r = g.natija;
     // Sessiya/baza xatosi — HTTP kodi bilan. Navbat xatosi esa 200:
     // u obunachiga ko'rsatiladigan oddiy javob, nosozlik emas.
     if (r.xato && r.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(r.xato)) {
@@ -525,10 +547,24 @@ export function build(): FastifyInstance {
       ? await rpc<{ xato?: string; holat?: YolHolati | null }>('so_suhbat_oqi', { p_token: token })
       : null;
     const holat = o && !o.xato && o.holat ? mijozHolati(o.holat, joriyQadam(o.holat)) : null;
-    return sahifaJavobi({
-      ai: llmBor ? (k: SahifaSorovi, ms: number) => sahifaJavobBer({ ...llmSozlama(), vaqtMs: ms }, k) : null,
+    const sd = {
+      ai: llmBor
+        ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama(), vaqtMs: ms }, k, qism)
+        : null,
       tarifCheklovi: tarifCheklovi(),
-    }, { savol, sahifa, tarix: sahifaTarixi(tana.tarix), holat, ...(tana.til === 'ru' ? { til: 'ru' as const } : {}) });
+    };
+    const sk = { savol, sahifa, tarix: sahifaTarixi(tana.tarix), holat, ...(tana.til === 'ru' ? { til: 'ru' as const } : {}) };
+    // Oqim (2026-10-20) — Edge bilan bir xil.
+    if (tana.oqim === true) {
+      const g = await oqimYokiNatija((yubor) => {
+        const qism = siyrak((m: string) => yubor('qism', { matn: m }), 120);
+        return sahifaJavobi({ ...sd, oqim: { qism, qayta: () => { qism.bekor(); yubor('qayta', {}); } } }, sk)
+          .finally(() => qism.bekor());
+      });
+      if ('oqim' in g) return javob.headers(OQIM_SARLAVHALARI).send(Readable.fromWeb(g.oqim as WebOqim));
+      return g.natija;
+    }
+    return sahifaJavobi(sd, sk);
   });
 
   // «Suhbatlarim» (0066): roʻyxat va bitta eski suhbat — Edge bilan bir xil.

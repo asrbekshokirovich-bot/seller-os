@@ -46,7 +46,7 @@ import type { KartochkaMatni } from './kartochka-matn.js';
 import type { Yozuv } from './yozuv.js';
 import {
   AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA, AI_YOZ_SXEMA, aiTushunchaniOqi, aiTushunMatni, aiYozMatni, aiYozuvniOqi,
-  type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
+  aiYozuvQismi, type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv, type AiYozuvQismi,
 } from './ai-suhbat.js';
 import { SAHIFA_KORSATMA, sahifaSoroviMatni, type SahifaSorovi } from './sahifa-yordamchi.js';
 
@@ -84,6 +84,12 @@ export interface LlmChaqiruvi {
    * Berilmasa — `low`.
    */
   kuch?: 'low' | 'medium';
+  /**
+   * Javob yozilgan sari (2026-10-20, nazoratchi: «matn yozilgan sari chiqib borsin»): shu paytgacha
+   * yozilgan matn — har safar boshidan. Qisqarsa — model almashdi, qaytadan yozilyapti. Bu QORALAMA:
+   * darvozadan hali oʻtmagan. Faqat Claude chaqiradi; Gemini — chaqirmaydi (javob oxirida keladi).
+   */
+  qism?: ((matn: string) => void) | undefined;
 }
 
 /** Bitta chaqiruv — javob matni yoki `null` (ishlamadi; oqim toʻxtamaydi). */
@@ -244,11 +250,11 @@ function fikrDarajasi(model: string, fikr: 'minimal' | 'low'): 'minimal' | 'low'
  */
 async function chaqir(
   s: LlmSozlama, korsatma: string, matn: string, belgi: string, fikr: 'minimal' | 'low',
-  json: Record<string, unknown> | null = null, kuch: 'low' | 'medium' = 'low',
+  json: Record<string, unknown> | null = null, kuch: 'low' | 'medium' = 'low', qism?: (matn: string) => void,
 ): Promise<string | null> {
   if (!matn.trim()) return null;
   if (s.provayder) {
-    return s.provayder({ korsatma, matn, belgi, json, vaqtMs: s.vaqtMs ?? 8_000, kuch }).catch(() => null);
+    return s.provayder({ korsatma, matn, belgi, json, vaqtMs: s.vaqtMs ?? 8_000, kuch, ...(qism ? { qism } : {}) }).catch(() => null);
   }
   return gemini(s, korsatma, matn, belgi, fikr, json !== null);
 }
@@ -460,8 +466,10 @@ export async function aiTushunBer(s: LlmSozlama, k: AiTushunSorovi): Promise<AiT
  * AI SUHBAT — mijozga xabar (`ai-suhbat.ts`): munosabat va savoliga javob, yangi natijalar
  * izohi, keyingi savol. `null` — ishlamadi yoki JSON buzuq: kod qoliplari ketadi.
  */
-export async function aiYozBer(s: LlmSozlama, k: AiYozSorovi): Promise<AiYozuv | null> {
-  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, AI_YOZ_KORSATMA, aiYozMatni(k), 'ai-yoz', 'low', AI_YOZ_SXEMA);
+export async function aiYozBer(s: LlmSozlama, k: AiYozSorovi, qism?: (y: AiYozuvQismi) => void): Promise<AiYozuv | null> {
+  // Oqim: yozilayotgan JSON dan shu paytgacha yozilgan uch qism (`aiYozuvQismi`) — qoralama.
+  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 30_000 }, AI_YOZ_KORSATMA, aiYozMatni(k), 'ai-yoz', 'low', AI_YOZ_SXEMA,
+    'low', qism ? (xom) => qism(aiYozuvQismi(xom)) : undefined);
   if (!javob) return null;
   const y = aiYozuvniOqi(javob);
   if (!y) console.warn('llm ai-yoz: JSON shakli buzuq');
@@ -472,6 +480,6 @@ export async function aiYozBer(s: LlmSozlama, k: AiYozSorovi): Promise<AiYozuv |
  * Sahifa yordamchisi (`sahifa-yordamchi.ts`): bosh sahifa, kirish, maxfiylik, «Rejalar» dagi
  * «Savol bering» oynasi. Oddiy matn; `null` — ishlamadi (bazaviy javob ketadi).
  */
-export async function sahifaJavobBer(s: LlmSozlama, k: SahifaSorovi): Promise<string | null> {
-  return chaqir({ ...s, vaqtMs: s.vaqtMs ?? 25_000 }, SAHIFA_KORSATMA, sahifaSoroviMatni(k), 'sahifa', 'low');
+export async function sahifaJavobBer(s: LlmSozlama, k: SahifaSorovi, qism?: (matn: string) => void): Promise<string | null> {
+  return chaqir({ ...s, vaqtMs: s.vaqtMs ?? 25_000 }, SAHIFA_KORSATMA, sahifaSoroviMatni(k), 'sahifa', 'low', null, 'low', qism);
 }

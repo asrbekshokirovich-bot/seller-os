@@ -24,7 +24,7 @@ import {
 } from './tahlil.ts';
 import { suhbatKodHarakatlari } from './suhbat-kod.ts';
 // Claude SDK faqat serverda (2026-10-19) — `shared/index.ts` dan eksport qilinmaydi.
-import { claudeProvayderi } from './shared/llm-claude.ts';
+import { CLAUDE_MODELI, claudeProvayderi } from './shared/llm-claude.ts';
 import {
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
@@ -35,6 +35,10 @@ import {
   aiYozBer,
   type AiTushunSorovi,
   type AiYozSorovi,
+  type AiYozuvQismi,
+  OQIM_SARLAVHALARI,
+  oqimYokiNatija,
+  siyrak,
   SAHIFALAR,
   sahifaJavobBer,
   sahifaJavobi,
@@ -191,6 +195,21 @@ Deno.serve(async (req: Request) => {
   }
 });
 
+/**
+ * Oqim boshlangach yiqilgan xato (`oqim.ts`) — yuqoridagi kabi Sentry ga va logga; mijozga
+ * `xato` hodisasi (HTTP holati allaqachon 200 — uni oʻzgartirib boʻlmaydi).
+ */
+function oqimXatosi(xato: unknown, yol: string): unknown {
+  const id = crypto.randomUUID().replace(/-/g, '');
+  void xatoniYubor(xato, {
+    qism: 'edge',
+    muhit: Deno.env.get('NODE_ENV') ?? 'production',
+    yol,
+  }, Deno.env.get('SENTRY_DSN'), fetch, new Date(), id);
+  console.error(`[${id}] ${yol} (oqim):`, xato);
+  return { xato: 'ichki xato', hodisa: id, izoh: 'Shu raqamni aytsangiz, aynan bu xatoni topamiz.' };
+}
+
 async function ishla(req: Request, yol: string): Promise<Response> {
 
   if (yol === '/' || yol === '/health') {
@@ -207,6 +226,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         llm: Boolean(Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('GEMINI_API_KEY')),
         // Qaysi provayder: Anthropic kaliti boʻlsa — Claude (2026-10-19), boʻlmasa — Gemini.
         llmProvayder: Deno.env.get('ANTHROPIC_API_KEY') ? 'claude' : Deno.env.get('GEMINI_API_KEY') ? 'gemini' : null,
+        // Qaysi Claude modeli (2026-10-20: standart — Sonnet 5.5; `CLAUDE_MODEL` bilan almashadi).
+        claudeModel: Deno.env.get('ANTHROPIC_API_KEY') ? (Deno.env.get('CLAUDE_MODEL')?.trim() || CLAUDE_MODELI) : null,
         // AI suhbat (2026-10-19): Claude bilan, `AI_SUHBAT=0` boʻlmasa — hamma xabarni AI yozadi.
         aiSuhbat: Boolean(Deno.env.get('ANTHROPIC_API_KEY')) && Deno.env.get('AI_SUHBAT') !== '0',
         // Payme/Click sozlanganmi (kalitlar emas, faqat bor-yoʻqligi) — 0067.
@@ -448,7 +469,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const token = req.headers.get('x-sessiya') ?? '';
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
     // LLM (nazoratchi, 2026-10-19): Anthropic kaliti boʻlsa — Claude (`CLAUDE_MODEL`, boʻlmasa
-    // `claude-opus-5-5`); boʻlmasa — Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
+    // `claude-sonnet-5-5`); boʻlmasa — Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
     const claude = claudeProvayderi({ kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_MODEL') });
     const kalit = claude !== null || Boolean(Deno.env.get('GEMINI_API_KEY'));
     const llmSozlama = {
@@ -494,7 +515,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       ...(claude !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {
         ai: {
           tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama, vaqtMs: ms }, k),
-          yoz: (k: AiYozSorovi, ms: number) => aiYozBer({ ...llmSozlama, vaqtMs: ms }, k),
+          yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama, vaqtMs: ms }, k, qism),
         },
       } : {}),
     };
@@ -520,14 +541,31 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         }
         return javob(q);
       }
-      const r = await suhbatTurn(d, token, {
+      const kirish = {
         ...(typeof tana.savolId === 'string' ? { savolId: tana.savolId, javob: tana.javob } : {}),
         ...(typeof tana.matn === 'string' ? { matn: tana.matn } : {}),
         // 5-qadam: yurish tugadimi — mijoz har 8 s da soʻraydi.
         ...(tana.tekshir === true ? { tekshir: true } : {}),
         // Sahifa tili: tugma bosilganda AI shu tilda yozadi (yozgan boʻlsa — yozgan tilida).
         ...(tana.til === 'ru' ? { til: 'ru' as const } : {}),
-      });
+      };
+      // Oqim (2026-10-20, «matn yozilgan sari chiqib borsin»): sahifa `oqim: true` yuborsa — AI
+      // yozayotgan xabar darhol keladi (`oqim.ts`). Hodisa chiqmasa (tugma, xato) — oddiy JSON.
+      const g = tana.oqim === true
+        ? await oqimYokiNatija((yubor) => {
+          const qism = siyrak((y: AiYozuvQismi) => yubor('qism', y), 120);
+          return suhbatTurn({
+            ...d,
+            oqim: {
+              holat: (h) => yubor('holat', { holat: h }),
+              qism,
+              qayta: () => { qism.bekor(); yubor('qayta', {}); },
+            },
+          }, token, kirish).finally(() => qism.bekor());
+        }, { xatoQiymati: (e) => oqimXatosi(e, yol) })
+        : { natija: await suhbatTurn(d, token, kirish) };
+      if ('oqim' in g) return new Response(g.oqim, { headers: OQIM_SARLAVHALARI });
+      const r = g.natija;
       if (r.xato && r.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(r.xato)) {
         return javob(r, r.xato.includes('baza') ? 503 : 401);
       }
@@ -557,11 +595,24 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
       provayder: claude,
     };
-    const r = await sahifaJavobi({
-      ai: llmBor ? (k: SahifaSorovi, ms: number) => sahifaJavobBer({ ...llmSozlama, vaqtMs: ms }, k) : null,
+    const sd = {
+      ai: llmBor
+        ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama, vaqtMs: ms }, k, qism)
+        : null,
       tarifCheklovi: tarifCheklovi(),
-    }, { savol, sahifa, tarix: sahifaTarixi(tana.tarix), holat, ...(tana.til === 'ru' ? { til: 'ru' as const } : {}) });
-    return javob(r);
+    };
+    const sk = { savol, sahifa, tarix: sahifaTarixi(tana.tarix), holat, ...(tana.til === 'ru' ? { til: 'ru' as const } : {}) };
+    // Oqim (2026-10-20): `oqim: true` — javob yozilgan sari (`qism` — `{matn}`), oxirida `tayyor`.
+    if (tana.oqim === true) {
+      const g = await oqimYokiNatija((yubor) => {
+        const qism = siyrak((m: string) => yubor('qism', { matn: m }), 120);
+        return sahifaJavobi({ ...sd, oqim: { qism, qayta: () => { qism.bekor(); yubor('qayta', {}); } } }, sk)
+          .finally(() => qism.bekor());
+      }, { xatoQiymati: (e) => oqimXatosi(e, yol) });
+      if ('oqim' in g) return new Response(g.oqim, { headers: OQIM_SARLAVHALARI });
+      return javob(g.natija);
+    }
+    return javob(await sahifaJavobi(sd, sk));
   }
 
   /*

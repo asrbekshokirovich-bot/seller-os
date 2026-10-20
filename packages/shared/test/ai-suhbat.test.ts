@@ -11,8 +11,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  aiQiymat, aiTushunchaniOqi, aiYozMatni, aiYozuvniOqi, AI_TUSHUN_SXEMA, AI_YOZ_SXEMA, ixcham, natijaTavsifi, savolTavsifi,
-  type AiYozSorovi,
+  aiQiymat, aiTushunchaniOqi, aiYozMatni, aiYozuvniOqi, aiYozuvQismi, AI_TUSHUN_SXEMA, AI_YOZ_SXEMA, ixcham, natijaTavsifi,
+  savolTavsifi, type AiYozSorovi,
 } from '../src/ai-suhbat';
 import { aiTushunBer, aiYozBer, type LlmChaqiruvi } from '../src/llm';
 import type { SuhbatSavoli } from '../src/ssenariy';
@@ -134,5 +134,42 @@ describe('provayderga chaqiruv', () => {
     expect(AI_YOZ_SXEMA.additionalProperties).toBe(false);
     expect(AI_TUSHUN_SXEMA.required).toEqual(['javoblar', 'taklif_qiziqish', 'savol_bor']);
     expect(AI_TUSHUN_SXEMA.additionalProperties).toBe(false);
+  });
+});
+
+describe('aiYozuvQismi — yozilayotgan xabar (oqim, 2026-10-20)', () => {
+  const TOLIQ = JSON.stringify({
+    oldin: 'Rahmat! «Kiyim» — yaxshi tanlov.\nKeyin hisoblaymiz.',
+    izoh: 'Bu yerda 3 ta yoʻnalish: narxi 120 000 soʻmdan.',
+    savol: 'Qancha pul ajratasiz? 😀',
+  });
+
+  it('har bir boshlanishda (har belgi): qismlar oxirgisining boshi; oxirida — aiYozuvniOqi bilan bir xil', () => {
+    const oxiri = aiYozuvniOqi(TOLIQ)!;
+    for (let n = 0; n <= TOLIQ.length; n++) {
+      const q = aiYozuvQismi(TOLIQ.slice(0, n));
+      for (const k of ['oldin', 'izoh', 'savol'] as const) {
+        expect(oxiri[k].startsWith(q[k]), `${n} ${k}: «${q[k]}»`).toBe(true);
+      }
+    }
+    expect(aiYozuvQismi(TOLIQ)).toEqual(oxiri);
+  });
+
+  it('escape lar (yangi qator, qoʻshtirnoq, teskari chiziq, u-kod); chala escape va yarim emoji — tashlanadi', () => {
+    const T = String.fromCharCode(92);
+    const j = (s: string) => s.replaceAll('~', T);
+    expect(aiYozuvQismi(j('{"oldin":"a~nb ~"c~" ~~ ~u0067oz","izoh":"","savol":"s"}')))
+      .toEqual({ oldin: `a${String.fromCharCode(10)}b "c" ${T} goz`, izoh: '', savol: 's' });
+    expect(aiYozuvQismi(j('{"oldin":"abc~')).oldin).toBe('abc');
+    expect(aiYozuvQismi(j('{"oldin":"abc~u00')).oldin).toBe('abc');
+    // Emoji ikki yarimdan (~ud83d~ude00): faqat birinchi yarmi kelgan — koʻrsatilmaydi.
+    expect(aiYozuvQismi(j('{"oldin":"ok ~ud83d')).oldin).toBe('ok');
+    expect(aiYozuvQismi(j('{"oldin":"ok ~ud83d~ude00"')).oldin).toBe(`ok ${String.fromCodePoint(0x1f600)}`);
+  });
+
+  it('boʻsh joylar, notanish kalit, tartib boshqacha — baribir; kutilmagan shakl — bor qismlar qaytadi', () => {
+    expect(aiYozuvQismi(' {\n "savol" : "S?",\n "boshqa": "x", "oldin": "O"')).toEqual({ oldin: 'O', izoh: '', savol: 'S?' });
+    expect(aiYozuvQismi('')).toEqual({ oldin: '', izoh: '', savol: '' });
+    expect(aiYozuvQismi('{"oldin":"A","son":5,"savol":"B"}')).toEqual({ oldin: 'A', izoh: '', savol: '' });
   });
 });

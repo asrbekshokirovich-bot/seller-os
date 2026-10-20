@@ -8,8 +8,10 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLAUDE_MODELI, claudeProvayderi, kalitniAjrat, sirsiz } from '../src/llm-claude';
-import { aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir } from '../src/llm';
+import { CLAUDE_MODELI, claudeProvayderi, javobMatni, kalitniAjrat, sirsiz } from '../src/llm-claude';
+import {
+  aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir, sahifaJavobBer,
+} from '../src/llm';
 import { AI_YOZ_SXEMA } from '../src/ai-suhbat';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Headers }
@@ -53,7 +55,8 @@ describe('Claude provayderi', () => {
     expect(y[0]!.sarlavha.get('x-api-key')).toBe('sk-ant-sinov');
     expect(y[0]!.sarlavha.get('anthropic-beta')).toMatch(/server-side-fallback-2026-07-01/);
     const t = y[0]!.tana;
-    expect(t.model).toBe('claude-opus-5-5');
+    // 2026-10-20: standart — Sonnet 5.5 (nazoratchi: «tezroq va arzonroq»).
+    expect(t.model).toBe('claude-sonnet-5-5');
     expect(t.system).toEqual([{ type: 'text', text: MUNOSABAT_KORSATMA, cache_control: { type: 'ephemeral' } }]);
     expect(t.output_config).toEqual({ effort: 'low' });
     // Javob qisqa; fikrlash ham shu chegaraga kiradi.
@@ -138,9 +141,122 @@ describe('Claude provayderi', () => {
 
   it('CLAUDE_MODEL bilan boshqa model', async () => {
     const y: Yozuv[] = [];
-    const provayder = claudeProvayderi({ kalit: 'k', model: ' claude-sonnet-5-5 ', fetchFn: soxtaFetch([{ json: MATN('ok') }], y) });
+    const provayder = claudeProvayderi({ kalit: 'k', model: ' claude-opus-5-5 ', fetchFn: soxtaFetch([{ json: MATN('ok') }], y) });
     await odamlashtir({ kalit: null, provayder }, 'x');
+    expect(y[0]!.tana.model).toBe('claude-opus-5-5');
+  });
+});
+
+/** Anthropic oqimi (SSE): hodisalar `event:` + `data:` boʻlib, bitta javob tanasida. */
+function sseJavob(hodisalar: Array<Record<string, unknown>>): Response {
+  const matn = hodisalar.map((h) => `event: ${String(h.type)}\ndata: ${JSON.stringify(h)}\n\n`).join('');
+  return new Response(matn, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+}
+const BOSHI = (model = CLAUDE_MODELI) => ({
+  type: 'message_start',
+  message: { ...javob([], null as unknown as string, model), stop_reason: null },
+});
+const MATN_BLOKI = (index: number, boLaklar: string[]) => [
+  { type: 'content_block_start', index, content_block: { type: 'text', text: '' } },
+  ...boLaklar.map((text) => ({ type: 'content_block_delta', index, delta: { type: 'text_delta', text } })),
+  { type: 'content_block_stop', index },
+];
+const OXIRI = (stop_reason = 'end_turn') => [
+  { type: 'message_delta', delta: { stop_reason, stop_sequence: null }, usage: { output_tokens: 40 } },
+  { type: 'message_stop' },
+];
+const YOZ_SOROVI = {
+  mijoz: null, tanlov: false, qabul: [], rad: [], eslab: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
+  keyingi: null, keyingiMatn: 'Kutamiz', holat: '-', tarix: '', til: 'uz' as const, bugun: '20.10.2026', tuzat: null,
+};
+
+describe('oqim — matn yozilgan sari (2026-10-20)', () => {
+  it('qism berilsa — stream: har boʻlakda shu paytgacha yozilgani; oxirida tekshirilgan JSON', async () => {
+    const y: Yozuv[] = [];
+    const bolaklar = ['{"oldin":"Rah', 'mat! Yaxshi', ' tanlov.","izoh":"","sa', 'vol":"Qaysi soha?"}'];
+    const f = (async (url: string | URL | Request, init?: RequestInit) => {
+      y.push({ url: String(url), tana: JSON.parse(String(init?.body)), sarlavha: new Headers(init?.headers) });
+      return sseJavob([BOSHI(), ...MATN_BLOKI(0, bolaklar), ...OXIRI()]);
+    }) as unknown as typeof fetch;
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
+    const qismlar: Array<{ oldin: string; izoh: string; savol: string }> = [];
+    const r = await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, (q) => qismlar.push(q));
+    expect(r).toEqual({ oldin: 'Rahmat! Yaxshi tanlov.', izoh: '', savol: 'Qaysi soha?' });
+    expect(y[0]!.tana.stream).toBe(true);
+    // Soʻrov shakli oqimsizdagi bilan bir xil: model, effort, sxema, zaxira.
     expect(y[0]!.tana.model).toBe('claude-sonnet-5-5');
+    expect(y[0]!.tana.fallbacks).toBe('default');
+    expect((y[0]!.tana.output_config as { effort: string }).effort).toBe('low');
+    expect(qismlar.map((q) => q.oldin)).toEqual(['Rah', 'Rahmat! Yaxshi', 'Rahmat! Yaxshi tanlov.', 'Rahmat! Yaxshi tanlov.']);
+    expect(qismlar.at(-1)).toEqual({ oldin: 'Rahmat! Yaxshi tanlov.', izoh: '', savol: 'Qaysi soha?' });
+  });
+
+  it('qism berilmasa — oddiy soʻrov (stream emas)', async () => {
+    const y: Yozuv[] = [];
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json: MATN('{"oldin":"","izoh":"","savol":"S?"}') }], y) });
+    expect(await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI)).toEqual({ oldin: '', izoh: '', savol: 'S?' });
+    expect(y[0]!.tana.stream).toBeUndefined();
+  });
+
+  it('rad etilib boshqa modelga oʻtsa (fallback) — qoralama boshidan; javob — faqat keyingi model yozgani', async () => {
+    const f = (async () => sseJavob([
+      BOSHI(),
+      ...MATN_BLOKI(0, ['{"oldin":"CHALA']),
+      { type: 'content_block_start', index: 1, content_block: {
+        type: 'fallback', from: { model: 'claude-sonnet-5-5' }, to: { model: 'claude-sonnet-5' }, trigger: { type: 'refusal' } } },
+      { type: 'content_block_stop', index: 1 },
+      ...MATN_BLOKI(2, ['{"oldin":"Yangi","izoh":"","savol":"S?"}']),
+      ...OXIRI(),
+    ])) as unknown as typeof fetch;
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
+    const qismlar: string[] = [];
+    const r = await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, (q) => qismlar.push(q.oldin));
+    expect(r).toEqual({ oldin: 'Yangi', izoh: '', savol: 'S?' });
+    expect(qismlar).toEqual(['CHALA', '', 'Yangi']);
+  });
+
+  it('oqimda ham: rad etildi yoki max_tokens — null (qoralama keldi, lekin javob yoʻq)', async () => {
+    for (const sabab of ['refusal', 'max_tokens']) {
+      const f = (async () => sseJavob([BOSHI(), ...MATN_BLOKI(0, ['{"oldin":"chala']), ...OXIRI(sabab)])) as unknown as typeof fetch;
+      const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
+      const qismlar: string[] = [];
+      expect(await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, (q) => qismlar.push(q.oldin)), sabab).toBeNull();
+      expect(qismlar, sabab).toEqual(['chala']);
+    }
+  });
+
+  it('oqim oʻrtasida uzilsa — null (chat toʻxtamaydi, kod qolipi ketadi)', async () => {
+    const f = (async () => {
+      const kodla = new TextEncoder();
+      const tana = new ReadableStream<Uint8Array>({
+        start(c) {
+          c.enqueue(kodla.encode(`event: message_start\ndata: ${JSON.stringify(BOSHI())}\n\n`));
+          c.error(new TypeError('tarmoq uzildi'));
+        },
+      });
+      return new Response(tana, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }) as unknown as typeof fetch;
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
+    expect(await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, () => undefined)).toBeNull();
+    expect(log.mock.calls.flat().join(' ')).toMatch(/llm ai-yoz/);
+  });
+
+  it('sahifa yordamchisi (oddiy matn) — qismda matnning oʻzi', async () => {
+    const f = (async () => sseJavob([BOSHI(), ...MATN_BLOKI(0, ['Salom! ', 'ZumSavdo — yoʻl.']), ...OXIRI()])) as unknown as typeof fetch;
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
+    const qismlar: string[] = [];
+    const r = await sahifaJavobBer({ kalit: null, provayder }, {
+      savol: 'Bu nima?', sahifa: 'bosh', tarix: [], holat: null, bilim: '', tayyor: null, til: 'uz', tuzat: null,
+    }, (m) => qismlar.push(m));
+    expect(r).toBe('Salom! ZumSavdo — yoʻl.');
+    expect(qismlar).toEqual(['Salom! ', 'Salom! ZumSavdo — yoʻl.']);
+  });
+
+  it('javobMatni: oxirgi fallback dan keyingi matn bloklari; fallback yoʻq — hammasi', () => {
+    expect(javobMatni([{ type: 'text', text: 'a' }, { type: 'thinking' }, { type: 'text', text: 'b' }])).toBe('ab');
+    expect(javobMatni([{ type: 'text', text: 'rad' }, { type: 'fallback' }, { type: 'text', text: ' yangi ' }])).toBe('yangi');
+    expect(javobMatni([{ type: 'thinking' }])).toBeNull();
   });
 });
 

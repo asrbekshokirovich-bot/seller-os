@@ -325,6 +325,69 @@ export function aiYozuvniOqi(t: string): AiYozuv | null {
 }
 
 /**
+ * Yozilayotgan AI xabari — qoralama (oqim, 2026-10-20): uch qismning shu paytgacha yozilgani.
+ * Darvozadan oʻtmagan: oxirida tekshirilgan xabar (`AiYozuv`) uning oʻrnini oladi.
+ */
+export type AiYozuvQismi = AiYozuv;
+
+/**
+ * Chala JSON dan (`{"oldin":"Rahmat! Siz…`) shu paytgacha yozilgan qismlar: tugaganlari toʻliq,
+ * yozilayotgani — shu joyigacha. Chala escape (`\`, `\u00`) va yarim emoji tashlanadi — keyingi
+ * boʻlakda toʻliq keladi. Kutilmagan shakl — oʻsha joyda toʻxtaydi (bor qismlar qaytadi).
+ */
+export function aiYozuvQismi(xom: string): AiYozuvQismi {
+  const q: AiYozuvQismi = { oldin: '', izoh: '', savol: '' };
+  let i = xom.indexOf('{');
+  if (i < 0) return q;
+  i++;
+  const bosh = () => { while (i < xom.length && /\s/.test(xom[i]!)) i++; };
+  while (i < xom.length) {
+    while (i < xom.length && /[\s,]/.test(xom[i]!)) i++;
+    if (xom[i] !== '"') break;
+    const kalit = jsonSatr(xom, i + 1);
+    if (!kalit.tugadi) break;
+    i = kalit.oxiri;
+    bosh();
+    if (xom[i] !== ':') break;
+    i++;
+    bosh();
+    if (xom[i] !== '"') break;
+    const qiymat = jsonSatr(xom, i + 1);
+    if (kalit.qiymat === 'oldin' || kalit.qiymat === 'izoh' || kalit.qiymat === 'savol') q[kalit.qiymat] = qiymat.qiymat.trim();
+    if (!qiymat.tugadi) break;
+    i = qiymat.oxiri;
+  }
+  return q;
+}
+
+const JSON_ESCAPE: Record<string, string> = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', '"': '"', '\\': '\\', '/': '/' };
+
+/** JSON satri ochuvchi qoʻshtirnoqdan keyin (`boshi`): qiymati, tugagan joyi, yopildimi. */
+function jsonSatr(t: string, boshi: number): { qiymat: string; oxiri: number; tugadi: boolean } {
+  let s = '';
+  let i = boshi;
+  while (i < t.length) {
+    const c = t[i]!;
+    if (c === '"') return { qiymat: s, oxiri: i + 1, tugadi: true };
+    if (c !== '\\') { s += c; i++; continue; }
+    const e = t[i + 1];
+    if (e === undefined) break;
+    if (e === 'u') {
+      const h = t.slice(i + 2, i + 6);
+      if (h.length < 4) break;
+      if (/^[0-9a-fA-F]{4}$/.test(h)) s += String.fromCharCode(parseInt(h, 16));
+      i += 6;
+      continue;
+    }
+    s += JSON_ESCAPE[e] ?? e;
+    i += 2;
+  }
+  // Chala: emojining birinchi yarmi (yuqori surrogat) yolgʻiz qolmasin.
+  const oxirgi = s.charCodeAt(s.length - 1);
+  return { qiymat: oxirgi >= 0xd800 && oxirgi <= 0xdbff ? s.slice(0, -1) : s, oxiri: i, tugadi: false };
+}
+
+/**
  * AI javobidan `javobniQabulQil` uchun qiymat. `undefined` — javob yoʻq (tashlanadi);
  * `null` — oʻtkazib yuborish.
  */

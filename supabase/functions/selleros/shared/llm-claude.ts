@@ -12,11 +12,21 @@
  * (`supabase/functions/tayyorlash.mjs`).
  *
  * Sozlama: kalit — `ANTHROPIC_API_KEY`, model — `CLAUDE_MODEL` (boʻlmasa
- * `claude-opus-5-5`). Opus 5.5 da fikrlash oʻchmaydi — chuqurligi `effort`
- * (`LlmChaqiruvi.kuch`): chat javobi tez va arzon boʻlsin — `low`, kartochka matni — `medium`.
+ * `claude-sonnet-5-5`). Fikrlash moslashuvchan (`thinking` yuborilmaydi) — chuqurligi `effort`
+ * (`LlmChaqiruvi.kuch`): chat javobi tez va arzon boʻlsin — `low` (oddiy gapda oʻylamay
+ * yozadi), kartochka matni — `medium`.
  * Rad etilsa (`refusal`) — server tomonda `fallbacks: 'default'` uni boshqa
  * modelda qayta bajaradi; baribir rad boʻlsa — `null` (kod javobi ketadi).
  * Tizim koʻrsatmasi har chaqiruvda bir xil — keshlanadi (`cache_control`).
+ *
+ * OPUS 5.5 → SONNET 5.5 (nazoratchi, 2026-10-20: «tezroq va arzonroq»): Sonnet 5.5 —
+ * $2/$10 (Opus 5.5 dan arzon), chat va matn yozishda tezroq; soʻrov shakli oʻsha (effort,
+ * JSON sxema, `fallbacks: 'default'`). Opus kerak boʻlsa — `CLAUDE_MODEL=claude-opus-5-5`.
+ *
+ * OQIM (2026-10-20, «matn yozilgan sari chiqib borsin»): `c.qism` berilsa — javob
+ * `messages.stream` bilan keladi va har boʻlakda shu paytgacha yozilgan matn `qism` ga
+ * beriladi. Oxirida — xuddi oqimsizdagi kabi tekshiriladi (rad, chegara). Rad etilib boshqa
+ * modelga oʻtilsa (`fallback` bloki) — qoralama boshidan: oldingi model yozgani tashlanadi.
  *
  * Har yiqilish `null` va bu XATO EMAS: kalit yoʻq, tarmoq yoʻq, limit
  * tugagan — oqim toʻxtamaydi. Logda — faqat sababi (kalit ham, matn ham emas).
@@ -25,7 +35,7 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@0.133.0';
 import type { LlmChaqiruvi, LlmProvayder } from './llm.ts';
 
-export const CLAUDE_MODELI = 'claude-opus-5-5';
+export const CLAUDE_MODELI = 'claude-sonnet-5-5';
 
 export interface ClaudeSozlama {
   kalit: string | null | undefined;
@@ -63,6 +73,16 @@ export function sirsiz(matn: string): string {
     .replace(/(x-api-key|authorization)["'\s:=]+[^\s"',]+/gi, '$1: ***');
 }
 
+/**
+ * Javob matni — oxirgi `fallback` blokidan keyingi matn bloklari: undan oldingisi rad etgan
+ * modelniki (chala, tashlanadi). `fallback` boʻlmasa — hamma matn bloki.
+ */
+export function javobMatni(bloklar: ReadonlyArray<{ type: string; text?: string }>): string | null {
+  const boshi = bloklar.map((b) => b.type).lastIndexOf('fallback') + 1;
+  const matn = bloklar.slice(boshi).flatMap((b) => (b.type === 'text' && typeof b.text === 'string' ? [b.text] : [])).join('').trim();
+  return matn || null;
+}
+
 /** Kalit boʻlmasa — `null`: provayder yoʻq (Gemini yoki kod javobi ishlaydi). */
 export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
   const kalit = kalitniAjrat(s.kalit);
@@ -78,29 +98,48 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
   return async (c: LlmChaqiruvi): Promise<string | null> => {
     const nazorat = new AbortController();
     const soat = setTimeout(() => nazorat.abort(), c.vaqtMs);
+    const sorov = {
+      model,
+      // Javoblar qisqa; fikrlash ham shu chegaraga kiradi — kartochka JSON i uzunroq.
+      max_tokens: c.json ? 8_000 : 4_000,
+      system: [{ type: 'text' as const, text: c.korsatma, cache_control: { type: 'ephemeral' as const } }],
+      messages: [{ role: 'user' as const, content: c.matn }],
+      // Chat — `low` (tez); kartochka matni — `medium` (`c.kuch`). JSON kerak boʻlsa — sxema bilan.
+      output_config: {
+        effort: c.kuch ?? 'low',
+        ...(c.json ? { format: { type: 'json_schema' as const, schema: c.json } } : {}),
+      },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default' as const,
+    };
+    const sozlama = { signal: nazorat.signal, timeout: c.vaqtMs };
     try {
-      const r = await mijoz.beta.messages.create({
-        model,
-        // Javoblar qisqa; fikrlash ham shu chegaraga kiradi — kartochka JSON i uzunroq.
-        max_tokens: c.json ? 8_000 : 4_000,
-        system: [{ type: 'text', text: c.korsatma, cache_control: { type: 'ephemeral' } }],
-        messages: [{ role: 'user', content: c.matn }],
-        // Chat — `low` (tez); kartochka matni — `medium` (`c.kuch`). JSON kerak boʻlsa — sxema bilan.
-        output_config: {
-          effort: c.kuch ?? 'low',
-          ...(c.json ? { format: { type: 'json_schema' as const, schema: c.json } } : {}),
-        },
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
-      }, { signal: nazorat.signal, timeout: c.vaqtMs });
+      let r: Anthropic.Beta.Messages.BetaMessage;
+      if (c.qism) {
+        const qism = c.qism;
+        const oqim = mijoz.beta.messages.stream(sorov, sozlama);
+        let yozildi = '';
+        for await (const h of oqim) {
+          if (h.type === 'content_block_start' && h.content_block.type === 'fallback') {
+            // Rad etildi — keyingi model boshidan yozadi: qoralama ham boshidan.
+            yozildi = '';
+            qism('');
+          } else if (h.type === 'content_block_delta' && h.delta.type === 'text_delta' && h.delta.text) {
+            yozildi += h.delta.text;
+            qism(yozildi);
+          }
+        }
+        r = await oqim.finalMessage();
+      } else {
+        r = await mijoz.beta.messages.create(sorov, sozlama);
+      }
       // Rad etildi (zaxira modeli ham) yoki chegaraga yetib kesildi — chala javob chiqmaydi.
       // Sarf (token, $) — Anthropic Console → Usage da; bu yerda faqat muammo logga.
       if (r.stop_reason === 'refusal' || r.stop_reason === 'max_tokens') {
         console.warn(`llm ${c.belgi} (${r.model}): ${r.stop_reason}`);
         return null;
       }
-      const matn = r.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('').trim();
-      return matn || null;
+      return javobMatni(r.content);
     } catch (e) {
       // Sababi logda — faqat `sirsiz` dan oʻtgan matn (kalit hech qachon logga tushmasin), qisqa;
       // stek yozilmaydi (unda ham xato matni takrorlanadi).
