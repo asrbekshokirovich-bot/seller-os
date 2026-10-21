@@ -74,8 +74,9 @@ describe('ism va telefon savolida bosilgan tayyor savol — javob, ism/telefon e
     const r = await suhbatTurn({ rpc: b.rpc, kod: KOD }, 'tok', { savolId: 'telefon', matn });
     expect(r.xato).toBeUndefined();
     expect(b.holat()?.javoblar['telefon']).toBeUndefined();
-    // Maxfiylik javobi — sunʼiy intellektga yuborilmasligi aytiladi; provayder nomisiz (Gemini → Claude, 2026-10-19).
-    expect(r.xabarlar.at(-1)!.matn).toMatch(/sunʼiy intellektga yuborilmaydi|не отправляются искусственному интеллекту/u);
-    expect(r.xabarlar.at(-1)!.matn).not.toMatch(/Gemini/u);
+    // Maxfiylik javobi — rostini aytadi (2026-10-21: ism/telefonni gapdan sunʼiy intellekt ajratishi
+    // mumkin, keyingi xabarlarda telefon unga yuborilmaydi); provayder nomisiz (Gemini → Claude, 2026-10-19).
+    expect(r.xabarlar.at(-1)!.matn).toMatch(/telefon raqamingiz unga yuborilmaydi|номер телефона ему не отправляется/u);
+    expect(r.xabarlar.at(-1)!.matn).not.toMatch(/Gemini|Claude/u);
   });
 });
