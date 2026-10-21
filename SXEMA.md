@@ -204,6 +204,30 @@ ko'rsatadi — baza esa eski ma'lumot bilan to'g'ridek turaveradi.
 qo'shilsa, xato darajasi 70% ga chiqadi va kill-switch bekorga ishlaydi.
 Shuning uchun ular alohida ustunda.
 
+### `zumsavdo.tovar_30kun` — butun katalog, 30 kun (2026-10-21)
+
+Kengaytma (A/C/D) uchun: Uzumdagi har **tirik** tovar (oxirgi 7 kunda
+oʻlchangan) — bitta qator. Yozadi: VPS (zumsavdo `ingest/xulosa.mjs`, har
+kuni, `zs_xulosa` cheklangan roli bilan — `service_role` emas); oʻqiydi:
+Edge Function (`so_tovar_30kun`). Sotuvni bu jadval EMAS, FORMULA.md
+«Tovar sotuvi» hisoblaydi — jadvalda oʻlchovning oʻzi.
+
+| Ustun | Maʼnosi |
+|---|---|
+| `sana` | oynaning oxirgi kuni (Toshkent); oyna — shu kun va oldingi 29 kun |
+| `sotildi smallint[30]` | kunlik qoldiq kamayishi; `null` — nomaʼlum (nol emas) |
+| `olchangan_mask`, `tugagan_mask`, `qoldiqdan_mask` | bitmask (0-bit — eng eski kun): oʻlchangan / qoldiq 0 / SKU yoʻq, tovar qoldigʻi farqidan |
+| `narx int[30]` | faqat narx oʻzgargan faol tovarda; aks holda `narx_oxirgi` |
+| `olchangan_kun`, `tugagan_kun`, `tugaganiga`, `qoldiq_oxirgi` | skalyarlar — harakatsiz tovarda faqat shular |
+| `belgi`, `belgi_max` | Uzumning «N kishi shu hafta sotib oldi» (oxirgi / eng katta) |
+| `sharh_bosh`, `sharh`, `chegirma`, `kategoriya`, `dokon`, `nom` | — |
+
+**Faol emas** tovar (30 kunda kamayish, toʻldirish, qoldiq oʻzgarishi yoʻq)
+massivsiz yoziladi — jadval ~2 barobar kichik. Oʻlchandi 2026-10-21: 842 664
+tirik tovar, 573 297 faol. Yangilash bitta tranzaksiyada (yuk jadvali
+`tovar_30kun_yuk` → son tekshiriladi → almashadi): yarim yangilangan holat
+koʻrinmaydi, son mos kelmasa almashtirish rad etiladi.
+
 ## 3. Usta jadvallari
 
 ### `product_flags`

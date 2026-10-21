@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ZumSavdo — Xitoydan top",
-  "version": "0.2.3",
-  "description": "ZumSavdo chati yon panelda: Uzumda nima sotishni raqamlar bilan tanlang. Uzum.uz sahifasida \"Xitoydan top\" tugmasi.",
+  "version": "0.3.0",
+  "description": "Uzumda nima sotishni raqam bilan tanlang: har tovar tagida oyiga necha dona sotilishi, tovar pasporti, taqqoslash va Xitoydan (1688) top. Yon panelda ZumSavdo chati.",
   "permissions": [
     "storage",
     "sidePanel"

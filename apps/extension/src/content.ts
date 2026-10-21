@@ -10,6 +10,8 @@
 // beri faqat "Tarmoq xatosi" berardi.
 
 import { savatTugmasimi, xatoMatni } from './matn';
+import { belgilarniBoshla, belgilarniYangila, pasportdanQosh } from './belgilar';
+import { PASPORT_ID, pasportniQoy } from './pasport';
 
 const TUGMA_ID = 'selleros-xitoy-tugma';
 const PANEL_ID = 'selleros-xitoy-panel';
@@ -305,6 +307,20 @@ function natijalarniKorsat(natijalar: Natija[], meta: Meta): void {
   else tugma?.parentElement?.insertBefore(panel, tugma.nextSibling);
 }
 
+/**
+ * Tovar pasporti (0.3.0) — «Xitoydan top» tugmasi ostida. Uzum SPA: boshqa
+ * tovarga oʻtilsa yangisi chiziladi; tovar sahifasidan chiqilsa — olib tashlanadi.
+ */
+function pasportniTekshir(): void {
+  const pid = tovarIdOl();
+  const tugma = document.getElementById(TUGMA_ID);
+  if (!pid || !tugma) {
+    if (!pid) document.getElementById(PASPORT_ID)?.remove();
+    return;
+  }
+  void pasportniQoy(pid, tugma, tovarIdOl, (t) => { void pasportdanQosh(t); });
+}
+
 function joylashtir(): void {
   if (document.getElementById(TUGMA_ID)) return;
   // Panel ochiq turganda sahifa oʻzgarsa (SPA) tugma qayta qoʻyiladi, panel qoladi.
@@ -324,7 +340,14 @@ function joylashtir(): void {
   }
 }
 
-// SPA navigatsiyasini kuzatish
-const kuzatuvchi = new MutationObserver(() => joylashtir());
+// SPA navigatsiyasini kuzatish. Har oʻzgarishda: tugma, pasport, roʻyxat
+// belgilari (belgilar 400 ms kechiktirib — Uzum kartochkalarni toʻlqin bilan chizadi).
+const kuzatuvchi = new MutationObserver(() => {
+  joylashtir();
+  pasportniTekshir();
+  belgilarniYangila();
+});
 kuzatuvchi.observe(document.body, { childList: true, subtree: true });
 joylashtir();
+pasportniTekshir();
+void belgilarniBoshla();

@@ -94,6 +94,18 @@ export function qadamOchiq(r: Reja, qadam: number): boolean {
   return qadam <= REJA_QADAMI[r];
 }
 
+/**
+ * Kengaytma qismlari (nazoratchi, 2026-10-21, «Sotuvchi koʻzoynagi»): kartochka
+ * belgilari — BEPUL (Uzum roʻyxatida «oyiga ≈ N dona»); tovar pasporti va
+ * taqqoslash jadvali — obunada. Qoida flagdan qatʼi nazar bir xil; qulfni
+ * yoqish-oʻchirish — backend `TARIF_CHEKLOVI`.
+ */
+export type KengaytmaQismi = 'belgi' | 'pasport' | 'taqqos';
+
+export function kengaytmaQismiOchiq(r: Reja, qism: KengaytmaQismi): boolean {
+  return qism === 'belgi' || r !== 'bepul';
+}
+
 /** Qadamni ochadigan eng arzon rejalar — "nima kerak" deb koʻrsatish uchun. */
 export function kerakliRejalar(qadam: number): Reja[] {
   return (Object.keys(REJA_QADAMI) as Reja[]).filter((r) => qadamOchiq(r, qadam));

@@ -97,6 +97,17 @@ import {
   type TovarToliq,
   type TurkumHolati,
   kursniOl,
+  BELGI_MAX,
+  TAQQOS_MAX,
+  faktSon,
+  faktlarniOqi,
+  idlarniOqi,
+  kartochkaBelgilari,
+  kengaytmaQismiOchiq,
+  taqqosJadvali,
+  tovar30KunOqi,
+  tovarPasporti,
+  type KengaytmaQismi,
 } from './shared/index.ts';
 
 /** `so_tovar_royxati()` javobi. */
@@ -233,6 +244,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         // Payme/Click sozlanganmi (kalitlar emas, faqat bor-yoʻqligi) — 0067.
         tolov: tolovHolati(),
       },
+      // Kengaytma maʼlumoti (0071): VPS oxirgi marta qaysi kun holatini yozdi. Yozuv
+      // toʻxtasa shu yerda koʻrinadi — kengaytma eski raqamni jimgina koʻrsatmasin.
+      tovar30kun: await rpc<unknown>('so_tovar_30kun_holati', {}),
     });
   }
 
@@ -759,6 +773,59 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     });
   }
 
+  // ───────────────────────────────────────────────────────────────
+  // KENGAYTMA — «Sotuvchi koʻzoynagi» (nazoratchi, 2026-10-21)
+  // ───────────────────────────────────────────────────────────────
+  //
+  // A — kartochka belgilari (BEPUL): Uzum roʻyxatidagi har tovar tagida
+  //     «oyiga ≈ N dona». C — tovar pasporti, D — taqqoslash jadvali: obunada
+  //     (`kengaytmaQismiOchiq`; qulf `TARIF_CHEKLOVI` bilan — hozir oʻchiq).
+  // Raqamni `shared/tovar-sotuvi.ts` yasaydi (FORMULA.md «Tovar sotuvi»);
+  // bazada (`so_tovar_30kun`, 0071) — VPS yozgan oʻlchov. Har javobda `sana` —
+  // maʼlumot qaysi kun holatiga.
+  if (yol === '/kengaytma/belgilar' && req.method === 'POST') {
+    const token = req.headers.get('x-sessiya');
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+    const ids = idlarniOqi(tana.ids, BELGI_MAX);
+    if (ids === null) return javob({ xato: `ids — 1–${BELGI_MAX} ta musbat butun son` }, 400);
+    const xom = await rpc<unknown>('so_tovar_30kun', { p_ids: ids });
+    if (xom === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    return javob(kartochkaBelgilari(ids, tovar30KunOqi(xom)));
+  }
+
+  if (yol === '/kengaytma/pasport' || yol === '/taqqos') {
+    const token = req.headers.get('x-sessiya');
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    const pasport = yol === '/kengaytma/pasport';
+    const parametr = new URL(req.url).searchParams;
+    const ids = idlarniOqi(pasport ? parametr.get('id') : parametr.get('ids'), pasport ? 1 : TAQQOS_MAX);
+    if (ids === null) {
+      return javob({ xato: pasport ? 'id — musbat butun son' : `ids — 1–${TAQQOS_MAX} ta musbat butun son, vergul bilan` }, 400);
+    }
+    const [xom, fakt] = await Promise.all([
+      rpc<unknown>('so_tovar_30kun', { p_ids: ids }),
+      rpc<unknown>('so_fakt_oqi', { p_kalitlar: ['soliq.aylanma_foiz'] }),
+    ]);
+    if (xom === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    const qatorlar = tovar30KunOqi(xom);
+    const sana = qatorlar.map((t) => t.sana).sort().pop() ?? null;
+    // Fakt oʻqilmasa soliq hisobga kirmaydi va chegara hisobida «yetishmaydi: soliq» turadi.
+    const opts = { soliqFoizi: fakt === null ? null : faktSon(faktlarniOqi(fakt), 'soliq.aylanma_foiz') };
+    const boyicha = new Map(qatorlar.map((t) => [t.product_id, t]));
+    const ruxsat = await kengaytmaRuxsati(token, pasport ? 'pasport' : 'taqqos');
+    if (pasport) {
+      const p = tovarPasporti(boyicha.get(ids[0]!) ?? null, ids[0]!, opts);
+      // Qulf: belgi (bepul qism) baribir beriladi — kengaytma «nima ochiladi» ni koʻrsatadi.
+      if (!ruxsat.ochiq) return javob({ ...ruxsat.javob, sana, belgi: p.belgi }, 402);
+      return javob({ sana, pasport: p });
+    }
+    const jadval = taqqosJadvali(ids.map((id) => ({ productId: id, t: boyicha.get(id) ?? null })), opts);
+    if (!ruxsat.ochiq) return javob({ ...ruxsat.javob, sana, ustunlar: jadval.ustunlar }, 402);
+    return javob({ sana, jadval });
+  }
+
   // 4-qadam — bir dona tovarning haqiqiy tannarxi (reja B4).
   //
   // Kirishlar soʻrov tanasida keladi: 1688 narxi rasm-qidiruv
@@ -1059,6 +1126,26 @@ async function qadamRuxsati(token: string | null, qadam: number): Promise<
       ochadigan_rejalar: kerakliRejalar(qadam),
       hozir_ochiq_qadam: REJA_QADAMI[n.reja],
       izoh: `Bu qadam obuna bilan ochiladi. 1–${REJA_QADAMI.bepul}-qadamlar bepul.`,
+    },
+  };
+}
+
+/** Kengaytma qismi shu sessiyaga ochiqmi. Cheklov oʻchiq boʻlsa — doim ochiq. */
+async function kengaytmaRuxsati(token: string | null, qism: KengaytmaQismi): Promise<
+  { ochiq: true } | { ochiq: false; javob: Record<string, unknown> }
+> {
+  if (!tarifCheklovi()) return { ochiq: true };
+  const n = await rejaniOl(token);
+  if (kengaytmaQismiOchiq(n.reja, qism)) return { ochiq: true };
+  return {
+    ochiq: false,
+    javob: {
+      cheklov: 'tarif',
+      qism,
+      reja: n.reja,
+      reja_sababi: n.sabab,
+      narx_som: OBUNA_NARXI,
+      izoh: 'Tovar pasporti va taqqoslash jadvali obuna bilan ochiladi. Kartochkadagi sotuv belgilari bepul.',
     },
   };
 }
