@@ -11,8 +11,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  aiQiymat, aiTushunchaniOqi, aiYozMatni, aiYozuvniOqi, aiYozuvQismi, AI_TUSHUN_SXEMA, AI_YOZ_SXEMA, ixcham, natijaTavsifi,
-  savolTavsifi, type AiYozSorovi,
+  aiQiymat, aiTushunchaniOqi, aiYozMatni, aiYozuvniOqi, aiYozuvQismi, AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_SXEMA, ixcham,
+  natijaTavsifi, savolTavsifi, type AiYozSorovi,
 } from '../src/ai-suhbat';
 import { aiTushunBer, aiYozBer, type LlmChaqiruvi } from '../src/llm';
 import type { SuhbatSavoli } from '../src/ssenariy';
@@ -78,6 +78,18 @@ describe('soʻrov matni', () => {
     expect(ru).toContain('QABUL QILINMADI:\n- «X» — sabab');
     expect(ru).toContain('OLDINGI JAVOBING QAYTARILDI: juda uzun.');
     expect(aiYozMatni({ ...YOZ, keyingi: null, keyingiMatn: '1688 dan qidiryapman' })).toContain('KEYINGI QADAM (savol emas): 1688 dan qidiryapman');
+  });
+
+  it('yozish: mijoz ismi maʼlum boʻlsa — ismi bilan murojaat (2026-10-21); boʻlmasa — qator yoʻq', () => {
+    expect(aiYozMatni({ ...YOZ, ism: 'Aziz' })).toContain('MIJOZ ISMI: Aziz');
+    expect(aiYozMatni(YOZ)).not.toContain('MIJOZ ISMI');
+    expect(aiYozMatni({ ...YOZ, ism: null })).not.toContain('MIJOZ ISMI');
+  });
+
+  it('tushunish koʻrsatmasi: ism/telefon — ajrat, salom va savolni qoʻshma, savol_bor (2026-10-21)', () => {
+    expect(AI_TUSHUN_KORSATMA).toContain('- ism (ism-familiya va telefon)');
+    expect(AI_TUSHUN_KORSATMA).toContain('Salomlashish, savol va boshqa gaplarni QOʻSHMA');
+    expect(AI_TUSHUN_KORSATMA).toContain('- telefon: qiymatlar = [mijoz yozgan telefon raqami, aynan]');
   });
 
   it('natija: yoʻnalishlar — kartadagi qatorlar; boshqasi — ixcham maʼlumot (havola, rasm, kalitsiz)', () => {

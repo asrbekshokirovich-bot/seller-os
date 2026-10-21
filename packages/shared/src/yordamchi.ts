@@ -6,9 +6,13 @@
  * tovarlar turibdi. Ilgari LLM faqat joriy savol matnini va 6 ta umumiy
  * gapni koʻrardi.
  *
- * SHAXSIY MAʼLUMOT YOʻQ: ism va telefon (va ular soʻralgan xabarlar) LLM ga
- * yuborilmaydi (maxfiylik sahifasi shuni vaʼda qiladi). Tarixdagi matnlardan
- * ism va telefon raqami ham olib tashlanadi.
+ * SHAXSIY MAʼLUMOT: holatda (`mijozHolati`) ism va telefon YOʻQ; tarixda ism/telefon
+ * savollari tashlanadi, qolgan matnlardan ism va telefon olib tashlanadi
+ * (`shaxsiyniYashir`). Istisno — AI suhbat (faqat Claude, 2026-10-21, nazoratchi:
+ * «LLM shaxsiy maʼlumotni savoldan ajratib olsin»): ism/telefon savoliga yozilgan
+ * gapni AI oʻqiydi (ajratadi, savoliga javob beradi) va mijozning ismini biladi;
+ * telefon keyingi xabarlarda baribir yashiriladi. Gemini va eski yoʻllarda — hech
+ * narsa yuborilmaydi. Maxfiylik sahifasi shunga moslangan.
  */
 
 import type { TovarTavsiyasi, Yonalish } from './qadamlar.js';
@@ -17,8 +21,30 @@ import { SUHBAT_QADAMLARI, UZUM_DOKONI, type YolHolati } from './ssenariy.js';
 import { sohaNomi } from './soha.js';
 import { byudjetMatni } from './tanishuv.js';
 
-/** Shaxsiy maʼlumot soʻraladigan savollar — ular va javoblari LLM ga yuborilmaydi. */
+/**
+ * Shaxsiy maʼlumot soʻraladigan savollar — ular va javoblari LLM ga yuborilmaydi
+ * (istisno: AI suhbatda shu savolga yozilgan gapni Claude oʻqiydi — fayl boshida).
+ */
 export const SHAXSIY_SAVOLLAR: ReadonlySet<string> = new Set(['ism', 'telefon']);
+
+/**
+ * Matndan mijozning ismi (3+ harfli soʻzlari) va telefon raqami olib tashlanadi — har
+ * qanday yozilishda: «+998 90 123-45-67», «90 123 45 67», «901234567» (oxirgi 9 raqami
+ * boʻyicha). Ilgari faqat saqlangan shakl va «+998…» yashirilardi, «90 123 45 67» esa
+ * tarixda qolardi.
+ */
+export function shaxsiyniYashir(t: string, h: YolHolati): string {
+  const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string) : '';
+  const telefon = typeof h.javoblar['telefon'] === 'string' ? (h.javoblar['telefon'] as string) : '';
+  let m = t;
+  for (const w of ism.split(/\s+/u).filter((x) => x.length >= 3)) m = m.split(w).join('…');
+  const raqam = telefon.replace(/\D/gu, '').slice(-9);
+  if (raqam.length === 9) {
+    const ora = '[\\s\\-().]*';
+    m = m.replace(new RegExp(`(?:\\+?${ora}9${ora}9${ora}8${ora})?${raqam.split('').join(ora)}`, 'gu'), '…');
+  }
+  return m.replace(/\+?998[\s\d-]{9,}/gu, '…');
+}
 
 const guruh = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/gu, ' ');
 
@@ -118,15 +144,7 @@ interface TarixXabari { rol: string; matn: string; savolId?: string | null }
  * javoblari tashlanadi; qolgan matnlardan ism va telefon olib tashlanadi.
  */
 export function suhbatTarixi(xabarlar: readonly TarixXabari[], h: YolHolati, nechta = 8): string {
-  const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string) : '';
-  const telefon = typeof h.javoblar['telefon'] === 'string' ? (h.javoblar['telefon'] as string) : '';
-  const sozlar = ism.split(/\s+/u).filter((x) => x.length >= 3);
-  const tozala = (t: string) => {
-    let m = t;
-    for (const w of sozlar) m = m.split(w).join('…');
-    if (telefon) m = m.split(telefon).join('…').replace(/\+?998[\s\d-]{9,}/gu, '…');
-    return m;
-  };
+  const tozala = (t: string) => shaxsiyniYashir(t, h);
   return xabarlar
     .filter((x) => !(x.savolId && SHAXSIY_SAVOLLAR.has(x.savolId)))
     .slice(-nechta)

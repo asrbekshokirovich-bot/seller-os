@@ -87,13 +87,16 @@ const JAVOBLAR: Record<string, TayyorJavob> = {
       + 'за единицу (предельная цена), на 5-м — найдём похожие предложения на 1688. Дальше заказ, оформление, приёмка, '
       + 'фото и загрузка на Uzum — на каждом шаге покажу, что делать.',
   },
-  // Maxfiylik sahifasidagi gap bilan bir xil (ism va telefon sunʼiy intellektga yuborilmaydi — `SHAXSIY_SAVOLLAR`).
+  // Maxfiylik sahifasidagi gap bilan bir xil. 2026-10-21 dan (nazoratchi): AI suhbatda ism va telefonni
+  // yozilgan gapdan sunʼiy intellekt ajratib oladi; keyingi xabarlarda telefon unga yuborilmaydi.
   // Provayder nomi yozilmaydi: 2026-10-19 da Gemini dan Claude ga oʻtildi va bu gap eskirgan edi (jonli sinov, 10-20).
   maxfiylik: {
-    uz: 'Ism va telefon raqamingiz faqat siz bilan bogʻlanish uchun soʻraladi. Ular boshqa hech kimga berilmaydi va '
-      + 'sunʼiy intellektga yuborilmaydi. Batafsil — «Maxfiylik siyosati» sahifasida.',
-    ru: 'Имя и номер телефона нужны только для связи с вами. Они никому не передаются и не отправляются '
-      + 'искусственному интеллекту. Подробнее — в «Политике конфиденциальности».',
+    uz: 'Ism va telefon raqamingiz faqat siz bilan bogʻlanish uchun soʻraladi va boshqa hech kimga berilmaydi. '
+      + 'Ularni yozganingizdan sunʼiy intellekt ajratib olishi mumkin — keyingi xabarlarda telefon raqamingiz unga '
+      + 'yuborilmaydi. Batafsil — «Maxfiylik siyosati» sahifasida.',
+    ru: 'Имя и номер телефона нужны только для связи с вами и никому не передаются. Их из вашего сообщения может '
+      + 'выделить искусственный интеллект — в следующих сообщениях номер телефона ему не отправляется. '
+      + 'Подробнее — в «Политике конфиденциальности».',
   },
 };
 

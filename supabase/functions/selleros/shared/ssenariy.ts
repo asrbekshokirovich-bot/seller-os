@@ -200,8 +200,8 @@ export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
  * tanlashdan Xitoydan olib kelish va Uzumda sotishgacha butun yoʻlda yordam,
  * har qanday savolga javob. Tafsilot (12 qadam, tuzoq-filtrlar, vaʼdalar)
  * birinchi gapda emas — soʻralsa javobda (`erkin.ts`: xizmat, kafolat).
- * Foyda vaʼda qilinmaydi (QOIDALAR §4). Ism va telefon savollari LLM ga
- * bormaydi: matn oʻzicha chiqadi.
+ * Foyda vaʼda qilinmaydi (QOIDALAR §4). Salomlashish matni oʻzicha chiqadi (LLM
+ * yozmaydi); unga yozilgan javobni esa AI suhbatda Claude oʻqiydi (2026-10-21).
  */
 const SALOM = [
   'Assalomu alaykum! Men ZumSavdo yordamchingizman.',
@@ -1507,9 +1507,12 @@ function byudjetSavoli(h: YolHolati): SuhbatSavoli {
  * Tanishuvning hali javobsiz savollari, tartibi bilan (AI suhbat, 2026-10-19): mijoz bitta gapda
  * bir nechtasiga javob bersa («kiyim sotganman, 70 mln bilan boshlayman») — AI hammasini ajratsin.
  * Javobni baribir `javobniQabulQil` navbat bilan qabul qiladi.
+ *
+ * Ism/telefon savolida ham (2026-10-21): «Aziz, 90 123 45 67, 2 yil kiyim sotganman, 50 mln
+ * bor» — tajriba va byudjet ham shu gapdan olinsin, qayta soʻralmasin. Ilgari bu yerda
+ * «ism va telefon berilmaguncha — boʻsh» sharti bor edi: u savollarni AI umuman koʻrmasdi.
  */
 export function kelgusiTanishuvSavollari(h: YolHolati): SuhbatSavoli[] {
-  if (!berilgan(h, 'ism') || !berilgan(h, 'telefon')) return [];
   const r: SuhbatSavoli[] = [];
   if (!berilgan(h, 'uzum_dokoni')) r.push(uzumDokoniSavoli());
   if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) r.push(qiziqishSavoli(h));

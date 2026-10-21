@@ -26,8 +26,12 @@
  * `javobniQabulQil` tekshiradi. Har turnda xabarni AI yozadi: munosabat
  * (savoliga javob), yangi natijalar izohi (kod xabari pufagida), keyingi
  * savol oʻz soʻzi bilan; darvoza (`tekshir`) oʻtkazmasa — bir marta qayta,
- * keyin kod qoliplari. Ism va telefon AI ga ketmaydi. Turnga vaqt —
- * `AI_TURN_MS` (Vercel vositachisi 60 s da uziladi).
+ * keyin kod qoliplari. Ism va telefon savoliga yozilgan gapni ham AI oʻqiydi
+ * (2026-10-21, nazoratchi: «LLM shaxsiy maʼlumotni savoldan ajratib olsin, mijoz
+ * har joyda savol bera olsin, robotdek boʻlmasin»): ism/telefonni ajratadi
+ * (`ismVaTelefonniOqi` baribir tekshiradi), savoliga javob beradi, keyin ismi bilan
+ * murojaat qiladi. Bu FAQAT `ai` da (Claude); eski yoʻl va Gemini ga ism/telefon
+ * ketmaydi. Turnga vaqt — `AI_TURN_MS` (Vercel vositachisi 60 s da uziladi).
  *
  * KUTISH (5-qadam). 1688 qidiruvi 30–90 s — bitta HTTP soʻrovga
  * sigʻmaydi. Kod harakati yurishni boshlab `kutilmoqda` qaytaradi,
@@ -47,7 +51,7 @@ import { sanaMatni, toshkentSanasi } from './hisobot.js';
 import { tayyorJavob } from './erkin.js';
 import { yordamchiBilimi } from './bilim.js';
 import { bilimJavobi, PUL_GAPI } from './bilim-javob.js';
-import { mijozHolati, SHAXSIY_SAVOLLAR, suhbatTarixi } from './yordamchi.js';
+import { mijozHolati, SHAXSIY_SAVOLLAR, shaxsiyniYashir, suhbatTarixi } from './yordamchi.js';
 import type { ProfilJavoblari } from './profil.js';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.js';
 import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.js';
@@ -424,13 +428,13 @@ export async function suhbatTurn(
       yangi.push({ rol: 'menejer', matn: k0.savol.matn, savolId: k0.savol.id });
     }
     let aiOldi = false;
-    // ---- 2a. AI SUHBAT: yozilgan gapni AI tushunadi. Tugma, shaxsiy savol (ism va telefon AI ga
-    // ketmaydi) va variant nomining oʻzi («ha», «yoʻq») — AI siz, darhol.
+    // ---- 2a. AI SUHBAT: yozilgan gapni AI tushunadi — ism/telefon savolida ham (2026-10-21:
+    // ism va telefonni ajratadi, gapdagi savolga javob beriladi). Tugma va variant nomining
+    // oʻzi («ha», «yoʻq») — AI siz, darhol.
     const variantOzi = yozgan !== null && k0.savol.turi === 'tanlov' && !savolmi(yozgan, k0.savol.id)
       && variantniTop(k0.savol.variantlar, tushunishUchun(yozgan)) !== undefined;
     const tushunVaqti = Math.min(AI_TUSHUN_MS, qoldi() - AI_YOZGA_QOLSIN);
-    if (d.ai && yozgan !== null && savolId === k0.savol.id && !SHAXSIY_SAVOLLAR.has(k0.savol.id) && !variantOzi
-      && tushunVaqti >= AI_KAM_MS) {
+    if (d.ai && yozgan !== null && savolId === k0.savol.id && !variantOzi && tushunVaqti >= AI_KAM_MS) {
       const matn = qisqartir(yozgan);
       d.oqim?.holat('tushunmoqda');
       const t = await d.ai.tushun({
@@ -457,6 +461,13 @@ export async function suhbatTurn(
         }
         holat = r0.holat;
         profil = r0.profil;
+        // Ism/telefon savolida javob tili — ism va telefondan EMAS (2026-10-19: «Синов Кирилл»
+        // kirillda, oʻzbekcha harfsiz — rus deb olinardi): ulardan tashqari kamida 2 soʻz
+        // boʻlsa («Здравствуйте, меня зовут Иван») — shu gapdan.
+        if (SHAXSIY_SAVOLLAR.has(k0.savol.id)) {
+          const qolgan = shaxsiyniYashir(matn, holat).replace(/…/gu, ' ');
+          if ((qolgan.match(/\p{L}{2,}/gu) ?? []).length >= 2) ak.til = yozuvi(qolgan);
+        }
         const yozildi = javobQiymati(holat, k0.savol.id, q0);
         yangi.push({ rol: 'obunachi', matn, savolId: k0.savol.id, javob: yozildi ?? null });
         ak.mijoz = matn;
@@ -594,9 +605,10 @@ export async function suhbatTurn(
       xabarlar: [], keyingi: k0, qadam: joriyQadam(holat), yozildi: false,
     };
   }
-  // ---- 4a. AI SUHBAT: xabarlarni AI yozadi. Keyingi savol shaxsiy (telefon savolida ism bor) — AI siz.
+  // ---- 4a. AI SUHBAT: xabarlarni AI yozadi — keyingi savol telefon boʻlsa ham (2026-10-21; ilgari
+  // «telefon savolida ism bor» deb kod qolipi chiqardi va suhbat shu joyda robotdek boʻlardi).
   let aiYozdi = false;
-  if (d.ai && !(k.tur === 'savol' && SHAXSIY_SAVOLLAR.has(k.savol.id)) && k.tur !== 'tezOrada' && qoldi() >= AI_KAM_MS + 2_000) {
+  if (d.ai && k.tur !== 'tezOrada' && qoldi() >= AI_KAM_MS + 2_000) {
     const tt = ak.mijoz !== null && !ak.tanlov ? tushunishUchun(ak.mijoz) : '';
     const tayyor = ak.savolBor && ak.mijoz !== null && tt
       ? bazaJavobi(tt, ruschami(ak.mijoz), ak.savolId ?? '', null, holat, d.tarifCheklovi, await bazadanMalumot(d, tt, holat))?.matn ?? null
@@ -610,7 +622,7 @@ export async function suhbatTurn(
       }),
       keyingi: k.tur === 'savol' ? k.savol : null, keyingiMatn: k.tur === 'savol' ? null : k.matn,
       holat: mijozHolati(holat, joriyQadam(holat)), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
-      eslab: eslabGaplari(holat, eslab, navbat), til: ak.til, bugun: bugunMatni(), tuzat: null,
+      eslab: eslabGaplari(holat, eslab, navbat), til: ak.til, bugun: bugunMatni(), tuzat: null, ism: mijozIsmi(holat),
     }, kodlar.flatMap((i) => natijaSonlari(yangi[i]!.javob)), qoldi, d.oqim);
     if (y) {
       aiXabarlariniQoy(yangi, y, ak, kodlar, k);
@@ -849,7 +861,9 @@ async function munosabatYoz(
 // ------------------------------------------------------------ erkin xabar
 
 // Shaxsiy maʼlumot soʻraladigan savollar (ism, telefon) — `yordamchi.ts` dagi
-// `SHAXSIY_SAVOLLAR`: ular va ularga yozilgan matn LLM ga YUBORILMAYDI.
+// `SHAXSIY_SAVOLLAR`: eski yoʻlda (munosabat, erkin javob, odamlashtirish — Gemini ham
+// boʻlishi mumkin) ular va ularga yozilgan matn LLM ga YUBORILMAYDI. AI suhbatda (Claude)
+// esa yuboriladi — fayl boshidagi izoh (2026-10-21).
 
 type JoriySavol = Extract<Keyingi, { tur: 'savol' }>;
 
@@ -1356,7 +1370,7 @@ async function aiErkinXabar(
     // Javob ham, rad ham boʻlmasa — mijoz nimadir soʻradi yoki aytdi: unga javob kerak.
     savolBor: t.savolBor || t.sabab === null, bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor: baza?.matn ?? null,
     natijalar: [], eslab: t.eslab, keyingi: k1.savol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
-    tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), bugun: bugunMatni(), tuzat: null,
+    tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), bugun: bugunMatni(), tuzat: null, ism: mijozIsmi(holat),
   }, [], qoldi, d.oqim) : null;
   if (!y) return erkinXabar(llmsiz(d), token, holat, k0, matn, t.sabab, xabarlar);
   const savolBor = songgi.some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);
@@ -1373,6 +1387,15 @@ async function aiErkinXabar(
   });
   const yozildi = w !== null && !w.xato;
   return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? {} : { xato: w?.xato ?? 'jurnalga yozilmadi' }) };
+}
+
+/**
+ * Mijozning ismi (familiyasiz, telefonsiz) — AI unga ismi bilan murojaat qilsin, robotdek
+ * emas (nazoratchi, 2026-10-21). Faqat AI suhbat (Claude) soʻroviga qoʻshiladi.
+ */
+function mijozIsmi(h: YolHolati): string | null {
+  const ism = h.javoblar['ism'];
+  return typeof ism === 'string' && ism.trim() ? ism.trim().split(/\s+/u)[0]! : null;
 }
 
 /** Birinchi savol javobi chatda: shu turnda yozilgan ism va/yoki telefon. */

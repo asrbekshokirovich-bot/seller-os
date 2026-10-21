@@ -10,7 +10,10 @@
  * Bu yerda AI — soxta: soʻrovlarni yozib oladi va berilgan javobni qaytaradi.
  * Tekshiriladi: AI tushungan javobni KOD qabul qiladi (yoki rad etadi), navbatdagi
  * javob oʻz savoli kelganda olinadi, AI xabari darvozadan oʻtadi, AI yiqilsa —
- * kod qoliplari (LLM siz), ism va telefon AI ga ketmaydi, vaqt tugasa — AI siz.
+ * kod qoliplari (LLM siz), vaqt tugasa — AI siz. Ism/telefon (2026-10-21, nazoratchi): AI
+ * ajratadi va gapdagi savolga javob beradi, keyin ismi bilan murojaat qiladi; keyingi
+ * qadamlarda familiya va telefon AI ga ketmaydi. Eski yoʻl (Gemini) maxfiyligi — munosabat,
+ * suhbat-erkin va suhbat testlarida (u yerda ism/telefon LLM ga hech qachon ketmaydi).
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -119,7 +122,22 @@ describe('AI tushunadi — javobni kod qabul qiladi', () => {
     expect(y.keyingi?.id).toBe('qiziqish');
     expect(y.keyingi?.tanlangan).toEqual(['kiyim']);
     expect(y.tanlov).toBe(false);
-    // Maxfiylik: ism va telefon AI ga hech qayerda ketmaydi.
+    // Robotdek emas — ismi bilan murojaat qilsin (2026-10-21): AI ga FAQAT ism boradi.
+    expect(y.ism).toBe('Aziz');
+    // Maxfiylik: familiya va telefon keyingi qadamlarda AI ga ketmaydi.
+    const hammasi = JSON.stringify([s.tushunlar, s.yozlar]);
+    expect(hammasi).not.toContain('Karimov');
+    expect(hammasi).not.toContain('901234567');
+  });
+
+  it('keyingi qadamda savol bersa — AI javob beradi va mijozni ismi bilan biladi (familiya, telefonsiz)', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const s = soxtaAi(
+      [{ javoblar: [], taklif_qiziqish: [], savol_bor: true }],
+      [{ oldin: 'Aziz, tajribasiz ham boshlasa boʻladi.', izoh: '', savol: 'Qaysi soha sizga yaqin?' }],
+    );
+    await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'qiziqish', matn: 'tajribasiz ham boshlasa boʻladimi?' });
+    expect(s.yozlar[0]!.k.ism).toBe('Aziz');
     const hammasi = JSON.stringify([s.tushunlar, s.yozlar]);
     expect(hammasi).not.toContain('Karimov');
     expect(hammasi).not.toContain('901234567');
@@ -256,25 +274,88 @@ describe('AI yozadi — tugma bosilganda ham', () => {
     expect(r.xabarlar[r.xabarlar.length - 1]!.matn).toBe('С какой суммы начнёте?');
   });
 
-  it('ism va telefon: AI tushunmaydi; keyingi savolni AI yozadi — shaxsiy maʼlumotsiz', async () => {
+  /** AI ism qadamida ajratib bergan javob (nazoratchi, 2026-10-21). */
+  const ismJavobi = (qiymat: string, savolBor = false): AiTushuncha => ({
+    javoblar: [{ savol_id: 'ism', qiymatlar: [qiymat], otkazish: false }], taklif_qiziqish: [], savol_bor: savolBor,
+  });
+
+  it('ism va telefon: AI tushunadi (ajratadi), kod tekshirib profilga yozadi; keyingi savolni AI ismi bilan yozadi', async () => {
     const b = soxtaBaza(boshlangichHolat());
-    const s = soxtaAi([], [{ oldin: '', izoh: '', savol: 'Tanishganimdan xursandman! Oldin savdo qilganmisiz?' }]);
+    const s = soxtaAi([ismJavobi('Aziz Karimov +998901234567')], [{ oldin: '', izoh: '', savol: 'Tanishganimdan xursandman, Aziz! Oldin savdo qilganmisiz?' }]);
     const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Aziz Karimov +998901234567' });
-    expect(s.tushunlar).toHaveLength(0);
+    expect(s.tushunlar).toHaveLength(1);
+    expect(s.tushunlar[0]!.k.xabar).toBe('Aziz Karimov +998901234567');
     expect(b.holat().javoblar['ism']).toBe('Aziz Karimov');
-    expect(s.yozlar[0]!.k.mijoz).toBeNull();
-    expect(JSON.stringify(s.yozlar)).not.toContain('Karimov');
-    expect(JSON.stringify(s.yozlar)).not.toContain('901234567');
+    expect(b.holat().javoblar['telefon']).toBe('+998901234567');
+    expect(s.yozlar[0]!.k.ism).toBe('Aziz');
     expect(r.xabarlar[r.xabarlar.length - 1]).toEqual({
-      rol: 'menejer', matn: 'Tanishganimdan xursandman! Oldin savdo qilganmisiz?', savolId: 'uzum_dokoni',
+      rol: 'menejer', matn: 'Tanishganimdan xursandman, Aziz! Oldin savdo qilganmisiz?', savolId: 'uzum_dokoni',
     });
+  });
+
+  it('ism qadamida savol ham: ism va telefon saqlanadi, savolga AI javob beradi — shablon emas (10:41 hodisasi)', async () => {
+    const b = soxtaBaza(boshlangichHolat());
+    const matn = 'Salom, men Aziz Karimov, 90 123 45 67. Bu xizmat bepulmi?';
+    const s = soxtaAi(
+      [ismJavobi('Aziz Karimov, 90 123 45 67', true)],
+      [{ oldin: 'Ha, Aziz, boshlash bepul.', izoh: '', savol: 'Oldin savdo qilganmisiz?' }],
+    );
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn });
+    expect(b.holat().javoblar['ism']).toBe('Aziz Karimov');
+    expect(b.holat().javoblar['telefon']).toBe('+998901234567');
+    const y = s.yozlar[0]!.k;
+    expect(y.mijoz).toBe(matn);
+    expect(y.savolBor).toBe(true);
+    const matnlar = r.xabarlar.map((x) => x.matn).join('\n');
+    expect(matnlar).toContain('Ha, Aziz, boshlash bepul.');
+    expect(matnlar).not.toContain('hozir aniq javob bera olmayman');
+    expect(r.xabarlar.find((x) => x.matn === 'Ha, Aziz, boshlash bepul.')?.javob).toEqual({ erkin: true, manba: 'ai', munosabat: true });
+  });
+
+  it('ism qadamida faqat savol: AI javob beradi, ism qayta soʻraladi — hech narsa yozilmaydi', async () => {
+    const b = soxtaBaza(boshlangichHolat());
+    const s = soxtaAi(
+      [{ javoblar: [], taklif_qiziqish: [], savol_bor: true }],
+      [{ oldin: 'ZumSavdo Uzumda savdoni boshlashga yordam beradi.', izoh: '', savol: 'Tanishib olaylik: ismingiz va telefon raqamingiz?' }],
+    );
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Bu sayt nima qiladi?' });
+    expect(b.holat().javoblar['ism']).toBeUndefined();
+    expect(r.keyingi.tur === 'savol' && r.keyingi.savol.id).toBe('ism');
+    expect(r.xabarlar.map((x) => x.matn)).toContain('ZumSavdo Uzumda savdoni boshlashga yordam beradi.');
+    expect(r.xabarlar[r.xabarlar.length - 1]).toEqual({ rol: 'menejer', matn: 'Tanishib olaylik: ismingiz va telefon raqamingiz?', savolId: 'ism' });
+  });
+
+  it('ism qadamida tajriba va pul ham aytsa — AI keyingi savollarni ham koʻradi, javoblar navbatda kutadi', async () => {
+    const b = soxtaBaza(boshlangichHolat());
+    const s = soxtaAi(
+      [{
+        javoblar: [
+          { savol_id: 'ism', qiymatlar: ['Aziz Karimov, +998 90 123 45 67'], otkazish: false },
+          { savol_id: 'byudjet', qiymatlar: ['50 mln'], otkazish: false },
+        ],
+        taklif_qiziqish: [], savol_bor: false,
+      }],
+      [{ oldin: '', izoh: '', savol: 'Aziz, oldin savdo qilganmisiz?' }],
+    );
+    await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Aziz Karimov, +998 90 123 45 67, 50 mln bilan boshlamoqchiman' });
+    expect(s.tushunlar[0]!.k.savollar.map((x) => x.id)).toEqual(['ism', 'uzum_dokoni', 'qiziqish', 'byudjet']);
+    expect(b.holat().javoblar['ism']).toBe('Aziz Karimov');
+    // Pul — navbatda (oʻz savoli kelganda soʻralmaydi).
+    expect(JSON.stringify(b.holat().javoblar['ai_navbat'])).toContain('50 mln');
   });
 
   it('ism kirillda (oʻzbekcha harfsiz) — javob tili ism boʻyicha emas: sahifa tili (oʻzbek)', async () => {
     const b = soxtaBaza(boshlangichHolat());
-    const s = soxtaAi([], [{ oldin: '', izoh: '', savol: 'Oldin savdo qilganmisiz?' }]);
+    const s = soxtaAi([ismJavobi('Синов Кирилл, +998 90 000 02 03')], [{ oldin: '', izoh: '', savol: 'Oldin savdo qilganmisiz?' }]);
     await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Синов Кирилл, +998 90 000 02 03' });
     expect(s.yozlar[0]!.k.til).toBe('uz');
+  });
+
+  it('ism bilan ruscha gap — javob tili ism va telefondan tashqari gapdan: rus', async () => {
+    const b = soxtaBaza(boshlangichHolat());
+    const s = soxtaAi([ismJavobi('Иван Петров, +998 90 000 02 03')], [{ oldin: '', izoh: '', savol: 'Вы раньше торговали?' }]);
+    await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Здравствуйте, меня зовут Иван Петров, +998 90 000 02 03' });
+    expect(s.yozlar[0]!.k.til).toBe('ru');
   });
 
   it('birinchi tashrif: salomlashish jurnalga yoziladi — birinchi javobdan keyin chatdan yoʻqolmaydi', async () => {
@@ -290,13 +371,28 @@ describe('AI yozadi — tugma bosilganda ham', () => {
     expect(r2.xabarlar[0]!.rol).toBe('obunachi');
   });
 
-  it('faqat ism yozsa — keyingi savol telefon (unda ism bor): AI yozmaydi, kod savoli', async () => {
+  it('faqat ism yozsa — keyingi savol telefon: uni ham AI yozadi, ismi bilan (ilgari kod qolipi edi)', async () => {
     const b = soxtaBaza(boshlangichHolat());
-    const s = soxtaAi([], [YOZUV]);
+    const s = soxtaAi([ismJavobi('Aziz Karimov')], [{ oldin: '', izoh: '', savol: 'Rahmat, Aziz! Telefon raqamingizni ham yozib qoldirasizmi?' }]);
     const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Aziz Karimov' });
     expect(r.keyingi.tur === 'savol' && r.keyingi.savol.id).toBe('telefon');
+    expect(s.yozlar).toHaveLength(1);
+    expect(s.yozlar[0]!.k.keyingi?.id).toBe('telefon');
+    expect(s.yozlar[0]!.k.ism).toBe('Aziz');
+    expect(r.xabarlar[r.xabarlar.length - 1]).toEqual({
+      rol: 'menejer', matn: 'Rahmat, Aziz! Telefon raqamingizni ham yozib qoldirasizmi?', savolId: 'telefon',
+    });
+  });
+
+  it('AI tushuna olmasa (yiqildi) — ism qadamida ham kod oʻzi ajratadi, suhbat toʻxtamaydi', async () => {
+    const b = soxtaBaza(boshlangichHolat());
+    const s = soxtaAi([null], [YOZUV]);
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'ism', matn: 'Aziz Karimov +998901234567' });
+    expect(b.holat().javoblar['ism']).toBe('Aziz Karimov');
+    expect(b.holat().javoblar['telefon']).toBe('+998901234567');
+    expect(r.keyingi.tur === 'savol' && r.keyingi.savol.id).toBe('uzum_dokoni');
+    // Tushunish yiqilgan turnda AI yozmaydi ham (yana kutmasin) — kod qolipi.
     expect(s.yozlar).toHaveLength(0);
-    expect(r.xabarlar[r.xabarlar.length - 1]!.matn).toBe(r.keyingi.tur === 'savol' ? r.keyingi.savol.matn : '');
   });
 
   it('AI savolni yozmasa — qayta soʻraladi; yana yozmasa — kod savoli', async () => {
@@ -480,10 +576,16 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
     expect(o.h.map(([n]) => n)).toEqual(['holat', 'holat', 'qism', 'qism']);
   });
 
-  it('AI berilmasa yoki shaxsiy savol — hodisa yoʻq (sahifa oddiy JSON oladi)', async () => {
+  it('AI berilmasa — hodisa yoʻq (sahifa oddiy JSON oladi)', async () => {
     const o = oqimYozuvchi();
     await suhbatTurn({ ...bogliq(soxtaBaza(QIZIQISH), null), oqim: o.oqim }, 't', { savolId: 'qiziqish', javob: ['kiyim'] });
-    await suhbatTurn({ ...bogliq(soxtaBaza(boshlangichHolat()), oqimliAi([], [YOZUV]).ai), oqim: o.oqim }, 't', { savolId: 'ism', matn: 'Aziz' });
     expect(o.h).toEqual([]);
+  });
+
+  it('ism qadami ham oqim bilan (2026-10-21): «tushunmoqda» → «yozmoqda» → matn', async () => {
+    const o = oqimYozuvchi();
+    const s = oqimliAi([{ javoblar: [{ savol_id: 'ism', qiymatlar: ['Aziz Karimov +998901234567'], otkazish: false }], taklif_qiziqish: [], savol_bor: false }], [YOZUV]);
+    await suhbatTurn({ ...bogliq(soxtaBaza(boshlangichHolat()), s.ai), oqim: o.oqim }, 't', { savolId: 'ism', matn: 'Aziz Karimov +998901234567' });
+    expect(o.h.map(([n, x]) => (n === 'holat' ? `holat:${String(x)}` : n))).toEqual(['holat:tushunmoqda', 'holat:yozmoqda', 'qism', 'qism']);
   });
 });

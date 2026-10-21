@@ -48,7 +48,11 @@ export interface AiTushuncha {
 export interface AiTushunSorovi {
   /** Joriy savol va (1-qadamda) tanishuvning keyingi javobsiz savollari, tartibi bilan. */
   savollar: SuhbatSavoli[];
-  /** Mijoz yozgani (500 belgigacha). */
+  /**
+   * Mijoz yozgani (500 belgigacha). Ism/telefon savolida — ism va telefon ham shu yerda
+   * (nazoratchi, 2026-10-21: «LLM shaxsiy maʼlumotni savoldan ajratib olsin»). Faqat Claude:
+   * `ai` faqat Anthropic kaliti bilan ulanadi, Gemini ga bu yoʻl yoʻq.
+   */
   xabar: string;
   /** Mijoz holati — shaxsiy maʼlumotsiz. */
   holat: string;
@@ -95,6 +99,11 @@ export interface AiYozSorovi {
   bugun: string;
   /** Oldingi javob darvozadan oʻtmadi — nima uchun. */
   tuzat: string | null;
+  /**
+   * Mijozning ismi (familiyasiz, telefonsiz) — unga ismi bilan murojaat qilsin, robotdek emas
+   * (nazoratchi, 2026-10-21). Nomaʼlum boʻlsa — yoʻq.
+   */
+  ism?: string | null;
 }
 
 /** AI yozgan xabar uch qismda; boʻsh qism — `''`. */
@@ -141,6 +150,11 @@ export const AI_TUSHUN_KORSATMA = [
   '- kopTanlov: qiymatlar = mos variant qiymatlari (bir nechta boʻlishi mumkin).',
   '- son: qiymatlar = [mijoz aytgan son iborasi, aynan] — masalan «70 mln», «5000 $», «60 ta». Hisoblama, oʻgirma.',
   '- matn: qiymatlar = [mijoz gapidagi tegishli qism].',
+  '- ism (ism-familiya va telefon): qiymatlar = [mijoz yozgan ism-familiyasi va/yoki telefon raqami — oʻzi yozganicha,',
+  'bitta qatorda, masalan «Aziz Karimov, +998 90 123 45 67»]. Salomlashish, savol va boshqa gaplarni QOʻSHMA',
+  '(«Salom, men Aziz, 90 123 45 67, bu bepulmi?» → «Aziz, 90 123 45 67», savol_bor: true). Ism ham, raqam ham',
+  'yoʻq boʻlsa — javob qilma.',
+  '- telefon: qiymatlar = [mijoz yozgan telefon raqami, aynan]. Raqam yoʻq boʻlsa — javob qilma.',
   '- Faqat taxmin yoki savol shaklida aytilgan qiymat («70 mln yetadimi?», «kiyim sotsam boʻladimi?», «80 mlnmi yoki',
   '100 mi?») — JAVOB EMAS: javoblarga qoʻshma, savol_bor: true.',
   '- Mijoz savolni oʻtkazmoqchi boʻlsa («bilmayman», «keyin», «oʻtkazib yubor») va savol oʻtkazib boʻladigan boʻlsa —',
@@ -227,6 +241,7 @@ export function aiYozMatni(k: AiYozSorovi): string {
   return [
     k.bilim ? `FAKTLAR:\n${k.bilim}\n` : null,
     `BUGUN: ${k.bugun} (Toshkent vaqti).`,
+    k.ism ? `MIJOZ ISMI: ${k.ism} (oʻrni kelganda shu ism bilan murojaat qil).` : null,
     `MIJOZ HOLATI:\n${k.holat}`,
     k.tarix ? `\nSUHBAT (oxirgi xabarlar):\n${k.tarix}` : null,
     k.mijoz !== null

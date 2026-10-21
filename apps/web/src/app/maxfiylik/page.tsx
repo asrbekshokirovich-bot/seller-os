@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-19';
+const YANGILANDI = '2026-10-21';
 
 export default function Maxfiylik() {
   return (
@@ -39,8 +39,9 @@ export default function Maxfiylik() {
         <div className={u.urgu}>
           <p>
             <strong>Suhbat boshida ism-familiya va telefon raqam soʻraladi</strong> — faqat
-            siz bilan bogʻlanish uchun. Ular boshqa hech kimga berilmaydi va sunʼiy intellektga
-            yuborilmaydi. Elektron pochta va parol soʻralmaydi, roʻyxatdan oʻtish yoʻq.
+            siz bilan bogʻlanish uchun. Ular boshqa hech kimga berilmaydi. Yozganingizdan ularni
+            sunʼiy intellekt ajratib olishi mumkin (pastda — qachon); keyingi xabarlarda telefon
+            raqamingiz unga yuborilmaydi. Elektron pochta va parol soʻralmaydi, roʻyxatdan oʻtish yoʻq.
           </p>
         </div>
 
@@ -288,8 +289,13 @@ export default function Maxfiylik() {
             (ism-familiya va telefonsiz) yuboriladi. Bu holatlarning hammasida
             javobni kod tekshiradi — yangi raqam yoki kafolat soʻzi boʻlsa, u
             tashlanadi va kodning oʻz jumlasi ketadi. Sessiya kaliti yuborilmaydi.
-            Ism-familiya va telefon savollari (ularga yozgan matningiz ham) sunʼiy
-            intellektga umuman yuborilmaydi. Boshqa joyda suhbatga pasport kabi
+            Ism-familiya va telefon savoliga yozgan javobingiz (2026-10-21 dan) — suhbatni
+            sunʼiy intellekt olib borayotgan boʻlsa (Anthropic, Claude) — unga yuboriladi: u ism
+            va telefonni gapingizdan ajratib oladi (ularni baribir kod tekshiradi va faqat
+            profilingizga yozadi), gapingizda savol boʻlsa — javob beradi, keyin sizga ismingiz
+            bilan murojaat qiladi. Telefon raqamingiz keyingi xabarlarda unga yuborilmaydi.
+            Gemini ishlatilsa yoki bu sozlama oʻchiq boʻlsa — ism-familiya va telefon (ularga
+            yozgan matningiz ham) sunʼiy intellektga umuman yuborilmaydi. Boshqa joyda suhbatga pasport kabi
             shaxsiy maʼlumot yozmang. Toʻrtinchisi: 10-qadamda «Kartochka matnini
             yozib ber» bossangiz — tanlangan tovarlarning Uzumdagi va 1688 dagi nomi
             hamda yoʻnalish nomi yuboriladi (shaxsiy maʼlumot emas); kelgan matnni kod
