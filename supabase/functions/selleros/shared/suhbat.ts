@@ -421,7 +421,10 @@ export async function suhbatTurn(
       ? kirish.matn.trim() : null;
     // Javob tili — yozgan gapidan. Ism va telefondan emas (jonli sinov, 2026-10-19: «Синов Кирилл»
     // — kirillda, lekin oʻzbekcha harfsiz: rus deb olindi va oʻzbekka ruscha javob ketdi).
-    if (yozgan !== null && !SHAXSIY_SAVOLLAR.has(k0.savol.id)) ak.til = yozuvi(yozgan);
+    // Gapda soʻz kam boʻlsa (faqat raqam: «60000000», «ha») — oldingi YOZGAN gapidan (2026-10-21).
+    if (yozgan !== null && !SHAXSIY_SAVOLLAR.has(k0.savol.id)) {
+      ak.til = soziKop(yozgan) ? yozuvi(yozgan) : oldingiTil(songgiSuhbat(o.xabarlar ?? []), holat) ?? yozuvi(yozgan);
+    }
     // Joriy savol jurnalda yoʻq boʻlsa (birinchi tashrif: salomlashish `keyingi` dan chiziladi) —
     // avval uning oʻzi yoziladi: aks holda birinchi javobdan keyin salomlashish chatdan yoʻqolardi.
     if (!songgiSuhbat(o.xabarlar ?? []).some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id)) {
@@ -464,9 +467,11 @@ export async function suhbatTurn(
         // Ism/telefon savolida javob tili — ism va telefondan EMAS (2026-10-19: «Синов Кирилл»
         // kirillda, oʻzbekcha harfsiz — rus deb olinardi): ulardan tashqari kamida 2 soʻz
         // boʻlsa («Здравствуйте, меня зовут Иван») — shu gapdan.
+        // Ulardan tashqari soʻz yoʻq boʻlsa (faqat ism, faqat raqam) — oldingi yozgan gapidan:
+        // ruscha suhbatda «+998 90 …» yuborilgach javob oʻzbekchaga sakramasin (jonli sinov, 2026-10-21).
         if (SHAXSIY_SAVOLLAR.has(k0.savol.id)) {
           const qolgan = shaxsiyniYashir(matn, holat).replace(/…/gu, ' ');
-          if ((qolgan.match(/\p{L}{2,}/gu) ?? []).length >= 2) ak.til = yozuvi(qolgan);
+          ak.til = soziKop(qolgan) ? yozuvi(qolgan) : oldingiTil(songgiSuhbat(o.xabarlar ?? []), holat) ?? ak.til;
         }
         const yozildi = javobQiymati(holat, k0.savol.id, q0);
         yangi.push({ rol: 'obunachi', matn, savolId: k0.savol.id, javob: yozildi ?? null });
@@ -1396,6 +1401,25 @@ async function aiErkinXabar(
 function mijozIsmi(h: YolHolati): string | null {
   const ism = h.javoblar['ism'];
   return typeof ism === 'string' && ism.trim() ? ism.trim().split(/\s+/u)[0]! : null;
+}
+
+/** Gapda kamida 2 ta (2+ harfli) soʻz bor — tilni shundan aniqlasa boʻladi. */
+function soziKop(t: string): boolean {
+  return (t.match(/\p{L}{2,}/gu) ?? []).length >= 2;
+}
+
+/**
+ * Mijoz oldin YOZGAN oxirgi soʻzli gapining tili (ism va telefon olib tashlangan) — joriy gapda soʻz
+ * boʻlmasa til shundan. Topilmasa — `null`.
+ */
+function oldingiTil(xabarlar: ReadonlyArray<{ rol: string; matn: string }>, h: YolHolati): Yozuv | null {
+  for (let i = xabarlar.length - 1; i >= 0; i--) {
+    const x = xabarlar[i]!;
+    if (x.rol !== 'obunachi') continue;
+    const qolgan = shaxsiyniYashir(x.matn, h).replace(/…/gu, ' ');
+    if (soziKop(qolgan)) return yozuvi(qolgan);
+  }
+  return null;
 }
 
 /** Birinchi savol javobi chatda: shu turnda yozilgan ism va/yoki telefon. */

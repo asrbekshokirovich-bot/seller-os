@@ -136,7 +136,12 @@ export function mijozHolati(h: YolHolati, qadam: number): string {
   return s.join('\n');
 }
 
-interface TarixXabari { rol: string; matn: string; savolId?: string | null }
+interface TarixXabari { rol: string; matn: string; savolId?: string | null; javob?: unknown }
+
+/** Menejerning erkin javobi (savolga javob — AI, baza yoki shablon), savolning oʻzi emas. */
+function erkinJavobmi(x: TarixXabari): boolean {
+  return x.rol === 'menejer' && !!x.javob && typeof x.javob === 'object' && (x.javob as { erkin?: unknown }).erkin === true;
+}
 
 /**
  * Suhbatning oxirgi xabarlari — LLM keyingi savolni oldingisiga bogʻlab
@@ -146,7 +151,10 @@ interface TarixXabari { rol: string; matn: string; savolId?: string | null }
 export function suhbatTarixi(xabarlar: readonly TarixXabari[], h: YolHolati, nechta = 8): string {
   const tozala = (t: string) => shaxsiyniYashir(t, h);
   return xabarlar
-    .filter((x) => !(x.savolId && SHAXSIY_SAVOLLAR.has(x.savolId)))
+    // Ism/telefon savoli va unga javob — tashlanadi; lekin shu qadamda bergan SAVOLIGA yordamchi
+    // javobi qoladi (jonli sinov, 2026-10-21: u tashlangani uchun AI mijozning «raqamni nimaga
+    // soʻrayapsiz?» savolini javobsiz deb oʻylab, keyingi turnda unga QAYTA javob berdi).
+    .filter((x) => !(x.savolId && SHAXSIY_SAVOLLAR.has(x.savolId)) || erkinJavobmi(x))
     .slice(-nechta)
     .map((x) => `${x.rol === 'obunachi' ? 'Mijoz' : x.rol === 'menejer' ? 'Yordamchi' : 'Ekrandagi hisob'}: ${tozala(x.matn).slice(0, 500)}`)
     .join('\n');
