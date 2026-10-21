@@ -323,6 +323,9 @@ describe('AI yozadi — tugma bosilganda ham', () => {
     expect(r.keyingi.tur === 'savol' && r.keyingi.savol.id).toBe('ism');
     expect(r.xabarlar.map((x) => x.matn)).toContain('ZumSavdo Uzumda savdoni boshlashga yordam beradi.');
     expect(r.xabarlar[r.xabarlar.length - 1]).toEqual({ rol: 'menejer', matn: 'Tanishib olaylik: ismingiz va telefon raqamingiz?', savolId: 'ism' });
+    // AI ga ism savolining faqat oxirgi xatboshisi — salomlashishni qayta aytmasin (jonli sinov, 2026-10-21).
+    expect(s.yozlar[0]!.k.keyingi?.matn).not.toContain('Assalomu alaykum');
+    expect(s.yozlar[0]!.k.keyingi?.matn).toContain('ismingiz');
   });
 
   it('ism qadamida tajriba va pul ham aytsa — AI keyingi savollarni ham koʻradi, javoblar navbatda kutadi', async () => {

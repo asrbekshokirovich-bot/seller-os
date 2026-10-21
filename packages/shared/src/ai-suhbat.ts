@@ -208,8 +208,8 @@ export const AI_YOZ_KORSATMA = [
   '- Foyda, sotuv yoki daromad vaʼda qilma; «kafolat» («кафолат», «гарантия») soʻzi yoʻq. Qaror mijozniki.',
   '- Roʻyxatda yoʻq tovar yoki yoʻnalishni oʻzingdan taklif qilma.',
   '- QABUL QILINMADI boʻlsa — KEYINGI SAVOL oʻsha savolning oʻzi: uni qayta soʻra.',
-  '- Savolni oʻtkazib yuborish mumkinligini FAQAT uning tavsifida «oʻtkazib yuborsa boʻladi» deyilgan boʻlsa ayt;',
-  '«oʻtkazib boʻlmaydi» boʻlsa — javob shart: «Oʻtkazib yuborish» tugmasi yoki boshqa yoʻl vaʼda qilma.',
+  '- Savolni oʻtkazib yuborish haqida FAQAT uning tavsifida «oʻtkazib yuborsa boʻladi» deyilgan boʻlsa gapir. Aks holda',
+  'oʻtkazish haqida umuman gapirma (na «mumkin», na «shart» deb): «Oʻtkazib yuborish» tugmasi yoki boshqa yoʻl vaʼda qilma.',
   '- Ichki boʻlim nomlari (FAKTLAR, MIJOZ HOLATI, TAYYOR JAVOB, YANGI NATIJALAR, SUHBAT) mijozga aytilmaydi. Bilmagan',
   'narsangni «bu haqda aniq maʼlumotim yoʻq» deb ayt. SUHBATda javob bergan savolingga qayta javob berma.',
   '- Muddat yoki sana BUGUNdan oldin boʻlsa — «… gacha» dema: muddati oʻtganini ochiq ayt.',
@@ -222,9 +222,9 @@ export const AI_YOZ_KORSATMA = [
 /** Savol tavsifi — AI uchun: id, qadam, turi, matni, variantlari (qiymat = nom). */
 export function savolTavsifi(s: SuhbatSavoli, n: number | null = null): string {
   const bosh = `${n !== null ? `${n}) ` : ''}id: ${s.id} (${s.qadam}-qadam), turi: ${s.turi}`
-    // Oʻtkazib boʻlmasligi ham ochiq aytiladi (jonli sinov, 2026-10-21: telefon savolida AI
-    // «„Oʻtkazib yuborish“ tugmasini bosing» dedi — bunday tugma yoʻq, javob shart).
-    + `${s.erkin ? ', oʻzi yozsa ham boʻladi' : ''}${s.otkazishMumkin ? ', oʻtkazib yuborsa boʻladi' : ', oʻtkazib boʻlmaydi (javob shart)'}`;
+    // Oʻtkazib boʻlmasligi bu yerda YOZILMAYDI: jonli sinovda (2026-10-21) AI uni har savol
+    // oxiriga «Bu savolga javob berish shart» deb qoʻsha boshladi — robotdek. Qoida koʻrsatmada.
+    + `${s.erkin ? ', oʻzi yozsa ham boʻladi' : ''}${s.otkazishMumkin ? ', oʻtkazib yuborsa boʻladi' : ''}`;
   const variantlar = s.variantlar.length
     ? `\n   Variantlar: ${s.variantlar.slice(0, 40).map((v) => `${v.qiymat} = «${v.nom}»`).join('; ')}`
     : '';
