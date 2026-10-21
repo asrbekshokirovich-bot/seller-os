@@ -86,11 +86,13 @@ describe('soʻrov matni', () => {
     expect(aiYozMatni({ ...YOZ, ism: null })).not.toContain('MIJOZ ISMI');
   });
 
-  it('savol tavsifi: oʻtkazib boʻlmasa — ochiq aytiladi (jonli sinov 2026-10-21: soxta «Oʻtkazib yuborish» tugmasi)', () => {
+  it('oʻtkazish: faqat ruxsat boʻlsa tilga olinadi (jonli sinov 2026-10-21: soxta «Oʻtkazib yuborish» tugmasi, keyin har savolga «javob shart»)', () => {
     const majburiy: SuhbatSavoli = { ...SAVOL, id: 'telefon', turi: 'matn', variantlar: [], otkazishMumkin: false };
-    expect(savolTavsifi(majburiy)).toContain('oʻtkazib boʻlmaydi (javob shart)');
-    expect(savolTavsifi(SAVOL)).not.toContain('oʻtkazib boʻlmaydi');
-    expect(AI_YOZ_KORSATMA).toContain('Savolni oʻtkazib yuborish mumkinligini FAQAT uning tavsifida');
+    // Majburiy savol tavsifida oʻtkazish haqida hech narsa yoʻq — AI uni mijozga takrorlamasin.
+    expect(savolTavsifi(majburiy)).not.toContain('oʻtkazib');
+    expect(savolTavsifi(SAVOL)).toContain('oʻtkazib yuborsa boʻladi');
+    expect(AI_YOZ_KORSATMA).toContain('Savolni oʻtkazib yuborish haqida FAQAT uning tavsifida');
+    expect(AI_YOZ_KORSATMA).toContain('oʻtkazish haqida umuman gapirma');
     expect(AI_YOZ_KORSATMA).toContain('Ichki boʻlim nomlari (FAKTLAR, MIJOZ HOLATI');
     expect(AI_YOZ_KORSATMA).toContain('SUHBATda javob bergan savolingga qayta javob berma');
   });

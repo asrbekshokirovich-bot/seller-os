@@ -1370,11 +1370,16 @@ async function aiErkinXabar(
   const tt = tushunishUchun(matn);
   const malumot = t.sabab ? null : await bazadanMalumot(d, tt, holat);
   const baza = bazaJavobi(tt, ruschami(matn), k0.savol.id, t.sabab, holat, d.tarifCheklovi, malumot);
+  // Ism savolida salomlashish chatda bor yoki shu turnda qoʻyiladi — AI uni qayta aytmasin (jonli
+  // sinov, 2026-10-21: «Assalomu alaykum!» ikki marta chiqdi): unga savolning faqat oxirgi xatboshisi.
+  const keyingiSavol = k1.savol.id === 'ism' && k1.savol.matn.includes('\n\n')
+    ? { ...k1.savol, matn: k1.savol.matn.split('\n\n').at(-1)! }
+    : k1.savol;
   const y = d.ai ? await aiYozTekshirib(d.ai, {
     mijoz: matn, tanlov: false, qabul: [], rad: t.sabab ? [radGapi(k0.savol, t.qiymat, t.sabab)] : [],
     // Javob ham, rad ham boʻlmasa — mijoz nimadir soʻradi yoki aytdi: unga javob kerak.
     savolBor: t.savolBor || t.sabab === null, bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor: baza?.matn ?? null,
-    natijalar: [], eslab: t.eslab, keyingi: k1.savol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
+    natijalar: [], eslab: t.eslab, keyingi: keyingiSavol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
     tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), bugun: bugunMatni(), tuzat: null, ism: mijozIsmi(holat),
   }, [], qoldi, d.oqim) : null;
   if (!y) return erkinXabar(llmsiz(d), token, holat, k0, matn, t.sabab, xabarlar);
@@ -1384,7 +1389,7 @@ async function aiErkinXabar(
     { rol: 'obunachi', matn },
     // `javob` — erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
     ...(y.oldin ? [{ rol: 'menejer' as const, matn: y.oldin, savolId: k0.savol.id, javob: { erkin: true, manba: 'ai' } }] : []),
-    { rol: 'menejer', matn: y.savol || k0.savol.matn, savolId: k0.savol.id },
+    { rol: 'menejer', matn: y.savol || (keyingiSavol !== k1.savol ? keyingiSavol.matn : k0.savol.matn), savolId: k0.savol.id },
   ];
   const qadam = joriyQadam(holat);
   const w = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {
