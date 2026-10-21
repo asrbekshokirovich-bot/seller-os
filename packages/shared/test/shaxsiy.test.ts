@@ -39,6 +39,16 @@ describe('shaxsiyniYashir', () => {
     expect(shaxsiyniYashir('mana +998 90 765 43 21', h)).toBe('mana …');
   });
 
+  it('ism/telefon qadamidagi SAVOLGA yordamchi javobi tarixda qoladi — AI unga qayta javob bermasin', () => {
+    const t = suhbatTarixi([
+      { rol: 'menejer', matn: 'Telefon raqamingizni yozing', savolId: 'telefon' },
+      { rol: 'obunachi', matn: 'raqamni nimaga soʻrayapsiz?' },
+      { rol: 'menejer', matn: 'Bogʻlanish uchun, Aziz.', savolId: 'telefon', javob: { erkin: true, manba: 'ai' } },
+      { rol: 'obunachi', matn: '90 123 45 67', savolId: 'telefon' },
+    ], H);
+    expect(t).toBe('Mijoz: raqamni nimaga soʻrayapsiz?\nYordamchi: Bogʻlanish uchun, ….');
+  });
+
   it('suhbatTarixi shu bilan yashiradi; ism/telefon savollari tarixga kirmaydi', () => {
     const t = suhbatTarixi([
       { rol: 'menejer', matn: 'Ismingiz va telefoningiz?', savolId: 'ism' },

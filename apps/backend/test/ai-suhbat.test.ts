@@ -351,6 +351,32 @@ describe('AI yozadi — tugma bosilganda ham', () => {
     expect(s.yozlar[0]!.k.til).toBe('uz');
   });
 
+  it('ruscha suhbatda faqat telefon yuborsa — javob tili rus qoladi (jonli sinov 2026-10-21: oʻzbekchaga sakragan edi)', async () => {
+    const b = soxtaBaza({ javoblar: { ism: 'Иван Петров' }, natijalar: {} });
+    b.jurnal.push({ rol: 'obunachi', matn: 'Здравствуйте, меня зовут Иван Петров. Что вы умеете?' });
+    const s = soxtaAi(
+      [{ javoblar: [{ savol_id: 'telefon', qiymatlar: ['+998 90 000 05 32'], otkazish: false }], taklif_qiziqish: [], savol_bor: false }],
+      [{ oldin: '', izoh: '', savol: 'Вы раньше торговали?' }],
+    );
+    await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'telefon', matn: '+998 90 000 05 32' });
+    expect(b.holat().javoblar['telefon']).toBe('+998900000532');
+    expect(s.yozlar[0]!.k.til).toBe('ru');
+  });
+
+  it('faqat raqam (byudjet) — til oldingi yozgan gapidan; oldin hech narsa yozmagan boʻlsa — oʻzi', async () => {
+    const b = soxtaBaza(BYUDJET);
+    b.jurnal.push({ rol: 'obunachi', matn: 'Я продавал одежду в Инстаграме' });
+    const javob = { javoblar: [{ savol_id: 'byudjet', qiymatlar: ['60000000'], otkazish: false }], taklif_qiziqish: [], savol_bor: false };
+    const s = soxtaAi([javob], [YOZUV]);
+    await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'byudjet', matn: '60000000' });
+    expect(s.yozlar[0]!.k.til).toBe('ru');
+    // Oldin yozgan gapi yoʻq — sahifa tili (oʻzbek) qoladi.
+    const b2 = soxtaBaza(BYUDJET);
+    const s2 = soxtaAi([javob], [YOZUV]);
+    await suhbatTurn(bogliq(b2, s2.ai), 't', { savolId: 'byudjet', matn: '60000000' });
+    expect(s2.yozlar[0]!.k.til).toBe('uz');
+  });
+
   it('ism bilan ruscha gap — javob tili ism va telefondan tashqari gapdan: rus', async () => {
     const b = soxtaBaza(boshlangichHolat());
     const s = soxtaAi([ismJavobi('Иван Петров, +998 90 000 02 03')], [{ oldin: '', izoh: '', savol: 'Вы раньше торговали?' }]);

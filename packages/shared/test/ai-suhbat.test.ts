@@ -11,8 +11,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  aiQiymat, aiTushunchaniOqi, aiYozMatni, aiYozuvniOqi, aiYozuvQismi, AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_SXEMA, ixcham,
-  natijaTavsifi, savolTavsifi, type AiYozSorovi,
+  aiQiymat, aiTushunchaniOqi, aiYozMatni, aiYozuvniOqi, aiYozuvQismi, AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA,
+  AI_YOZ_SXEMA, ixcham, natijaTavsifi, savolTavsifi, type AiYozSorovi,
 } from '../src/ai-suhbat';
 import { aiTushunBer, aiYozBer, type LlmChaqiruvi } from '../src/llm';
 import type { SuhbatSavoli } from '../src/ssenariy';
@@ -84,6 +84,15 @@ describe('soʻrov matni', () => {
     expect(aiYozMatni({ ...YOZ, ism: 'Aziz' })).toContain('MIJOZ ISMI: Aziz');
     expect(aiYozMatni(YOZ)).not.toContain('MIJOZ ISMI');
     expect(aiYozMatni({ ...YOZ, ism: null })).not.toContain('MIJOZ ISMI');
+  });
+
+  it('savol tavsifi: oʻtkazib boʻlmasa — ochiq aytiladi (jonli sinov 2026-10-21: soxta «Oʻtkazib yuborish» tugmasi)', () => {
+    const majburiy: SuhbatSavoli = { ...SAVOL, id: 'telefon', turi: 'matn', variantlar: [], otkazishMumkin: false };
+    expect(savolTavsifi(majburiy)).toContain('oʻtkazib boʻlmaydi (javob shart)');
+    expect(savolTavsifi(SAVOL)).not.toContain('oʻtkazib boʻlmaydi');
+    expect(AI_YOZ_KORSATMA).toContain('Savolni oʻtkazib yuborish mumkinligini FAQAT uning tavsifida');
+    expect(AI_YOZ_KORSATMA).toContain('Ichki boʻlim nomlari (FAKTLAR, MIJOZ HOLATI');
+    expect(AI_YOZ_KORSATMA).toContain('SUHBATda javob bergan savolingga qayta javob berma');
   });
 
   it('tushunish koʻrsatmasi: ism/telefon — ajrat, salom va savolni qoʻshma, savol_bor (2026-10-21)', () => {
