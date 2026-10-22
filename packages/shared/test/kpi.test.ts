@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  KPI_MAQSAD, NAMUNA_ENG_KAM, YOSH_ENG_KOP_SOAT, kpiXulosa, kpilar,
-  type Kpi, type KpiKalit, type KpiXom,
+  KPI_MAQSAD, NAMUNA_ENG_KAM, YOSH_ENG_KOP_SOAT, aiXarajati, kpiXulosa, kpilar,
+  type AiMuhit, type Kpi, type KpiKalit, type KpiXom,
 } from '../src/kpi.js';
 
 /** Toʻlov ham, AI ham ulanmagan holat — bugungi haqiqiy holat. */
@@ -184,5 +184,146 @@ describe('malumot_yoshi', () => {
     }, HOZIR), 'malumot_yoshi');
     expect(k.qiymat).toBeNull();
     expect(k.holat).toBe('olchanmadi');
+  });
+});
+
+/*
+ * AI XARAJAT (2026-10-22, nazoratchi: «AI xarajatini tuzat»). `ai_usage` yarim oy boʻsh turdi —
+ * panel «AI ulanmagan» der edi, Claude esa har xabarni yozardi. 0071 dan: 30 kunda bir mijozga
+ * oʻrtacha AI xarajati — oylik obuna narxining (149 000 soʻm) necha foizi; reja: <8%.
+ */
+describe('AI xarajat / mijoz (0071)', () => {
+  const HOZIR = new Date('2026-10-22T12:00:00Z');
+  const CLAUDE: AiMuhit = { provayder: 'claude', somPerUsd: 12_800, kursSanasi: '22.10.2026' };
+  type Oy = NonNullable<KpiXom['ai']['kun30']>;
+  const AI = (oy: Partial<Oy> = {}, ortiq: Partial<KpiXom['ai']> = {}): KpiXom['ai'] => ({
+    qatorlar: 400, xarajat_usd: 3.2, oxirgi: '2026-10-22T07:00:00Z',
+    bugun: { chaqiruv: 40, usd: 0.32 },
+    kun7: { chaqiruv: 200, usd: 1.6 },
+    kun30: { chaqiruv: 400, usd: 3.2, narxsiz: 0, mijoz: 25, mehmon_usd: 0.2, ...oy },
+    maqsad_30kun: {
+      sahifa: { chaqiruv: 50, usd: 0.2 }, 'ai-yoz': { chaqiruv: 200, usd: 2.4 }, 'ai-tushun': { chaqiruv: 150, usd: 0.6 },
+    },
+    xabar_7kun: 180,
+    ...ortiq,
+  });
+  const qator = (ai: KpiXom['ai'], m: AiMuhit | null = CLAUDE) => ol(kpilar({ ...XOM, ai }, null, HOZIR, null, m), 'ai_xarajat');
+
+  it('oʻlchandi: $3,2 / 25 mijoz × 12 800 soʻm = 1 638 soʻm — 149 000 ning 1,1 %i, maqsadda', () => {
+    const k = qator(AI());
+    expect(k.qiymat).toBe(1.1);
+    expect(k.holat).toBe('yaxshi');
+    expect(k.namuna).toBe(25);
+    expect(k.sabab).toBeNull();
+    expect(k.ogoh).toBeUndefined();
+  });
+
+  it('mijozga $1 (12 800 soʻm) — 8,6 %: maqsaddan past', () => {
+    const k = qator(AI({ usd: 25 }));
+    expect(k.qiymat).toBe(8.6);
+    expect(k.holat).toBe('yomon');
+  });
+
+  it('mijoz kam (3) — foiz bor, lekin «namuna kichik»: darvoza uni yomon demaydi', () => {
+    expect(qator(AI({ mijoz: 3 })).holat).toBe('namuna-kichik');
+  });
+
+  it('oʻlchanmagan holatlar — `null` va sababi, nol emas', () => {
+    const holatlar: Array<[KpiXom['ai'], AiMuhit | null, RegExp]> = [
+      [{ qatorlar: 0, xarajat_usd: null }, CLAUDE, /`ai_usage` boʻsh/],
+      [{ qatorlar: 12, xarajat_usd: 0.1 }, CLAUDE, /0071 qoʻllanmagan/],
+      [AI(), { provayder: 'gemini', somPerUsd: 12_800 }, /Gemini/],
+      [AI(), { provayder: null, somPerUsd: 12_800 }, /AI kaliti yoʻq/],
+      [AI({ chaqiruv: 0, usd: null, mijoz: 0 }), CLAUDE, /30 kunda AI chaqiruvi yozilmagan/],
+      [AI({ mijoz: 0 }), CLAUDE, /sessiyasiz mehmonlar/],
+      [AI({ usd: null, narxsiz: 400 }), CLAUDE, /narxi maʼlum emas/],
+      [AI(), { provayder: 'claude', somPerUsd: null }, /dollar kursi olinmadi/],
+    ];
+    for (const [ai, m, sabab] of holatlar) {
+      const k = qator(ai, m);
+      expect(k.qiymat, String(sabab)).toBeNull();
+      expect(k.holat, String(sabab)).toBe('olchanmadi');
+      expect(k.sabab, String(sabab)).toMatch(sabab);
+    }
+  });
+
+  it('narxi nomaʼlum chaqiruv — raqam bor, lekin ogohlik bilan', () => {
+    const k = qator(AI({ narxsiz: 7 }));
+    expect(k.qiymat).toBe(1.1);
+    expect(k.ogoh).toMatch(/7 ta chaqiruvning narxi nomaʼlum/);
+  });
+
+  /*
+   * ENG MUHIM TEKSHIRUV — jim oʻlim qorovuli. Yozuv sinsa, 30 kunlik raqam bir necha kun
+   * «maqsadda» boʻlib turaveradi; faqat shu ogohlik qizaradi.
+   */
+  it('Claude ulangan, mijozlar yozyapti, 7 kunda sarf yoʻq — «yozuv ishlamayotgan boʻlishi mumkin»', () => {
+    const singan = AI({}, { kun7: { chaqiruv: 0, usd: null } });
+    expect(qator(singan).ogoh).toMatch(/180 ta xabar yozgan, AI sarfi esa yozilmagan/);
+    expect(qator(AI({ chaqiruv: 0, usd: null, mijoz: 0 }, { kun7: { chaqiruv: 0, usd: null } })).ogoh)
+      .toMatch(/yozuv ishlamayotgan/);
+    // Mijoz yozmagan boʻlsa — sarf yoʻqligi tabiiy.
+    expect(qator(AI({}, { kun7: { chaqiruv: 0, usd: null }, xabar_7kun: 0 })).ogoh).toBeUndefined();
+    // Sarf yozilyapti — ogohlik yoʻq.
+    expect(qator(AI()).ogoh).toBeUndefined();
+  });
+
+  it('AI muhiti berilmasa (eski chaqiruvchi) — bazadagi raqam boʻyicha, kurssiz', () => {
+    expect(qator(AI(), null).sabab).toMatch(/dollar kursi/);
+  });
+});
+
+describe('aiXarajati — `/olchov` dagi «AI xarajati» bloki', () => {
+  const CLAUDE: AiMuhit = { provayder: 'claude', somPerUsd: 12_800, kursSanasi: '22.10.2026' };
+  const AI: KpiXom['ai'] = {
+    qatorlar: 400, xarajat_usd: 3.2, oxirgi: '2026-10-22T07:00:00Z',
+    bugun: { chaqiruv: 40, usd: 0.32 },
+    kun7: { chaqiruv: 200, usd: 1.6 },
+    kun30: { chaqiruv: 400, usd: 3.2, narxsiz: 0, mijoz: 25, mehmon_usd: 0.2 },
+    maqsad_30kun: {
+      sahifa: { chaqiruv: 50, usd: 0.2 }, 'ai-yoz': { chaqiruv: 200, usd: 2.4 }, yangi: { chaqiruv: 1, usd: 0.0001 },
+    },
+    xabar_7kun: 180,
+  };
+
+  it('davrlar — dollarda va soʻmda (CBU kursi bilan)', () => {
+    const x = aiXarajati(AI, CLAUDE)!;
+    expect(x.davrlar).toEqual([
+      { nom: 'Bugun', chaqiruv: 40, usd: 0.32, som: 4096 },
+      { nom: '7 kun', chaqiruv: 200, usd: 1.6, som: 20480 },
+      { nom: '30 kun', chaqiruv: 400, usd: 3.2, som: 40960 },
+    ]);
+    expect(x.mijozBoshiga!.usd).toBeCloseTo(0.128, 9);
+    expect(x.mijozBoshiga).toMatchObject({ som: 1638, mijoz: 25 });
+    expect(x.mehmonUsd).toBe(0.2);
+    expect(x.kurs).toEqual({ somPerUsd: 12_800, sana: '22.10.2026' });
+    expect(x.oxirgi).toBe('2026-10-22T07:00:00Z');
+    expect(x.ogoh).toEqual([]);
+  });
+
+  it('maqsadlar — qimmatidan arzoniga, oʻzbekcha nomi bilan; notanish maqsad — oʻz nomi bilan', () => {
+    expect(aiXarajati(AI, CLAUDE)!.maqsadlar).toEqual([
+      { maqsad: 'ai-yoz', nom: 'Suhbat — xabar yozish', chaqiruv: 200, usd: 2.4 },
+      { maqsad: 'sahifa', nom: '«Savol bering» oynasi', chaqiruv: 50, usd: 0.2 },
+      { maqsad: 'yangi', nom: 'yangi', chaqiruv: 1, usd: 0.0001 },
+    ]);
+  });
+
+  it('chaqiruvsiz kun — $0 va 0 soʻm (kurssiz ham); kurs yoʻq — soʻm `null`, toʻqilmaydi', () => {
+    const x = aiXarajati({ ...AI, bugun: { chaqiruv: 0, usd: null } }, { provayder: 'claude', somPerUsd: null })!;
+    expect(x.davrlar[0]).toEqual({ nom: 'Bugun', chaqiruv: 0, usd: 0, som: 0 });
+    expect(x.davrlar[1]).toEqual({ nom: '7 kun', chaqiruv: 200, usd: 1.6, som: null });
+    expect(x.mijozBoshiga!.som).toBeNull();
+    expect(x.kurs).toBeNull();
+  });
+
+  it('eski baza shakli (0071 gacha) yoki baza javob bermadi — `null`: blok «oʻlchanmadi» deydi', () => {
+    expect(aiXarajati({ qatorlar: 0, xarajat_usd: null }, CLAUDE)).toBeNull();
+    expect(aiXarajati(null, CLAUDE)).toBeNull();
+  });
+
+  it('jim oʻlim ogohligi blokda ham chiqadi', () => {
+    expect(aiXarajati({ ...AI, kun7: { chaqiruv: 0, usd: null } }, CLAUDE)!.ogoh.join(' '))
+      .toMatch(/yozuv ishlamayotgan/);
   });
 });

@@ -24,8 +24,11 @@ import {
 } from './tahlil.ts';
 import { suhbatKodHarakatlari } from './suhbat-kod.ts';
 // Claude SDK faqat serverda (2026-10-19) — `shared/index.ts` dan eksport qilinmaydi.
-import { CLAUDE_MODELI, claudeProvayderi } from './shared/llm-claude.ts';
+import { CLAUDE_MODELI, claudeProvayderi, kalitniAjrat } from './shared/llm-claude.ts';
 import {
+  aiSarfYozuvchi,
+  aiXarajati,
+  type AiMuhit,
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
   REJA_QADAMI,
@@ -125,6 +128,21 @@ async function rpc<T>(nom: string, arg: unknown): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Javob ketgandan keyin ham tugasin (AI sarfini yozish — mijoz uni kutmaydi). Supabase Edge
+ * `EdgeRuntime.waitUntil` beradi; boʻlmasa (mahalliy Deno) — oddiy fon vaʼdasi.
+ */
+function fonda(p: Promise<unknown>): void {
+  const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (er?.waitUntil) er.waitUntil(p);
+  else void p;
+}
+
+/** Qaysi AI ishlayapti — `/health` dagidek, lekin kalit shakli ham tekshiriladi. */
+function llmProvayderi(): AiMuhit['provayder'] {
+  return kalitniAjrat(Deno.env.get('ANTHROPIC_API_KEY')) ? 'claude' : Deno.env.get('GEMINI_API_KEY') ? 'gemini' : null;
 }
 
 /**
@@ -475,6 +493,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const llmSozlama = {
       kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
       provayder: claude,
+      // Har Claude javobining sarfi — `ai_usage` ga, shu mijoz nomiga (0071).
+      sarf: aiSarfYozuvchi(rpc, token, fonda),
     };
     // Obuna darvozasi (nazoratchi, 2026-10-14): cheklov yoqilgan boʻlsa — har soʻrovda bazadan.
     // 5-qadamdan keyin obunasiz yoʻl ochilmaydi (`keyingi`); baza javob bermasa — «nomaʼlum».
@@ -594,6 +614,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const llmSozlama = {
       kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
       provayder: claude,
+      // Sarf — `ai_usage` ga (0071); sessiyasiz savol — mijozsiz.
+      sarf: aiSarfYozuvchi(rpc, token || null, fonda),
     };
     const sd = {
       ai: llmBor
@@ -747,15 +769,21 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   // KPI paneli — reja, 8-boʻlim. Oʻlchanmagan KPI NOL EMAS:
   // har qatorda `qiymat: null` va sabab turadi.
   if (yol === '/kpi') {
-    const xom = await rpc<KpiXom>('so_kpi_xom', {});
-    const sifat = await rpc<{
-      coverage_percent: number | null; error_percent: number | null; has_data: boolean;
-    }>('so_quality', { p_platform: 'uzum' });
-    const qatorlar = kpilar(xom, sifat && sifat.has_data ? sifat : null);
+    const [xom, sifat] = await Promise.all([
+      rpc<KpiXom>('so_kpi_xom', {}),
+      rpc<{ coverage_percent: number | null; error_percent: number | null; has_data: boolean }>(
+        'so_quality', { p_platform: 'uzum' }),
+    ]);
+    // AI xarajati soʻmda — dollar kursi (CBU). Faqat oʻgiradigan narsa boʻlsa soʻraladi;
+    // olinmasa — dollarda qoladi.
+    const kurs = xom?.ai?.kun30?.usd ? await kursniOl(fetch, 'USD', 5_000) : null;
+    const ai: AiMuhit = { provayder: llmProvayderi(), somPerUsd: kurs?.somPerYuan ?? null, kursSanasi: kurs?.sana ?? null };
+    const qatorlar = kpilar(xom, sifat && sifat.has_data ? sifat : null, new Date(), null, ai);
     return javob({
       olchandi: new Date().toISOString(),
       xulosa: kpiXulosa(qatorlar),
       kpi: qatorlar,
+      ai: aiXarajati(xom?.ai, ai),
     });
   }
 

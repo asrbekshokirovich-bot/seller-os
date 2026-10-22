@@ -14,8 +14,9 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { SUHBAT_QADAMLARI, type Kpi, type Reja } from '@selleros/shared';
+import { SUHBAT_QADAMLARI, type AiXarajati, type Kpi, type Reja } from '@selleros/shared';
 import { olib } from '@/lib/api';
+import { son } from '@/lib/bazamiz';
 import { holat } from '@/lib/panel';
 import { PANEL_COOKIE, kalit, togrimi, xesh } from '@/lib/qulf';
 import u from './olchov.module.css';
@@ -49,6 +50,8 @@ interface KpiJavobi {
   olchandi: string;
   xulosa: { jami: number; olchandi: number; yaxshi: number; yomon: number };
   kpi: Kpi[];
+  /** «AI xarajati» bloki (0071). Eski baza shaklida — `null`, eski Edge javobida — yoʻq. */
+  ai?: AiXarajati | null;
 }
 
 /** `GET /tarif` javobi. */
@@ -102,6 +105,112 @@ interface BaholarJavobi {
     manba: Record<string, { yaxshi: number; yomon: number }>;
     savol: { savolId: string; yomon: number }[];
   };
+}
+
+/**
+ * AI xarajati (0071; nazoratchi, 2026-10-22: «AI xarajatini tuzat»). `ai_usage` yarim oy boʻsh
+ * turdi — panel «AI ulanmagan» derdi, Claude esa har xabarni yozardi. Endi har javob narxi
+ * yoziladi: bugun, 7 va 30 kun, bir mijozga oʻrtacha, nima uchun ketgani.
+ *
+ * Narx TAXMINIY — roʻyxat narxi boʻyicha (`llm-claude.ts`); aniq hisob — Anthropic Console.
+ * Maʼlumot kelmasa blok boʻsh chiqmaydi: «xarajat yoʻq» — tekin degan daʼvo boʻlardi.
+ */
+function AiXarajatBloki({ x }: { x: AiXarajati | null | undefined }) {
+  if (!x) {
+    return (
+      <section className={u.blok}>
+        <header className={u.blokHead}><h2>AI xarajati</h2></header>
+        <div className={u.xato}>
+          <b>AI xarajati olinmadi.</b>
+          <p>
+            &laquo;Xarajat yoʻq&raquo; deb koʻrsatilmaydi: maʼlumot kelmagani — tekin degani
+            emas. Bazada <code className={u.kod}>0071</code> (<code className={u.kod}>so_ai_sarf_yoz</code>)
+            qoʻllanganini va Edge yangilanganini tekshiring.
+          </p>
+        </div>
+      </section>
+    );
+  }
+  const oy = x.davrlar.at(-1);
+  return (
+    <section className={u.blok}>
+      <header className={u.blokHead}>
+        <h2>AI xarajati</h2>
+        <span>GET /kpi · ai_usage</span>
+      </header>
+
+      <section className={u.tally} aria-label="AI xarajati davrlar boʻyicha">
+        {x.davrlar.map((d) => (
+          <div key={d.nom}>
+            <span className={u.tallyN}>
+              {dollar(d.usd)}
+              {d.som !== null && d.som > 0 && <small>&thinsp;≈ {son(d.som)} soʻm</small>}
+            </span>
+            <span className={u.tallyK}>{d.nom} · {son(d.chaqiruv)} ta javob</span>
+          </div>
+        ))}
+      </section>
+
+      <p className={u.tarifHolati}>
+        <span>
+          bir mijozga (30 kun):{' '}
+          {x.mijozBoshiga === null ? <b>—</b> : (
+            <>
+              <b>{dollar(x.mijozBoshiga.usd)}</b>
+              {x.mijozBoshiga.som !== null && <> ≈ <b>{son(x.mijozBoshiga.som)}</b> soʻm</>}
+              {' · '}{x.mijozBoshiga.mijoz} mijoz
+            </>
+          )}
+        </span>
+        {x.mehmonUsd !== null && x.mehmonUsd > 0 && (
+          <span>sessiyasiz savollar: <b>{dollar(x.mehmonUsd)}</b></span>
+        )}
+      </p>
+
+      {x.ogoh.map((o) => (
+        <span key={o} className={u.ogoh}><b>Ogoh:</b> {o}</span>
+      ))}
+
+      {x.maqsadlar.length === 0 ? (
+        <p className={u.sabab}>Oxirgi 30 kunda AI chaqiruvi yozilmagan.</p>
+      ) : (
+        <div className={u.qatorlar}>
+          {x.maqsadlar.map((m) => (
+            <div key={m.maqsad} className={u.qator}>
+              <div className={u.stripe} />
+              <div className={u.nom}>
+                <b>{m.nom}</b>
+                <span className={u.sabab}>30 kun · {son(m.chaqiruv)} ta javob</span>
+              </div>
+              <div className={`${u.qiymat} ${m.usd === null ? u.bosh : ''}`}>{dollar(m.usd)}</div>
+              <div className={u.oxirgi}>
+                {m.usd !== null && x.kurs !== null && (
+                  <span className={u.maqsad}>≈ {son(Math.round(m.usd * x.kurs.somPerUsd))} soʻm</span>
+                )}
+                {oy && oy.usd !== null && oy.usd > 0 && m.usd !== null && (
+                  <span className={u.maqsad}>{Math.round((m.usd / oy.usd) * 100)}% xarajat</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className={u.sabab}>
+        Narx taxminiy: har javob tokenlari Anthropic roʻyxat narxiga koʻpaytirilgan. Aniq hisob —
+        Anthropic Console → Usage.
+        {x.kurs !== null && <> Kurs: 1 $ = {son(Math.round(x.kurs.somPerUsd))} soʻm (CBU{x.kurs.sana ? `, ${x.kurs.sana}` : ''}).</>}
+        {x.oxirgi !== null && <> Oxirgi yozuv: {vaqt(x.oxirgi)}.</>}
+      </p>
+    </section>
+  );
+}
+
+/** Dollar: kichik summa ham koʻrinsin ($0.0042), kattasi — sentgacha. Oʻlchanmagan — chiziqcha. */
+function dollar(usd: number | null): string {
+  if (usd === null) return '—';
+  if (usd === 0) return '$0';
+  return usd < 0.01 ? `$${usd.toFixed(4)}` : `$${usd.toFixed(2)}`;
 }
 
 /**
@@ -165,6 +274,7 @@ export default async function OlchovSahifasi(
               izoh="darvozalar shu raqamlarga bogʻlangan"
               qatorlar={kpi.kpi.filter((k) => k.guruh === 'mahsulot')}
             />
+            <AiXarajatBloki x={kpi.ai} />
             <Blok
               sarlavha="Texnik"
               izoh="sifat paneli har kuni tekshiradi"

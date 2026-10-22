@@ -8,9 +8,10 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLAUDE_MODELI, claudeProvayderi, javobMatni, kalitniAjrat, sirsiz } from '../src/llm-claude';
+import { CLAUDE_MODELI, claudeNarxi, claudeProvayderi, javobMatni, kalitniAjrat, sirsiz } from '../src/llm-claude';
 import {
-  aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir, sahifaJavobBer,
+  aiSarfYozuvchi, aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir,
+  sahifaJavobBer, type LlmSarfi,
 } from '../src/llm';
 import { AI_YOZ_SXEMA } from '../src/ai-suhbat';
 
@@ -358,5 +359,177 @@ describe('kalit va log xavfsizligi', () => {
     expect(yozilgan).toMatch(/llm odamlashtir/);
     expect(yozilgan).not.toContain(KALIT);
     expect(yozilgan).not.toContain('SINOV_kalit');
+  });
+});
+
+/*
+ * SARF (2026-10-22, nazoratchi: «AI xarajatini tuzat»). `ai_usage` 2026-10-19 dan beri boʻsh
+ * edi — Claude har xabarni yozardi, xarajat esa hech qayerda koʻrinmasdi. Bu yerda: har javob
+ * tokenlari va narxi (roʻyxat narxi, platform.claude.com/docs/en/about-claude/pricing,
+ * 2026-10-22) `sarf` ga beriladi — rad etilgani ham; zaxira modelga oʻtilsa har urinish
+ * alohida, oʻz narxida; yozuvdagi xato javobni buzmaydi.
+ */
+describe('sarf — har javob narxi (2026-10-22)', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  /** `usage` i berilgan javob (qolgani — `MATN('Javob')`). */
+  const SARFLI = (usage: Record<string, unknown>, ortiq: Record<string, unknown> = {}) => ({
+    ...MATN('Javob'),
+    usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, ...usage },
+    ...ortiq,
+  });
+  const sor = async (json: unknown, ortiq: Partial<Parameters<typeof munosabatBer>[0]> = {}) => {
+    const sarflar: LlmSarfi[] = [];
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json }], []) });
+    const javobi = await munosabatBer({ kalit: null, provayder, sarf: (s) => sarflar.push(s), ...ortiq }, MUNOSABAT);
+    return { javobi, sarflar };
+  };
+
+  it('oddiy javob: tokenlar va narx — Sonnet 5.5: 1 mln kirish $2, chiqish $10', async () => {
+    const { javobi, sarflar } = await sor(MATN('Javob'));
+    expect(javobi).toBe('Javob');
+    // 120 × $2 + 30 × $10 = 540 mikrodollar.
+    expect(sarflar).toEqual([{
+      belgi: 'munosabat', model: 'claude-sonnet-5-5', kirish: 120, chiqish: 30, keshOqildi: 0, keshYozildi: 0, narxUsd: 0.00054,
+    }]);
+  });
+
+  it('kesh: oʻqilgani $0,10, yozilgani (5 daqiqa) $2,50, 1 soatligi $4 — 1 mln token uchun', async () => {
+    const besh = await sor(SARFLI({ input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 1000, cache_creation_input_tokens: 2000 }));
+    // 100×2 + 50×10 + 1000×0,1 + 2000×2,5 = 5 800 mikrodollar.
+    expect(besh.sarflar[0]).toMatchObject({ kirish: 100, chiqish: 50, keshOqildi: 1000, keshYozildi: 2000, narxUsd: 0.0058 });
+    const soat = await sor(SARFLI({
+      input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 1000, cache_creation_input_tokens: 2000,
+      cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 2000 },
+    }));
+    expect(soat.sarflar[0]!.narxUsd).toBe(0.0088);
+  });
+
+  it('rad etilgani va kesilgani ham yoziladi — ular ham pul turadi', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    for (const sabab of ['refusal', 'max_tokens']) {
+      const { javobi, sarflar } = await sor(javob([{ type: 'text', text: 'chala' }], sabab));
+      expect(javobi, sabab).toBeNull();
+      expect(sarflar, sabab).toHaveLength(1);
+      expect(sarflar[0]!.narxUsd, sabab).toBe(0.00054);
+    }
+  });
+
+  it('zaxira modelga oʻtilsa — har urinish alohida, oʻz modeli narxida (`usage.iterations`)', async () => {
+    const urinish = (type: string, model: string | null, input_tokens: number, output_tokens: number) => ({
+      type, model, input_tokens, output_tokens, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, cache_creation: null,
+    });
+    const { javobi, sarflar } = await sor(SARFLI({
+      input_tokens: 100, output_tokens: 40,
+      iterations: [urinish('message', null, 100, 10), urinish('fallback_message', 'claude-opus-4-8', 100, 40)],
+    }, {
+      model: 'claude-opus-4-8',
+      content: [
+        { type: 'fallback', from: { model: 'claude-sonnet-5-5' }, to: { model: 'claude-opus-4-8' }, trigger: { type: 'refusal' } },
+        { type: 'text', text: 'Javob' },
+      ],
+    }));
+    expect(javobi).toBe('Javob');
+    expect(sarflar.map((s) => [s.model, s.kirish, s.chiqish, s.narxUsd])).toEqual([
+      // Rad etgan urinish — soʻralgan model (yozuvda modeli yoʻq): 100×2 + 10×10.
+      ['claude-sonnet-5-5', 100, 10, 0.0003],
+      // Javob bergani — Opus 4.8 narxida ($5 / $25): 100×5 + 40×25.
+      ['claude-opus-4-8', 100, 40, 0.0015],
+    ]);
+  });
+
+  it('narxi roʻyxatda yoʻq model — narx `null` (taxmin qilinmaydi), logda sababi', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { sarflar } = await sor(javob([{ type: 'text', text: 'ok' }], 'end_turn', 'claude-haiku-5-5'));
+    expect(sarflar[0]).toMatchObject({ model: 'claude-haiku-5-5', kirish: 120, narxUsd: null });
+    expect(log.mock.calls.flat().join(' ')).toMatch(/claude-haiku-5-5 narxi roʻyxatda yoʻq/);
+  });
+
+  it('narx: sanali nom — sanasiz narxda; `claude-opus-5` ≠ `claude-opus-5-5` (boshi bir xil)', () => {
+    const mln = { kirish: 1_000_000, chiqish: 0, keshOqildi: 0, keshYozildi: 0 };
+    expect(claudeNarxi('claude-sonnet-5-5-20261001', mln)).toBe(2);
+    expect(claudeNarxi('claude-opus-5-5', mln)).toBe(4);
+    expect(claudeNarxi('claude-opus-5', mln)).toBe(5);
+    expect(claudeNarxi('claude-opus-5-20260601', mln)).toBe(5);
+    expect(claudeNarxi('claude-fable-5-1', mln)).toBeNull();
+    // 1 soatlik kesh yozilganidan koʻp boʻlolmaydi (oqimda boshqa hodisadan kelishi mumkin).
+    expect(claudeNarxi('claude-sonnet-5-5', { ...mln, kirish: 0, keshYozildi: 1_000_000, kesh1Soat: 5_000_000 })).toBe(4);
+  });
+
+  it('oqim: sarf oxirida — kirish `message_start` dan, chiqish oxirgi `message_delta` dan', async () => {
+    const f = (async () => sseJavob([BOSHI(), ...MATN_BLOKI(0, ['{"oldin":"","izoh":"","savol":"S?"}']), ...OXIRI()])) as unknown as typeof fetch;
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
+    const sarflar: LlmSarfi[] = [];
+    const r = await aiYozBer({ kalit: null, provayder, sarf: (s) => sarflar.push(s) }, YOZ_SOROVI, () => undefined);
+    expect(r).toEqual({ oldin: '', izoh: '', savol: 'S?' });
+    // 120×2 + 40×10 = 640 mikrodollar.
+    expect(sarflar).toEqual([{
+      belgi: 'ai-yoz', model: 'claude-sonnet-5-5', kirish: 120, chiqish: 40, keshOqildi: 0, keshYozildi: 0, narxUsd: 0.00064,
+    }]);
+  });
+
+  it('javob kelmasa (HTTP xato) — sarf yoʻq', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const sarflar: LlmSarfi[] = [];
+    const xato = { type: 'error', error: { type: 'invalid_request_error', message: 'yoʻq' } };
+    const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ status: 400, json: xato }], []) });
+    expect(await munosabatBer({ kalit: null, provayder, sarf: (s) => sarflar.push(s) }, MUNOSABAT)).toBeNull();
+    expect(sarflar).toEqual([]);
+  });
+
+  it('sarf yozuvchisi yiqilsa ham javob mijozga ketadi', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { javobi } = await sor(MATN('Javob'), { sarf: () => { throw new Error('baza'); } });
+    expect(javobi).toBe('Javob');
+    expect(log.mock.calls.flat().join(' ')).toMatch(/sarf yozilmadi/);
+  });
+});
+
+describe('aiSarfYozuvchi — `so_ai_sarf_yoz` ga (0071)', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
+  const SARF: LlmSarfi = {
+    belgi: 'ai-yoz', model: 'claude-sonnet-5-5', kirish: 120, chiqish: 40, keshOqildi: 900, keshYozildi: 0, narxUsd: 0.00073,
+  };
+  /** `rpc` oʻrnida: chaqiruvlarni yozadi va berilgan javobni qaytaradi. */
+  const soxtaRpc = (javobi: unknown, chaqiruvlar: Array<[string, unknown]> = []) =>
+    async <T,>(nom: string, arg: unknown): Promise<T | null> => { chaqiruvlar.push([nom, arg]); return javobi as T | null; };
+
+  it('bitta chaqiruv — sessiya tokeni bilan, maydonlar bazadagi nomi bilan; mijozni kuttirmaydi (fonda)', async () => {
+    const chaqiruvlar: Array<[string, unknown]> = [];
+    const fondagi: Array<Promise<unknown>> = [];
+    aiSarfYozuvchi(soxtaRpc({ yozildi: true }, chaqiruvlar), 'tok', (p) => fondagi.push(p))(SARF);
+    expect(fondagi).toHaveLength(1);
+    await Promise.all(fondagi);
+    expect(chaqiruvlar).toEqual([['so_ai_sarf_yoz', {
+      p_token: 'tok', p_model: 'claude-sonnet-5-5', p_maqsad: 'ai-yoz', p_kirish: 120, p_chiqish: 40,
+      p_kesh_oqildi: 900, p_kesh_yozildi: 0, p_narx_usd: 0.00073,
+    }]]);
+  });
+
+  it('sessiyasiz (boʻsh token) — `p_token: null`; narxsiz — `p_narx_usd: null`', async () => {
+    const chaqiruvlar: Array<[string, unknown]> = [];
+    const fondagi: Array<Promise<unknown>> = [];
+    aiSarfYozuvchi(soxtaRpc({ yozildi: true }, chaqiruvlar), '', (p) => fondagi.push(p))({ ...SARF, narxUsd: null });
+    await Promise.all(fondagi);
+    expect(chaqiruvlar[0]![1]).toMatchObject({ p_token: null, p_narx_usd: null });
+  });
+
+  it('baza yozmasa yoki yiqilsa — jim emas: logda sababi; xato tashqariga chiqmaydi', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fondagi: Array<Promise<unknown>> = [];
+    aiSarfYozuvchi(soxtaRpc(null), 'tok', (p) => fondagi.push(p))(SARF);
+    aiSarfYozuvchi(async () => { throw new TypeError('tarmoq'); }, 'tok', (p) => fondagi.push(p))(SARF);
+    await Promise.all(fondagi);
+    const yozilgan = log.mock.calls.flat().join('\n');
+    expect(yozilgan).toMatch(/ai sarfi yozilmadi \(ai-yoz, claude-sonnet-5-5\): baza javob bermadi/);
+    expect(yozilgan).toMatch(/ai sarfi yozilmadi \(ai-yoz, claude-sonnet-5-5\): TypeError/);
+  });
+
+  it('yozildi — logda hech narsa yoʻq', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fondagi: Array<Promise<unknown>> = [];
+    aiSarfYozuvchi(soxtaRpc({ yozildi: true }), 'tok', (p) => fondagi.push(p))(SARF);
+    await Promise.all(fondagi);
+    expect(log).not.toHaveBeenCalled();
   });
 });

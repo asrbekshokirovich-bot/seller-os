@@ -487,7 +487,7 @@ biri nimani kutmoqda:
 | `user_profiles` | **3** | ✅ anonim sessiya ulandi |
 | `users` | **6** | ✅ birinchi tashrifda yaratiladi |
 | `subscriptions` / `payments` | 0 | ❌ **Payme/Click tasdigʻi kerak** |
-| `ai_usage` / `events` | 0 | ❌ `ANTHROPIC_API_KEY` kerak |
+| `ai_usage` / `events` | 0 | ❌ `ANTHROPIC_API_KEY` kerak (2026-10-22: kalit 10-19 dan bor edi, `ai_usage` ga yozuvchi yoʻq edi — 0071 bilan yoziladi) |
 
 `product_flags` yozilishi IDEMPOTENT: har hisobda oʻsha tovarlarning
 eski bayroqlari oldin oʻchiriladi. Tekshirildi — ikkinchi chaqiruvda
@@ -520,7 +520,7 @@ boʻlardi, holbuki bu kodning holati.
 | Tavsiya qabuli | **tayyor** | `POST /hodisa` + `so_hodisa_yoz` qoʻshildi — frontend `tavsiya_tanlandi` yuborishi kerak |
 | Bepul → pullik | — | `payments` boʻsh — toʻlov oqimi ishlamagan |
 | Mijoz ketishi | — | toʻlov davri boshlanmagan |
-| AI xarajat | — | `ai_usage` boʻsh, tarif narxi ham belgilanmagan |
+| AI xarajat | — | `ai_usage` boʻsh, tarif narxi ham belgilanmagan (2026-10-22: 0071 — har Claude javobi yoziladi, maxraj 149 000 soʻm) |
 | Tuzoq testi / Eval | — | CI da oʻlchanadi, ish vaqtida yozilmaydi |
 | Avtoyechish | — | jonli rejim yoqilmagan |
 
