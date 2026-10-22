@@ -30,12 +30,78 @@
  *
  * Har yiqilish `null` va bu XATO EMAS: kalit yoʻq, tarmoq yoʻq, limit
  * tugagan — oqim toʻxtamaydi. Logda — faqat sababi (kalit ham, matn ham emas).
+ *
+ * SARF (2026-10-22, nazoratchi: «AI xarajatini tuzat»): har javobdan keyin tokenlar va
+ * taxminiy narx `c.sarf` ga beriladi (`ai_usage`, 0072) — rad etilgani va kesilgani ham, ular
+ * ham pul turadi. Narx — roʻyxat narxi boʻyicha (`NARXLAR`); aniq hisob — Anthropic Console →
+ * Usage. Vaqt tugab uzilgan soʻrovning sarfi kelmaydi — u yozilmaydi (kam uchraydi).
  */
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.133.0';
-import type { LlmChaqiruvi, LlmProvayder } from './llm.ts';
+import type { LlmChaqiruvi, LlmProvayder, LlmSarfi } from './llm.ts';
 
 export const CLAUDE_MODELI = 'claude-sonnet-5-5';
+
+/**
+ * Roʻyxat narxi, $ / 1 mln token — platform.claude.com/docs/en/about-claude/pricing (oʻqildi
+ * 2026-10-22). Kesh yozish — kirish narxining 1,25 baravari (5 daqiqalik kesh — bizning
+ * `cache_control`), 1 soatligi — 2 baravari. Opus 5 va Opus 4.8 — rad etilganda zaxira model
+ * (`fallbacks: 'default'`) boʻlishi mumkin. Roʻyxatda yoʻq model narxi TAXMIN QILINMAYDI.
+ */
+const NARXLAR: Readonly<Record<string, { kirish: number; chiqish: number; keshOqish: number }>> = {
+  'claude-sonnet-5-5': { kirish: 2, chiqish: 10, keshOqish: 0.1 },
+  'claude-opus-5-5': { kirish: 4, chiqish: 20, keshOqish: 0.2 },
+  'claude-opus-5': { kirish: 5, chiqish: 25, keshOqish: 0.5 },
+  'claude-opus-4-8': { kirish: 5, chiqish: 25, keshOqish: 0.5 },
+};
+
+/**
+ * Bitta urinishning taxminiy narxi, $ (6 xonagacha). Model nomi oxiridagi sana (`-20261001`)
+ * hisobga olinmaydi. Narxi nomaʼlum model — `null`.
+ */
+export function claudeNarxi(
+  model: string, t: { kirish: number; chiqish: number; keshOqildi: number; keshYozildi: number; kesh1Soat?: number },
+): number | null {
+  const n = NARXLAR[model.replace(/-\d{8}$/, '')];
+  if (!n) return null;
+  const soat = Math.min(t.kesh1Soat ?? 0, t.keshYozildi);
+  // Token × ($ / 1 mln token) — millionning bir ulushi dollar (mikrodollar).
+  const mikro = t.kirish * n.kirish + t.chiqish * n.chiqish + t.keshOqildi * n.keshOqish
+    + (t.keshYozildi - soat) * n.kirish * 1.25 + soat * n.kirish * 2;
+  return Math.round(mikro) / 1_000_000;
+}
+
+/** `usage` va uning `iterations` yozuvidagi tokenlar (SDK `BetaUsage`). */
+interface Tokenlar {
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+  cache_creation?: { ephemeral_1h_input_tokens?: number | null } | null;
+}
+
+/**
+ * Javob sarfi — har model urinishi alohida. `usage.iterations` boʻlsa — u haqiqat manbai: rad
+ * etilib boshqa modelga oʻtilganda yuqori `usage` faqat oxirgi urinishni qamraydi; modeli
+ * yozilmagan urinish — soʻralgan model. Boʻlmasa — yuqori `usage` va javob modeli.
+ */
+function sarflar(
+  r: { model: string; usage: Tokenlar & { iterations?: ReadonlyArray<Tokenlar & { model?: string | null }> | null } },
+  soralgan: string, belgi: string,
+): LlmSarfi[] {
+  const urinishlar = r.usage.iterations?.length
+    ? r.usage.iterations.map((t) => ({ t, model: t.model || soralgan }))
+    : [{ t: r.usage as Tokenlar, model: r.model }];
+  return urinishlar.map(({ t, model }) => {
+    const tok = {
+      kirish: t.input_tokens ?? 0, chiqish: t.output_tokens ?? 0,
+      keshOqildi: t.cache_read_input_tokens ?? 0, keshYozildi: t.cache_creation_input_tokens ?? 0,
+    };
+    const narxUsd = claudeNarxi(model, { ...tok, kesh1Soat: t.cache_creation?.ephemeral_1h_input_tokens ?? 0 });
+    if (narxUsd === null) console.warn(`llm ${belgi}: ${model} narxi roʻyxatda yoʻq — sarf narxsiz yoziladi`);
+    return { belgi, model, ...tok, narxUsd };
+  });
+}
 
 export interface ClaudeSozlama {
   kalit: string | null | undefined;
@@ -133,8 +199,16 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
       } else {
         r = await mijoz.beta.messages.create(sorov, sozlama);
       }
+      // Sarf — javob qanday boʻlishidan qatʼi nazar: rad etilgani va kesilgani ham pul turadi.
+      // Yozuvdagi xato javobni buzmaydi.
+      if (c.sarf) {
+        try {
+          for (const s of sarflar(r, model, c.belgi)) c.sarf(s);
+        } catch (e) {
+          console.warn(`llm ${c.belgi}: sarf yozilmadi — ${(e as Error)?.name ?? 'xato'}`);
+        }
+      }
       // Rad etildi (zaxira modeli ham) yoki chegaraga yetib kesildi — chala javob chiqmaydi.
-      // Sarf (token, $) — Anthropic Console → Usage da; bu yerda faqat muammo logga.
       if (r.stop_reason === 'refusal' || r.stop_reason === 'max_tokens') {
         console.warn(`llm ${c.belgi} (${r.model}): ${r.stop_reason}`);
         return null;

@@ -14,6 +14,9 @@ interface TovarJavobi {
   royxat: TovarNomzodi[];
 }
 import {
+  aiSarfYozuvchi,
+  aiXarajati,
+  type AiMuhit,
   KESH_ESKI_SOAT,
   demping,
   erkinJavobBer,
@@ -91,7 +94,7 @@ import {
   kursniOl,
 } from '@selleros/shared';
 // Claude SDK faqat serverda (2026-10-19) — paketning asosiy eksportida yoʻq (sayt brauzerga oladi).
-import { claudeProvayderi } from '@selleros/shared/llm-claude';
+import { claudeProvayderi, kalitniAjrat } from '@selleros/shared/llm-claude';
 
 // ── Javob vaqtini oʻlchash (KPI: qadam_tezligi) ──────────────
 const TEZLIK_HAJMI = 200;
@@ -435,8 +438,10 @@ export function build(): FastifyInstance {
   // Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
   const claude = claudeProvayderi({ kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_MODEL });
   const llmBor = claude !== null || Boolean(process.env.GEMINI_API_KEY);
-  const llmSozlama = () => ({
+  // Sarf (0072, Edge bilan bir xil) — har Claude javobi `ai_usage` ga, shu sessiya nomiga.
+  const llmSozlama = (token: string | null) => ({
     kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL, provayder: claude,
+    sarf: aiSarfYozuvchi(rpc, token),
   });
   const suhbatBogliq = async (token: string) => ({
     rpc,
@@ -449,19 +454,19 @@ export function build(): FastifyInstance {
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
         ...(llmBor
-          ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(), k) }
+          ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(token), k) }
           : {}) }),
     ...(llmBor
       ? {
         // Kod jumlasini qayta aytish — faqat `LLM_ODAMLASHTIR=1` (2026-10-13: bepul limit savollarga qoladi).
         ...(process.env.LLM_ODAMLASHTIR === '1'
-          ? { llm: (m: string) => odamlashtir(llmSozlama(), m) }
+          ? { llm: (m: string) => odamlashtir(llmSozlama(token), m) }
           : {}),
-        erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama(), k),
+        erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama(token), k),
         // Oʻzi yozgan javobga munosabat — `LLM_MUNOSABAT=0` oʻchiradi (Edge bilan bir xil).
         ...(process.env.LLM_MUNOSABAT === '0'
           ? {}
-          : { munosabatLlm: (k: MunosabatSorovi) => munosabatBer(llmSozlama(), k) }),
+          : { munosabatLlm: (k: MunosabatSorovi) => munosabatBer(llmSozlama(token), k) }),
         // AI birinchi — faqat `LLM_AVVAL=1` (Gemini toʻlovi yoqilgach; Edge bilan bir xil).
         erkinAvval: process.env.LLM_AVVAL === '1',
       }
@@ -470,8 +475,8 @@ export function build(): FastifyInstance {
     ...(claude !== null && process.env.AI_SUHBAT !== '0'
       ? {
         ai: {
-          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama(), vaqtMs: ms }, k),
-          yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama(), vaqtMs: ms }, k, qism),
+          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama(token), vaqtMs: ms }, k),
+          yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama(token), vaqtMs: ms }, k, qism),
         },
       }
       : {}),
@@ -549,7 +554,7 @@ export function build(): FastifyInstance {
     const holat = o && !o.xato && o.holat ? mijozHolati(o.holat, joriyQadam(o.holat)) : null;
     const sd = {
       ai: llmBor
-        ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama(), vaqtMs: ms }, k, qism)
+        ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama(typeof token === 'string' && token ? token : null), vaqtMs: ms }, k, qism)
         : null,
       tarifCheklovi: tarifCheklovi(),
     };
@@ -713,14 +718,22 @@ export function build(): FastifyInstance {
    * bogʻlangan (QOIDALAR.md, 4-qoida).
    */
   app.get('/kpi', async () => {
-    const xom = await rpc<KpiXom>('so_kpi_xom', {});
-    const sifat = await sifatniOl();
+    const [xom, sifat] = await Promise.all([rpc<KpiXom>('so_kpi_xom', {}), sifatniOl()]);
+    // AI xarajati soʻmda — dollar kursi (CBU), faqat oʻgiradigan narsa boʻlsa (Edge bilan bir xil;
+    // testda va boʻsh bazada tarmoqqa chiqilmaydi).
+    const kurs = xom?.ai?.kun30?.usd ? await kursniOl(fetch, 'USD', 5_000) : null;
     const tezlik = tezlikniOl();
-    const qatorlar = kpilar(xom, sifat.has_data ? sifat : null, new Date(), tezlik);
+    const ai: AiMuhit = {
+      provayder: kalitniAjrat(process.env.ANTHROPIC_API_KEY) ? 'claude' : process.env.GEMINI_API_KEY ? 'gemini' : null,
+      somPerUsd: kurs?.somPerYuan ?? null,
+      kursSanasi: kurs?.sana ?? null,
+    };
+    const qatorlar = kpilar(xom, sifat.has_data ? sifat : null, new Date(), tezlik, ai);
     return {
       olchandi: new Date().toISOString(),
       xulosa: kpiXulosa(qatorlar),
       kpi: qatorlar,
+      ai: aiXarajati(xom?.ai, ai),
     };
   });
 

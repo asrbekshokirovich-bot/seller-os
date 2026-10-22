@@ -65,6 +65,11 @@ export interface LlmSozlama {
    * `fetchFn` faqat Gemini uchun.
    */
   provayder?: LlmProvayder | null;
+  /**
+   * Har javob sarfi shu yerga (`aiSarfYozuvchi` — soʻrov sessiyasi bilan). Faqat provayder
+   * (Claude) beradi; Gemini bepul darajada — sarf yozilmaydi.
+   */
+  sarf?: ((s: LlmSarfi) => void) | undefined;
 }
 
 /** Provayderga bitta chaqiruv: koʻrsatma, matn va qanday javob kerakligi. */
@@ -90,10 +95,31 @@ export interface LlmChaqiruvi {
    * darvozadan hali oʻtmagan. Faqat Claude chaqiradi; Gemini — chaqirmaydi (javob oxirida keladi).
    */
   qism?: ((matn: string) => void) | undefined;
+  /** Javob kelgach — sarf (token, narx); `ai_usage` ga yoziladi (`aiSarfYozuvchi`). */
+  sarf?: ((s: LlmSarfi) => void) | undefined;
 }
 
 /** Bitta chaqiruv — javob matni yoki `null` (ishlamadi; oqim toʻxtamaydi). */
 export type LlmProvayder = (c: LlmChaqiruvi) => Promise<string | null>;
+
+/**
+ * Bitta model urinishining sarfi (2026-10-22, nazoratchi: «AI xarajatini tuzat» — `ai_usage`
+ * shu kungacha boʻsh edi, panel «AI ulanmagan» derdi, AI esa ishlab turardi). Provayder
+ * javob kelgach `sarf` ga beradi; rad etilib boshqa modelga oʻtilsa — har urinish alohida.
+ */
+export interface LlmSarfi {
+  /** `LlmChaqiruvi.belgi` — nima uchun: `ai-yoz`, `sahifa`, `kartochka`… */
+  belgi: string;
+  /** Shu urinishni bajargan model. */
+  model: string;
+  /** Keshdan tashqari kirish tokenlari. */
+  kirish: number;
+  chiqish: number;
+  keshOqildi: number;
+  keshYozildi: number;
+  /** Taxminiy narx, $ (roʻyxat narxi boʻyicha). Narxi nomaʼlum model — `null`, taxmin qilinmaydi. */
+  narxUsd: number | null;
+}
 
 const KORSATMA =
   'Sen ZumSavdo yordamchisisan. Quyida KOD yozgan o\'zbekcha jumla bor. Uni odamdek, ' +
@@ -254,7 +280,9 @@ async function chaqir(
 ): Promise<string | null> {
   if (!matn.trim()) return null;
   if (s.provayder) {
-    return s.provayder({ korsatma, matn, belgi, json, vaqtMs: s.vaqtMs ?? 8_000, kuch, ...(qism ? { qism } : {}) }).catch(() => null);
+    return s.provayder({
+      korsatma, matn, belgi, json, vaqtMs: s.vaqtMs ?? 8_000, kuch, ...(qism ? { qism } : {}), ...(s.sarf ? { sarf: s.sarf } : {}),
+    }).catch(() => null);
   }
   return gemini(s, korsatma, matn, belgi, fikr, json !== null);
 }
@@ -344,6 +372,34 @@ async function geminiSorov(
     console.warn(`llm ${belgi} (${model}): ${nomi}`);
     return nomi === 'AbortError' ? { status: 0 } : null;
   }
+}
+
+/**
+ * `ai_usage` yozuvchisi (0072, `so_ai_sarf_yoz`) — bitta soʻrov uchun: sarf qaysi mijozniki
+ * ekani sessiya tokenidan topiladi (sessiyasiz — `null`, masalan bosh sahifadagi savol).
+ * Javobni KUTTIRMAYDI: yozish `fonda` ga beriladi (Edge — `EdgeRuntime.waitUntil`). Hech qachon
+ * otmaydi; yozilmasa — logda sababi: xarajat jimgina yoʻqolmasin (QOIDALAR §8).
+ */
+export function aiSarfYozuvchi(
+  rpc: <T>(nom: string, arg: unknown) => Promise<T | null>,
+  token: string | null,
+  fonda: (p: Promise<unknown>) => void = (p) => { void p; },
+): (s: LlmSarfi) => void {
+  return (s) => {
+    fonda(rpc<{ yozildi?: boolean }>('so_ai_sarf_yoz', {
+      p_token: token || null,
+      p_model: s.model,
+      p_maqsad: s.belgi,
+      p_kirish: s.kirish,
+      p_chiqish: s.chiqish,
+      p_kesh_oqildi: s.keshOqildi,
+      p_kesh_yozildi: s.keshYozildi,
+      p_narx_usd: s.narxUsd,
+    }).then(
+      (n) => { if (n?.yozildi !== true) console.warn(`ai sarfi yozilmadi (${s.belgi}, ${s.model}): baza javob bermadi`); },
+      (e) => console.warn(`ai sarfi yozilmadi (${s.belgi}, ${s.model}): ${(e as Error)?.name ?? 'xato'}`),
+    ));
+  };
 }
 
 /**

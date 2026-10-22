@@ -17,6 +17,8 @@
  * hisoblamaydi.
  */
 
+import { OBUNA_NARXI } from './tolov.ts';
+
 /** Kunlik qamrov shundan past boʻlmasin (%). Reja, 8-boʻlim. */
 export const QAMROV_ENG_KAM = 95;
 /** Skreyper xato darajasi shundan yuqori boʻlmasin (%). */
@@ -135,8 +137,43 @@ export interface KpiXom {
     davr_ketdi: number;
   };
   tolov: { qatorlar: number };
-  ai: { qatorlar: number; xarajat_usd: number | null };
+  ai: {
+    qatorlar: number;
+    xarajat_usd: number | null;
+    /*
+     * 0072 dan (2026-10-22). Eski bazada bu maydonlar yoʻq — kod ikkala shaklni ham
+     * oʻqiydi (QOIDALAR §8-h).
+     */
+    oxirgi?: string | null;
+    bugun?: AiDavr;
+    kun7?: AiDavr;
+    kun30?: AiDavr & {
+      /** Narxi nomaʼlum (model narx roʻyxatida yoʻq) chaqiruvlar — `usd` ga kirmagan. */
+      narxsiz: number;
+      /** Sessiyasi bor mijozlar soni. */
+      mijoz: number;
+      /** Sessiyasiz soʻrovlar (bosh sahifadagi savol) xarajati. */
+      mehmon_usd: number | null;
+    };
+    /** Maqsad (`ai-yoz`, `sahifa`, `kartochka`…) boʻyicha, 30 kun. */
+    maqsad_30kun?: Record<string, AiDavr>;
+    /** Oxirgi 7 kunda mijozlar yozgan xabarlar — yozuv singanini sezish uchun. */
+    xabar_7kun?: number;
+  };
   hodisa: { qatorlar: number };
+}
+
+/** Bir davrdagi AI chaqiruvlari. `usd` — narxi maʼlumlari yigʻindisi; qator yoʻq — `null`. */
+export interface AiDavr { chaqiruv: number; usd: number | null }
+
+/** AI xarajati uchun bazadan tashqaridagi maʼlumot. */
+export interface AiMuhit {
+  /** `/health` dagidek: Anthropic kaliti — `claude`, faqat Gemini — `gemini`, hech biri — `null`. */
+  provayder: 'claude' | 'gemini' | null;
+  /** 1 dollar necha soʻm (CBU); olinmasa — `null`. */
+  somPerUsd: number | null;
+  /** Kurs sanasi (CBU, "22.10.2026"). */
+  kursSanasi?: string | null;
 }
 
 /** Sifat panelidan keladigan ikkita texnik raqam. */
@@ -224,6 +261,7 @@ export function kpilar(
   sifat: KpiSifat | null,
   hozir: Date = new Date(),
   tezlik: KpiTezlik | null = null,
+  ai: AiMuhit | null = null,
 ): Kpi[] {
   const q: Kpi[] = [];
 
@@ -269,11 +307,7 @@ export function kpilar(
         : olchandi('ketish',
             foiz(xom.obuna.davr_ketdi, xom.obuna.davr_tugadi), xom.obuna.davr_tugadi));
 
-    q.push(xom.ai.qatorlar === 0
-      ? yoq('ai_xarajat', 'AI ulanmagan — `ai_usage` boʻsh')
-      // Foiz uchun maxraj — tarif narxi. Narx hali belgilanmagan
-      // (toʻlov oqimi yoʻq), yaʼni sonni chiqarib boʻlmaydi.
-      : yoq('ai_xarajat', 'tarif narxi belgilanmagan — foizning maxraji yoʻq'));
+    q.push(aiXarajatQatori(xom.ai, ai));
   }
 
   /*
@@ -314,6 +348,104 @@ export function kpilar(
   q.push(yoq('avtoyechish', 'jonli rejim yoqilmagan — avtoyechish oqimi yoʻq'));
 
   return q;
+}
+
+/**
+ * «AI xarajat / mijoz» (2026-10-22: `ai_usage` endi toʻladi, 0072). Oxirgi 30 kunda bir mijozga
+ * oʻrtacha AI xarajati — oylik obuna narxining (`OBUNA_NARXI`) necha foizi; reja: <8%.
+ *
+ * Suratga sessiyasiz soʻrovlar (bosh sahifadagi «Savol bering») xarajati ham kiradi — uni ham
+ * toʻlovchi mijozlar qoplaydi; maxraj — sessiyasi bor mijozlar. Narx taxminiy: roʻyxat narxi
+ * boʻyicha (`llm-claude.ts`); kurs — CBU.
+ */
+function aiXarajatQatori(x: KpiXom['ai'], m: AiMuhit | null): Kpi {
+  if (m?.provayder === 'gemini') return yoq('ai_xarajat', 'Gemini (bepul daraja) ishlayapti — uning sarfi yozilmaydi');
+  if (m !== null && m.provayder === null) return yoq('ai_xarajat', 'AI kaliti yoʻq — AI ishlamayapti');
+  const oy = x.kun30;
+  if (!oy) {
+    return yoq('ai_xarajat', x.qatorlar === 0
+      ? 'AI xarajati yozilmayapti — `ai_usage` boʻsh'
+      : 'baza eski shaklda — 0072 qoʻllanmagan');
+  }
+  const k = oy.chaqiruv === 0
+    ? yoq('ai_xarajat', 'oxirgi 30 kunda AI chaqiruvi yozilmagan')
+    : oy.mijoz === 0
+      ? yoq('ai_xarajat', 'AI ni faqat sessiyasiz mehmonlar ishlatgan — mijozga boʻlib boʻlmaydi')
+      : oy.usd === null
+        ? yoq('ai_xarajat', 'birorta chaqiruvning narxi maʼlum emas')
+        : !m?.somPerUsd
+          ? yoq('ai_xarajat', 'dollar kursi olinmadi (CBU) — soʻmga oʻgirib boʻlmadi')
+          : olchandi('ai_xarajat', foiz((oy.usd / oy.mijoz) * m.somPerUsd, OBUNA_NARXI), oy.mijoz);
+  const ogoh = aiOgohlar(x, m);
+  return ogoh.length ? { ...k, ogoh: ogoh.join('; ') } : k;
+}
+
+/**
+ * Raqam bor, lekin toʻliq emas — yoki umuman yozilmayapti. Ikkinchisi — jim oʻlim qorovuli
+ * (QOIDALAR §8): Claude ulangan, mijozlar yozyapti, sarf esa yozilmayapti. `ai_usage` aynan
+ * shunday yarim oy boʻsh turgan — panel «AI ulanmagan» der edi, AI esa ishlab turardi.
+ */
+function aiOgohlar(x: KpiXom['ai'], m: AiMuhit | null): string[] {
+  const narxsiz = x.kun30?.narxsiz ?? 0;
+  const xabar = x.xabar_7kun ?? 0;
+  return [
+    narxsiz > 0 ? `${narxsiz} ta chaqiruvning narxi nomaʼlum (model narx roʻyxatida yoʻq) — hisobga kirmadi` : null,
+    m?.provayder === 'claude' && x.kun7 && xabar > 0 && x.kun7.chaqiruv === 0
+      ? `oxirgi 7 kunda mijozlar ${xabar} ta xabar yozgan, AI sarfi esa yozilmagan — yozuv ishlamayotgan `
+        + 'boʻlishi mumkin (Edge logida «ai sarfi yozilmadi»)'
+      : null,
+  ].filter((s): s is string => s !== null);
+}
+
+/** AI maqsadi (`LlmChaqiruvi.belgi`) — panelda shu nom bilan. */
+export const AI_MAQSAD_NOMI: Readonly<Record<string, string>> = {
+  'ai-yoz': 'Suhbat — xabar yozish',
+  'ai-tushun': 'Suhbat — javobni tushunish',
+  erkin: 'Erkin savolga javob',
+  munosabat: 'Javobga munosabat',
+  sahifa: '«Savol bering» oynasi',
+  kartochka: 'Kartochka matni (10-qadam)',
+  odamlashtir: 'Jumlani qayta aytish',
+};
+
+/** `/olchov` dagi «AI xarajati» bloki — hisob (soʻmga oʻgirish) shu yerda, panel faqat chizadi. */
+export interface AiXarajati {
+  /** Chaqiruv yoʻq davr — $0 (oʻlchangan nol: chaqiruv sanaladi); narxi nomaʼlum — `null`. */
+  davrlar: Array<{ nom: string; chaqiruv: number; usd: number | null; som: number | null }>;
+  /** 30 kunda bir mijozga oʻrtacha; mijoz yoki narx yoʻq — `null`. */
+  mijozBoshiga: { usd: number; som: number | null; mijoz: number } | null;
+  /** Sessiyasiz soʻrovlar xarajati, 30 kun. */
+  mehmonUsd: number | null;
+  /** 30 kun, qimmatidan arzoniga. */
+  maqsadlar: Array<{ maqsad: string; nom: string; chaqiruv: number; usd: number | null }>;
+  ogoh: string[];
+  oxirgi: string | null;
+  kurs: { somPerUsd: number; sana: string | null } | null;
+}
+
+/** Eski baza shaklida (0072 gacha) — `null`: blok «oʻlchanmadi» deb chiqadi. */
+export function aiXarajati(x: KpiXom['ai'] | null | undefined, m: AiMuhit | null): AiXarajati | null {
+  if (!x?.bugun || !x.kun7 || !x.kun30) return null;
+  // $0 — kurssiz ham 0 soʻm; boshqasi kurs boʻlsagina.
+  const somga = (usd: number | null) =>
+    (usd === null ? null : usd === 0 ? 0 : m?.somPerUsd ? Math.round(usd * m.somPerUsd) : null);
+  const davr = (nom: string, d: AiDavr) => {
+    const usd = d.chaqiruv === 0 ? 0 : d.usd;
+    return { nom, chaqiruv: d.chaqiruv, usd, som: somga(usd) };
+  };
+  const oy = x.kun30;
+  const boshiga = oy.mijoz > 0 && oy.usd !== null ? oy.usd / oy.mijoz : null;
+  return {
+    davrlar: [davr('Bugun', x.bugun), davr('7 kun', x.kun7), davr('30 kun', oy)],
+    mijozBoshiga: boshiga === null ? null : { usd: boshiga, som: somga(boshiga), mijoz: oy.mijoz },
+    mehmonUsd: oy.mehmon_usd,
+    maqsadlar: Object.entries(x.maqsad_30kun ?? {})
+      .map(([maqsad, d]) => ({ maqsad, nom: AI_MAQSAD_NOMI[maqsad] ?? maqsad, chaqiruv: d.chaqiruv, usd: d.usd }))
+      .sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0) || b.chaqiruv - a.chaqiruv),
+    ogoh: aiOgohlar(x, m),
+    oxirgi: x.oxirgi ?? null,
+    kurs: m?.somPerUsd ? { somPerUsd: m.somPerUsd, sana: m.kursSanasi ?? null } : null,
+  };
 }
 
 /** Panel sarlavhasi uchun qisqa hisob. */
