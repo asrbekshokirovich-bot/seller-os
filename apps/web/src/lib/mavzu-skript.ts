@@ -10,7 +10,7 @@
 export const MAVZU_KALIT = 'so_mavzu';
 
 /** Brauzer panelining rangi (telefon) — sahifa fonida. */
-export const PANEL_RANGI = { tungi: '#13100C', yorug: '#F4EFE6' } as const;
+export const PANEL_RANGI = { tungi: '#1A0F20', yorug: '#F7F3F9' } as const;
 
 /**
  * Til: avval brauzer xotirasi (`so_til`), boʻlmasa cookie (`tilniSaqla`
@@ -21,12 +21,12 @@ export const PANEL_RANGI = { tungi: '#13100C', yorug: '#F4EFE6' } as const;
  * toʻplamlari `layout.tsx` da oldindan yuklanadi) — aks holda ruscha
  * sarlavhalar avval zaxira shriftda chiqib, keyin "sakrardi".
  *
- * Yorugʻ mavzuda `theme-color` ham shu yerda almashadi (ildiz layout
- * tungi rangni qoʻyadi): mavzu tugmasi yoʻq sahifada ham (/olchov)
+ * Tungi mavzuda `theme-color` ham shu yerda almashadi (ildiz layout
+ * yorugʻ rangni qoʻyadi): mavzu tugmasi yoʻq sahifada ham (/olchov)
  * brauzer paneli sahifa fonida boʻlsin.
  *
  * `data-skript` — skript ishladi: globals.css dagi «notoʻgʻri til
  * yashirin» qoidasi faqat shunda yoqiladi (JS butunlay oʻchiq boʻlsa
  * sahifa yashirin qolib ketmasin).
  */
-export const MAVZU_SKRIPTI = `(function(){var d=document.documentElement,m,t,c;try{m=localStorage.getItem("${MAVZU_KALIT}");t=localStorage.getItem("so_til")}catch(e){}try{if(t!=="ru"&&t!=="uz"){c=document.cookie.match(/(?:^|; )so_til=(ru|uz)(?:;|$)/);t=c&&c[1]}}catch(e){}d.setAttribute("data-mavzu",m==="yorug"?"yorug":"tungi");if(t==="ru"||t==="uz")d.lang=t;if(t==="ru")["onest","unbounded"].forEach(function(n){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href="/fonts/"+n+"-cyrillic.woff2";document.head.appendChild(l)});d.setAttribute("data-skript","");try{c=document.querySelector("meta[name='theme-color']");if(c&&m==="yorug")c.setAttribute("content","${PANEL_RANGI.yorug}")}catch(e){}})()`;
+export const MAVZU_SKRIPTI = `(function(){var d=document.documentElement,m,t,c;try{m=localStorage.getItem("${MAVZU_KALIT}");t=localStorage.getItem("so_til")}catch(e){}try{if(t!=="ru"&&t!=="uz"){c=document.cookie.match(/(?:^|; )so_til=(ru|uz)(?:;|$)/);t=c&&c[1]}}catch(e){}d.setAttribute("data-mavzu",m==="tungi"?"tungi":"yorug");if(t==="ru"||t==="uz")d.lang=t;if(t==="ru")["manrope"].forEach(function(n){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href="/fonts/"+n+"-cyrillic.woff2";document.head.appendChild(l)});d.setAttribute("data-skript","");try{c=document.querySelector("meta[name='theme-color']");if(c&&m==="tungi")c.setAttribute("content","${PANEL_RANGI.tungi}")}catch(e){}})()`;

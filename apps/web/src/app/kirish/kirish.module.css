@@ -25,7 +25,9 @@
 /* ---------------------------------------------------------- chap panel */
 
 .panel {
-  background: var(--acc);
+  /* Bosh sahifa heroidagi toʻq siyohrang gradient (`ZumSavdo-Landing.html`) — ikkala mavzuda bir xil. */
+  background: linear-gradient(135deg, #583468 0%, #4a2a57 40%, #2f1a3a 75%, #5a2e6b 100%);
+  box-shadow: 0 30px 80px rgba(42, 23, 51, 0.35);
   color: #fff;
   border-radius: 28px;
   margin: 20px;
@@ -68,8 +70,8 @@
   font-family: var(--unbounded);
   font-size: 44px;
   line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: -0.045em;
+  font-weight: 800;
+  letter-spacing: -0.035em;
   text-wrap: balance;
 }
 
@@ -78,7 +80,7 @@
   max-width: 44ch;
   font-size: 17px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  color: #e3d6ea;
 }
 
 .raqamlar {
@@ -106,7 +108,7 @@
 .raqamNom {
   margin-top: 8px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+  color: #e3d6ea;
 }
 
 /* ---------------------------------------------------------- oʻng tomon — forma */

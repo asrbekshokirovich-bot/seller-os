@@ -96,78 +96,82 @@ table.qismlar td.son { text-align: right; font-variant-numeric: tabular-nums; }
 details.izohli summary { cursor: pointer; color: var(--asosiy); font-size: .875rem; }
 
 /*
- * ZumSavdo mavzusi — `dizayn/ZumSavdo-Veb.html` (terrakota, 2026-09-30).
+ * ZumSavdo mavzusi — siyohrang (`dizayn/ZumSavdo-Landing.html`, nazoratchi
+ * 2026-10-22: «Kirish, Suhbat va Obuna ham shu dizaynda»). Oldingisi —
+ * terrakota `ZumSavdo-Veb.html` (2026-09-30).
  *
- * Ranglar OʻYLAB TOPILMAGAN: dizayndagi har ekranning yorugʻ va tungi
- * nusxasi juftlab solishtirilgan (bir xil tuzilma, faqat rang farq
- * qiladi) va shu jadval chiqqan. Bosh sahifa, Usta, Kirish, Obuna —
- * hammasi shu klassni oladi: rang bitta joyda.
+ * Yorugʻ ranglar — dizaynning oʻzidan: matn #2A1733, xira #6B5A74, urgʻu
+ * #4A2A57, chiziq #E6DDEB, chip #EFE6F4, fon #F7F3F9 (dizayndagi boʻlim
+ * foni), foyda #1E6B43 / #E3F4E9. Dizaynda tungi nusxa yoʻq: tungi ranglar
+ * dizayndagi toʻq siyohlar (#2A1733, #2F1A3A) asosida, urgʻu — oq matn
+ * ustida ham, toʻq fonda ham oʻqiladigan #9B68B0. Bosh sahifa, Usta,
+ * Kirish, Obuna — hammasi shu klassni oladi: rang bitta joyda.
  *
- * Standart — TUNGI (nazoratchi qarori, 2026-09-24). Mavzu tepa paneldagi
- * quyosh/oy tugmasida va «Profilim» da.
+ * Standart — YORUGʻ (dizayn yorugʻ; 2026-10-22 gacha tungi edi). Mavzu tepa
+ * paneldagi quyosh/oy tugmasida va «Profilim» da. Shrift — hamma joyda
+ * Manrope; `--unbounded` / `--onest` nomlari eski, ular endi shu shrift.
  */
 .zs-mavzu {
-  --bg: #13100c;
-  --yon: #17130f;
-  --kart: #1d1914;
-  --kart2: #25201a;
-  --chiziq: #3a3229;
-  --chip: #2b251e;
-  --matn: #f4efe6;
-  --xira: #afa595;
-  --acc: #e86e42;
-  --acc10: rgba(232, 110, 66, 0.16);
-  --acc1a: #e86e422e;
+  --bg: #1a0f20;
+  --yon: #1f1326;
+  --kart: #25182d;
+  --kart2: #2d1f36;
+  --chiziq: #3e2c48;
+  --chip: #33243d;
+  --matn: #f4eff7;
+  --xira: #b9a8c2;
+  --acc: #9b68b0;
+  --acc10: rgba(155, 104, 176, 0.18);
+  --acc1a: #9b68b02e;
   --ok: #4dbb84;
   --okBg: #4dbb842e;
   --ogoh: #e3a646;
   --ogohBg: #e3a6462e;
-  --soya: 0 0 0 1px #2e2720, 0 8px 22px rgba(0, 0, 0, 0.35);
-  --parda: rgba(0, 0, 0, 0.6);
-  --unbounded: 'Unbounded', sans-serif;
-  --onest: 'Onest', -apple-system, sans-serif;
+  --soya: 0 0 0 1px #33243d, 0 8px 22px rgba(0, 0, 0, 0.4);
+  --parda: rgba(10, 4, 14, 0.65);
+  --unbounded: Manrope, system-ui, sans-serif;
+  --onest: Manrope, system-ui, -apple-system, sans-serif;
   color-scheme: dark;
-  /* Dizayndagi `body`: Onest, qator balandligi `normal` (1.55 emas). */
+  /* Dizayndagi `body`: qator balandligi `normal` (1.55 emas). */
   font-family: var(--onest);
   font-size: 16px;
   line-height: normal;
 }
 
 html[data-mavzu='yorug'] .zs-mavzu {
-  --bg: #f4efe6;
-  --yon: #faf6ef;
+  --bg: #f7f3f9;
+  --yon: #faf7fb;
   --kart: #ffffff;
-  --kart2: #f8f4ec;
-  --chiziq: #e3dacb;
-  --chip: #ede6da;
-  --matn: #1f1a14;
-  --xira: #6e6558;
-  --acc: #d2552d;
-  --acc10: rgba(210, 85, 45, 0.1);
-  --acc1a: #d2552d1a;
-  --ok: #2e8b57;
-  --okBg: #2e8b571a;
+  --kart2: #f4eff7;
+  --chiziq: #e6ddeb;
+  --chip: #efe6f4;
+  --matn: #2a1733;
+  --xira: #6b5a74;
+  --acc: #4a2a57;
+  --acc10: rgba(74, 42, 87, 0.1);
+  --acc1a: #4a2a571a;
+  --ok: #1e6b43;
+  --okBg: #e3f4e9;
   --ogoh: #b7791f;
   --ogohBg: #b7791f1a;
-  --soya: 0 1px 2px rgba(60, 40, 20, 0.06), 0 6px 18px rgba(60, 40, 20, 0.06);
-  --parda: rgba(31, 26, 20, 0.45);
+  --soya: 0 1px 2px rgba(42, 23, 51, 0.06), 0 6px 18px rgba(42, 23, 51, 0.08);
+  --parda: rgba(42, 23, 51, 0.45);
   color-scheme: light;
 }
 
 /*
  * Sahifaning eng orqa qatlami ham mavzuda: brauzerning aylantirish chizigʻi
  * (`color-scheme`), iPhone'da chetdan tortilgandagi va yuklanish paytidagi
- * fon. Ilgari bu yerda eski oq/koʻk rang turardi — tungi sahifa yonida oq
- * chiziq chiqardi. Atributni `layout.tsx` dagi skript chizishdan oldin qoʻyadi.
+ * fon. Atributni `layout.tsx` dagi skript chizishdan oldin qoʻyadi.
  */
 html {
   color-scheme: dark;
-  background: #13100c;
+  background: #1a0f20;
 }
 
 html[data-mavzu='yorug'] {
   color-scheme: light;
-  background: #f4efe6;
+  background: #f7f3f9;
 }
 
 html body { background: transparent; }

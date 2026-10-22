@@ -2,8 +2,8 @@
  * Mavzu (yorugʻ / tungi) — hamma sahifa uchun bitta joyda.
  *
  * Tanlov brauzerda (`so_mavzu`) saqlanadi: bosh sahifada tanlansa, Usta
- * va Kirish ham shunday ochiladi. Standart — tungi (nazoratchi qarori,
- * 2026-09-24). Oʻqib yoki yozib boʻlmasa (xususiy oyna) — jim, standart.
+ * va Kirish ham shunday ochiladi. Standart — yorugʻ (siyohrang dizayn,
+ * 2026-10-22; oldin tungi edi). Oʻqib yoki yozib boʻlmasa (xususiy oyna) — jim, standart.
  *
  * MILTILLAMASIN: ranglar `<html data-mavzu>` ga bogʻlangan va bu atributni
  * ildiz layoutdagi kichik skript (`mavzu-skript.ts`) sahifa chizilishidan
@@ -22,7 +22,7 @@ function oqi(): Mavzu {
     const s = localStorage.getItem(KALIT);
     if (s === 'yorug' || s === 'tungi') return s;
   } catch { /* saqlangan qiymat yoʻq — bu xato emas */ }
-  return 'tungi';
+  return 'yorug';
 }
 
 function qoy(m: Mavzu) {
@@ -31,7 +31,7 @@ function qoy(m: Mavzu) {
 }
 
 export function useMavzu(): [Mavzu, (m: Mavzu) => void] {
-  const [mavzu, setMavzu] = useState<Mavzu>('tungi');
+  const [mavzu, setMavzu] = useState<Mavzu>('yorug');
   // Chizishdan oldin: holat tugmalar uchun moslanadi; atribut qayta qoʻyiladi
   // (dev rejimdagi Strict Mode qayta oʻrnatishda React uni tozalaydi).
   useLayoutEffect(() => {
