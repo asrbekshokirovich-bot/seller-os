@@ -21,8 +21,13 @@ describe('mlnKasr', () => {
     expect(mlnKasr(20_865_000)).toBe('20,9');
     expect(mlnKasr(9_915_000)).toBe('9,9');
   });
+  it('bosh sahifa misoli (2026-10-21): 300 × 89 000, tannarx 36 700, Uzum 25 %', () => {
+    expect(mlnKasr(300 * 36_700)).toBe('11,0');
+    expect(mlnKasr(300 * 89_000)).toBe('26,7');
+    expect(mlnKasr(300 * 89_000 * 0.75 - 300 * 36_700)).toBe('9,0');
+  });
   it('kartada koʻrsatilgan raqamlar oʻzaro qoʻshiladi', () => {
-    // BoshSahifa.tsx dagi MISOL: 300 dona × 89 000, sarmoya 36 500/dona, Uzum 19 450/dona.
+    // Oldingi bosh sahifa misoli (terrakota, 2026-09-30): 300 dona × 89 000, sarmoya 36 500/dona, Uzum 19 450/dona.
     const tushum = 89_000 * 300;
     const uzum = 19_450 * 300;
     const sarmoya = 36_500 * 300;

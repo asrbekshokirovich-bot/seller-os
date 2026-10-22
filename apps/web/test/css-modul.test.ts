@@ -18,7 +18,6 @@ const ILDIZ = join(__dirname, '..', 'src');
 
 /** Hozircha qoldirilgan eski takrorlar (2026-10-14 da bor edi). */
 const ISTISNO: Record<string, readonly string[]> = {
-  'bosh.module.css': ['oldingi', 'keyingi'],
   'obuna.module.css': ['belgiBor', 'belgiYoq'],
 };
 

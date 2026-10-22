@@ -1,5 +1,25 @@
 # Dizayn — holat
 
+## Bosh sahifa — siyohrang (2026-10-21, nazoratchi)
+
+Nazoratchi: «sayt mana shunday dizaynda boʻlishi kerak» —
+`ZumSavdo-Landing.html` (siyohrang `#4A2A57`, Manrope, faqat yorugʻ).
+Hozircha faqat **bosh sahifa** (`/`) shu dizaynga oʻtdi
+(`BoshSahifa.tsx`, `bosh.module.css`); Kirish, Usta, Obuna — hali
+quyidagi terrakota dizaynda. Shrift — `public/fonts/manrope-*.woff2`
+(dizayn toʻplamidagi fayllarning oʻzi, oʻzgaruvchan 400–800).
+«Savol bering» oynasi bosh sahifada siyohrang tokenlarni oladi.
+
+Dizayndan ataylab farq (halollik): 12 qadam holati
+`SUHBAT_QADAMLARI.qurilgan` dan (dizaynda 6–12 «tez orada» edi —
+hammasi qurilgan); birinchi kartada jonli tovar soni; qidiruv qutisi —
+suhbatga havola (yozib boʻlmaydigan rasm emas); pastda «Maxfiylik».
+
+Solishtirish (1440×900, Playwright, `reducedMotion`): tuzilma, oʻlcham
+va matn dizayn bilan bir xil; farq — jonli son qatori (+40 px).
+
+---
+
 **Qabul qilingan:** 2026-09-30 (nazoratchi) — `ZumSavdo-Veb.html`,
 terrakota. **Oldingisi:** `ZUMSavdo-*.dc.html` (2026-09-24) — olib
 tashlandi, uning oʻrnini shu dizayn egalladi. Nazoratchi talabi:

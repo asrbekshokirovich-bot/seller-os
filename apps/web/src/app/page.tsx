@@ -1,6 +1,6 @@
 /**
- * Bosh sahifa — `ZUMSavdo K Journey Tinted.dc.html` dizayni
- * (nazoratchi, 2026-09-24).
+ * Bosh sahifa — `dizayn/ZumSavdo-Landing.html` (siyohrang, nazoratchi
+ * 2026-10-21; oldingisi — terrakota `ZumSavdo-Veb.html` w1).
  *
  * NEGA ENDI REACT SAHIFA. Ilgari `/` statik `public/sotuv.html` edi:
  * dizayn qadogʻidan `qurish.mjs` bilan yasalar, `route.ts` esa ichiga
@@ -14,8 +14,9 @@
  * qachon toʻlmasdi. Kesh sotuv va Usta uchun bitta (`bazamizOl.ts`).
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { after } from 'next/server';
+import { preload } from 'react-dom';
 import { holatMatni } from '@/lib/bazamiz';
 import { bazamizniKutibOl } from '@/lib/bazamizOl';
 import { tarjima } from '@/lib/til';
@@ -27,6 +28,9 @@ import BoshSahifa from './BoshSahifa';
  * muzlab qolardi — bu sahifada ikki marta boʻlgan xato.
  */
 export const dynamic = 'force-dynamic';
+
+/* Bosh sahifa faqat yorugʻ (dizaynda tungi nusxa yoʻq) — brauzer paneli ham oq. */
+export const viewport: Viewport = { themeColor: '#ffffff' };
 
 /** Sarlavha va tavsif — sahifa tilida (`so_til` cookie; sahifa baribir dinamik). */
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,6 +50,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
+  // Manrope faqat shu sahifada — lotin toʻplamlari oldindan, aks holda sarlavha "sakraydi".
+  for (const f of ['/fonts/manrope-latin.woff2', '/fonts/manrope-latin-ext.woff2']) {
+    preload(f, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
+  }
   const hozir = Date.now();
   // Baza sekin boʻlsa sahifa 4 s dan ortiq kutmaydi (`bazamizniKutibOl`).
   const o = await bazamizniKutibOl(hozir, 4000, (sorov) => after(() => sorov));
