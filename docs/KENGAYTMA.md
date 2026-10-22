@@ -3,6 +3,43 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
+## 2026-10-22 — 0.3.0: «Sotuvchi koʻzoynagi» (A + C + D)
+
+Nazoratchi qarori (2026-10-21): Uzum roʻyxatida har tovar tagida sotuv (bepul),
+tovar sahifasida pasport va taqqoslash jadvali (obunada; `TARIF_CHEKLOVI`
+oʻchiq paytda hammaga).
+
+- **Belgi rasm ustida, oʻng pastki burchakda** (`src/belgilar.ts`): «● ≈ 442/oy»,
+  ustiga kelganda toʻliq matn, izoh, «+ Taqqoslash», maʼlumot sanasi. Haqiqiy
+  Uzum sahifasida oʻlchandi (2026-10-21, `/uz/search?query=termos`): kartochka —
+  `a.product-card` (flex ustun) → `.product-card__visual` (rasm) +
+  `.product-card__details`; **toʻr qatori balandligi qatʼiy (444 px)** — kartochka
+  ostiga qoʻshilgan qator keyingi qatordagi rasm ustiga toshdi. Chap yuqorida
+  Uzumning «AKSIYA», markazda «Reklama», oʻngda yurakcha, chap pastda «5 KUN» /
+  «ARZON NARX KAFOLATI» turadi — oʻng past boʻsh. Belgi rasmning oʻz otasiga
+  emas, havolaning bevosita bolasiga (`.product-card__visual`) qoʻyiladi:
+  sichqoncha kelganda Uzum rasm karuselini qayta chizadi va u yerdagi belgi
+  oʻchardi. Klass nomlariga tayanilmaydi (kartochka ildizi — qoʻshni tovar
+  havolasigacha yuqoriga).
+- **Dok** (pastki chap): «Sotuvchi koʻzi» tugmasi (oʻchirilsa belgilar yashiriladi
+  va serverga HECH NARSA soʻralmaydi) va taqqoslash savati (5 tagacha,
+  `chrome.storage.local`); «Jadvalda taqqoslash» → `zumsavdo.vercel.app/taqqos?ids=…#sessiya=…`.
+- **Pasport** (`src/pasport.ts`) «Xitoydan top» ostida: 30 kunlik ustunlar
+  (sanalmagan katta kun — kulrang punktir, oʻlchanmagan — nuqta), uch belgi
+  tekshiruvi, narx oraligʻi, tugagan kunlar, shubhali chegirma, komissiya,
+  chegara narx, narx oʻzgarishlari.
+- Server: Edge `/kengaytma/belgilar` (POST, 100 tagacha id), `/kengaytma/pasport`
+  (POST — tovar raqami manzilda emas), `/taqqos` (sayt); formula —
+  `packages/shared/src/tovar-sotuvi.ts`, FORMULA.md «Tovar sotuvi»; maʼlumot —
+  `zumsavdo.tovar_30kun` (VPS har kuni 01:00 Toshkent).
+- Ruxsatlar oʻzgarmadi (`storage`, `sidePanel`, Edge host). PRIVACY.md 0.3.0:
+  sahifadagi tovar raqamlari yuboriladi (saqlanmaydi) — doʻkonda «Website
+  content» belgilangan.
+- Sinov: haqiqiy Uzum sahifasida haqiqiy `dist/content.js` + `content.css`,
+  `chrome.*` soxta, javoblar VPS dagi haqiqiy qatorlardan formula bilan
+  hisoblangan: 48 kartochkada belgi, hover oynasi, savat (3 ta nom toʻgʻri),
+  «Xaridor koʻzi», tovar sahifasida pasport; sahifa xatosi yoʻq.
+
 Doʻkonda: **Published — public** (0.1.1), 2026-09-02 dan beri. **0.2.0
 tekshiruvga yuborildi — 2026-09-29** (nazoratchi yukladi: yon panelda FAQAT
 CHAT + Uzum sahifasidagi tugma, 0.1.3 tuzatishlari bilan; sayt manzili

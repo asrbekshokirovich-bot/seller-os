@@ -800,7 +800,16 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
     const pasport = yol === '/kengaytma/pasport';
     const parametr = new URL(req.url).searchParams;
-    const ids = idlarniOqi(pasport ? parametr.get('id') : parametr.get('ids'), pasport ? 1 : TAQQOS_MAX);
+    // Kengaytma pasportni POST bilan soʻraydi — tovar raqami manzilda emas, tanada (jurnallarga
+    // tushmasin, PRIVACY.md 0.3.0). Taqqoslash sahifasi esa havola: id lar manzilda (ulashiladi).
+    let tanaId: unknown = null;
+    if (pasport && req.method === 'POST') {
+      try { tanaId = ((await req.json()) as Record<string, unknown>).id; } catch { /* boʻsh */ }
+    }
+    const ids = idlarniOqi(
+      pasport ? (req.method === 'POST' ? (typeof tanaId === 'number' ? [tanaId] : tanaId) : parametr.get('id')) : parametr.get('ids'),
+      pasport ? 1 : TAQQOS_MAX,
+    );
     if (ids === null) {
       return javob({ xato: pasport ? 'id — musbat butun son' : `ids — 1–${TAQQOS_MAX} ta musbat butun son, vergul bilan` }, 400);
     }

@@ -234,7 +234,8 @@ chrome.runtime.onMessage.addListener((xabar, _yuboruvchi, javobBer) => {
   if (xabar?.tur === 'pasport') {
     const id = Number(xabar.id);
     if (!Number.isSafeInteger(id) || id <= 0) return false;
-    apiSorov(`/kengaytma/pasport?id=${id}`, { method: 'GET' })
+    // Tovar raqami manzilda emas, tanada: server va xosting jurnallariga tushmasin (PRIVACY.md 0.3.0).
+    apiSorov('/kengaytma/pasport', { method: 'POST', tana: { id } })
       .then((r) => javobBer({ status: r.status, ...(r.data && typeof r.data === 'object' ? r.data : {}) }))
       .catch((e) => { console.warn('ZumSavdo: pasport soʻrovi yiqildi', e); javobBer({ status: 0, xato: xatoMatni(e) }); });
     return true;

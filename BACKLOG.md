@@ -7,6 +7,32 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-10-22] **«Sotuvchi koʻzoynagi» 2–3-bosqichlari.** Nazoratchi 2026-10-21 da
+A (kartochka belgisi) + C (pasport) + D (taqqoslash) ni tanladi — ular qurildi (kengaytma
+0.3.0). Qolganlari taklif sahifasida (claude.ai/artifact/JgK5cYiw6fmdMicrcQ8DpD):
+B — turkum/qidiruv tepasida bozor paneli va «narx zinapoyasi» (talab va taklif narx
+oraligʻi boʻyicha; `tovar_30kun` ga `kategoriya` indeksi kerak); G — 1688 takliflari
+oʻzbekcha, saralash, bir xil rasmli takliflar guruhi (`rasmKaliti`); H — chegara narx har
+1688 taklifida ✓/✗; F — telefon: Uzum havolasi chatga tashlansa pasport (nazoratchi
+«chatga havola» ni tanlagan); E — «talab bor, tovar tugab qolyapti» roʻyxati; I — 1688
+saytining oʻzida panel (yangi host ruxsati). Keyinroq: 1-bosqich jonli sinovdan keyin.
+
+— [agent, 2026-10-22] **`/kengaytma/belgilar` cheklovsiz.** Bepul belgi uchi sessiya
+tokeni borligini tekshiradi, lekin sessiyalar anonim va bepul — kimdir butun katalog
+sotuvini shu uch orqali tortib olishi mumkin (bitta soʻrovda 100 ta). Kerak: sessiya
+yoki IP boʻyicha daqiqalik chegara (masalan, 30 soʻrov/daqiqa) va kunlik shift. Keyinroq:
+hozir foydalanuvchi oz; jadval va migratsiya kerak.
+
+— [agent, 2026-10-22] **Kengaytma uchlari Fastify da yoʻq.** `/kengaytma/belgilar`,
+`/kengaytma/pasport`, `/taqqos` faqat Edge Function da (u yagona ishlaydigan backend).
+`apps/backend` ga ham qoʻshilsa, mahalliy sinov serveri bilan tekshirish osonlashadi.
+Keyinroq: Fastify hech qayerda ishlamaydi.
+
+— [agent, 2026-10-22] **«Tovar sotuvi» formulasi — nazoratchi tasdigʻi.** FORMULA.md
+«Tovar sotuvi» (`tovar-sotuvi-v1`) taklif sifatida ishga tushdi (kengaytma uchun):
+kunlik chegara 10 / 5×p75 / 3×belgi / 30×sharh, ziddiyat (a)(b)(c), ishonch.
+Nazoratchi misollar bilan koʻrib tasdiqlashi kerak; oʻzgarsa — versiya oshadi.
+
 — [agent, 2026-10-07] **1688 taklifi nomi xitoycha.** 5-qadam kartasida sarlavha
 1688 dagi asl matn ("大容量托特女包…") — oʻzbek sotuvchi oʻqiy olmaydi; hozir
 rasm, narx va 1688 havolasi bilan tanlaydi. Kerak: natija kelganda (Edge,

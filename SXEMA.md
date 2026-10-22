@@ -223,8 +223,8 @@ Edge Function (`so_tovar_30kun`). Sotuvni bu jadval EMAS, FORMULA.md
 | `sharh_bosh`, `sharh`, `chegirma`, `kategoriya`, `dokon`, `nom` | — |
 
 **Faol emas** tovar (30 kunda kamayish, toʻldirish, qoldiq oʻzgarishi yoʻq)
-massivsiz yoziladi — jadval ~2 barobar kichik. Oʻlchandi 2026-10-21: 842 664
-tirik tovar, 573 297 faol. Yangilash bitta tranzaksiyada (yuk jadvali
+massivsiz yoziladi — jadval ~2 barobar kichik. Birinchi yozuv 2026-10-21: 842 664
+tirik tovar, 431 147 faol, 222 MB. Yangilash bitta tranzaksiyada (yuk jadvali
 `tovar_30kun_yuk` → son tekshiriladi → almashadi): yarim yangilangan holat
 koʻrinmaydi, son mos kelmasa almashtirish rad etiladi.
 

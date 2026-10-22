@@ -1,0 +1,73 @@
+/*
+ * Taqqoslash jadvali — sayt mavzusi (`.zs-mavzu` tokenlari, terrakota), yorugʻ va tungi.
+ * Jadval keng boʻlishi mumkin — faqat oʻz qutisi ichida suriladi (sahifa emas).
+ */
+
+.sahifa {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--matn);
+  font-family: var(--onest);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ichi {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px) 16px 72px;
+  display: grid;
+  gap: 16px;
+}
+
+.ichi h1 {
+  margin: 0;
+  font-family: var(--unbounded);
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.izoh { margin: 0; color: var(--xira); font-size: 13.5px; }
+.xato { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--kart); border: 1px solid var(--chiziq); }
+
+.qobiq {
+  overflow-x: auto;
+  border: 1px solid var(--chiziq);
+  border-radius: 14px;
+  background: var(--kart);
+}
+
+.jadval { border-collapse: collapse; width: 100%; min-width: 560px; }
+.jadval th, .jadval td { padding: 10px 12px; border-bottom: 1px solid var(--chiziq); text-align: left; vertical-align: top; }
+.jadval thead th { background: var(--yon); font-weight: 600; min-width: 150px; }
+.jadval thead th a { display: block; color: var(--matn); text-decoration: none; font-size: 13.5px; line-height: 1.35; margin: 2px 0 6px; }
+.jadval thead th a:hover { color: var(--acc); }
+.jadval tbody th { color: var(--xira); font-weight: 500; font-size: 13.5px; white-space: nowrap; }
+.jadval td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jadval tbody tr:last-child th, .jadval tbody tr:last-child td { border-bottom: 0; }
+.eng { color: var(--ok); font-weight: 700; }
+
+.raqam { display: block; color: var(--acc); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.belgi { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--chip); }
+.yashil { color: var(--ok); }
+.sariq { color: var(--ogoh); }
+.kulrang, .yoq { color: var(--xira); }
+
+.xulosa { padding: 14px 16px; border-radius: 14px; background: var(--kart); border: 1px solid var(--acc1a); }
+.xulosa h2 { margin: 0 0 6px; font-size: 16px; }
+.xulosa ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+.qulf { display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: var(--kart); border: 1px solid var(--chiziq); }
+.qulf p, .qulf ul { margin: 0; }
+.tugma {
+  justify-self: start;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--acc);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}

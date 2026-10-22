@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-21';
+const YANGILANDI = '2026-10-22';
 
 export default function Maxfiylik() {
   return (
@@ -111,8 +111,17 @@ export default function Maxfiylik() {
           </li>
           <li>
             Uzum sahifasidagi «Xitoydan top» tugmasi bosilgandagina tovar raqami va
-            uning asosiy rasmi manzili yuboriladi (pastda — Apify). Batafsil —
-            kengaytmaning oʻz maxfiylik siyosatida (omborda <code>PRIVACY.md</code>).
+            uning asosiy rasmi manzili yuboriladi (pastda — Apify).
+          </li>
+          <li>
+            <strong>Sotuv belgilari va tovar pasporti</strong> (kengaytma 0.3.0): Uzum
+            sahifasida koʻrinib turgan tovarlarning faqat <em>raqamlari</em> serverimizga
+            yuboriladi — ularning oyiga sotuvini qaytarish uchun. Raqamlar saqlanmaydi va
+            sizga bogʻlanmaydi; «Xaridor koʻzi» yoqilsa hech narsa yuborilmaydi.
+            Taqqoslash savati (beshtagacha tovar) faqat brauzeringizda saqlanadi;
+            taqqoslash sahifasi manzilida esa shu tovar raqamlari turadi — havolani
+            ulashsa boʻladi. Batafsil — kengaytmaning oʻz maxfiylik siyosatida (omborda{' '}
+            <code>PRIVACY.md</code>).
           </li>
         </ul>
 

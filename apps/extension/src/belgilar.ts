@@ -150,6 +150,8 @@ export function belgilarniYangila(): void {
 }
 
 async function yangila(): Promise<void> {
+  // «Xaridor koʻzi» — belgilar yashirin va serverga HECH NARSA soʻralmaydi (PRIVACY.md 0.3.0).
+  if (!sotuvchiKozi) return;
   const ids = new Set<number>();
   for (const a of tovarHavolalari()) {
     const id = hrefdanId(a.getAttribute('href'));
@@ -187,9 +189,12 @@ async function yangila(): Promise<void> {
 const DOK_ID = 'zs-dok';
 
 function kozniQoy(sotuvchi: boolean): void {
+  const yoqildi = sotuvchi && !sotuvchiKozi;
   sotuvchiKozi = sotuvchi;
   document.documentElement.classList.toggle('zs-xaridor-kozi', !sotuvchi);
   dockniYangila();
+  // Xaridor koʻzida soʻralmagan belgilar endi soʻraladi.
+  if (yoqildi) belgilarniYangila();
 }
 
 async function savatgaQoshish(t: SavatTovari): Promise<void> {
