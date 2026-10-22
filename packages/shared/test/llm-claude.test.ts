@@ -485,7 +485,7 @@ describe('sarf — har javob narxi (2026-10-22)', () => {
   });
 });
 
-describe('aiSarfYozuvchi — `so_ai_sarf_yoz` ga (0071)', () => {
+describe('aiSarfYozuvchi — `so_ai_sarf_yoz` ga (0072)', () => {
   afterEach(() => { vi.restoreAllMocks(); });
   const SARF: LlmSarfi = {
     belgi: 'ai-yoz', model: 'claude-sonnet-5-5', kirish: 120, chiqish: 40, keshOqildi: 900, keshYozildi: 0, narxUsd: 0.00073,

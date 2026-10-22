@@ -493,7 +493,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const llmSozlama = {
       kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
       provayder: claude,
-      // Har Claude javobining sarfi — `ai_usage` ga, shu mijoz nomiga (0071).
+      // Har Claude javobining sarfi — `ai_usage` ga, shu mijoz nomiga (0072).
       sarf: aiSarfYozuvchi(rpc, token, fonda),
     };
     // Obuna darvozasi (nazoratchi, 2026-10-14): cheklov yoqilgan boʻlsa — har soʻrovda bazadan.
@@ -614,7 +614,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const llmSozlama = {
       kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
       provayder: claude,
-      // Sarf — `ai_usage` ga (0071); sessiyasiz savol — mijozsiz.
+      // Sarf — `ai_usage` ga (0072); sessiyasiz savol — mijozsiz.
       sarf: aiSarfYozuvchi(rpc, token || null, fonda),
     };
     const sd = {

@@ -50,7 +50,7 @@ interface KpiJavobi {
   olchandi: string;
   xulosa: { jami: number; olchandi: number; yaxshi: number; yomon: number };
   kpi: Kpi[];
-  /** «AI xarajati» bloki (0071). Eski baza shaklida — `null`, eski Edge javobida — yoʻq. */
+  /** «AI xarajati» bloki (0072). Eski baza shaklida — `null`, eski Edge javobida — yoʻq. */
   ai?: AiXarajati | null;
 }
 
@@ -108,7 +108,7 @@ interface BaholarJavobi {
 }
 
 /**
- * AI xarajati (0071; nazoratchi, 2026-10-22: «AI xarajatini tuzat»). `ai_usage` yarim oy boʻsh
+ * AI xarajati (0072; nazoratchi, 2026-10-22: «AI xarajatini tuzat»). `ai_usage` yarim oy boʻsh
  * turdi — panel «AI ulanmagan» derdi, Claude esa har xabarni yozardi. Endi har javob narxi
  * yoziladi: bugun, 7 va 30 kun, bir mijozga oʻrtacha, nima uchun ketgani.
  *
@@ -124,7 +124,7 @@ function AiXarajatBloki({ x }: { x: AiXarajati | null | undefined }) {
           <b>AI xarajati olinmadi.</b>
           <p>
             &laquo;Xarajat yoʻq&raquo; deb koʻrsatilmaydi: maʼlumot kelmagani — tekin degani
-            emas. Bazada <code className={u.kod}>0071</code> (<code className={u.kod}>so_ai_sarf_yoz</code>)
+            emas. Bazada <code className={u.kod}>0072</code> (<code className={u.kod}>so_ai_sarf_yoz</code>)
             qoʻllanganini va Edge yangilanganini tekshiring.
           </p>
         </div>

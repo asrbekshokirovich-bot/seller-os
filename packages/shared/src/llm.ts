@@ -375,7 +375,7 @@ async function geminiSorov(
 }
 
 /**
- * `ai_usage` yozuvchisi (0071, `so_ai_sarf_yoz`) — bitta soʻrov uchun: sarf qaysi mijozniki
+ * `ai_usage` yozuvchisi (0072, `so_ai_sarf_yoz`) — bitta soʻrov uchun: sarf qaysi mijozniki
  * ekani sessiya tokenidan topiladi (sessiyasiz — `null`, masalan bosh sahifadagi savol).
  * Javobni KUTTIRMAYDI: yozish `fonda` ga beriladi (Edge — `EdgeRuntime.waitUntil`). Hech qachon
  * otmaydi; yozilmasa — logda sababi: xarajat jimgina yoʻqolmasin (QOIDALAR §8).

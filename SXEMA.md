@@ -283,7 +283,7 @@ regressiya beradi, lekin bitta anomal kun uni buzadi).
 
 `users`, `subscriptions`, `payments` — mijoz, tarif, to'lovlar, dunning.
 `ai_usage` — har LLM javobining narxi (maqsad: tarif narxining <8% i).
-0071 (2026-10-22) dan yoziladi: Edge har Claude javobidan keyin `so_ai_sarf_yoz`
+0072 (2026-10-22) dan yoziladi: Edge har Claude javobidan keyin `so_ai_sarf_yoz`
 ni fonda chaqiradi — `user_id` (sessiya tokenidan; sessiyasiz soʻrovda boʻsh),
 `model`, `purpose` (`ai-tushun`, `ai-yoz`, `sahifa`, `kartochka`…), tokenlar
 (`input_tokens` — keshdan TASHQARI qism, `cache_read_tokens`, `cache_write_tokens`),
@@ -302,7 +302,7 @@ web, bot va kengaytmaga bitta joydan xizmat qilishi kerak.
 
 `public.so_kpi_xom()` reja 8-boʻlimidagi KPI lar uchun XOM
 sanoqlarni beradi — foiz ham, "yaxshi/yomon" ham unda yoʻq.
-`ai` qismi (0071): `bugun` (Toshkent kuni), `kun7`, `kun30` (chaqiruv,
+`ai` qismi (0072): `bugun` (Toshkent kuni), `kun7`, `kun30` (chaqiruv,
 `usd`, narxsiz, mijoz, mehmon xarajati), `maqsad_30kun` va `xabar_7kun` —
 mijozlar yozgan xabarlar (sarf yozilmay qolsa panel ogohlantiradi).
 Sabab shu: bazada hisoblangan foizni testdan oʻtkazish uchun

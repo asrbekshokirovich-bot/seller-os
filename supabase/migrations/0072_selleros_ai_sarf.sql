@@ -1,4 +1,4 @@
--- 0071 — AI xarajati: har Claude javobining sarfi `ai_usage` ga (nazoratchi, 2026-10-22:
+-- 0072 — AI xarajati: har Claude javobining sarfi `ai_usage` ga (nazoratchi, 2026-10-22:
 -- «AI xarajatini tuzat»).
 --
 -- NIMA BUZUQ EDI. `ai_usage` (0004) va uning KPI si (0028) bor edi, lekin jadvalga HECH KIM
@@ -108,7 +108,7 @@ as $$
     where ends_at is not null and ends_at <= now()
   ),
 
-  -- AI sarfi (0071): oxirgi 30 kun; "bugun" — Toshkent kuni.
+  -- AI sarfi (0072): oxirgi 30 kun; "bugun" — Toshkent kuni.
   ai_oyna as (
     select a.user_id, a.purpose, a.cost_usd,
            a.created_at >= (date_trunc('day', now() at time zone 'Asia/Tashkent')

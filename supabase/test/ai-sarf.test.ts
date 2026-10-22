@@ -1,5 +1,5 @@
 /**
- * 0071 — AI xarajati: `so_ai_sarf_yoz` va `so_kpi_xom` ning `ai` qismi, HAQIQIY Postgres da
+ * 0072 — AI xarajati: `so_ai_sarf_yoz` va `so_kpi_xom` ning `ai` qismi, HAQIQIY Postgres da
  * (PGlite, xotirada).
  *
  * NEGA BU TESTLAR BOR. `ai_usage` (0004) 2026-10-22 gacha boʻsh edi: unga hech kim yozmasdi,
@@ -20,7 +20,7 @@ import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-const M71 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0071_selleros_ai_sarf.sql'), 'utf8');
+const M72 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0072_selleros_ai_sarf.sql'), 'utf8');
 
 const SXEMA = `
   create role anon; create role authenticated; create role service_role;
@@ -80,7 +80,7 @@ async function oxirgiQator(db: PGlite) {
     'select * from selleros.ai_usage order by id desc limit 1')).rows[0]!;
 }
 
-describe('0071 — so_ai_sarf_yoz', () => {
+describe('0072 — so_ai_sarf_yoz', () => {
   const db = new PGlite();
 
   // PGlite (WASM Postgres) ishga tushishi band kompyuterda 10 soniyadan oshadi.
@@ -88,8 +88,8 @@ describe('0071 — so_ai_sarf_yoz', () => {
     await db.exec(SXEMA);
     await db.exec(`insert into selleros.users (id) values ('${ALI}'), ('${VALI}');
       insert into selleros.test_sessiya values ('${TOKEN}', '${ALI}');`);
-    await db.exec(M71);
-    await db.exec(M71); // qayta qoʻllash xavfsiz
+    await db.exec(M72);
+    await db.exec(M72); // qayta qoʻllash xavfsiz
   }, 120_000);
 
   it('sessiya tokeni bilan — mijoz nomiga; hamma maydon yoziladi', async () => {
@@ -154,7 +154,7 @@ interface AiXom {
   xabar_7kun: number;
 }
 
-describe('0071 — so_kpi_xom: `ai` qismi', () => {
+describe('0072 — so_kpi_xom: `ai` qismi', () => {
   const db = new PGlite();
   let ai: AiXom;
   let xom: Record<string, unknown>;
@@ -164,7 +164,7 @@ describe('0071 — so_kpi_xom: `ai` qismi', () => {
   beforeAll(async () => {
     await db.exec(SXEMA);
     await db.exec(`insert into selleros.users (id) values ('${ALI}'), ('${VALI}');`);
-    await db.exec(M71);
+    await db.exec(M72);
     bosh = (await r<{ ai: AiXom }>(db, 'select public.so_kpi_xom() as r')).ai;
     // Toshkent kunining boshi — "bugun" chegarasi.
     const KUN_BOSHI = `(date_trunc('day', now() at time zone 'Asia/Tashkent') at time zone 'Asia/Tashkent')`;

@@ -141,7 +141,7 @@ export interface KpiXom {
     qatorlar: number;
     xarajat_usd: number | null;
     /*
-     * 0071 dan (2026-10-22). Eski bazada bu maydonlar yoʻq — kod ikkala shaklni ham
+     * 0072 dan (2026-10-22). Eski bazada bu maydonlar yoʻq — kod ikkala shaklni ham
      * oʻqiydi (QOIDALAR §8-h).
      */
     oxirgi?: string | null;
@@ -351,7 +351,7 @@ export function kpilar(
 }
 
 /**
- * «AI xarajat / mijoz» (2026-10-22: `ai_usage` endi toʻladi, 0071). Oxirgi 30 kunda bir mijozga
+ * «AI xarajat / mijoz» (2026-10-22: `ai_usage` endi toʻladi, 0072). Oxirgi 30 kunda bir mijozga
  * oʻrtacha AI xarajati — oylik obuna narxining (`OBUNA_NARXI`) necha foizi; reja: <8%.
  *
  * Suratga sessiyasiz soʻrovlar (bosh sahifadagi «Savol bering») xarajati ham kiradi — uni ham
@@ -365,7 +365,7 @@ function aiXarajatQatori(x: KpiXom['ai'], m: AiMuhit | null): Kpi {
   if (!oy) {
     return yoq('ai_xarajat', x.qatorlar === 0
       ? 'AI xarajati yozilmayapti — `ai_usage` boʻsh'
-      : 'baza eski shaklda — 0071 qoʻllanmagan');
+      : 'baza eski shaklda — 0072 qoʻllanmagan');
   }
   const k = oy.chaqiruv === 0
     ? yoq('ai_xarajat', 'oxirgi 30 kunda AI chaqiruvi yozilmagan')
@@ -423,7 +423,7 @@ export interface AiXarajati {
   kurs: { somPerUsd: number; sana: string | null } | null;
 }
 
-/** Eski baza shaklida (0071 gacha) — `null`: blok «oʻlchanmadi» deb chiqadi. */
+/** Eski baza shaklida (0072 gacha) — `null`: blok «oʻlchanmadi» deb chiqadi. */
 export function aiXarajati(x: KpiXom['ai'] | null | undefined, m: AiMuhit | null): AiXarajati | null {
   if (!x?.bugun || !x.kun7 || !x.kun30) return null;
   // $0 — kurssiz ham 0 soʻm; boshqasi kurs boʻlsagina.

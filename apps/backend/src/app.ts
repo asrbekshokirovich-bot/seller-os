@@ -438,7 +438,7 @@ export function build(): FastifyInstance {
   // Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
   const claude = claudeProvayderi({ kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_MODEL });
   const llmBor = claude !== null || Boolean(process.env.GEMINI_API_KEY);
-  // Sarf (0071, Edge bilan bir xil) — har Claude javobi `ai_usage` ga, shu sessiya nomiga.
+  // Sarf (0072, Edge bilan bir xil) — har Claude javobi `ai_usage` ga, shu sessiya nomiga.
   const llmSozlama = (token: string | null) => ({
     kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL, provayder: claude,
     sarf: aiSarfYozuvchi(rpc, token),

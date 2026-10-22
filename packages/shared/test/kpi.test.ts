@@ -189,10 +189,10 @@ describe('malumot_yoshi', () => {
 
 /*
  * AI XARAJAT (2026-10-22, nazoratchi: «AI xarajatini tuzat»). `ai_usage` yarim oy boʻsh turdi —
- * panel «AI ulanmagan» der edi, Claude esa har xabarni yozardi. 0071 dan: 30 kunda bir mijozga
+ * panel «AI ulanmagan» der edi, Claude esa har xabarni yozardi. 0072 dan: 30 kunda bir mijozga
  * oʻrtacha AI xarajati — oylik obuna narxining (149 000 soʻm) necha foizi; reja: <8%.
  */
-describe('AI xarajat / mijoz (0071)', () => {
+describe('AI xarajat / mijoz (0072)', () => {
   const HOZIR = new Date('2026-10-22T12:00:00Z');
   const CLAUDE: AiMuhit = { provayder: 'claude', somPerUsd: 12_800, kursSanasi: '22.10.2026' };
   type Oy = NonNullable<KpiXom['ai']['kun30']>;
@@ -231,7 +231,7 @@ describe('AI xarajat / mijoz (0071)', () => {
   it('oʻlchanmagan holatlar — `null` va sababi, nol emas', () => {
     const holatlar: Array<[KpiXom['ai'], AiMuhit | null, RegExp]> = [
       [{ qatorlar: 0, xarajat_usd: null }, CLAUDE, /`ai_usage` boʻsh/],
-      [{ qatorlar: 12, xarajat_usd: 0.1 }, CLAUDE, /0071 qoʻllanmagan/],
+      [{ qatorlar: 12, xarajat_usd: 0.1 }, CLAUDE, /0072 qoʻllanmagan/],
       [AI(), { provayder: 'gemini', somPerUsd: 12_800 }, /Gemini/],
       [AI(), { provayder: null, somPerUsd: 12_800 }, /AI kaliti yoʻq/],
       [AI({ chaqiruv: 0, usd: null, mijoz: 0 }), CLAUDE, /30 kunda AI chaqiruvi yozilmagan/],
@@ -317,7 +317,7 @@ describe('aiXarajati — `/olchov` dagi «AI xarajati» bloki', () => {
     expect(x.kurs).toBeNull();
   });
 
-  it('eski baza shakli (0071 gacha) yoki baza javob bermadi — `null`: blok «oʻlchanmadi» deydi', () => {
+  it('eski baza shakli (0072 gacha) yoki baza javob bermadi — `null`: blok «oʻlchanmadi» deydi', () => {
     expect(aiXarajati({ qatorlar: 0, xarajat_usd: null }, CLAUDE)).toBeNull();
     expect(aiXarajati(null, CLAUDE)).toBeNull();
   });

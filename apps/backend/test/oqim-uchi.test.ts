@@ -167,11 +167,11 @@ describe('/yordamchi oqim bilan', () => {
 });
 
 /*
- * AI SARFI (0071; nazoratchi, 2026-10-22: «AI xarajatini tuzat»). `ai_usage` 10-19 dan beri boʻsh
+ * AI SARFI (0072; nazoratchi, 2026-10-22: «AI xarajatini tuzat»). `ai_usage` 10-19 dan beri boʻsh
  * edi: Claude yozardi, sarfi hech qayerga tushmasdi. Bu yerda butun yoʻl: Claude javobidan keyin
  * `so_ai_sarf_yoz` — sessiya tokeni, maqsad, tokenlar va narx bilan; `/kpi` uni soʻmda beradi.
  */
-describe('AI sarfi — har Claude javobi `so_ai_sarf_yoz` ga (0071)', () => {
+describe('AI sarfi — har Claude javobi `so_ai_sarf_yoz` ga (0072)', () => {
   const sarflar = (rpclar: Array<[string, Record<string, unknown>]>) =>
     rpclar.filter(([nom]) => nom === 'so_ai_sarf_yoz').map(([, a]) => a);
 

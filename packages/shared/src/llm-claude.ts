@@ -32,7 +32,7 @@
  * tugagan — oqim toʻxtamaydi. Logda — faqat sababi (kalit ham, matn ham emas).
  *
  * SARF (2026-10-22, nazoratchi: «AI xarajatini tuzat»): har javobdan keyin tokenlar va
- * taxminiy narx `c.sarf` ga beriladi (`ai_usage`, 0071) — rad etilgani va kesilgani ham, ular
+ * taxminiy narx `c.sarf` ga beriladi (`ai_usage`, 0072) — rad etilgani va kesilgani ham, ular
  * ham pul turadi. Narx — roʻyxat narxi boʻyicha (`NARXLAR`); aniq hisob — Anthropic Console →
  * Usage. Vaqt tugab uzilgan soʻrovning sarfi kelmaydi — u yozilmaydi (kam uchraydi).
  */
