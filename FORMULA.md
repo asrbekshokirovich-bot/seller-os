@@ -196,8 +196,73 @@ yo'li. Har qo'shimcha shu hujjatda sababi bilan yozilishi kerak.
 bo'sh bo'lsa ham: ular to'planishi kerak bo'lgan ma'lumot, ya'ni
 `null` — «bilmayman». Bo'sh bo'lgani «qo'llanmaydi» degani emas.
 
+## Tovar sotuvi — kengaytma (`tovar-sotuvi-v1`, 2026-10-21)
+
+Nazoratchi qarori («Sotuvchi koʻzoynagi», 2026-10-21): kengaytma Uzum
+roʻyxatida har tovar tagida sotuvni koʻrsatadi (A — bepul), tovar
+sahifasida pasport (C) va taqqoslash jadvali (D) — obunada. Kod —
+`packages/shared/src/tovar-sotuvi.ts`, testlar — haqiqiy oʻlchov bilan
+(`packages/shared/test/fixtures/tovar-30kun-qatorlar.json`, VPS, 2026-10-21).
+
+**Manba.** ZumSavdo yigʻuvchisi (VPS) butun katalogni har kuni oʻlchaydi
+(~700 ming tovar/kun). Har tirik tovar uchun kuniga bir marta 30 kunlik
+qator `zumsavdo.tovar_30kun` ga yoziladi (SXEMA.md). Qatorda oʻlchov bor —
+kunlik qoldiq kamayishi; quyidagi tozalash shu yerda, bazada emas.
+
+**Nega tozalanadi.** Faqat qoldiq kamayishini sanash adashtiradi.
+Oʻlchandi (Termoslar, 21.09–20.10.2026): «eng koʻp sotilgan» 8 tovardan 7
+tasida sotuvchi zaxirani bir kunda yuzlab donaga kamaytirgan — sotuv emas.
+«Termos KINSDA»: hisob boʻyicha 713 dona, Uzum belgisi esa haftasiga 1 kishi,
+yangi sharh 0. «Termos, 3 stakan»: qoldiq 666 → 0 → 666.
+
+```
+kunlik_chegara = max(10, 5 × p75, ⌈3 × eng_katta_belgi / 7⌉, ⌈30 × yangi_sharh / oʻlchangan_kun⌉)
+sanaldi[kun]   = kamayish ≤ kunlik_chegara ? kamayish : 0      (oshgan kun BUTUNLAY sanalmaydi)
+oyiga          = Σ sanaldi × 30 / maʼlum_kunlar                 (maʼlum kun < 7 → raqam yoʻq)
+```
+
+- **p75** — shu tovarning maʼlum kunlaridagi kamayishning 75-persentili (odatiy yaxshi kun).
+- **Belgi va sharh chegarani faqat kengaytiradi.** Koʻp xaridori bor tovarning aksiya kuni
+  sanalsin: BB krem (1334924) 30 kunda +214 sharh — sharhsiz chegara uning 437 donasidan
+  135 tasini kesardi. «30 × sharh» — sharhni taxminan har 10-xaridor yozadi deb olingan
+  (taxmin, oʻlchanmagan), ustiga 3 barobar zaxira. Belgining maʼnosi tasdiqlanmagan
+  (`qadamlar.ts`, `MIQDOR_UCHUN_MANBA`) — u raqamning oʻrnini bosmaydi.
+- **Oshgan kun nega 0, chegara emas.** «666 → 0 → 666» kunida haqiqiy sotuv yoʻq; chegarani
+  sanasak, sotilmayotgan tovar «oyiga ~14 dona» boʻlib chiqardi. Narxi: haqiqiy katta kun
+  ham yoʻqoladi — raqam pastga qiyshiq, yuqoriga emas (SXEMA.md, `sales_estimates`).
+
+**Holat** (kartochka belgisi):
+
+| Holat | Shart | Kartochkada |
+|---|---|---|
+| `tugagan` | oxirgi ≥ 3 oʻlchangan kun qoldiq 0 | kulrang «Tugagan» + belgi eskirgani |
+| `kam` | maʼlum kun < 7 | «—» (raqam yoʻq) |
+| `ziddiyat` | (a) oyiga > max(10 × belgi_oylik, belgi_oylik + 50) va sharh yoʻq; (b) belgi_oylik ≥ 100, oyiga < belgi_oylik / 10, qoldiq bor; (c) kamayishning yarmidan koʻpi (≥ 50 dona) kesilgan, sharh yoʻq va belgi buni koʻtarmaydi | sariq «Sotuv aniq emas» + sabab |
+| `sotilyapti` | oyiga ≥ 30 | yashil «≈ N dona/oy» |
+| `sekin` | 1 ≤ oyiga < 30 | sariq «≈ N dona/oy» |
+| `sotilmadi` | oyiga 0 | kulrang «Sotuv koʻrinmadi» + Uzum belgisi yonida |
+| `olchanmagan` | bazada qator yoʻq | «—» |
+
+`belgi_oylik = belgi × 30 / 7` — faqat solishtirish uchun. (b) chegarasi 100: kichik belgida
+(haftasiga ~8) farq maʼnosiz va kartochkalar «aniq emas» bilan toʻlib ketardi (jonli
+tanlovda 30 boʻlganda 78 tadan 16 tasi, 100 da — 7 tasi).
+
+**Ishonch:** `past` — ziddiyat, maʼlum kun < 14 yoki kamayishning yarmidan koʻpi kesilgan
+va qolgani tasdiqlanmagan; `yuqori` — maʼlum kun ≥ 20 va tasdiqlangan (belgi bor — raqam
+uning 0,2–5 barobari; yoʻq — oyiga < 30 yoki yangi sharh bor); qolgani — `oʻrta`.
+
+**Chegara narx** (pasport, taqqoslash): `narx − komissiya − aylanma soligʻi − logistika`.
+Komissiya — `selleros.uzum_komissiya` (turkum boʻyicha), soliq — fakt
+`soliq.aylanma_foiz`, logistika — hajm nomaʼlum, shuning uchun eng kami (5 250 soʻm,
+1 litrgacha): chegara aslida shundan PAST boʻlishi mumkin.
+
+Jonli natija (fikstura, 78 tovar): 1978350 → 430, 3302715 → 300 (1 098 dan 838 tasi
+kesildi, qolgani belgi va +45 sharh bilan mos), 1334924 → 504, KINSDA / 1580691 /
+«IRON 2L» → «Sotuv aniq emas».
+
 ## Versiya tarixi
 
 | Versiya | Sana | O'zgarish | Tasdiqladi |
 |---|---|---|---|
 | v0 | 2026-08-19 | Birinchi taklif | **kutilmoqda** |
+| tovar-sotuvi-v1 | 2026-10-21 | Kengaytma uchun tovar sotuvi (yuqoridagi boʻlim) | **kutilmoqda** |

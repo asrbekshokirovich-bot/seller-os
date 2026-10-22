@@ -144,6 +144,65 @@ async function xitoyQidir(productId: number, rasmUrl: string | null): Promise<Qi
   return data;
 }
 
+// ───────────────────────────────────────────────────────────────
+// «Sotuvchi koʻzoynagi» (0.3.0, nazoratchi 2026-10-21): roʻyxatdagi sotuv
+// belgilari (bepul) va tovar pasporti (obunada). Raqamni server yasaydi
+// (`shared/tovar-sotuvi.ts`); bu yerda faqat soʻrov va kesh.
+// ───────────────────────────────────────────────────────────────
+
+/**
+ * Sessiyali soʻrov: 401 kelsa token bir marta yangilanadi (bazada eskirgan
+ * boʻlishi mumkin — odamga "sessiya xatosi" deb koʻrsatish notoʻgʻri).
+ */
+async function apiSorov(yol: string, init: { method: 'GET' | 'POST'; tana?: unknown }): Promise<{ status: number; data: unknown }> {
+  const yubor = (t: string) => fetch(`${BACKEND_URL}${yol}`, {
+    method: init.method,
+    headers: sarlavhalar(t),
+    ...(init.tana === undefined ? {} : { body: JSON.stringify(init.tana) }),
+  });
+  let token = await sessiyaOl();
+  if (!token) return { status: 0, data: { xato: 'sessiya ochilmadi' } };
+  let javob = await yubor(token);
+  if (javob.status === 401) {
+    token = await sessiyaOl(true);
+    if (!token) return { status: 0, data: { xato: 'sessiya ochilmadi' } };
+    javob = await yubor(token);
+  }
+  return { status: javob.status, data: await javob.json().catch(() => null) };
+}
+
+/**
+ * Belgilar keshi — servis ishchisi xotirasida. Maʼlumot kuniga bir marta
+ * yangilanadi; Uzum SPA sahifalarni qayta chizganda bir xil id qayta-qayta
+ * soʻralmasin. Ishchi uxlasa kesh yoʻqoladi — bu xato emas, qayta soʻraladi.
+ */
+const belgiKeshi = new Map<number, { belgi: unknown; sana: string | null; vaqt: number }>();
+const BELGI_KESH_MS = 3 * 3600_000;
+
+async function belgilarOl(ids: number[]): Promise<{ sana: string | null; belgilar: unknown[]; xato?: string }> {
+  const hozir = Date.now();
+  const kerak = ids.filter((id) => {
+    const k = belgiKeshi.get(id);
+    return !k || hozir - k.vaqt > BELGI_KESH_MS;
+  });
+  let sana: string | null = null;
+  if (kerak.length) {
+    const r = await apiSorov('/kengaytma/belgilar', { method: 'POST', tana: { ids: kerak.slice(0, 100) } });
+    const d = r.data as { sana?: string | null; belgilar?: unknown[]; xato?: string } | null;
+    if (r.status !== 200 || !d || !Array.isArray(d.belgilar)) {
+      return { sana: null, belgilar: [], xato: d?.xato ?? `server javobi: HTTP ${r.status}` };
+    }
+    sana = d.sana ?? null;
+    for (const b of d.belgilar) {
+      const id = Number((b as { productId?: unknown })?.productId);
+      if (Number.isSafeInteger(id)) belgiKeshi.set(id, { belgi: b, sana, vaqt: hozir });
+    }
+    if (belgiKeshi.size > 20_000) belgiKeshi.clear();
+  }
+  const belgilar = ids.map((id) => belgiKeshi.get(id)).filter((k): k is NonNullable<typeof k> => Boolean(k));
+  return { sana: sana ?? belgilar.find((k) => k.sana)?.sana ?? null, belgilar: belgilar.map((k) => k.belgi) };
+}
+
 // Yon panel (0.2.0): asboblar panelidagi belgi bosilganda ochiladi.
 // Panelda faqat chat (panel.ts). Sozlama profilga yoziladi — oʻrnatishda
 // va har ishga tushishda qayta qoʻyiladi.
@@ -163,6 +222,22 @@ chrome.runtime.onMessage.addListener((xabar, _yuboruvchi, javobBer) => {
     sessiyaOl()
       .then((token) => javobBer({ token }))
       .catch((e) => javobBer({ token: null, xato: String(e?.message ?? e) }));
+    return true;
+  }
+  if (xabar?.tur === 'belgilar') {
+    const ids = Array.isArray(xabar.ids) ? xabar.ids.map(Number).filter((n: number) => Number.isSafeInteger(n) && n > 0) : [];
+    belgilarOl(ids)
+      .then(javobBer)
+      .catch((e) => { console.warn('ZumSavdo: belgilar soʻrovi yiqildi', e); javobBer({ sana: null, belgilar: [], xato: xatoMatni(e) }); });
+    return true;
+  }
+  if (xabar?.tur === 'pasport') {
+    const id = Number(xabar.id);
+    if (!Number.isSafeInteger(id) || id <= 0) return false;
+    // Tovar raqami manzilda emas, tanada: server va xosting jurnallariga tushmasin (PRIVACY.md 0.3.0).
+    apiSorov('/kengaytma/pasport', { method: 'POST', tana: { id } })
+      .then((r) => javobBer({ status: r.status, ...(r.data && typeof r.data === 'object' ? r.data : {}) }))
+      .catch((e) => { console.warn('ZumSavdo: pasport soʻrovi yiqildi', e); javobBer({ status: 0, xato: xatoMatni(e) }); });
     return true;
   }
   if (xabar?.tur !== 'xitoy-qidiruv') return false;

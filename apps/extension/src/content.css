@@ -191,3 +191,182 @@
   color: #d2552d;
   font-weight: 600;
 }
+
+/* ===================================================================
+ * 0.3.0 — «Sotuvchi koʻzoynagi»: roʻyxatdagi sotuv belgilari, dok
+ * (Sotuvchi koʻzi + taqqoslash savati) va tovar pasporti.
+ * Ranglar — sayt tokenlari (yorugʻ): terrakota #d2552d, yashil #2e8b57,
+ * sariq #a86d14, kulrang #6e6558. Shrift — Uzum sahifasiniki.
+ * =================================================================== */
+
+/* Belgi rasm USTIDA, oʻng pastki burchakda (chap yuqorida Uzumning «AKSIYA»,
+ * markazda «Reklama», oʻngda yurakcha, chap pastda «5 KUN» turadi): Uzum toʻrida qator balandligi
+ * qatʼiy (444 px) — kartochka ostiga qoʻyilgan qator keyingi qatorga toshardi.
+ * Toʻliq matn, izoh va «+ Taqqoslash» — ustiga kelganda. */
+.zs-joy { position: relative !important; }
+.zs-belgi {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 5;
+  max-width: calc(100% - 16px);
+  color: #1f1a14;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: default;
+}
+.zs-tabletka {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+.zs-tabletka b { font-weight: 700; }
+.zs-belgi-oyna {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  width: 196px;
+  padding: 9px 10px;
+  border: 1px solid rgba(210, 85, 45, 0.28);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(60, 40, 20, 0.18);
+  gap: 4px;
+}
+.zs-belgi:hover .zs-belgi-oyna,
+.zs-belgi:focus-within .zs-belgi-oyna { display: grid; }
+.zs-belgi-oyna b { font-size: 14px; }
+.zs-belgi-oyna small { color: #6e6558; font-size: 11.5px; }
+.zs-belgi-oyna .zs-manba { font-size: 10.5px; }
+.zs-nuqta { width: 9px; height: 9px; border-radius: 50%; flex: none; background: #b3a999; }
+.zs-yashil .zs-nuqta { background: #2e8b57; }
+.zs-sariq .zs-nuqta { background: #c28a1e; }
+.zs-kulrang .zs-nuqta { background: #9a9187; }
+.zs-yoq .zs-nuqta { background: transparent; border: 1px dashed #9a9187; }
+.zs-qosh {
+  justify-self: start;
+  margin-top: 3px;
+  padding: 4px 9px;
+  border: 1px dashed #d2552d;
+  border-radius: 7px;
+  background: transparent;
+  color: #d2552d;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.zs-qosh:hover { background: rgba(210, 85, 45, 0.08); }
+html.zs-xaridor-kozi .zs-belgi { display: none !important; }
+
+#zs-dok {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2147483000;
+  display: grid;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+  font-size: 13px;
+  color: #1f1a14;
+}
+.zs-dok-qator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.08), 0 8px 24px rgba(60, 40, 20, 0.16);
+}
+.zs-dok-z {
+  width: 28px; height: 28px; border-radius: 9px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #d2552d; color: #fff; font-weight: 800; font-size: 14px;
+}
+.zs-dok-koz, .zs-dok-taqqos, .zs-dok-och {
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.zs-dok-koz { background: #f4efe6; color: #1f1a14; }
+.zs-dok-koz[aria-pressed="true"] { background: rgba(46, 139, 87, 0.12); color: #2e8b57; }
+.zs-dok-taqqos { background: #d2552d; color: #fff; }
+.zs-dok-taqqos:disabled { background: #ede6da; color: #6e6558; cursor: default; }
+.zs-dok-savat, .zs-dok-xabar {
+  padding: 10px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(60, 40, 20, 0.16);
+  display: grid;
+  gap: 6px;
+}
+.zs-dok-savat[hidden], .zs-dok-xabar[hidden] { display: none; }
+.zs-dok-tovar { display: flex; align-items: center; gap: 8px; }
+.zs-dok-tovar span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zs-dok-tovar button { border: 0; background: #f4efe6; border-radius: 7px; width: 24px; height: 24px; cursor: pointer; font-size: 15px; }
+.zs-dok-och { background: #1f1a14; color: #fff; }
+.zs-dok-och:disabled { background: #ede6da; color: #6e6558; cursor: default; }
+
+#zs-pasport {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid rgba(210, 85, 45, 0.28);
+  border-radius: 12px;
+  background: #fff;
+  color: #1f1a14;
+  font-size: 13px;
+  line-height: 1.4;
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.zs-pasport-bosh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.zs-tamga { color: #d2552d; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.zs-sana { color: #6e6558; font-size: 11px; }
+.zs-katta-qator { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.zs-katta { font-size: 20px; font-weight: 800; }
+.zs-katta.zs-yashil { color: #2e8b57; }
+.zs-katta.zs-sariq { color: #a86d14; }
+.zs-katta.zs-kulrang, .zs-katta.zs-yoq { color: #6e6558; }
+.zs-ishonch { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #f4efe6; }
+.zs-ishonch-yuqori { background: rgba(46, 139, 87, 0.12); color: #2e8b57; }
+.zs-ishonch-past { background: rgba(183, 121, 31, 0.14); color: #a86d14; }
+.zs-izoh { margin: 0; color: #6e6558; font-size: 12px; }
+.zs-qulf { margin: 0; padding: 8px 10px; border-radius: 10px; background: #f4efe6; font-size: 12.5px; }
+.zs-tekshiruv { display: flex; flex-wrap: wrap; gap: 5px; }
+.zs-chip { font-size: 11.5px; padding: 3px 8px; border-radius: 8px; background: #faf6ef; border: 1px solid #e3dacb; }
+.zs-mos::before { content: '✓ '; color: #2e8b57; font-weight: 700; }
+.zs-mos-emas::before { content: '! '; color: #a86d14; font-weight: 700; }
+.zs-grafik { width: 100%; height: auto; display: block; }
+.zs-grafik-tor { stroke: #e3dacb; stroke-width: 1; }
+.zs-grafik-yozuv { fill: #6e6558; font-size: 8px; }
+.zs-ustun { fill: #d2552d; }
+.zs-ustun-kesildi { fill: #ede6da; stroke: #9a9187; stroke-dasharray: 2 2; stroke-width: 0.8; }
+.zs-ustun-yoq { fill: none; stroke: #9a9187; stroke-dasharray: 1 1.5; stroke-width: 0.8; }
+.zs-tugagan-nuqta { fill: #b23a2e; }
+.zs-faktlar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+.zs-fakt { display: grid; gap: 1px; padding: 6px 8px; border: 1px solid #e3dacb; border-radius: 9px; }
+.zs-fakt small { color: #6e6558; font-size: 11px; }
+.zs-fakt span { color: #6e6558; font-size: 11px; }
+.zs-fakt-ogoh { border-color: #c28a1e; background: rgba(183, 121, 31, 0.08); }
+.zs-fakt-urgu { border-color: #d2552d; background: rgba(210, 85, 45, 0.07); }
+.zs-sabablar { margin: 0; padding-left: 18px; color: #6e6558; font-size: 12px; display: grid; gap: 3px; }
+.zs-tugmalar { display: flex; flex-wrap: wrap; gap: 6px; }
+.zs-tugma {
+  display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 10px;
+  border: 1px solid #e3dacb; background: #faf6ef; color: #1f1a14;
+  font: inherit; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.zs-tugma.zs-asosiy { background: #d2552d; border-color: #d2552d; color: #fff; }
