@@ -28,11 +28,6 @@ hozir foydalanuvchi oz; jadval va migratsiya kerak.
 `apps/backend` ga ham qoʻshilsa, mahalliy sinov serveri bilan tekshirish osonlashadi.
 Keyinroq: Fastify hech qayerda ishlamaydi.
 
-— [agent, 2026-10-22] **«Tovar sotuvi» formulasi — nazoratchi tasdigʻi.** FORMULA.md
-«Tovar sotuvi» (`tovar-sotuvi-v1`) taklif sifatida ishga tushdi (kengaytma uchun):
-kunlik chegara 10 / 5×p75 / 3×belgi / 30×sharh, ziddiyat (a)(b)(c), ishonch.
-Nazoratchi misollar bilan koʻrib tasdiqlashi kerak; oʻzgarsa — versiya oshadi.
-
 — [agent, 2026-10-07] **1688 taklifi nomi xitoycha.** 5-qadam kartasida sarlavha
 1688 dagi asl matn ("大容量托特女包…") — oʻzbek sotuvchi oʻqiy olmaydi; hozir
 rasm, narx va 1688 havolasi bilan tanlaydi. Kerak: natija kelganda (Edge,

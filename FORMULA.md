@@ -198,6 +198,12 @@ bo'sh bo'lsa ham: ular to'planishi kerak bo'lgan ma'lumot, ya'ni
 
 ## Tovar sotuvi — kengaytma (`tovar-sotuvi-v1`, 2026-10-21)
 
+> **Tasdiqlangan: nazoratchi, 2026-10-26** («Ha, tovar-sotuvi-v1 formulasini
+> tasdiqlayman»). Kengaytma 0.3.0 da oʻzi sinab koʻrgandan keyin: masalan,
+> quyultirilgan sut (Uzum) — pasportda qoldiq 1 459, «≈ 1 061 dona/oy», belgi
+> haftasiga 212; Uzumning oʻz sahifasida qoldiq 1 436, «bu haftada 221 kishi».
+> Oʻzgarsa — yangi versiya va qayta tasdiq.
+
 Nazoratchi qarori («Sotuvchi koʻzoynagi», 2026-10-21): kengaytma Uzum
 roʻyxatida har tovar tagida sotuvni koʻrsatadi (A — bepul), tovar
 sahifasida pasport (C) va taqqoslash jadvali (D) — obunada. Kod —
@@ -265,4 +271,4 @@ kesildi, qolgani belgi va +45 sharh bilan mos), 1334924 → 504, KINSDA / 158069
 | Versiya | Sana | O'zgarish | Tasdiqladi |
 |---|---|---|---|
 | v0 | 2026-08-19 | Birinchi taklif | **kutilmoqda** |
-| tovar-sotuvi-v1 | 2026-10-21 | Kengaytma uchun tovar sotuvi (yuqoridagi boʻlim) | **kutilmoqda** |
+| tovar-sotuvi-v1 | 2026-10-21 | Kengaytma uchun tovar sotuvi (yuqoridagi boʻlim) | nazoratchi, 2026-10-26 |
