@@ -3,6 +3,16 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
+## 2026-10-26 — 0.3.0 tavsifi 132 belgiga qisqartirildi (doʻkonga yuklashdan oldin)
+
+0.3.0 manifestidagi `description` 165 belgi edi — Chrome tavsifni 132 belgi bilan
+cheklaydi, doʻkon bunday paketni yuklash paytidayoq qaytaradi. Yangi tavsif
+(120 belgi): «Uzumda nima sotishni raqam bilan tanlang: oyiga necha dona sotilishi,
+tovar pasporti, taqqoslash va Xitoydan (1688) top.» Chat haqida — doʻkondagi uzun
+tavsifda. Versiya 0.3.0 qoldi (doʻkonga hali yuklanmagan). `test/manifest.test.ts`
+endi nom (75) va tavsif (132) uzunligini tekshiradi. Doʻkonda hozir 0.2.3
+(2026-10-07 dan), maxfiylik havolasi — GitHub `PRIVACY.md` (0.3.0).
+
 ## 2026-10-26 — sayt: token manzildan olib tashlanadi (kengaytma oʻzgarmadi)
 
 Xavfsizlik tekshiruvi (OʻRTA): kengaytma ochgan sahifada (`/usta` yon panel

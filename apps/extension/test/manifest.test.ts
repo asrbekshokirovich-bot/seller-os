@@ -14,6 +14,8 @@ import { describe, expect, it } from 'vitest';
 
 const ILDIZ = join(__dirname, '..');
 const manifest = JSON.parse(readFileSync(join(ILDIZ, 'manifest.json'), 'utf8')) as {
+  name: string;
+  description: string;
   version: string;
   permissions?: string[];
   host_permissions?: string[];
@@ -52,5 +54,12 @@ describe('manifest', () => {
 
   it('manifest va package.json versiyasi bir xil', () => {
     expect(manifest.version).toBe(paket.version);
+  });
+
+  // 0.3.0 tavsifi 165 belgi boʻlib qolgan edi (2026-10-26) — doʻkon paketni
+  // yuklash paytidayoq qaytaradi. Chegaralar — Chrome manifest hujjatidan.
+  it('nom 75, tavsif 132 belgidan oshmaydi (doʻkon uzunini qabul qilmaydi)', () => {
+    expect([...manifest.name].length).toBeLessThanOrEqual(75);
+    expect([...manifest.description].length).toBeLessThanOrEqual(132);
   });
 });
