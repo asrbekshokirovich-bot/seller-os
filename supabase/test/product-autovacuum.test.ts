@@ -1,5 +1,5 @@
 /**
- * 0072 — `zumsavdo.product` va `shop` tez-tez tozalansin: SQL HAQIQIY Postgres da (PGlite).
+ * 0073 — `zumsavdo.product` va `shop` tez-tez tozalansin: SQL HAQIQIY Postgres da (PGlite).
  *
  * NEGA BU TEST BOR. 2026-10-22 da bosh sahifadagi tovar soni «—» boʻlib qoldi:
  * `so_bazamiz` dagi `count(*)` 44 s ketdi (oʻlik qatorlar, standart 20 % chegara).
@@ -11,9 +11,9 @@ import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-const M72 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0072_zumsavdo_product_autovacuum.sql'), 'utf8');
+const M73 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0073_zumsavdo_product_autovacuum.sql'), 'utf8');
 
-describe('0072 — zumsavdo.product autovacuum', () => {
+describe('0073 — zumsavdo.product autovacuum', () => {
   const db = new PGlite();
 
   beforeAll(async () => {
@@ -23,7 +23,7 @@ describe('0072 — zumsavdo.product autovacuum', () => {
       create table zumsavdo.shop (id bigint primary key);
       insert into zumsavdo.product select g, 1 from generate_series(1, 50) g;
     `);
-    await db.exec(M72);
+    await db.exec(M73);
   });
 
   it('ikkala jadvalda 2 % chegara', async () => {
