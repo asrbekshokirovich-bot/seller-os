@@ -29,11 +29,12 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
+import { sessiyaSarlavhasi } from '@/lib/kengaytma';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
-import { hashTokeni } from '@/lib/sessiya-sarlavha';
 import { tarjima, type Til, type Tr } from '@/lib/til';
 import { useTil } from '@/lib/useTil';
 import { faylBolagi, zipYasa } from '@/lib/zip';
+import { Havola } from '../Havola';
 import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
@@ -41,29 +42,6 @@ import { tolovgaOt, useObunaHolati } from './obunaHolati';
 import { boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
-
-/**
- * Kengaytma rejimi (0.2.0): sahifa Chrome yon panelidagi ramkada ochiladi,
- * cookie u yerda ishlamaydi — token manzil hash'ida keladi
- * (`#sessiya=…&kengaytma=1`, serverga ketmaydi) va har soʻrovga
- * `x-sessiya` sarlavhasi bilan qoʻshiladi. Oddiy saytda hash yoʻq —
- * sarlavha ham yoʻq, hammasi avvalgidek cookie bilan.
- *
- * Token shu varaq sessiyasida ham saqlanadi (`sessionStorage`): panel
- * ichida hash'siz havola bosilsa (logo, «Chiqish» → bosh sahifa →
- * «Usta») suhbat yangi sessiyada boshidan boshlanib ketardi (audit,
- * 2026-10-05).
- */
-const TOKEN_KALITI = 'zs_sessiya';
-function sessiyaSarlavhasi(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  let t = hashTokeni(window.location.hash);
-  try {
-    if (t) window.sessionStorage.setItem(TOKEN_KALITI, t);
-    else t = window.sessionStorage.getItem(TOKEN_KALITI);
-  } catch { /* saqlash yoʻq (maxfiy rejim) — faqat hash */ }
-  return t ? { 'x-sessiya': t } : {};
-}
 
 /** «Rejalar» ochiq: suhbat yashirinadi, lekin oʻchirilmaydi — aylanish joyi va studiya tanlovlari qoladi. */
 const YASHIRIN = { display: 'none' } as const;
@@ -704,10 +682,11 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
             <button type="button" className={`${u.pill} ${oyna === 'profil' ? u.pillFaol : ''}`} onClick={profilOch}>
               <Ikon nom="odam" o={16} />{tr('Profilim', 'Мой профиль')}
             </button>
-            {/* Kengaytma panelida hash (token) bosh sahifaga ham oʻtadi — qaytganda suhbat oʻsha. */}
-            <a className={u.pill} href="/" onClick={(e) => { const h = window.location.hash; if (!h) return; e.preventDefault(); window.location.href = `/${h}`; }}>
+            {/* Kengaytma panelida qaytganda suhbat oʻsha: token varaq xotirasida (`lib/kengaytma.ts`),
+                xotira yopiq boʻlsa — `Havola` hash'ni bosh sahifaga olib oʻtadi. */}
+            <Havola className={u.pill} href="/">
               <Ikon nom="chiqish" o={16} />{tr('Chiqish', 'Выйти')}
-            </a>
+            </Havola>
           </div>
         </header>
 
@@ -2672,8 +2651,8 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, ob
                 <div className={u.hisobNom}>{tr('Mehmon', 'Гость')}</div>
                 <div className={u.hisobIzoh}>{tr('Suhbat shu brauzerga bogʻlangan — boshqa qurilmada koʻrinmaydi.', 'Чат привязан к этому браузеру — на другом устройстве его не видно.')}</div>
               </div>
-              {/* Kengaytma rejimida token hash'da — Kirishga ham, qaytishda ham oʻtadi. */}
-              <a className={u.kirishTugma} href="/kirish" onClick={(e) => { e.preventDefault(); window.location.href = `/kirish${window.location.hash}`; }}>{tr('Kirish', 'Войти')}</a>
+              {/* Kengaytma rejimida sessiya Kirishga ham, qaytishda ham oʻtadi (xuddi «Chiqish» kabi). */}
+              <Havola className={u.kirishTugma} href="/kirish">{tr('Kirish', 'Войти')}</Havola>
             </div>
           </section>
           <div className={u.panelChiziq} />

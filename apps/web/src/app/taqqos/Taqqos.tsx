@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import type { KartochkaBelgisi, TaqqosJadvali } from '@selleros/shared';
-import { hashTokeni } from '@/lib/sessiya-sarlavha';
+import { sessiyaSarlavhasi } from '@/lib/kengaytma';
 import u from './taqqos.module.css';
 
 interface Javob {
@@ -24,19 +24,9 @@ interface Javob {
 
 type Holat = { tur: 'yuklanmoqda' } | { tur: 'xato'; matn: string } | { tur: 'tayyor'; status: number; j: Javob };
 
-/**
- * Kengaytmadan kelganda token hash'da (`#sessiya=…`, serverga ketmaydi) —
- * `x-sessiya` sarlavhasida yuboriladi; `Suhbat.tsx` bilan bir xil kalit
- * (`zs_sessiya`) ostida shu varaqda saqlanadi. Oddiy saytda — cookie.
- */
-function sessiyaSarlavhasi(): Record<string, string> {
-  let t = hashTokeni(window.location.hash);
-  try {
-    if (t) window.sessionStorage.setItem('zs_sessiya', t);
-    else t = window.sessionStorage.getItem('zs_sessiya');
-  } catch { /* maxfiy rejim — faqat hash */ }
-  return t ? { 'x-sessiya': t } : {};
-}
+// Kengaytmadan kelganda token hash'da (`#sessiya=…`) — `sessiyaSarlavhasi` uni
+// varaq xotirasiga oʻtkazib manzildan olib tashlaydi (`lib/kengaytma.ts`).
+// Oddiy saytda — cookie.
 
 const qisqaSana = (s: string | null | undefined) => (s ? `${s.slice(8, 10)}.${s.slice(5, 7)}.${s.slice(0, 4)}` : null);
 const minglik = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');

@@ -11,9 +11,10 @@
  * ekrani (w3) tayyor, lekin SMS yuborish ulanmaguncha unga oʻtilmaydi
  * (`SMS_ULANGAN`).
  *
- * Kengaytma rejimi: sessiya tokeni manzil hash'ida keladi — Ustaga va bosh
- * sahifaga havolalar uni olib yuradi (`Havola`), aks holda yangi (boʻsh)
- * suhbat ochilardi.
+ * Kengaytma rejimi: sessiya tokeni panel varagʻi xotirasida (`lib/kengaytma.ts`)
+ * — Ustaga qaytilganda suhbat oʻsha. Xotira yopiq boʻlsa token manzil hash'ida
+ * qoladi va Ustaga, bosh sahifaga havolalar uni olib yuradi (`Havola`), aks
+ * holda yangi (boʻsh) suhbat ochilardi.
  */
 
 import { useEffect, useRef, useState } from 'react';

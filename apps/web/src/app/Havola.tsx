@@ -1,9 +1,11 @@
 'use client';
 
 /**
- * Sahifalar orasidagi ichki havola — oddiy `<a>`, faqat kengaytma yon panelida
- * (`#sessiya=…`) manzilga tokenli hash qoʻshiladi va keyingi sahifa ham shu
- * sessiya bilan ochiladi (`lib/kengaytma.ts`). Oddiy saytda farqi yoʻq.
+ * Sahifalar orasidagi ichki havola — oddiy `<a>`. Kengaytma yon panelida token
+ * odatda varaq xotirasida turadi va havola oʻzgarmaydi; xotira yopiq boʻlsa token
+ * manzil hash'ida qoladi (`#sessiya=…`) — shunda havolaga tokenli hash qoʻshiladi
+ * va keyingi sahifa ham shu sessiya bilan ochiladi (`lib/kengaytma.ts`). Oddiy
+ * saytda farqi yoʻq.
  */
 
 import type { ComponentProps } from 'react';
