@@ -100,10 +100,19 @@ export default function Maxfiylik() {
             <code>x-sessiya</code> sarlavhasi bilan qoʻshadi.
           </li>
           <li>
-            Suhbat sahifasi kalitni shu panel varagʻi yopilguncha brauzer
-            xotirasida ham saqlaydi (<code>sessionStorage</code>): panel ichida
-            boshqa sahifaga oʻtib qaytsangiz ham suhbat oʻsha qoladi. Varaq
-            yopilganda u yerdan oʻchadi.
+            Sahifa ochilishi bilan kalitni shu varaq yopilguncha brauzer
+            xotirasiga (<code>sessionStorage</code>) oʻtkazadi va manzildan olib
+            tashlaydi: u manzil satrida, «Orqaga» tarixida va nusxalangan havolada
+            qolmaydi. Panel ichida boshqa sahifaga oʻtib qaytsangiz ham suhbat
+            oʻsha qoladi; varaq yopilganda kalit xotiradan oʻchadi. Taqqoslash
+            jadvali (yangi varaqda ochiladi) ham shunday.
+          </li>
+          <li>
+            Taqqoslash jadvalining birinchi manzili (kalit bilan) Chrome tarixiga
+            (<code>chrome://history</code>) sahifa ochilguncha yozilib ulguradi —
+            uni sayt oʻchira olmaydi; tarixni tozalasangiz ketadi. Brauzer xotirasi
+            yopiq boʻlsa (masalan, maxfiy rejimda) kalit manzilda qoladi — u yagona
+            nusxa, busiz suhbat yoʻqolardi.
           </li>
           <li>
             Yaʼni kengaytmada yuqoridagi <strong>HttpOnly</strong> himoyasi yoʻq:

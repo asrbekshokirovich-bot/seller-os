@@ -4,8 +4,9 @@
  * Kengaytmaning taqqoslash savatidan ochiladi: `/taqqos?ids=1,2,3`. Sahifa
  * STATIK qobiq (Vercel funksiyalari iad1 da — dinamik sahifa Oʻzbekistondan
  * ~1 s sekinroq), jadvalni mijoz komponenti `/api/taqqos` dan oladi. Telefonda
- * ham ochiladi, havolasini sherigingizga yuborsa boʻladi (token hash'da —
- * yuborilgan havolada boʻlsa, oluvchi oʻz sessiyasi bilan koʻradi).
+ * ham ochiladi, havolasini sherigingizga yuborsa boʻladi: kengaytma bergan
+ * token (`#sessiya=…`) sahifa yuklangach manzildan olib tashlanadi
+ * (`lib/kengaytma.ts`) — nusxalangan havolada yoʻq, oluvchi oʻz sessiyasi bilan koʻradi.
  */
 
 import type { Metadata } from 'next';

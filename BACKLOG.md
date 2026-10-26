@@ -7,6 +7,28 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-10-26] **Kengaytma sessiya tokeni manzilga umuman tushmasin.**
+Xavfsizlik tekshiruvi (OʻRTA): kengaytma tokenni `#sessiya=…` da beradi (`/usta` yon
+panel ramkasida, `/taqqos` yangi varaqda). 2026-10-26 dan sayt uni varaq xotirasiga
+(`sessionStorage`) oʻtkazib, manzildan darhol olib tashlaydi (`apps/web/src/lib/kengaytma.ts`).
+Qolgan teshiklar (Chrome 155 da oʻlchandi, 2026-10-26): `/taqqos` ning birinchi
+manzili (token bilan) Chrome tarixiga (`History`, chrome://history, sinxronlansa —
+Google hisobiga ham) sahifa JS ishlagunicha yoziladi — `replaceState` uni
+oʻchirmaydi (panel ramkasining birinchi yuklanishi tarixga yozilmaydi); xotira yopiq
+boʻlsa hash qoladi (yagona nusxa); panel sahifasidagi `<iframe src>` atributida token
+turadi (kengaytmaning oʻz sahifasi); HttpOnly yoʻq — sahifaga tushgan begona skript
+tokenni oʻqiy oladi. Toʻliq yechim — tokenni manzilga umuman qoʻymaslik: yon panel
+uchun `panel.ts` tokenni ramkaga `postMessage` bilan beradi (`targetOrigin` = sayt;
+sahifa `event.origin` va `event.source === parent` ni tekshiradi); `/taqqos` uchun
+manifestga `externally_connectable` (faqat sayt manzili) — sahifa tokenni
+`chrome.runtime.sendMessage(<kengaytma id>, …)` bilan oʻzi soʻraydi, yoki bir
+martalik qisqa muddatli almashtirish kodi (≤60 s, manzilda faqat `#kod=…`, sahifa uni
+bir marta `HttpOnly; SameSite=None; Partitioned` cookie'ga almashtiradi — `so_til`
+cookie'si panelda shu yoʻl bilan ishlaydi; shunda token JavaScript'ga ham
+koʻrinmaydi). Keyinroq: kengaytmaning yangi versiyasi (doʻkon tekshiruvi), almashtirish
+kodi uchun yangi Edge uchi + jadval (migratsiya) kerak; joriy tuzatish asosiy xavfni
+(manzil satri, «Orqaga» tarixi, nusxalangan havola, skrinshot) yopdi.
+
 — [agent, 2026-10-22] **«Sotuvchi koʻzoynagi» 2–3-bosqichlari.** Nazoratchi 2026-10-21 da
 A (kartochka belgisi) + C (pasport) + D (taqqoslash) ni tanladi — ular qurildi (kengaytma
 0.3.0). Qolganlari taklif sahifasida (claude.ai/artifact/JgK5cYiw6fmdMicrcQ8DpD):

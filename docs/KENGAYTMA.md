@@ -3,6 +3,43 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
+## 2026-10-26 — sayt: token manzildan olib tashlanadi (kengaytma oʻzgarmadi)
+
+Xavfsizlik tekshiruvi (OʻRTA): kengaytma ochgan sahifada (`/usta` yon panel
+ramkasida, `/taqqos` yangi varaqda) sessiya tokeni `#sessiya=…` manzilda qolib
+ketardi — manzil satri, orqaga/oldinga tarixi, nusxalangan havola va skrinshot
+orqali begonaga oʻtishi mumkin edi. Hash serverga ketmaydi — faol buzilish emas,
+mustahkamlash. Jonli saytda oʻlchandi (2026-10-26, tuzatishdan oldin): panel
+yuklangach ramka manzili `…/usta#sessiya=<token>&kengaytma=1` boʻlib qolgan.
+
+- `apps/web/src/lib/kengaytma.ts` `kengaytmaTokeni()`: hash'dagi token
+  `sessionStorage` (`zs_sessiya`) ga yoziladi, **oʻqib tekshiriladi** va shundan
+  keyingina `history.replaceState(null, '', yol + soʻrov)` bilan manzildan olinadi.
+  Keyingi navbatda va `null` holat bilan — Next.js `replaceState` ni oʻz effektida
+  (sahifa effektlaridan keyin) oʻraydi; erta chaqirilsa routerda tokenli manzil
+  qolib, keyingi yangilanishda qayta yozilardi. Xotira ishlamasa (maxfiy rejim,
+  bloklangan xotira) hash qoladi — yagona nusxa, havolalar uni avvalgidek olib yuradi.
+- Panel ichidagi boshqa sahifalar (bosh sahifa, /kirish) tokenni havoladan emas,
+  varaq xotirasidan oladi. `Suhbat.tsx` dagi «Chiqish» va «Profilim → Kirish»
+  endi `Havola` (hash faqat token manzilda qolgan boʻlsa qoʻshiladi).
+  `sessiyaSarlavhasi()` endi bitta — `Suhbat.tsx` va `Taqqos.tsx` dagi ikki nusxa oʻrniga.
+- Kengaytma kodi oʻzgarmadi — yangi versiya va doʻkonga yuklash kerak emas.
+- Haqiqiy kengaytmani Chrome 155 ga yuklash: `--load-extension` Chrome 137 dan
+  beri brendli Chrome'da ishlamaydi; Playwright `launchPersistentContext` +
+  `--enable-unsafe-extension-debugging` + brauzer CDP sessiyasida
+  `Extensions.loadUnpacked` ishlaydi (pipe ulanishi shart).
+- Haqiqiy oqim (oʻzgarmagan kengaytma, mahalliy `next start` + jonli Edge,
+  2026-10-26): `panel.html` → ramka `/usta` (token yoʻq) → xabar → «Chiqish» →
+  bosh sahifa → «Kirish» → oʻsha suhbat → «Menyu» → «Profilim» → «Kirish» →
+  /kirish → «Mehmon» → oʻsha suhbat → F5; Uzum sahifasidagi dok → «Jadvalda
+  taqqoslash» → `/taqqos?ids=…` (token yoʻq, jadval 200) → «Suhbatga oʻtish» →
+  paneldagi oʻsha sessiya: 23/23. Xotira bloklanganda (SecurityError): hash qoladi,
+  sessiya hamma sahifada yuradi: 19/19.
+- Oʻlchangan qoldiq: `/taqqos` ning birinchi (tokenli) manzili Chrome tarixiga
+  (`History`) yoziladi — `replaceState` uni oʻchirmaydi; panel ramkasining birinchi
+  yuklanishi tarixga tushmaydi. Toʻliq yechim (tokenni manzilga umuman qoʻymaslik,
+  kengaytmaning yangi versiyasi) — BACKLOG.
+
 ## 2026-10-22 — 0.3.0: «Sotuvchi koʻzoynagi» (A + C + D)
 
 Nazoratchi qarori (2026-10-21): Uzum roʻyxatida har tovar tagida sotuv (bepul),
