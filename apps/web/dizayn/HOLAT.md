@@ -4,9 +4,14 @@
 
 Nazoratchi: «sayt mana shunday dizaynda boʻlishi kerak» —
 `ZumSavdo-Landing.html` (siyohrang `#4A2A57`, Manrope, faqat yorugʻ).
-Hozircha faqat **bosh sahifa** (`/`) shu dizaynga oʻtdi
-(`BoshSahifa.tsx`, `bosh.module.css`); Kirish, Usta, Obuna — hali
-quyidagi terrakota dizaynda. Shrift — `public/fonts/manrope-*.woff2`
+Avval (2026-10-21) faqat bosh sahifa (`/`) oʻtdi. **2026-10-22,
+nazoratchi:** «Kirish, Suhbat va Obuna ham shu dizaynda» — butun sayt
+siyohrang: `globals.css` dagi `.zs-mavzu` tokenlari siyohrangga
+almashdi (yorugʻ — dizayn ranglari; tungi — dizayndagi toʻq siyohlar
+asosida, dizaynda tungi nusxa yoʻq), hamma joyda Manrope
+(`--unbounded`/`--onest` endi shu shrift), **standart mavzu — yorugʻ**
+(2026-09-24 dagi «standart tungi» qarori oʻrniga; tungini tanlaganlarda
+tungi qoladi). Kirish paneli — bosh sahifa heroidagi gradient. Shrift — `public/fonts/manrope-*.woff2`
 (dizayn toʻplamidagi fayllarning oʻzi, oʻzgaruvchan 400–800).
 «Savol bering» oynasi bosh sahifada siyohrang tokenlarni oladi.
 

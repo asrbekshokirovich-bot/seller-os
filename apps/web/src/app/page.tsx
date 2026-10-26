@@ -16,7 +16,6 @@
 
 import type { Metadata, Viewport } from 'next';
 import { after } from 'next/server';
-import { preload } from 'react-dom';
 import { holatMatni } from '@/lib/bazamiz';
 import { bazamizniKutibOl } from '@/lib/bazamizOl';
 import { tarjima } from '@/lib/til';
@@ -50,10 +49,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  // Manrope faqat shu sahifada — lotin toʻplamlari oldindan, aks holda sarlavha "sakraydi".
-  for (const f of ['/fonts/manrope-latin.woff2', '/fonts/manrope-latin-ext.woff2']) {
-    preload(f, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
-  }
   const hozir = Date.now();
   // Baza sekin boʻlsa sahifa 4 s dan ortiq kutmaydi (`bazamizniKutibOl`).
   const o = await bazamizniKutibOl(hozir, 4000, (sorov) => after(() => sorov));

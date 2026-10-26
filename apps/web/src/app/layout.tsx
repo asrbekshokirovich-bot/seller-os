@@ -25,11 +25,11 @@ export const metadata: Metadata = {
 };
 
 /*
- * Brauzer panelining rangi — hamma sahifa uchun (standart mavzu tungi).
- * Yorugʻ mavzuda head skripti uni chizishdan oldin almashtiradi.
+ * Brauzer panelining rangi — hamma sahifa uchun (standart mavzu yorugʻ).
+ * Tungi mavzuda head skripti uni chizishdan oldin almashtiradi.
  */
 export const viewport: Viewport = {
-  themeColor: PANEL_RANGI.tungi,
+  themeColor: PANEL_RANGI.yorug,
 };
 
 /*
@@ -39,13 +39,13 @@ export const viewport: Viewport = {
  * (`mavzu-skript.ts`); qolganlari (math…) `unicode-range` boʻyicha kerak
  * boʻlganda yuklanadi.
  */
-const OLDINDAN = ['/fonts/onest-latin.woff2', '/fonts/onest-latin-ext.woff2', '/fonts/unbounded-latin.woff2'];
+const OLDINDAN = ['/fonts/manrope-latin.woff2', '/fonts/manrope-latin-ext.woff2'];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   for (const f of OLDINDAN) preload(f, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
   // `data-mavzu` va `lang` ni skript chizishdan oldin moslaydi — React farqni koʻrib xato bermasin (`suppressHydrationWarning`).
   return (
-    <html lang="uz" data-mavzu="tungi" suppressHydrationWarning>
+    <html lang="uz" data-mavzu="yorug" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: MAVZU_SKRIPTI }} />
       </head>
