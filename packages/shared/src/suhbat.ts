@@ -49,7 +49,7 @@ import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
 import { sanaMatni, toshkentSanasi } from './hisobot.js';
 import { tayyorJavob } from './erkin.js';
-import { yordamchiBilimi } from './bilim.js';
+import { yordamchiBilimi, yozishBilimi } from './bilim.js';
 import { bilimJavobi, PUL_GAPI } from './bilim-javob.js';
 import { mijozHolati, SHAXSIY_SAVOLLAR, shaxsiyniYashir, suhbatTarixi } from './yordamchi.js';
 import type { ProfilJavoblari } from './profil.js';
@@ -637,7 +637,8 @@ export async function suhbatTurn(
       : null;
     const y = await aiYozTekshirib(d.ai, {
       mijoz: ak.mijoz, tanlov: ak.tanlov, qabul: ak.qabul, rad: ak.rad, savolBor: ak.savolBor,
-      bilim: yordamchiBilimi(tt, d.tarifCheklovi), tayyor,
+      // Faktlar — faqat kerak boʻlsa (2026-10-27, 4-taklif): savol boʻlsa toʻliq, yangi natija boʻlsa — lugʻat.
+      bilim: yozishBilimi(tt, { savolBor: ak.savolBor, natijaBor: kodlar.length > 0 }, d.tarifCheklovi), tayyor,
       natijalar: kodlar.map((i) => {
         const x = yangi[i]!;
         return { harakat: x.savolId as KodHarakati, matn: natijaTavsifi(x.savolId as KodHarakati, x.javob) };

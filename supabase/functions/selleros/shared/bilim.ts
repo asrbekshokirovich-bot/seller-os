@@ -18,7 +18,9 @@ import { SAVDO_SOHALARI, sohaTarkibi } from './soha.ts';
 import { UZUM_BILIMI } from './uzum-bilim.ts';
 
 const QADAMLAR = [
-  '1. Tanishuv — ism, telefon, savdo tajribasi, qaysi soha yoqishi va qancha pul bilan boshlash.',
+  // 2026-10-26 tartibi: ikki savoldan keyin darhol yoʻnalishlar (ilgari: ism, telefon, tajriba, soha, pul).
+  '1. Tanishuv — qaysi soha yoqishi va qancha pul bilan boshlash (ikki savol), keyin darhol yoʻnalishlar. Ism va '
+    + 'telefon — yoʻnalish tanlangach, natijalarni saqlash uchun; savdo tajribasi — tannarxdan oldin.',
   '2. Yoʻnalish — Uzumdagi kuzatilayotgan yoʻnalishlar (turkumlar) 100 ballik «imkoniyat bahosi» bilan; roʻyxat '
     + 'mijozning qiziqishi va boshqa sohalardan aralash; «Yana koʻrsatish» va pastga tovar nomini yozib qidirish mumkin.',
   '3. Tovar va miqdor — tanlangan yoʻnalishdagi Uzum tovarlari kartalari: narx, oxirgi 30 kunda nechta sotilgani '
@@ -127,6 +129,24 @@ const BOLIMLAR: ReadonlyArray<[RegExp, readonly string[]]> = [
  * `tarifCheklovi` — saytda tarif cheklovi yoqilganmi (Edge env): oʻchiq boʻlsa
  * faktda «hozir hamma qadam bepul» (`erkin.ts`), aks holda rejalar roʻyxati.
  */
+/**
+ * AI SUHBAT YOZISHI UCHUN BILIM (nazoratchi, 2026-10-26, 4-taklif: «unga faqat shu qadamga
+ * kerakli faktlar yuboriladi»). Ilgari har yozishga — hatto oddiy tugma bosilganda ham — asos
+ * (~8 500 belgi) ketardi: yozish soʻrovining eng katta qismi (oʻrtacha ~6 900 keshlanmagan token).
+ *
+ * - mijoz savol bermagan, yangi natija ham yoʻq (tugma yoki oddiy javob) — `null`: AI faqat
+ *   munosabat va keyingi savolni yozadi (raqamlar — holat va savoldan);
+ * - yangi natija bor, savol yoʻq — faqat lugʻat (kartadagi soʻzlarni tushuntirish uchun);
+ * - savol bor — toʻliq (`yordamchiBilimi`: asos va savolga tegishli Uzum faktlari).
+ */
+export function yozishBilimi(
+  savol: string, k: { savolBor: boolean; natijaBor: boolean }, tarifCheklovi?: boolean,
+): string | null {
+  if (k.savolBor) return yordamchiBilimi(savol, tarifCheklovi);
+  if (k.natijaBor) return ['Soʻzlar lugʻati (chatda va kartalarda shunday tushuniladi):', ...LUGAT.map((q) => `- ${q}`)].join('\n');
+  return null;
+}
+
 export function yordamchiBilimi(savol: string, tarifCheklovi?: boolean): string {
   const t = norm(savol);
   const bolimlar = BOLIMLAR.filter(([re]) => re.test(t)).flatMap(([, b]) => b);

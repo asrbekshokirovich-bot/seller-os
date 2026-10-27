@@ -854,3 +854,22 @@ describe('qisqa xabar + «Batafsil» (2026-10-27)', () => {
     expect(s.yozlar[1]!.k.tuzat).toContain('999 mln');
   });
 });
+
+describe('AI yozishiga faqat kerakli faktlar (4-taklif, 2026-10-27)', () => {
+  it('tugma, natijasiz — faktlar yuborilmaydi', async () => {
+    const s = soxtaAi([], [YOZUV]);
+    await suhbatTurn(bogliq(soxtaBaza(QIZIQISH), s.ai), 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(s.yozlar[0]!.k.bilim).toBeNull();
+  });
+  it('tugma, yangi natija bor — faqat lugʻat', async () => {
+    const s = soxtaAi([], [{ oldin: '', izoh: 'Potinka mos.', savol: 'Qaysi biri?' }]);
+    await suhbatTurn(bogliq(soxtaBaza(BYUDJET), s.ai), 't', { savolId: 'byudjet', javob: 70_000_000 });
+    expect(s.yozlar[0]!.k.bilim).toMatch(/^Soʻzlar lugʻati/);
+    expect(s.yozlar[0]!.k.bilim).not.toMatch(/ZumSavdo haqida faktlar/);
+  });
+  it('savol bilan javob — toʻliq faktlar', async () => {
+    const s = soxtaAi([{ javoblar: [{ savol_id: 'qiziqish', qiymatlar: ['kiyim'], otkazish: false }], taklif_qiziqish: [], savol_bor: true }], [YOZUV]);
+    await suhbatTurn(bogliq(soxtaBaza(QIZIQISH), s.ai), 't', { savolId: 'qiziqish', matn: 'kiyim, bu bepulmi?' });
+    expect(s.yozlar[0]!.k.bilim).toMatch(/ZumSavdo haqida faktlar/);
+  });
+});
