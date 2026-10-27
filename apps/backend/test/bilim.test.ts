@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { bilimJavobi, mijozHolati, SAVDO_SOHALARI, SOHA_MISOLLARI, suhbatTarixi, UZUM_BILIMI, yordamchiBilimi, type YolHolati } from '@selleros/shared';
+import { bilimJavobi, mijozHolati, SAVDO_SOHALARI, SOHA_MISOLLARI, suhbatTarixi, UZUM_BILIMI, yordamchiBilimi, yozishBilimi, type YolHolati } from '@selleros/shared';
 
 describe('Uzum bilimi', () => {
   it('har fakt manbasi bilan; "kafolat" yoʻq (darvoza uni taqiqlaydi)', () => {
@@ -161,3 +161,27 @@ describe('soha tarkibi (nazoratchi sinovi, 2026-10-19: «gozallik va parvarish q
   });
 });
 
+/*
+ * 4-taklif (nazoratchi, 2026-10-26): AI yozishiga faqat kerakli faktlar. Ilgari har yozishga — oddiy tugma
+ * bosilganda ham — ~8 500 belgilik asos ketardi (yozish soʻrovining eng katta qismi).
+ */
+describe('yozishBilimi — faqat kerakli faktlar (2026-10-27)', () => {
+  it('savol ham, yangi natija ham yoʻq — faktlar yoʻq', () => {
+    expect(yozishBilimi('', { savolBor: false, natijaBor: false })).toBeNull();
+  });
+  it('yangi natija bor, savol yoʻq — faqat lugʻat (asos va Uzum faktlarisiz)', () => {
+    const b = yozishBilimi('', { savolBor: false, natijaBor: true })!;
+    expect(b).toMatch(/^Soʻzlar lugʻati/);
+    expect(b).toMatch(/Imkoniyat bahosi \(ball\)/);
+    expect(b).not.toMatch(/ZumSavdo qadamlari|ZumSavdo haqida faktlar|Uzum haqida faktlar/);
+    expect(b.length).toBeLessThan(yordamchiBilimi('').length / 2);
+  });
+  it('savol bor — toʻliq (yordamchiBilimi bilan bir xil)', () => {
+    expect(yozishBilimi('komissiya qancha', { savolBor: true, natijaBor: true })).toBe(yordamchiBilimi('komissiya qancha'));
+  });
+  it('qadamlar tavsifi yangi tartibda: tanishuv — soha va pul, ism-telefon yoʻnalishdan keyin', () => {
+    const b = yordamchiBilimi('');
+    expect(b).toMatch(/1\. Tanishuv — qaysi soha yoqishi va qancha pul bilan boshlash \(ikki savol\), keyin darhol yoʻnalishlar/);
+    expect(b).not.toMatch(/1\. Tanishuv — ism, telefon/);
+  });
+});
