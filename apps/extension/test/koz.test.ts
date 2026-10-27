@@ -4,7 +4,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { BELGI_BOLAGI, TAQQOS_MAX, hrefdanId, qisqaSana, savatdanOl, savatgaQosh, soraladiganlar, taqqosManzili } from '../src/koz';
+import {
+  BELGI_BOLAGI, TAQQOS_MAX, engKopTurkumlar, hrefdanId, minglik, qisqaSana, royxatSahifasimi, savatdanOl, savatgaQosh, soraladiganlar, somQisqa,
+  taqqosManzili, turkumIdsi,
+} from '../src/koz';
 
 describe('hrefdanId', () => {
   it('haqiqiy Uzum shakllari (oʻlchangan 2026-09-29)', () => {
@@ -56,5 +59,47 @@ describe('qisqaSana', () => {
   it('YYYY-MM-DD → DD.MM', () => {
     expect(qisqaSana('2026-10-20')).toBe('20.10');
     expect(qisqaSana(null)).toBeNull();
+  });
+});
+
+describe('bozor paneli: turkum va sahifa (0.4.0)', () => {
+  it('turkumIdsi — Uzum turkum manzili (oʻlchangan 2026-10-21)', () => {
+    expect(turkumIdsi('/uz/category/termoslar-11931')).toBe(11931);
+    expect(turkumIdsi('/ru/category/termosy-11931/')).toBe(11931);
+    expect(turkumIdsi('/category/11931')).toBe(11931);
+    expect(turkumIdsi('/uz/product/termos-1978350')).toBeNull();
+    expect(turkumIdsi('/uz/search')).toBeNull();
+    expect(turkumIdsi('/uz/category/')).toBeNull();
+  });
+
+  it('royxatSahifasimi — turkum va qidiruv, tovar sahifasi emas', () => {
+    expect(royxatSahifasimi('/uz/category/termoslar-11931')).toBe(true);
+    expect(royxatSahifasimi('/uz/search')).toBe(true);
+    expect(royxatSahifasimi('/uz/product/termos-1978350')).toBe(false);
+    expect(royxatSahifasimi('/uz/')).toBe(false);
+  });
+
+  it('engKopTurkumlar — koʻpidan ozigacha, nomi bilan, turkumsiz tovar sanalmaydi', () => {
+    const t = [
+      { kategoriya: 11931, kategoriyaNomi: 'Termoslar' }, { kategoriya: 11931 }, { kategoriya: 11931, kategoriyaNomi: 'Termoslar' },
+      { kategoriya: 12000, kategoriyaNomi: 'Termokrujkalar' }, { kategoriya: 12000 },
+      { kategoriya: 900 }, { kategoriya: null }, {}, { kategoriya: 0 },
+    ];
+    expect(engKopTurkumlar(t)).toEqual([
+      { id: 11931, nom: 'Termoslar', soni: 3 },
+      { id: 12000, nom: 'Termokrujkalar', soni: 2 },
+      { id: 900, nom: null, soni: 1 },
+    ]);
+    expect(engKopTurkumlar(t, 1)).toHaveLength(1);
+    expect(engKopTurkumlar([])).toEqual([]);
+  });
+
+  it('somQisqa va minglik', () => {
+    expect(somQisqa(745_595_910)).toBe('745,6 mln');
+    expect(somQisqa(1_234_567_890)).toBe('1,2 mlrd');
+    expect(somQisqa(950_000)).toBe('950 ming');
+    expect(somQisqa(12_000_000)).toBe('12 mln');
+    expect(minglik(5689)).toBe('5 689');
+    expect(minglik(17300.4)).toBe('17 300');
   });
 });

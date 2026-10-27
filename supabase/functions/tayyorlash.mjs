@@ -58,6 +58,7 @@ export const FAYLLAR = [
   ['packages/shared/src/suhbatlar.ts', 'shared/suhbatlar.ts'],
   ['packages/shared/src/tarif.ts', 'shared/tarif.ts'],
   ['packages/shared/src/tovar-sotuvi.ts', 'shared/tovar-sotuvi.ts'],
+  ['packages/shared/src/bozor-paneli.ts', 'shared/bozor-paneli.ts'],
   ['packages/shared/src/tolov.ts', 'shared/tolov.ts'],
   ['packages/shared/src/tolov-payme.ts', 'shared/tolov-payme.ts'],
   ['packages/shared/src/tolov-click.ts', 'shared/tolov-click.ts'],

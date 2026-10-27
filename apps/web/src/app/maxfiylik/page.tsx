@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-22';
+const YANGILANDI = '2026-10-26';
 
 export default function Maxfiylik() {
   return (
@@ -131,6 +131,11 @@ export default function Maxfiylik() {
             taqqoslash sahifasi manzilida esa shu tovar raqamlari turadi — havolani
             ulashsa boʻladi. Batafsil — kengaytmaning oʻz maxfiylik siyosatida (omborda{' '}
             <code>PRIVACY.md</code>).
+          </li>
+          <li>
+            <strong>Bozor paneli</strong> (kengaytma 0.4.0): «Bozor» tugmasi bosilgandagina
+            bitta Uzum turkumining <em>raqami</em> yuboriladi — shu turkum boʻyicha talab va
+            taklifni qaytarish uchun. Raqam saqlanmaydi va sizga bogʻlanmaydi.
           </li>
         </ul>
 

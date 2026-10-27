@@ -203,6 +203,26 @@ async function belgilarOl(ids: number[]): Promise<{ sana: string | null; belgila
   return { sana: sana ?? belgilar.find((k) => k.sana)?.sana ?? null, belgilar: belgilar.map((k) => k.belgi) };
 }
 
+/**
+ * Bozor paneli keshi (0.4.0) — turkum boʻyicha, 3 soat (maʼlumot kuniga bir
+ * marta yangilanadi). Faqat toʻliq javob (200) keshlanadi: qulf (402) yoki
+ * xato keyingi ochilishda qayta soʻraladi.
+ */
+const bozorKeshi = new Map<number, { javob: Record<string, unknown>; vaqt: number }>();
+
+async function bozorOl(kategoriya: number): Promise<Record<string, unknown>> {
+  const k = bozorKeshi.get(kategoriya);
+  if (k && Date.now() - k.vaqt < BELGI_KESH_MS) return k.javob;
+  // Turkum raqami manzilda emas, tanada (PRIVACY.md 0.4.0).
+  const r = await apiSorov('/kengaytma/bozor', { method: 'POST', tana: { kategoriya } });
+  const javob = { status: r.status, ...(r.data && typeof r.data === 'object' ? r.data as Record<string, unknown> : {}) };
+  if (r.status === 200 && 'panel' in javob) {
+    if (bozorKeshi.size >= 100) bozorKeshi.clear();
+    bozorKeshi.set(kategoriya, { javob, vaqt: Date.now() });
+  }
+  return javob;
+}
+
 // Yon panel (0.2.0): asboblar panelidagi belgi bosilganda ochiladi.
 // Panelda faqat chat (panel.ts). Sozlama profilga yoziladi — oʻrnatishda
 // va har ishga tushishda qayta qoʻyiladi.
@@ -238,6 +258,14 @@ chrome.runtime.onMessage.addListener((xabar, _yuboruvchi, javobBer) => {
     apiSorov('/kengaytma/pasport', { method: 'POST', tana: { id } })
       .then((r) => javobBer({ status: r.status, ...(r.data && typeof r.data === 'object' ? r.data : {}) }))
       .catch((e) => { console.warn('ZumSavdo: pasport soʻrovi yiqildi', e); javobBer({ status: 0, xato: xatoMatni(e) }); });
+    return true;
+  }
+  if (xabar?.tur === 'bozor') {
+    const kategoriya = Number(xabar.kategoriya);
+    if (!Number.isSafeInteger(kategoriya) || kategoriya <= 0) return false;
+    bozorOl(kategoriya)
+      .then(javobBer)
+      .catch((e) => { console.warn('ZumSavdo: bozor soʻrovi yiqildi', e); javobBer({ status: 0, xato: xatoMatni(e) }); });
     return true;
   }
   if (xabar?.tur !== 'xitoy-qidiruv') return false;

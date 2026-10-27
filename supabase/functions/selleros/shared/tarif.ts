@@ -97,10 +97,11 @@ export function qadamOchiq(r: Reja, qadam: number): boolean {
 /**
  * Kengaytma qismlari (nazoratchi, 2026-10-21, «Sotuvchi koʻzoynagi»): kartochka
  * belgilari — BEPUL (Uzum roʻyxatida «oyiga ≈ N dona»); tovar pasporti va
- * taqqoslash jadvali — obunada. Qoida flagdan qatʼi nazar bir xil; qulfni
- * yoqish-oʻchirish — backend `TARIF_CHEKLOVI`.
+ * taqqoslash jadvali — obunada. Bozor paneli (2-bosqich, 2026-10-26) — pasport
+ * kabi obunada; nazoratchi tasdigʻi kutilmoqda (BACKLOG). Qoida flagdan qatʼi
+ * nazar bir xil; qulfni yoqish-oʻchirish — backend `TARIF_CHEKLOVI`.
  */
-export type KengaytmaQismi = 'belgi' | 'pasport' | 'taqqos';
+export type KengaytmaQismi = 'belgi' | 'pasport' | 'taqqos' | 'bozor';
 
 export function kengaytmaQismiOchiq(r: Reja, qism: KengaytmaQismi): boolean {
   return qism === 'belgi' || r !== 'bepul';

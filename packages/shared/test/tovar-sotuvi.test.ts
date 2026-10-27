@@ -226,7 +226,10 @@ describe('soʻrov yordamchilari', () => {
     const r = kartochkaBelgilari([3302715, 42, 1978350], [qator(1978350), qator(3302715)]);
     expect(r.sana).toBe('2026-10-20');
     expect(r.belgilar.map((b) => b.productId)).toEqual([3302715, 42, 1978350]);
-    expect(r.belgilar[1]).toEqual({ productId: 42, rang: 'yoq', matn: '—', qisqa: '—', izoh: 'oʻlchanmagan' });
+    expect(r.belgilar[1]).toEqual({ productId: 42, rang: 'yoq', matn: '—', qisqa: '—', izoh: 'oʻlchanmagan', kategoriya: null, kategoriyaNomi: null });
+    // Turkum — qidiruv sahifasidagi bozor paneli uchun (2-bosqich).
+    expect(r.belgilar[0]!.kategoriya).toBe(qator(3302715).kategoriya);
+    expect(r.belgilar[0]!.kategoriya).not.toBeNull();
     expect(kartochkaBelgilari([1], []).sana).toBeNull();
   });
 
@@ -234,6 +237,7 @@ describe('soʻrov yordamchilari', () => {
     expect(kengaytmaQismiOchiq('bepul', 'belgi')).toBe(true);
     expect(kengaytmaQismiOchiq('bepul', 'pasport')).toBe(false);
     expect(kengaytmaQismiOchiq('bepul', 'taqqos')).toBe(false);
+    expect(kengaytmaQismiOchiq('bepul', 'bozor')).toBe(false);
     expect(kengaytmaQismiOchiq('pro', 'pasport')).toBe(true);
     expect(kengaytmaQismiOchiq('biznes', 'taqqos')).toBe(true);
   });

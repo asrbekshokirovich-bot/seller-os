@@ -54,3 +54,4 @@ export * from './xizmat.js';
 export * from './kartochka.js';
 export * from './kartochka-matn.js';
 export * from './tovar-sotuvi.js';
+export * from './bozor-paneli.js';

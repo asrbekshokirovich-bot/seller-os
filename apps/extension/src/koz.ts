@@ -76,3 +76,67 @@ export function qisqaSana(sana: string | null | undefined): string | null {
   const m = sana?.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[3]}.${m[2]}` : null;
 }
+
+// ---- B — bozor paneli (0.4.0, 2-bosqich)
+
+/**
+ * Uzum turkum sahifasi: `/uz/category/<slug>-<id>` (oʻlchandi 2026-10-21:
+ * `/uz/category/termoslar-11931`), `/ru/…` va `/category/<id>` ham. Turkum id —
+ * oxirgi raqam. Boshqa sahifa — `null`.
+ */
+export function turkumIdsi(yol: string): number | null {
+  const m = yol.match(/\/category\/(?:[^/]*?-)?(\d{1,11})\/?$/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+/** Roʻyxat sahifasi — turkum yoki qidiruv (`/uz/search?query=…`): bozor paneli shu yerda. */
+export function royxatSahifasimi(yol: string): boolean {
+  return turkumIdsi(yol) !== null || /\/search\/?$/.test(yol);
+}
+
+export interface SahifaTurkumi { id: number; nom: string | null; soni: number }
+
+/**
+ * Sahifadagi tovarlarning turkumlari, koʻpidan ozigacha (teng boʻlsa — kichik id).
+ * Qidiruv sahifasida manzilda turkum yoʻq: bozor paneli shu roʻyxatning
+ * birinchisini oladi. Turkumi nomaʼlum tovar sanalmaydi.
+ */
+export function engKopTurkumlar(
+  tovarlar: Iterable<{ kategoriya?: number | null; kategoriyaNomi?: string | null }>,
+  max = 3,
+): SahifaTurkumi[] {
+  const s = new Map<number, SahifaTurkumi>();
+  for (const t of tovarlar) {
+    const id = t.kategoriya;
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) continue;
+    const bor = s.get(id);
+    if (bor) {
+      bor.soni += 1;
+      if (!bor.nom && t.kategoriyaNomi) bor.nom = t.kategoriyaNomi;
+    } else {
+      s.set(id, { id, nom: t.kategoriyaNomi ?? null, soni: 1 });
+    }
+  }
+  return [...s.values()].sort((a, b) => b.soni - a.soni || a.id - b.id).slice(0, max);
+}
+
+/** 1 kasr xonasi, vergul bilan, «,0» siz. */
+function kasr(x: number): string {
+  const r = Math.round(x * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1).replace('.', ',');
+}
+
+/** Katta soʻm qisqa: 1 234 567 890 → «1,2 mlrd», 45 600 000 → «45,6 mln», 950 000 → «950 ming». */
+export function somQisqa(n: number): string {
+  if (n >= 1e9) return `${kasr(n / 1e9)} mlrd`;
+  if (n >= 1e6) return `${kasr(n / 1e6)} mln`;
+  if (n >= 1e3) return `${kasr(n / 1e3)} ming`;
+  return String(Math.round(n));
+}
+
+/** Butun son, minglar boʻsh joy bilan: 17 300. */
+export function minglik(n: number): string {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
