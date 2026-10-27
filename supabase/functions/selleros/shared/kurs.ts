@@ -16,7 +16,9 @@
  * 100 — shuning uchun boʻlinadi.
  *
  * OLINMASA `null`. Nol emas, kechagi qiymat emas: kurs boʻlmasa soʻmga
- * oʻgirilmaydi va bu ochiq aytiladi (QOIDALAR §4).
+ * oʻgirilmaydi va bu ochiq aytiladi (QOIDALAR §4). Sababi — logda (2026-10-27:
+ * 22-oktyabrdan beri Edge dan kurs olinmayapti, noutbukdan esa olinadi; sababi
+ * hech qayerda koʻrinmas edi — QOIDALAR §8, jim oʻlim yoʻq).
  */
 
 export type Valyuta = 'CNY' | 'USD';
@@ -56,13 +58,36 @@ export function cbuKursiniOqi(json: unknown, valyuta: Valyuta = 'CNY'): Kurs | n
   return { somPerYuan: rate / nominal, valyuta, sana, manba: 'CBU' };
 }
 
-/** Kursni oladi. Hech qachon otmaydi; olinmasa `null`. */
+/** Kursni oladi. Hech qachon otmaydi; olinmasa `null`, sababi va vaqti — logda. */
 export async function kursniOl(f: typeof fetch, valyuta: Valyuta = 'CNY', vaqtChegarasiMs = 10_000): Promise<Kurs | null> {
+  const boshi = Date.now();
+  const ayt = (sabab: string) => console.warn(`kurs: CBU ${valyuta} olinmadi — ${sabab} (${Date.now() - boshi} ms)`);
   try {
     const r = await f(cbuManzili(valyuta), { signal: AbortSignal.timeout(vaqtChegarasiMs) });
-    if (!r.ok) return null;
-    return cbuKursiniOqi(await r.json(), valyuta);
-  } catch {
+    const matn = await r.text();
+    if (!r.ok) {
+      ayt(`HTTP ${r.status}: ${birQator(matn)}`);
+      return null;
+    }
+    let json: unknown;
+    try {
+      json = JSON.parse(matn);
+    } catch {
+      // Toʻsish sahifasi (HTML) kabi — boshini koʻrsatadi.
+      ayt(`JSON emas: ${birQator(matn)}`);
+      return null;
+    }
+    const k = cbuKursiniOqi(json, valyuta);
+    if (k === null) ayt(`javob shakli kutilmagan: ${birQator(matn)}`);
+    return k;
+  } catch (e) {
+    const x = e as Error | undefined;
+    ayt(`${x?.name ?? 'xato'}: ${birQator(String(x?.message ?? ''))}`);
     return null;
   }
+}
+
+/** Logga — bir qatorda, 160 belgigacha. */
+function birQator(t: string): string {
+  return t.replace(/\s+/gu, ' ').trim().slice(0, 160);
 }

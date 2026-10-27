@@ -5,7 +5,7 @@
  * 2026-09-25 da aynan shuni qaytardi. Tarmoqqa chiqilmaydi.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cbuKursiniOqi, cbuManzili, kursniOl } from '@selleros/shared';
 
 const CBU = [{
@@ -44,9 +44,35 @@ describe('kursniOl', () => {
     expect(cbuKursiniOqi(CBU, 'USD')).toBeNull();
   });
   it('tarmoq yiqilsa yoki HTTP xato — null, otmaydi', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const yiqil = (async () => { throw new Error('ENOTFOUND'); }) as unknown as typeof fetch;
     expect(await kursniOl(yiqil)).toBeNull();
     const xato = (async () => new Response('x', { status: 503 })) as unknown as typeof fetch;
     expect(await kursniOl(xato)).toBeNull();
+  });
+
+  /*
+   * 2026-10-27: 22-oktyabrdan beri Edge dan kurs olinmayapti (noutbukdan olinadi), lekin sababi
+   * hech qayerda koʻrinmas edi — `catch {}` yutib yuborardi. Endi har yiqilishning sababi logda.
+   */
+  afterEach(() => { vi.restoreAllMocks(); });
+  it('olinmasa — sababi va vaqti logda: tarmoq xatosi, HTTP holati, toʻsish sahifasi (JSON emas)', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await kursniOl((async () => { throw Object.assign(new Error('connection reset'), { name: 'TypeError' }); }) as unknown as typeof fetch, 'USD');
+    await kursniOl((async () => new Response('Forbidden', { status: 403 })) as unknown as typeof fetch);
+    await kursniOl((async () => new Response('<html>\n  <title>Access denied</title>', { status: 200 })) as unknown as typeof fetch);
+    await kursniOl((async () => new Response('[]', { status: 200 })) as unknown as typeof fetch);
+    const q = log.mock.calls.map((c) => String(c[0]));
+    expect(q).toHaveLength(4);
+    expect(q[0]).toMatch(/^kurs: CBU USD olinmadi — TypeError: connection reset \(\d+ ms\)$/);
+    expect(q[1]).toMatch(/^kurs: CBU CNY olinmadi — HTTP 403: Forbidden \(\d+ ms\)$/);
+    expect(q[2]).toMatch(/^kurs: CBU CNY olinmadi — JSON emas: <html> <title>Access denied<\/title> \(\d+ ms\)$/);
+    expect(q[3]).toMatch(/javob shakli kutilmagan: \[\]/);
+  });
+
+  it('olinsa — log yoʻq', async () => {
+    const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await kursniOl((async () => new Response(JSON.stringify(CBU), { status: 200 })) as unknown as typeof fetch);
+    expect(log).not.toHaveBeenCalled();
   });
 });

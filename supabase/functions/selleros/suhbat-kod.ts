@@ -173,6 +173,9 @@ async function kargoFaktlari(rpc: Rpc, f: typeof fetch | null) {
   return { stavka, usd };
 }
 
+/** 1-qadam dollar kursi (byudjet tugmalari) — shundan uzoq kutilmaydi (2026-10-27). */
+const TANISHUV_KURS_MS = 4_000;
+
 /** Bir turnda (bitta yurishda) ko'pi bilan shuncha rasm — Edge/Vercel vaqti va xarajat uchun. */
 const BIR_TURNDA_MAX = 5;
 
@@ -689,7 +692,9 @@ export function suhbatKodHarakatlari(
      * olinmasa `usd: null` — byudjet faqat soʻmda soʻraladi va shu aytiladi.
      */
     async kurs() {
-      const usd = xitoy ? await kursniOl(xitoy.fetch, 'USD').catch(() => null) : null;
+      // Birinchi javobdan keyin darhol keladi — kutish qisqa (2026-10-27: CBU olinmayotganda har yangi
+      // suhbat 10 s kutardi). Olinmasa — dollar tugmalarisiz, bu ochiq aytiladi.
+      const usd = xitoy ? await kursniOl(xitoy.fetch, 'USD', TANISHUV_KURS_MS).catch(() => null) : null;
       return usd === null ? { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null } : { olchov_yoq: false, usd };
     },
 
