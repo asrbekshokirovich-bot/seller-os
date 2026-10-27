@@ -96,7 +96,7 @@ import {
   kursniOl,
 } from '@selleros/shared';
 // Claude SDK faqat serverda (2026-10-19) — paketning asosiy eksportida yoʻq (sayt brauzerga oladi).
-import { claudeProvayderi, kalitniAjrat } from '@selleros/shared/llm-claude';
+import { CLAUDE_TUSHUN_MODELI, claudeProvayderi, kalitniAjrat } from '@selleros/shared/llm-claude';
 
 // ── Javob vaqtini oʻlchash (KPI: qadam_tezligi) ──────────────
 const TEZLIK_HAJMI = 200;
@@ -439,6 +439,10 @@ export function build(): FastifyInstance {
   // LLM (2026-10-19, Edge bilan bir xil): Anthropic kaliti boʻlsa — Claude (`CLAUDE_MODEL`), boʻlmasa —
   // Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
   const claude = claudeProvayderi({ kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_MODEL });
+  // Tushunish — tezkor model (2026-10-26, Edge bilan bir xil: Haiku 5.5; `CLAUDE_TUSHUN_MODEL`).
+  const claudeTushun = claudeProvayderi({
+    kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_TUSHUN_MODEL?.trim() || CLAUDE_TUSHUN_MODELI,
+  });
   const llmBor = claude !== null || Boolean(process.env.GEMINI_API_KEY);
   // Sarf (0072, Edge bilan bir xil) — har Claude javobi `ai_usage` ga, shu sessiya nomiga.
   const llmSozlama = (token: string | null) => ({
@@ -479,7 +483,7 @@ export function build(): FastifyInstance {
     ...(claude !== null && process.env.AI_SUHBAT !== '0'
       ? {
         ai: {
-          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama(token), vaqtMs: ms }, k),
+          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama(token), provayder: claudeTushun, vaqtMs: ms }, k),
           yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama(token), vaqtMs: ms }, k, qism),
         },
       }

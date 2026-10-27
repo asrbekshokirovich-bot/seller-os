@@ -58,7 +58,7 @@ import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yo
 import { malumotNiyati, type MalumotNiyati } from './erkin-malumot.js';
 import { boyMatnmi, javobgaMunosabat, javobHamBormi } from './munosabat.js';
 import {
-  aiQiymat, natijaTavsifi, savolTavsifi, type AiJavob, type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
+  aiQiymat, aiUzr, natijaTavsifi, savolTavsifi, type AiJavob, type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
   type AiYozuvQismi,
 } from './ai-suhbat.js';
 import { SAVDO_SOHALARI } from './soha.js';
@@ -199,6 +199,11 @@ const AI_YOZ_MS = 30_000;
 const AI_KAM_MS = 6_000;
 /** AI xabarining uch qismi birga — shundan uzun boʻlsa qisqaroq yozish soʻraladi. */
 const AI_YOZ_MAX = 3_500;
+/**
+ * Yozishga urinishlar (2026-10-26: ikki → uch). Darvoza oʻtkazmasa — sababi bilan qayta; yiqilsa —
+ * shunchaki qayta. Vaqt (`AI_KAM_MS`) tugasa — erta toʻxtaydi.
+ */
+const AI_URINISH = 3;
 
 /**
  * Shu turnda AI uchun: mijoz nima yubordi, nima qabul qilindi va qilinmadi.
@@ -446,8 +451,8 @@ export async function suhbatTurn(
         xabar: matn, holat: mijozHolati(holat, k0.savol.qadam), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
       }, tushunVaqti).catch(() => null);
       if (t === null) {
-        // Tushunmadi (yiqildi, vaqt tugadi) — bu turn kod bilan (pastdagi yoʻl), LLM siz: yana kutmasin.
-        d = llmsiz(d);
+        // Tushunmadi (yiqildi, vaqt tugadi) — javobni kod oʻqiydi (pastdagi yoʻl), xabarni baribir AI
+        // yozadi, vaqt qolsa (2026-10-26: ilgari butun turn LLM siz, kod qoliplari bilan ketardi).
       } else {
         holat = qiziqishTaklifi(holat, t.taklif_qiziqish);
         const j0 = t.javoblar.find((x) => x.savol_id === k0.savol.id);
@@ -501,6 +506,11 @@ export async function suhbatTurn(
         ? variantniTop(k0.savol.variantlar, tushunishUchun(yozgan)) : undefined;
       const q = savolBerdi ? null : javobniQabulQil(holat, savolId, tanlanganVariant ?? xom, dz);
       if (yozgan !== null && savolId === k0.savol.id && (q === null || q.xato)) {
+        // AI rejimi (tushunish yiqilgan yoki chaqirilmagan) — javobni baribir AI yozadi, tayyor javob yoʻq.
+        if (d.ai) {
+          return aiErkinXabar(d, token, holat, k0, qisqartir(yozgan),
+            { savolBor: savolBerdi || javobHam, sabab: q?.xato ?? null, qiymat: tanlanganVariant ?? xom, eslab: [] }, o.xabarlar ?? [], qoldi);
+        }
         return erkinXabar(d, token, holat, k0, yozgan, q?.xato ?? null, o.xabarlar ?? []);
       }
       if (q === null || q.xato) {
@@ -633,12 +643,16 @@ export async function suhbatTurn(
     if (y) {
       aiXabarlariniQoy(yangi, y, ak, kodlar, k);
       aiYozdi = true;
-    } else {
-      // AI yozolmadi — kod jumlalari, LLM siz (yana kutmasin).
-      d = llmsiz(d);
     }
   }
-  if (!aiYozdi) {
+  if (!aiYozdi && d.ai) {
+    // AI rejimi, AI baribir yozolmadi (vaqt yoki uch urinish tugadi) — TAYYOR JAVOB YOʻQ (nazoratchi,
+    // 2026-10-26): mijoz savol bergan boʻlsa — qisqa uzr; natija kartalari kod matni bilan; keyin
+    // savolning oʻzi (tugmalari shu pufakda). Ilgari: kod munosabati, «Oldin yozganingizdan oldim»,
+    // eski LLM lar.
+    if (ak.savolBor) yangi.splice(ak.boshi, 0, { rol: 'menejer', matn: aiUzr(ak.til, true) });
+    yangi.push({ rol: 'menejer', matn: k.tur === 'savol' ? k.savol.matn : k.matn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
+  } else if (!aiYozdi) {
     // Navbatdan olingan javob (oldingi gapida aytgan) — kod aytadi: savol soʻralmay oʻtib ketdi.
     if (navbatdan.length) yangi.splice(ak.boshi, 0, { rol: 'menejer', matn: `Oldin yozganingizdan oldim: ${navbatdan.join('; ')}.` });
     // ---- 3b. oʻzi yozgan javobga munosabat — obunachi xabaridan keyin (kod xabarlaridan oldin)
@@ -1207,15 +1221,6 @@ async function erkinXabar(
 
 // ------------------------------------------------------------ AI suhbat
 
-/** LLM siz bogʻliqliklar — AI yiqilgan turnda kod qoliplari tez chiqsin (yana kutmasin). */
-function llmsiz(d: SuhbatBogliqliklari): SuhbatBogliqliklari {
-  const r: SuhbatBogliqliklari = { ...d, ai: null };
-  delete r.llm;
-  delete r.erkinLlm;
-  delete r.munosabatLlm;
-  return r;
-}
-
 /** Bugun — Toshkent vaqti, `kk.oo.yyyy` (AI muddatlar haqida rost gapirsin). */
 function bugunMatni(): string {
   return sanaMatni(toshkentSanasi(new Date()));
@@ -1314,12 +1319,13 @@ async function aiYozTekshirib(
   let qoralama = false;
   const qism = oqim ? (y: AiYozuvQismi) => { qoralama = true; oqim.qism(y); } : undefined;
   const tashla = () => { if (qoralama) { qoralama = false; oqim?.qayta(); } };
-  for (let urinish = 0; urinish < 2; urinish++) {
+  for (let urinish = 0; urinish < AI_URINISH; urinish++) {
     const vaqt = Math.min(AI_YOZ_MS, qoldi() - 2_000);
     if (vaqt < AI_KAM_MS) { tashla(); return null; }
     oqim?.holat('yozmoqda');
     const y: AiYozuv | null = await ai.yoz({ ...s, tuzat }, vaqt, qism).catch(() => null);
-    if (!y) { tashla(); return null; }
+    // Yiqildi (tarmoq, rad, buzuq JSON) — vaqt qolsa yana (2026-10-26: tayyor javob yoʻq, AI qayta urinadi).
+    if (!y) { tashla(); continue; }
     const hammasi: string = [y.oldin, y.izoh, y.savol].filter(Boolean).join('\n');
     const tk = tekshir(hammasi, manba);
     const tilMos: boolean = s.til === 'uz' || kirillUlushi(hammasi) >= 0.5;
@@ -1359,9 +1365,9 @@ function aiXabarlariniQoy(yangi: SuhbatXabari[], y: AiYozuv, ak: AiKirish, kodla
 
 /**
  * AI erkin xabari: mijoz yozdi, lekin joriy savolga javob yoʻq (savol, salom, tushunarsiz)
- * yoki AI tushungan javob qabul qilinmadi. AI javob beradi va savolni qayta soʻraydi;
- * yo'l holati oʻzgarmaydi (faqat qiziqish taklifi va navbatdagi javoblar). AI yozolmasa —
- * kod shabloni (`erkinXabar`, LLM siz).
+ * yoki javob qabul qilinmadi. AI javob beradi va savolni qayta soʻraydi; yo'l holati
+ * oʻzgarmaydi (faqat qiziqish taklifi va navbatdagi javoblar). AI baribir yozolmasa —
+ * rad sababi yoki qisqa uzr (`aiUzr`); tayyor javob yoʻq (2026-10-26).
  */
 async function aiErkinXabar(
   d: SuhbatBogliqliklari, token: string, holat: YolHolati, k0: JoriySavol, matn: string,
@@ -1385,14 +1391,20 @@ async function aiErkinXabar(
     natijalar: [], eslab: t.eslab, keyingi: keyingiSavol, keyingiMatn: null, holat: mijozHolati(holat, k0.savol.qadam),
     tarix: suhbatTarixi(songgi, holat), til: yozuvi(matn), bugun: bugunMatni(), tuzat: null, ism: mijozIsmi(holat),
   }, [], qoldi, d.oqim) : null;
-  if (!y) return erkinXabar(llmsiz(d), token, holat, k0, matn, t.sabab, xabarlar);
   const savolBor = songgi.some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);
+  const til = yozuvi(matn);
   const yangi: SuhbatXabari[] = [
     ...(savolBor ? [] : [{ rol: 'menejer' as const, matn: k0.savol.matn, savolId: k0.savol.id }]),
     { rol: 'obunachi', matn },
-    // `javob` — erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
-    ...(y.oldin ? [{ rol: 'menejer' as const, matn: y.oldin, savolId: k0.savol.id, javob: { erkin: true, manba: 'ai' } }] : []),
-    { rol: 'menejer', matn: y.savol || (keyingiSavol !== k1.savol ? keyingiSavol.matn : k0.savol.matn), savolId: k0.savol.id },
+    ...(y
+      ? [
+        // `javob` — erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
+        ...(y.oldin ? [{ rol: 'menejer' as const, matn: y.oldin, savolId: k0.savol.id, javob: { erkin: true, manba: 'ai' } }] : []),
+        { rol: 'menejer' as const, matn: y.savol || (keyingiSavol !== k1.savol ? keyingiSavol.matn : k0.savol.matn), savolId: k0.savol.id },
+      ]
+      // AI baribir yozolmadi — tayyor javob YOʻQ (2026-10-26): javob qabul qilinmagan boʻlsa — kodning
+      // sababi (nimani tuzatish kerak), aks holda qisqa uzr. Savol oʻsha — tugmalari shu pufakda.
+      : [{ rol: 'menejer' as const, matn: t.sabab ? (til === 'ru' ? sababRu(t.sabab) : t.sabab) : aiUzr(til), savolId: k0.savol.id }]),
   ];
   const qadam = joriyQadam(holat);
   const w = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {

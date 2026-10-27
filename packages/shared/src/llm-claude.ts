@@ -23,6 +23,11 @@
  * $2/$10 (Opus 5.5 dan arzon), chat va matn yozishda tezroq; soʻrov shakli oʻsha (effort,
  * JSON sxema, `fallbacks: 'default'`). Opus kerak boʻlsa — `CLAUDE_MODEL=claude-opus-5-5`.
  *
+ * TUSHUNISH — HAIKU 5.5 (2026-10-26, nazoratchi: «AI hamma joyda», taklif 2 va 4 — tezroq,
+ * arzonroq): mijoz gapidan javoblarni ajratish (JSON) — `CLAUDE_TUSHUN_MODELI`, Sonnet dan bir
+ * necha baravar tez va 20 baravar arzon; yozish Sonnet 5.5 da qoladi. `CLAUDE_TUSHUN_MODEL`
+ * bilan almashadi. Haiku 5.5 da server zaxirasi yoʻq — unga `fallbacks` yuborilmaydi.
+ *
  * OQIM (2026-10-20, «matn yozilgan sari chiqib borsin»): `c.qism` berilsa — javob
  * `messages.stream` bilan keladi va har boʻlakda shu paytgacha yozilgan matn `qism` ga
  * beriladi. Oxirida — xuddi oqimsizdagi kabi tekshiriladi (rad, chegara). Rad etilib boshqa
@@ -41,6 +46,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { LlmChaqiruvi, LlmProvayder, LlmSarfi } from './llm.js';
 
 export const CLAUDE_MODELI = 'claude-sonnet-5-5';
+/** Tushunish (AI suhbat, JSON) uchun standart model — tez va arzon (2026-10-26). */
+export const CLAUDE_TUSHUN_MODELI = 'claude-haiku-5-5';
 
 /**
  * Roʻyxat narxi, $ / 1 mln token — platform.claude.com/docs/en/about-claude/pricing (oʻqildi
@@ -50,6 +57,8 @@ export const CLAUDE_MODELI = 'claude-sonnet-5-5';
  */
 const NARXLAR: Readonly<Record<string, { kirish: number; chiqish: number; keshOqish: number }>> = {
   'claude-sonnet-5-5': { kirish: 2, chiqish: 10, keshOqish: 0.1 },
+  // Haiku 5.5 — soʻrov 100 ming tokengacha boʻlsa (bizniki ~2 ming); uzunrogʻi $0,50 / $2,50 — bizda yoʻq.
+  'claude-haiku-5-5': { kirish: 0.1, chiqish: 0.5, keshOqish: 0.01 },
   'claude-opus-5-5': { kirish: 4, chiqish: 20, keshOqish: 0.2 },
   'claude-opus-5': { kirish: 5, chiqish: 25, keshOqish: 0.5 },
   'claude-opus-4-8': { kirish: 5, chiqish: 25, keshOqish: 0.5 },
@@ -158,6 +167,8 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
     return null;
   }
   const model = s.model?.trim() || CLAUDE_MODELI;
+  // Haiku 5.5 da server zaxirasi yoʻq: `fallbacks` u yerda foydasiz (roʻyxat bilan — 400).
+  const zaxira = !/^claude-haiku-/.test(model);
   // Bitta qayta urinish (429/5xx, tarmoq) — umumiy vaqt chegarasi ichida (`signal`).
   const mijoz = new Anthropic({ apiKey: kalit, maxRetries: 1, ...(s.fetchFn ? { fetch: s.fetchFn } : {}) });
 
@@ -175,8 +186,7 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
         effort: c.kuch ?? 'low',
         ...(c.json ? { format: { type: 'json_schema' as const, schema: c.json } } : {}),
       },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default' as const,
+      ...(zaxira ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
     };
     const sozlama = { signal: nazorat.signal, timeout: c.vaqtMs };
     try {

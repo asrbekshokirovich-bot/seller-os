@@ -24,7 +24,7 @@ import {
 } from './tahlil.ts';
 import { suhbatKodHarakatlari } from './suhbat-kod.ts';
 // Claude SDK faqat serverda (2026-10-19) — `shared/index.ts` dan eksport qilinmaydi.
-import { CLAUDE_MODELI, claudeProvayderi, kalitniAjrat } from './shared/llm-claude.ts';
+import { CLAUDE_MODELI, CLAUDE_TUSHUN_MODELI, claudeProvayderi, kalitniAjrat } from './shared/llm-claude.ts';
 import {
   aiSarfYozuvchi,
   aiXarajati,
@@ -266,6 +266,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         llmProvayder: Deno.env.get('ANTHROPIC_API_KEY') ? 'claude' : Deno.env.get('GEMINI_API_KEY') ? 'gemini' : null,
         // Qaysi Claude modeli (2026-10-20: standart — Sonnet 5.5; `CLAUDE_MODEL` bilan almashadi).
         claudeModel: Deno.env.get('ANTHROPIC_API_KEY') ? (Deno.env.get('CLAUDE_MODEL')?.trim() || CLAUDE_MODELI) : null,
+        // Tushunish modeli (2026-10-26: standart — Haiku 5.5; `CLAUDE_TUSHUN_MODEL` bilan almashadi).
+        claudeTushunModel: Deno.env.get('ANTHROPIC_API_KEY') ? (Deno.env.get('CLAUDE_TUSHUN_MODEL')?.trim() || CLAUDE_TUSHUN_MODELI) : null,
         // AI suhbat (2026-10-19): Claude bilan, `AI_SUHBAT=0` boʻlmasa — hamma xabarni AI yozadi.
         aiSuhbat: Boolean(Deno.env.get('ANTHROPIC_API_KEY')) && Deno.env.get('AI_SUHBAT') !== '0',
         // Payme/Click sozlanganmi (kalitlar emas, faqat bor-yoʻqligi) — 0067.
@@ -512,6 +514,10 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     // LLM (nazoratchi, 2026-10-19): Anthropic kaliti boʻlsa — Claude (`CLAUDE_MODEL`, boʻlmasa
     // `claude-sonnet-5-5`); boʻlmasa — Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
     const claude = claudeProvayderi({ kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_MODEL') });
+    // Tushunish — tezkor model (2026-10-26: Haiku 5.5; `CLAUDE_TUSHUN_MODEL` bilan almashadi).
+    const claudeTushun = claudeProvayderi({
+      kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_TUSHUN_MODEL')?.trim() || CLAUDE_TUSHUN_MODELI,
+    });
     const kalit = claude !== null || Boolean(Deno.env.get('GEMINI_API_KEY'));
     const llmSozlama = {
       kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
@@ -561,7 +567,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       // tushuntirsin; 12 qadam qolsin"). Faqat Claude bilan; `AI_SUHBAT=0` — oʻchiradi (eski yoʻl).
       ...(claude !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {
         ai: {
-          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama, vaqtMs: ms }, k),
+          tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama, provayder: claudeTushun, vaqtMs: ms }, k),
           yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama, vaqtMs: ms }, k, qism),
         },
       } : {}),

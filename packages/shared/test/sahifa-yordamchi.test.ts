@@ -3,15 +3,17 @@
  *
  * NEGA BU TESTLAR BOR. Bosh sahifa, kirish, maxfiylik va «Rejalar» da odam istalgan
  * savolni yozadi. AI javobi darvozadan oʻtadi (raqam faqat faktlardan, kafolat yoʻq,
- * til — odamniki); oʻtmasa — bir marta qayta, keyin bazadagi javob yoki umumiy gap.
- * AI yoʻq yoki yiqilsa ham javob bor. Brauzerdan kelgan tarix tekshiriladi.
+ * til — odamniki); oʻtmasa yoki yiqilsa — vaqt qolguncha qayta (uch martagacha), baribir
+ * yozolmasa — qisqa uzr: TAYYOR JAVOB YOʻQ (nazoratchi, 2026-10-26: «AI hamma joyda javob
+ * bersin, tayyor javoblar shartmas»). AI umuman ulanmagan boʻlsa — bazadagi javob yoki umumiy
+ * gap. Brauzerdan kelgan tarix tekshiriladi.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SAHIFA_KORSATMA, SAHIFA_TAVSIFI, sahifaJavobi, sahifaSoroviMatni, sahifaTarixi, type SahifaSorovi,
 } from '../src/sahifa-yordamchi';
-import { AI_YOZ_KORSATMA, SAYT_NOMLARI } from '../src/ai-suhbat';
+import { AI_YOZ_KORSATMA, aiUzr, SAYT_NOMLARI } from '../src/ai-suhbat';
 import { tayyorJavob } from '../src/erkin';
 
 /** Soxta AI: soʻrovlarni yozadi, javoblarni navbat bilan qaytaradi (oxirgisi takrorlanadi). */
@@ -36,16 +38,17 @@ describe('sahifa yordamchisi', () => {
     expect(s.sorovlar[0]!.til).toBe('uz');
   });
 
-  it('AI raqam toʻqisa — sababi bilan qayta; yana toʻqisa — bazadagi javob', async () => {
+  it('AI raqam toʻqisa — sababi bilan qayta (uch martagacha); baribir toʻqisa — uzr, bazadagi tayyor javob emas', async () => {
     const s = soxta(['Obuna atigi 7 777 soʻm.']);
     const r = await sahifaJavobi({ ai: s.ai }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });
-    expect(s.sorovlar).toHaveLength(2);
+    expect(s.sorovlar).toHaveLength(3);
     expect(s.sorovlar[1]!.tuzat).toContain('7 777');
-    expect(r.manba).toBe('baza');
-    expect(r.matn).not.toContain('7 777');
+    expect(r).toEqual({ matn: aiUzr('uz'), manba: 'shablon' });
+    // Bazadagi javob AI ga fakt boʻlib boradi — mijozga oʻzi chiqmaydi.
+    expect(s.sorovlar[0]!.tayyor).toBeTruthy();
   });
 
-  it('oqim (2026-10-20): qoralama darhol; oʻtmasa — «qayta», yangisi; ikkinchisi ham oʻtmasa — yana «qayta»', async () => {
+  it('oqim (2026-10-20): qoralama darhol; oʻtmasa — «qayta», yangisi; hech biri oʻtmasa — har biridan keyin «qayta»', async () => {
     const h: string[] = [];
     const oqim = { qism: (m: string) => { h.push(`qism:${m}`); }, qayta: () => { h.push('qayta'); } };
     // AI yozayotganda qism chaqiradi (yarmi, keyin hammasi), soʻng javobni qaytaradi.
@@ -65,18 +68,18 @@ describe('sahifa yordamchisi', () => {
 
     h.length = 0;
     const r2 = await sahifaJavobi({ ai: oqimli(['Obuna atigi 7 777 soʻm.']), oqim }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });
-    expect(r2.manba).toBe('baza');
-    expect(h.filter((x) => x === 'qayta')).toHaveLength(2);
+    expect(r2).toEqual({ matn: aiUzr('uz'), manba: 'shablon' });
+    expect(h.filter((x) => x === 'qayta')).toHaveLength(3);
     expect(h.at(-1)).toBe('qayta');
   });
 
-  it('oqim: qoralama chiqqan-u, AI oxirida yiqilsa — «qayta», bazadagi javob', async () => {
+  it('oqim: qoralama chiqqan-u, AI oxirida yiqilsa — «qayta» va yana urinish; baribir — uzr', async () => {
     const h: string[] = [];
     const oqim = { qism: (m: string) => { h.push(`qism:${m}`); }, qayta: () => { h.push('qayta'); } };
     const ai = async (_k: SahifaSorovi, _ms: number, qism?: (m: string) => void) => { qism?.('Obuna'); return null; };
     const r = await sahifaJavobi({ ai, oqim }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });
-    expect(r.manba).toBe('baza');
-    expect(h).toEqual(['qism:Obuna', 'qayta']);
+    expect(r).toEqual({ matn: aiUzr('uz'), manba: 'shablon' });
+    expect(h).toEqual(['qism:Obuna', 'qayta', 'qism:Obuna', 'qayta', 'qism:Obuna', 'qayta']);
   });
 
   it('kafolat yozsa — oʻtmaydi', async () => {
@@ -110,9 +113,31 @@ describe('sahifa yordamchisi', () => {
     expect(r3.matn).toContain('«Начать путь»');
   });
 
-  it('AI yiqilsa (null yoki xato) — bazadagi javob', async () => {
-    const r = await sahifaJavobi({ ai: async () => { throw new Error('tarmoq'); } }, { ...K, savol: 'Bu bepulmi?' });
-    expect(r.manba).toBe('baza');
+  it('AI yiqilsa (null yoki xato) — uch marta urinadi, keyin uzr (ruscha savolga — ruscha); bazadagi javob emas', async () => {
+    let n = 0;
+    const r = await sahifaJavobi({ ai: async () => { n++; throw new Error('tarmoq'); } }, { ...K, savol: 'Bu bepulmi?' });
+    expect(n).toBe(3);
+    expect(r).toEqual({ matn: aiUzr('uz'), manba: 'shablon' });
+    const r2 = await sahifaJavobi({ ai: async () => null }, { ...K, savol: 'Это бесплатно?' });
+    expect(r2).toEqual({ matn: aiUzr('ru'), manba: 'shablon' });
+  });
+
+  it('har urinish umumiy vaqtga sigʻadi (Vercel 60 s): vaqt tugasa — yana urinmaydi', async () => {
+    const vaqtlar: number[] = [];
+    const ai = async (_k: SahifaSorovi, ms: number) => { vaqtlar.push(ms); return null; };
+    await sahifaJavobi({ ai }, { ...K, savol: 'Bu bepulmi?' });
+    expect(vaqtlar).toHaveLength(3);
+    for (const v of vaqtlar) expect(v).toBeLessThanOrEqual(25_000);
+  });
+
+  afterEach(() => { vi.useRealTimers(); });
+  it('sekin AI (har urinish 24 s): ikkinchisiga qolgan vaqt, uchinchisiga vaqt yetmaydi — uzr (50 s ichida)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const vaqtlar: number[] = [];
+    const ai = async (_k: SahifaSorovi, ms: number) => { vaqtlar.push(ms); vi.setSystemTime(Date.now() + 24_000); return null; };
+    const r = await sahifaJavobi({ ai }, { ...K, savol: 'Bu bepulmi?' });
+    expect(vaqtlar).toEqual([25_000, 24_000]);
+    expect(r).toEqual({ matn: aiUzr('uz'), manba: 'shablon' });
   });
 
   it('soʻrov matni: sahifa tavsifi, mijoz holati, oldingi savol-javoblar', () => {

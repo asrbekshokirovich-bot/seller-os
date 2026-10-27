@@ -311,7 +311,8 @@ export default function Maxfiylik() {
             bildirishi uchun shu matn, savol, holatingiz va oxirgi xabarlar
             (ism-familiya va telefonsiz) yuboriladi. Bu holatlarning hammasida
             javobni kod tekshiradi — yangi raqam yoki kafolat soʻzi boʻlsa, u
-            tashlanadi va kodning oʻz jumlasi ketadi. Sessiya kaliti yuborilmaydi.
+            tashlanadi va yordamchi qayta yozadi; baribir oʻtmasa — qisqa uzr va
+            savolning oʻzi chiqadi (2026-10-26 dan tayyor javob yoʻq). Sessiya kaliti yuborilmaydi.
             Ism-familiya va telefonni yozgan xabaringiz — ularning savoliga javob (2026-10-21 dan)
             yoki boshqa gapingiz, masalan birinchi xabaringiz (2026-10-26 dan) — suhbatni
             sunʼiy intellekt olib borayotgan boʻlsa (Anthropic, Claude) — unga yuboriladi: u ism

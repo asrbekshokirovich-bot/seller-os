@@ -8,12 +8,12 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLAUDE_MODELI, claudeNarxi, claudeProvayderi, javobMatni, kalitniAjrat, sirsiz } from '../src/llm-claude';
+import { CLAUDE_MODELI, CLAUDE_TUSHUN_MODELI, claudeNarxi, claudeProvayderi, javobMatni, kalitniAjrat, sirsiz } from '../src/llm-claude';
 import {
-  aiSarfYozuvchi, aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir,
+  aiSarfYozuvchi, aiTushunBer, aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir,
   sahifaJavobBer, type LlmSarfi,
 } from '../src/llm';
-import { AI_YOZ_SXEMA } from '../src/ai-suhbat';
+import { AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_SXEMA } from '../src/ai-suhbat';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Headers }
 
@@ -138,6 +138,25 @@ describe('Claude provayderi', () => {
     expect(await erkinJavobBer({ kalit: null, provayder, vaqtMs: 150 },
       { savol: 'S', variantlar: [], xabar: 'X', sabab: null, tayyor: null, bilim: 'B' })).toBeNull();
     expect(Date.now() - boshi).toBeLessThan(3_000);
+  });
+
+  it('tushunish — Haiku 5.5 (2026-10-26): JSON sxema, effort low; zaxira modeli yoʻq — fallbacks ham, beta sarlavha ham yuborilmaydi', async () => {
+    expect(CLAUDE_TUSHUN_MODELI).toBe('claude-haiku-5-5');
+    const y: Yozuv[] = [];
+    const TUSHUNCHA = { javoblar: [{ savol_id: 'qiziqish', qiymatlar: ['kiyim'], otkazish: false }], taklif_qiziqish: [], savol_bor: false };
+    const provayder = claudeProvayderi({
+      kalit: 'k', model: CLAUDE_TUSHUN_MODELI,
+      fetchFn: soxtaFetch([{ json: javob([{ type: 'text', text: JSON.stringify(TUSHUNCHA) }], 'end_turn', CLAUDE_TUSHUN_MODELI) }], y),
+    });
+    const r = await aiTushunBer({ kalit: null, provayder }, { savollar: [], xabar: 'kiyim sotaman', holat: '-', tarix: '' });
+    expect(r).toEqual(TUSHUNCHA);
+    const t = y[0]!.tana;
+    expect(t.model).toBe('claude-haiku-5-5');
+    expect(t.fallbacks).toBeUndefined();
+    expect(y[0]!.sarlavha.get('anthropic-beta')).toBeNull();
+    expect(t.system).toEqual([{ type: 'text', text: AI_TUSHUN_KORSATMA, cache_control: { type: 'ephemeral' } }]);
+    expect(t.output_config).toEqual({ effort: 'low', format: { type: 'json_schema', schema: AI_TUSHUN_SXEMA } });
+    expect(t.thinking).toBeUndefined();
   });
 
   it('CLAUDE_MODEL bilan boshqa model', async () => {
@@ -438,11 +457,20 @@ describe('sarf — har javob narxi (2026-10-22)', () => {
     ]);
   });
 
+  it('Haiku 5.5 (tushunish): 1 mln kirish $0,10, chiqish $0,50, kesh oʻqilgani $0,01', () => {
+    expect(claudeNarxi('claude-haiku-5-5', { kirish: 1_000_000, chiqish: 0, keshOqildi: 0, keshYozildi: 0 })).toBe(0.1);
+    expect(claudeNarxi('claude-haiku-5-5', { kirish: 0, chiqish: 1_000_000, keshOqildi: 0, keshYozildi: 0 })).toBe(0.5);
+    expect(claudeNarxi('claude-haiku-5-5', { kirish: 0, chiqish: 0, keshOqildi: 1_000_000, keshYozildi: 0 })).toBe(0.01);
+    // Odatdagi tushunish: ~1 200 kirish, ~1 200 kesh yozish, ~60 chiqish — $0,0003 atrofida (Sonnet da ~$0,006).
+    expect(claudeNarxi('claude-haiku-5-5', { kirish: 1_200, chiqish: 60, keshOqildi: 0, keshYozildi: 1_200 })).toBeLessThan(0.0004);
+  });
+
   it('narxi roʻyxatda yoʻq model — narx `null` (taxmin qilinmaydi), logda sababi', async () => {
     const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const { sarflar } = await sor(javob([{ type: 'text', text: 'ok' }], 'end_turn', 'claude-haiku-5-5'));
-    expect(sarflar[0]).toMatchObject({ model: 'claude-haiku-5-5', kirish: 120, narxUsd: null });
-    expect(log.mock.calls.flat().join(' ')).toMatch(/claude-haiku-5-5 narxi roʻyxatda yoʻq/);
+    // Haiku 5.5 endi roʻyxatda (2026-10-26, tushunish) — misol: eski Haiku 4.5.
+    const { sarflar } = await sor(javob([{ type: 'text', text: 'ok' }], 'end_turn', 'claude-haiku-4-5'));
+    expect(sarflar[0]).toMatchObject({ model: 'claude-haiku-4-5', kirish: 120, narxUsd: null });
+    expect(log.mock.calls.flat().join(' ')).toMatch(/claude-haiku-4-5 narxi roʻyxatda yoʻq/);
   });
 
   it('narx: sanali nom — sanasiz narxda; `claude-opus-5` ≠ `claude-opus-5-5` (boshi bir xil)', () => {
