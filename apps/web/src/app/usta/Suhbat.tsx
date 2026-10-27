@@ -29,6 +29,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
+import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
 import { sessiyaSarlavhasi } from '@/lib/kengaytma';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { tarjima, type Til, type Tr } from '@/lib/til';
@@ -131,6 +132,12 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const bandQil = (b: boolean) => { bandRef.current = b; setBand(b); };
   /** Hozirgi savol kaliti — yozuv va tanlov shu almashganda tozalanadi. */
   const savolKaliti = useRef('');
+  /**
+   * CBU kursi — brauzerning oʻzidan (2026-10-27: cbu.uz serverlarimizga javob bermaydi). Sahifa
+   * ochilishi bilan olinadi va har soʻrovga qoʻshiladi; server uni tekshiradi (`brauzerKursi`).
+   */
+  const kurs = useRef<Promise<CbuQatorlari | null> | null>(null);
+  useEffect(() => { kurs.current ??= cbuQatorlari(); }, []);
 
   /**
    * Javobni qabul qiladi: xabarlarni qoʻshadi, keyingini yangilaydi.
@@ -279,6 +286,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     if (!jim) { bandQil(true); setXato(null); }
     if (!jim && korinish) setYuborilgan(korinish);
     let qabulQilindi = false;
+    // Kurs hali kelmagan boʻlsa — 1,5 s dan uzoq kutilmaydi (server CBU ga oʻzi urinadi).
+    const cbu = kurs.current ? await Promise.race([kurs.current, new Promise<null>((ok) => { setTimeout(() => ok(null), 1_500); })]) : null;
     try {
       let r: Response;
       try {
@@ -287,7 +296,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
           headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
           // Sahifa tili — tugma bosilganda yordamchi shu tilda yozadi (AI suhbat, 2026-10-19).
           // Oqim — javob yozilgan sari chiqadi (2026-10-20); fon tekshiruviga kerak emas.
-          body: JSON.stringify({ ...tana, til, ...(jim ? {} : { oqim: true }) }),
+          body: JSON.stringify({ ...tana, til, ...(cbu ? { kurs: cbu } : {}), ...(jim ? {} : { oqim: true }) }),
         });
       } catch (q) {
         if (jim || mening !== avlod.current) return;

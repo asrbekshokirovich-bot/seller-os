@@ -17,7 +17,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { XitoyNatijasi, YolHolati } from '@selleros/shared';
+import type { BrauzerKurslari, XitoyNatijasi, YolHolati } from '@selleros/shared';
 import { suhbatKodHarakatlari } from '../src/suhbat-kod.js';
 
 const F = JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/apify-1688-rasm.json'), 'utf8')) as {
@@ -100,9 +100,13 @@ function soxtaFetch(q: { cbu?: unknown | (() => never); boshlash?: unknown; hola
   return { fetch: f, urllar, apify: () => urllar.filter((u) => u.includes('apify')) };
 }
 
-function kod(b: ReturnType<typeof soxtaBaza>, f: typeof fetch, q: { kalit?: string | null; tarifCheklovi?: boolean; hozir?: () => Date } = {}) {
+function kod(
+  b: ReturnType<typeof soxtaBaza>, f: typeof fetch,
+  q: { kalit?: string | null; tarifCheklovi?: boolean; hozir?: () => Date; kurs?: BrauzerKurslari | null } = {},
+) {
   return suhbatKodHarakatlari(b.rpc, () => ({ bayroqlar: [], baholanmadi: [] }), () => 9,
-    { kalit: q.kalit === undefined ? 'KALIT' : q.kalit, fetch: f, token: 'tok', tarifCheklovi: q.tarifCheklovi ?? false, ...(q.hozir ? { hozir: q.hozir } : {}) });
+    { kalit: q.kalit === undefined ? 'KALIT' : q.kalit, fetch: f, token: 'tok', tarifCheklovi: q.tarifCheklovi ?? false,
+      ...(q.hozir ? { hozir: q.hozir } : {}), ...(q.kurs !== undefined ? { kurs: { qiymat: q.kurs } } : {}) });
 }
 
 const qator = (n: XitoyNatijasi, id: number) => n.qatorlar.find((x) => x.productId === id)!;
@@ -290,6 +294,29 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
     // Xom (inglizcha) xato matni obunachiga chiqmaydi, "provayder: provayderga …" takrori yoʻq.
     expect(qator(n, 100).sabab).toBe('provayderga ulanib boʻlmadi (javob kechikdi)');
     expect(b.soni()).toBe(0);
+  });
+
+  /*
+   * 2026-10-27: cbu.uz serverlarimizga javob bermaydi (Edge logi: TimeoutError) — kursni mijoz
+   * brauzeri oladi va soʻrovga qoʻshadi (tekshirilgan, `brauzerKursi`). Bor boʻlsa — CBU ga
+   * serverdan soʻrov yoʻq; yoʻq boʻlsa — avvalgidek oʻzimiz urinamiz.
+   */
+  it('brauzer kursi bor — CBU ga serverdan soʻrov yoʻq, soʻm shu kurs bilan; yoʻq valyuta — oʻzimiz olamiz', async () => {
+    const keshdagi = [{ sourceId: '1', title: 'Keshdagi', narxYuan: 2, rasmUrl: null, moq: 2, reyting: null, manba: '1688', manzil: null, oxshashlikOrni: 1, dropshipNarxYuan: null, buyurtmalar: 5, zavod: null, superZavod: null, sotuvchi: null, joy: null, dokonYili: null }];
+    const CNY_B = { somPerYuan: 1_700, valyuta: 'CNY' as const, sana: '27.10.2026', manba: 'CBU' as const };
+    const USD_B = { somPerYuan: 11_861.96, valyuta: 'USD' as const, sana: '27.10.2026', manba: 'CBU' as const };
+    const b = soxtaBaza({ kesh: { [RASM_A]: keshdagi, [RASM_B]: keshdagi } });
+    const s = soxtaFetch({ cbu: () => { throw new Error('TimeoutError'); } });
+    const n = await kod(b, s.fetch, { kurs: { USD: USD_B, CNY: CNY_B } }).xitoy(holatYasa()) as XitoyNatijasi;
+    expect(n.kurs).toEqual(CNY_B);
+    expect(qator(n, 100).takliflar[0]).toMatchObject({ narxSom: 3_400, chegaradaMi: true });
+    expect(s.urllar.filter((u) => u.includes('cbu.uz'))).toEqual([]);
+    // 1-qadam dollar kursi — ham brauzerdan, soʻrovsiz.
+    expect(await kod(b, s.fetch, { kurs: { USD: USD_B, CNY: null } }).kurs(holatYasa())).toEqual({ olchov_yoq: false, usd: USD_B });
+    expect(s.urllar.filter((u) => u.includes('cbu.uz'))).toEqual([]);
+    // Brauzer USD bermagan — oʻzimiz CBU ga urinamiz (bu yerda yiqiladi): «olinmadi».
+    expect(await kod(b, s.fetch, { kurs: { USD: null, CNY: CNY_B } }).kurs(holatYasa())).toEqual({ olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
+    expect(s.urllar.filter((u) => u.includes('cbu.uz/uz/arkhiv-kursov-valyut/json/USD/'))).toHaveLength(1);
   });
 
   it('kurs olinmasa — narxSom va chegaradaMi null, natija baribir "topildi"', async () => {

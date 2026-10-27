@@ -91,3 +91,40 @@ export async function kursniOl(f: typeof fetch, valyuta: Valyuta = 'CNY', vaqtCh
 function birQator(t: string): string {
   return t.replace(/\s+/gu, ' ').trim().slice(0, 160);
 }
+
+/** Brauzer CBU dan olgan kurslar — tekshirilgan; yoʻq yoki oʻtmagan valyuta — `null`. */
+export type BrauzerKurslari = Readonly<Record<Valyuta, Kurs | null>>;
+
+/** Oqilona chegara, 1 birlik necha soʻm: bundan tashqarisi — xato yoki soxta, qabul qilinmaydi. */
+const BRAUZER_CHEGARA: Readonly<Record<Valyuta, readonly [number, number]>> = {
+  USD: [8_000, 20_000],
+  CNY: [1_000, 3_000],
+};
+
+/**
+ * BRAUZER YUBORGAN KURS (2026-10-27). cbu.uz 22-oktyabrdan beri serverlarimizga (Supabase Edge,
+ * Vercel) javob bermaydi — Edge logi: «TimeoutError … 4004 ms», Vercel orqali ham 502. Mijoz
+ * brauzeriga esa ochiq (`Access-Control-Allow-Origin: *`). Shuning uchun suhbat sahifasi CBU
+ * qatorlarini (`{USD: {Ccy, Rate, Nominal, Date}, CNY: …}`) oʻzi oladi va soʻrovga qoʻshadi.
+ *
+ * Bu mijoz yuborgan qiymat — shuning uchun tekshiriladi: CBU shakli (`cbuKursiniOqi`), oqilona
+ * chegara (`BRAUZER_CHEGARA`) va sana (Toshkent boʻyicha bugundan 7 kun oldin — ertagacha; CBU
+ * ertangi kursni kechqurun eʼlon qiladi). Oʻtmasa — `null`: server CBU ga oʻzi urinadi. Kurs faqat
+ * shu mijozning oʻz hisob-kitobiga ketadi — boshqa hech kimga taʼsir qilmaydi.
+ */
+export function brauzerKursi(x: unknown, bugun: Date = new Date()): BrauzerKurslari {
+  const q = x !== null && typeof x === 'object' ? (x as Record<string, unknown>) : {};
+  const bitta = (v: Valyuta): Kurs | null => {
+    const k = cbuKursiniOqi([q[v]], v);
+    if (k === null) return null;
+    const [kam, kop] = BRAUZER_CHEGARA[v];
+    if (k.somPerYuan < kam || k.somPerYuan > kop) return null;
+    const s = /^(\d{2})\.(\d{2})\.(\d{4})$/u.exec(k.sana);
+    if (!s) return null;
+    const kun = Date.UTC(Number(s[3]), Number(s[2]) - 1, Number(s[1])) / 86_400_000;
+    // Toshkent (UTC+5) boʻyicha bugungi kun raqami.
+    const bugunKun = Math.floor((bugun.getTime() + 5 * 3_600_000) / 86_400_000);
+    return kun >= bugunKun - 7 && kun <= bugunKun + 1 ? k : null;
+  };
+  return { USD: bitta('USD'), CNY: bitta('CNY') };
+}
