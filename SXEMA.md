@@ -237,6 +237,15 @@ doʻkon nomlari (`zumsavdo.shop`) va «yangi» chegarasi (`market_day.id_frontie
 toʻliq oʻqirdi. Panelni FORMULA.md «Bozor paneli» hisoblaydi, funksiya emas.
 Faqat `service_role`.
 
+**Bozor paneli keshi (0075, 2026-10-27)** — `selleros.bozor_kesh`: turkum → hisoblangan
+panel (`jsonb`), qaysi kun maʼlumotidan (`sana`) va qaysi kod versiyasi bilan
+(`versiya` = `BOZOR_KESH_VERSIYASI`, bozor-paneli.ts). `so_bozor_kesh_oqi` joriy kunni
+`zumsavdo.xulosa_jurnal` dan oladi va faqat shu kun + shu versiya panelini beradi;
+`so_bozor_kesh_yoz` eskiroq kunni yangisining ustiga yozmaydi. Nega: Edge xotirasidagi
+kesh har nusxada alohida — jonli, eng katta turkum takroriy soʻrovda ham 4 s edi.
+`so_bozor_qatorlar` oʻzgarmadi (saralashsiz varianti iliq oʻqishda 0,86 → 0,80 s — farq kichik).
+RLS yoqiq, siyosat yoʻq; faqat `service_role` funksiyalari orqali.
+
 ## 3. Usta jadvallari
 
 ### `product_flags`

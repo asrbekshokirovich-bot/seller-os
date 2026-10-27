@@ -8,7 +8,7 @@
 // Soʻrov FAQAT tugma bosilganda ketadi (turkum raqami, tanada) — sahifa
 // ochilishi bilan emas. «Xaridor koʻzi» da tugma ham, panel ham koʻrinmaydi.
 
-import { sahifaBelgilari } from './belgilar';
+import { sahifaTovarlari } from './belgilar';
 import { engKopTurkumlar, minglik, qisqaSana, royxatSahifasimi, somQisqa, turkumIdsi, type SahifaTurkumi } from './koz';
 
 const SAYT = 'https://zumsavdo.vercel.app';
@@ -104,16 +104,33 @@ function turkumChiplari(turkumlar: SahifaTurkumi[], faol: number, qayta: () => v
   if (turkumlar.length < 2) return null;
   const qator = el('div', 'zs-bozor-chiplar');
   for (const t of turkumlar) {
-    const c = el('button', `zs-bozor-chip${t.id === faol ? ' zs-faol' : ''}`, `${t.nom ?? `Turkum ${t.id}`} · ${t.soni}`);
+    const c = el('button', `zs-bozor-chip${t.id === faol ? ' zs-faol' : ''}`, `${t.yorliq} · ${t.soni}`);
     c.type = 'button';
-    c.title = `Sahifadagi ${t.soni} ta tovar shu turkumda`;
+    c.title = `Sahifadagi ${t.soni} ta tovar shu turkumda${t.misollar.length ? `. Masalan: ${t.misollar.join('; ')}` : ''}`;
     c.addEventListener('click', () => { tanlov = t.id; qayta(); });
     qator.append(c);
   }
   return qator;
 }
 
-function chiz(panel: HTMLElement, j: Javob, o: { turkumlar: SahifaTurkumi[]; faol: number; umumiy: boolean; qayta: () => void }): void {
+/**
+ * Turkum sahifasidagi sarlavha (h1) — Uzumning toʻliq nomi: «Qizlar uchun shimlar».
+ * Bazada faqat «Shimlar» (otasi yoʻq) — oltita turli turkum shu nomda (2026-10-27).
+ */
+function sahifaSarlavhasi(): string | null {
+  const h = document.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  return h.length >= 2 && h.length <= 120 ? h : null;
+}
+
+/** Uzumdagi turkum sahifasi — raqamning oʻzi yetadi, Uzum toʻliq manzilga oʻtkazadi (oʻlchandi 2026-10-27). */
+function uzumTurkumi(id: number): string {
+  const til = location.pathname.split('/')[1] === 'ru' ? 'ru' : 'uz';
+  return `https://uzum.uz/${til}/category/${id}`;
+}
+
+function chiz(panel: HTMLElement, j: Javob, o: {
+  turkumlar: SahifaTurkumi[]; faol: number; umumiy: boolean; sarlavha: string | null; uzum: string | null; qayta: () => void;
+}): void {
   panel.replaceChildren();
   const bosh = el('div', 'zs-pasport-bosh');
   bosh.append(el('span', 'zs-tamga', 'ZumSavdo · bozor paneli'));
@@ -130,8 +147,16 @@ function chiz(panel: HTMLElement, j: Javob, o: { turkumlar: SahifaTurkumi[]; fao
   panel.append(bosh);
 
   const p = j.panel;
-  const nom = p?.nom ?? j.nom ?? null;
-  panel.append(el('div', 'zs-bozor-nom', nom ?? `Turkum ${o.faol}`));
+  const nom = o.sarlavha ?? p?.nom ?? j.nom ?? null;
+  const sarlavha = el('div', 'zs-bozor-sarlavha');
+  sarlavha.append(el('span', 'zs-bozor-nom', nom ?? `Turkum ${o.faol}`));
+  if (o.uzum) {
+    // Qidiruv sahifasida: qaysi turkum ekanini Uzumning oʻzida koʻrish (toʻliq nomi va yoʻli bilan).
+    const a = el('a', 'zs-bozor-uzum', 'Uzumda ochish ↗');
+    a.href = o.uzum; a.target = '_blank'; a.rel = 'noopener';
+    sarlavha.append(a);
+  }
+  panel.append(sarlavha);
   const chiplar = turkumChiplari(o.turkumlar, o.faol, o.qayta);
   if (chiplar) panel.append(chiplar);
   if (o.umumiy) {
@@ -222,7 +247,7 @@ async function yukla(): Promise<void> {
   const kalit = sahifaKaliti();
   const navbat = ++soralmoqda;
   const urlTurkum = turkumIdsi(location.pathname);
-  const turkumlar = engKopTurkumlar(sahifaBelgilari());
+  const turkumlar = engKopTurkumlar(sahifaTovarlari());
   let faol = tanlov ?? urlTurkum ?? turkumlar[0]?.id ?? null;
   if (faol === null) {
     panel.replaceChildren(el('p', 'zs-izoh', 'Sahifadagi tovarlar hali yuklanmadi — biroz kutib, «Bozor» ni qayta bosing.'));
@@ -239,7 +264,16 @@ async function yukla(): Promise<void> {
     j = await sora(faol);
   }
   if (navbat !== soralmoqda || sahifaKaliti() !== kalit || !panel.isConnected) return;
-  chiz(panel, j, { turkumlar: urlTurkum !== null && !umumiy ? [] : turkumlar, faol, umumiy, qayta: () => { void yukla(); } });
+  // Sarlavha: turkum sahifasining oʻzida — Uzumning toʻliq nomi (h1); qidiruvda — chip nomi.
+  const shuSahifa = faol === urlTurkum && !umumiy;
+  chiz(panel, j, {
+    turkumlar: shuSahifa ? [] : turkumlar,
+    faol,
+    umumiy,
+    sarlavha: shuSahifa ? sahifaSarlavhasi() : turkumlar.find((t) => t.id === faol)?.yorliq ?? null,
+    uzum: shuSahifa ? null : uzumTurkumi(faol),
+    qayta: () => { void yukla(); },
+  });
 }
 
 function yopish(): void {

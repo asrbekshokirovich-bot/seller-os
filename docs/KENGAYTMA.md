@@ -3,6 +3,29 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
+## 2026-10-27 — 0.4.1: bir xil nomli turkumlar va tezlik
+
+Jonli tekshiruvda (0.4.0) ikki kamchilik topildi, nazoratchi: «ikkalasini tuzat».
+
+- **Bir xil nomlar.** Bazada turkumning faqat oʻz nomi bor, otasi yoʻq: 312 ta nom bir
+  necha turkumda takrorlanadi («Shimlar» — 6 ta). Qidiruv sahifasida ikkita chip
+  «Shimlar» boʻlib chiqardi. Endi: turkum sahifasining oʻzida panel sarlavhasi — Uzumning
+  toʻliq nomi (h1: «Qizlar uchun shimlar»); qidiruvda takrorlangan nom sahifadagi tovar
+  nomlaridan topilgan ajratuvchi soʻz bilan ajraladi — shu turkum nomlarining yarmidan
+  koʻpida (kamida 2 tasida) bor, boshqasida ancha kam, turkum nomining oʻzagi emas
+  (jonli: «Shimlar (Qizlar)/(Ayollar)», «Sport shimlari (Bolalar)/(Ayollar)», «Futbolkalar
+  (Ayollar)/(Oʻgʻil)»); topilmasa — tartib raqami, bittasi soʻzsiz qolsa — oddiy nomi;
+  chip ustida 2 ta tovar misoli; sarlavha yonida «Uzumda
+  ochish ↗» (`uzum.uz/uz/category/<id>` — Uzum toʻliq manzilga oʻtkazadi).
+- **Tezlik.** Eng katta turkum («Parfyumlangan suv», 15 571 tovar) — 4,1 s, takroriy soʻrov
+  ham 4 s: Edge xotirasidagi kesh har nusxada alohida. Migratsiya 0075 — hisoblangan
+  panel shu kun uchun bazada (`selleros.bozor_kesh`), hamma nusxa uchun bitta; kunda
+  birinchi ochgan odam kutadi. Bazadagi soʻrovning oʻzi iliq holatda ~0,86 s (saralashsiz
+  varianti 0,80 s — oʻzgartirilmadi); qolgan vaqt Edge da — qatorlarni olib kelish va hisoblash.
+- Sinov: `supabase/test/bozor-kesh.test.ts` (PGlite, 4 test; uchta mutatsiya — eski kun
+  yangisini bosib ketishi, versiya va kun shartlari olib tashlansa — test yiqiladi),
+  `koz.test.ts` (chip nomlari).
+
 ## 2026-10-26 — 0.4.0: bozor paneli (B, «Sotuvchi koʻzoynagi» 2-bosqich)
 
 Nazoratchi: «2-bosqichni boshla». Uzum turkum yoki qidiruv sahifasida dokda

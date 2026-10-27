@@ -30,6 +30,12 @@ import {
 } from './tovar-sotuvi.js';
 
 export const BOZOR_PANELI_VERSIYASI = 'bozor-paneli-v1';
+/**
+ * Bazadagi panel keshi kaliti (`selleros.bozor_kesh`, 0075): qoidalar versiyasi,
+ * sotuv formulasi versiyasi va panel shakli. Panel tuzilmasi yoki matni oʻzgarsa —
+ * oxirgi raqam oshiriladi, eski kesh oʻz-oʻzidan ishlatilmay qoladi.
+ */
+export const BOZOR_KESH_VERSIYASI = `${BOZOR_PANELI_VERSIYASI}/${TOVAR_SOTUVI_VERSIYASI}/1`;
 
 /** Bir turkumdan eng koʻp qator (eng katta turkum 2026-10-26 da ~15 ming tovar). */
 export const BOZOR_MAX_QATOR = 20_000;

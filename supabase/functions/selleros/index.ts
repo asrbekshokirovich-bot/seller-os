@@ -111,6 +111,7 @@ import {
   tovar30KunOqi,
   tovarPasporti,
   type KengaytmaQismi,
+  BOZOR_KESH_VERSIYASI,
   BOZOR_MAX_QATOR,
   YANGI,
   bozorKirishiniOqi,
@@ -1215,22 +1216,41 @@ async function kengaytmaRuxsati(token: string | null, qism: KengaytmaQismi): Pro
 }
 
 /**
- * Bozor paneli keshi — Edge nusxasi xotirasida, 30 daqiqa. Maʼlumot kuniga bir
- * marta yangilanadi; eng katta turkum (~15 ming qator, ~4 MB) har ochilishda
- * qayta oʻqilmasin. Nusxa uxlasa kesh yoʻqoladi — bu xato emas, qayta oʻqiladi.
+ * Bozor paneli keshi, ikki qavat:
+ * 1) bazada (`selleros.bozor_kesh`, 0075) — shu kun maʼlumotidan hisoblangan panel,
+ *    hamma Edge nusxasi uchun bitta. Xotiradagi kesh yetmadi: jonli, 2026-10-27 —
+ *    eng katta turkum 4,1 s, takroriy soʻrov ham 4 s (boshqa nusxaga tushdi);
+ * 2) nusxa xotirasida, 30 daqiqa — bazaga ham bormaslik uchun.
+ * Kesh RPC si ishlamasa (masalan, migratsiya hali yoʻq) — panel oddiygina qayta hisoblanadi.
  */
 const bozorKeshi = new Map<number, { panel: BozorPaneli; vaqt: number }>();
 const BOZOR_KESH_MS = 30 * 60_000;
 
+function bozorniXotiragaQoy(kategoriya: number, panel: BozorPaneli): void {
+  if (bozorKeshi.size >= 200) bozorKeshi.clear();
+  bozorKeshi.set(kategoriya, { panel, vaqt: Date.now() });
+}
+
 async function bozorniOl(kategoriya: number): Promise<BozorPaneli | null> {
   const k = bozorKeshi.get(kategoriya);
   if (k && Date.now() - k.vaqt < BOZOR_KESH_MS) return k.panel;
+  const kesh = await rpc<{ sana?: string | null; panel?: BozorPaneli | null }>(
+    'so_bozor_kesh_oqi', { p_kategoriya: kategoriya, p_versiya: BOZOR_KESH_VERSIYASI });
+  if (kesh?.panel) {
+    bozorniXotiragaQoy(kategoriya, kesh.panel);
+    return kesh.panel;
+  }
   const xom = await rpc<unknown>('so_bozor_qatorlar', { p_kategoriya: kategoriya, p_yangi_kun: YANGI.kun, p_max: BOZOR_MAX_QATOR });
   const kirish = xom === null ? null : bozorKirishiniOqi(xom);
   if (kirish === null) return null;
   const panel = bozorPaneli(kirish);
-  if (bozorKeshi.size >= 200) bozorKeshi.clear();
-  bozorKeshi.set(kategoriya, { panel, vaqt: Date.now() });
+  // Faqat joriy kun maʼlumotidan yasalgan panel yoziladi: tun yangilanishi orasida
+  // kechagi qatorlar bilan hisoblangan panel bugungi kalit ostida qolib ketmasin.
+  // Yozish javobdan keyin (`fonda`) — odam uni kutmaydi.
+  if (kesh?.sana && panel.sana === kesh.sana) {
+    fonda(rpc('so_bozor_kesh_yoz', { p_kategoriya: kategoriya, p_sana: kesh.sana, p_versiya: BOZOR_KESH_VERSIYASI, p_panel: panel }));
+  }
+  bozorniXotiragaQoy(kategoriya, panel);
   return panel;
 }
 

@@ -415,7 +415,9 @@ html.zs-xaridor-kozi .zs-dok-bozor { display: none !important; }
   border: 0; background: #f4efe6; color: #1f1a14; border-radius: 8px;
   width: 26px; height: 26px; font-size: 16px; line-height: 1; cursor: pointer;
 }
+.zs-bozor-sarlavha { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .zs-bozor-nom { font-size: 16px; font-weight: 800; }
+.zs-bozor-uzum { color: #d2552d; font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .zs-bozor-chiplar { display: flex; flex-wrap: wrap; gap: 6px; }
 .zs-bozor-chip {
   font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 999px;

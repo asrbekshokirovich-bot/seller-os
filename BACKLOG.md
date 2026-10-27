@@ -49,8 +49,11 @@ qilish kerakmi — nazoratchi qarori. Keyinroq: nazoratchi kengaytma 0.4.0 ni ko
 daraxti yoʻq: `zumsavdo.category` ning 5 448 qatoridan 5 199 tasida `parent_id` boʻsh,
 tovar esa faqat barg turkumda. «Kiyim» kabi umumiy sahifada panel sahifadagi
 tovarlarning eng koʻp barg turkumini oladi va buni ochiq yozadi. Ota turkum boʻyicha
-jami uchun yigʻuvchi Uzum turkum daraxtini (ota → bola) yozishi kerak. Keyinroq: barg
-turkumlarda panel toʻliq ishlaydi; umumiy sahifa — kamroq.
+jami uchun yigʻuvchi Uzum turkum daraxtini (ota → bola) yozishi kerak. Daraxt yoʻqligidan
+312 ta nom takrorlanadi («Shimlar» — 6 ta); 0.4.1 da qidiruv chiplari sahifadagi tovar
+nomlaridan ajratiladi («Shimlar (Qizlar)») — bu taxmin, toʻgʻri yechim baribir daraxt
+(toʻliq nom: «Qizlar uchun shimlar»). Keyinroq: barg turkumlarda panel toʻliq ishlaydi;
+umumiy sahifa — kamroq.
 
 — [agent, 2026-10-26] **«Yangi tovar» chegarasi eskiradi.** Bozor panelidagi «yangi» —
 `zumsavdo.market_day.id_frontier` (Supabase) dan; bu jadval 2026-10-03 dan beri
