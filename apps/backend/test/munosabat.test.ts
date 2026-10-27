@@ -40,25 +40,36 @@ function soxtaBaza(boshlangich: YolHolati) {
 
 const KURS = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
 
-/** Kod: dollar kursi va yoʻnalishlar — soxta; qolgani chaqirilmasligi kerak. */
+const YONALISHLAR = { olchov_yoq: false, royxat: [{ categoryId: 11, name: 'Quloqchinlar' }] };
+const TOVARLAR = {
+  olchov_yoq: false,
+  royxat: [{ nomzod: { productId: 100, title: 'Quloqchin A', soldUnits30d: 600, sotuvManbasi: 'olchandi' as const, qoldiq: 40 },
+    miqdor: { dona: 30, hisob: 'oyiga ~600 · 5% · 30 kun = 30' } }],
+};
+
+/** Kod: dollar kursi, yoʻnalishlar va tovarlar — soxta; qolgani chaqirilmasligi kerak. */
 const KOD = new Proxy({}, {
   get: (_, nom) => (nom === 'kurs' ? async () => KURS
-    : nom === 'yonalishlar' ? async () => ({ olchov_yoq: false, royxat: [{ categoryId: 11, name: 'Quloqchinlar' }] })
-      : nom === 'erkinMalumot' ? undefined
-        : async () => { throw new Error(`bu testda kod chaqirilmasligi kerak: ${String(nom)}`); }),
+    : nom === 'yonalishlar' ? async () => YONALISHLAR
+      : nom === 'tovarlar' ? async () => TOVARLAR
+        : nom === 'erkinMalumot' ? undefined
+          : async () => { throw new Error(`bu testda kod chaqirilmasligi kerak: ${String(nom)}`); }),
 });
 
 function bogliq(b: ReturnType<typeof soxtaBaza>, munosabatLlm?: SuhbatBogliqliklari['munosabatLlm']): SuhbatBogliqliklari {
   return { rpc: b.rpc, kod: KOD as SuhbatBogliqliklari['kod'], ...(munosabatLlm ? { munosabatLlm } : {}) };
 }
 
-/** Tajriba savoli (`uzum_dokoni`) turgan holat. */
-const TAJRIBA: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567' }, natijalar: {} };
-/** Qiziqish savoli turgan holat. */
-const QIZIQISH: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', uzum_dokoni: 'yoq' }, natijalar: {} };
+const SHAXS = { ism: 'Aziz Karimov', telefon: '+998901234567' };
+/** Qiziqish — birinchi savol (2026-10-26); ismi bor (tanish) mijoz — salomsiz. */
+const QIZIQISH: YolHolati = { javoblar: { ...SHAXS }, natijalar: {} };
 /** Byudjet savoli turgan holat. */
-const BYUDJET: YolHolati = {
-  javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', uzum_dokoni: 'yoq', qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS },
+const BYUDJET: YolHolati = { javoblar: { ...SHAXS, qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS } };
+/** Ism savoli — yoʻnalish tanlangach (2026-10-26). */
+const ISM: YolHolati = { javoblar: { qiziqish: ['bilmayman'], byudjet: 10_000_000, yonalish: 11 }, natijalar: { kurs: KURS, yonalishlar: YONALISHLAR } };
+/** Tajriba savoli (`uzum_dokoni`) — tovar va miqdordan keyin, tannarxdan oldin (2026-10-26). */
+const TAJRIBA: YolHolati = {
+  javoblar: { ...ISM.javoblar, ...SHAXS, tovarlar: [100], 'miqdor:100': 30 }, natijalar: { ...ISM.natijalar, tovarlar: TOVARLAR },
 };
 
 /** LLM ga nima borganini yozib, berilgan javoblarni navbat bilan qaytaradi. */
@@ -154,23 +165,20 @@ describe('kod jumlasi (LLM siz)', () => {
 });
 
 describe('suhbat: yozilgan javobga munosabat', () => {
-  it('tajriba yozildi — javob qabul, munosabat, keyingi savolda soha OLDINDAN belgilangan (LLM siz)', async () => {
+  it('tajriba yozildi — javob qabul, munosabat, keyingi savol — marja (2026-10-26: tajriba tannarxdan oldin; LLM siz)', async () => {
     const b = soxtaBaza(TAJRIBA);
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'oldin sotganman maishiy texnika' });
     expect(r.xato).toBeUndefined();
     expect(b.holat().javoblar['uzum_dokoni']).toBe('oldin sotganman maishiy texnika');
     expect(r.xabarlar.map((x) => [x.rol, x.savolId ?? null])).toEqual([
-      ['obunachi', 'uzum_dokoni'], ['menejer', null], ['menejer', 'qiziqish'],
+      ['obunachi', 'uzum_dokoni'], ['menejer', null], ['menejer', 'marja'],
     ]);
     expect(r.xabarlar[0]!.matn).toBe('oldin sotganman maishiy texnika');
     expect(r.xabarlar[1]!.matn).toBe('Tushunarli — savdo tajribangiz bor ekan, bu katta yordam beradi.');
     // Oddiy tasdiq — 👍/👎 siz.
     expect(r.xabarlar[1]!.javob).toBeUndefined();
     if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
-    expect(r.keyingi.savol.id).toBe('qiziqish');
-    expect(r.keyingi.savol.tanlangan).toEqual(['uy']);
-    expect(r.keyingi.savol.matn).toMatch(/Yozganingizga qarab «Uy-roʻzgʻor va maishiy texnika» ni belgilab qoʻydim/);
-    expect(r.keyingi.savol.variantlar.find((v) => v.qiymat === 'uy')?.nom).toBe('Uy-roʻzgʻor va maishiy texnika');
+    expect(r.keyingi.savol.id).toBe('marja');
   });
 
   it('LLM munosabati darvozadan oʻtsa — u ketadi (👍/👎 bilan); LLM ga tushunilgan, keyingi savol, holat boradi — ism yoʻq', async () => {
@@ -185,19 +193,19 @@ describe('suhbat: yozilgan javobga munosabat', () => {
     });
     const s = llm.sorovlar[0]!;
     expect(s.tushunilgan).toMatch(/^Tushunarli — savdo tajribangiz bor ekan/);
-    expect(s.keyingi).toMatch(/Qaysi sohadagi tovarlar sizga yaqin\?/);
+    expect(s.keyingi).toMatch(/Qancha marja bilan sotmoqchisiz\?/);
     expect(s.holat).toMatch(/Savdo tajribasi/);
     expect(`${s.holat}\n${s.tarix}`).not.toMatch(/Aziz|Karimov|901234567/);
     expect(s.tayyor).toBeNull();
     expect(s.bilim).toBeNull();
-    // Velosiped — sport: keyingi savolda belgilangan.
     if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
-    expect(r.keyingi.savol.tanlangan).toEqual(['sport']);
+    expect(r.keyingi.savol.id).toBe('marja');
   });
 
   it('LLM yangi raqam qoʻshsa — sababi bilan bir marta qayta; yana oʻtmasa — kod jumlasi', async () => {
     const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm(['Zoʻr! Bunday tajriba bilan 3 oyda 50 mln topasiz.', 'Ajoyib — 30 % foyda qilasiz.']);
+    // Sonlar holatda yoʻq (miqdor 30 dona, byudjet 10 mln — 2026-10-26 holatida) — darvoza ushlasin.
+    const llm = soxtaLlm(['Zoʻr! Bunday tajriba bilan 3 oyda 50 mln topasiz.', 'Ajoyib — 77 % foyda qilasiz.']);
     const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman' });
     expect(llm.sorovlar).toHaveLength(2);
     expect(llm.sorovlar[1]!.tuzat).toMatch(/faktlarda yoʻq/);
@@ -266,7 +274,7 @@ describe('suhbat: yozilgan javobga munosabat', () => {
 
   it('ism va telefon LLM ga HECH QACHON ketmaydi — uzun yozilgan boʻlsa ham (maxfiylik)', async () => {
     const llm = soxtaLlm(['xxx']);
-    const b = soxtaBaza({ javoblar: {}, natijalar: {} });
+    const b = soxtaBaza(ISM);
     const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'ism', matn: 'Mening ismim Aziz Karimov, telefonim +998 90 123 45 67' });
     expect(r.xato).toBeUndefined();
     expect(b.holat().javoblar['ism']).toBe('Aziz Karimov');
@@ -289,8 +297,7 @@ describe('suhbat: yozilgan javobga munosabat', () => {
     expect(r.xabarlar[1]).toMatchObject({ rol: 'menejer', savolId: 'uzum_dokoni', javob: { erkin: true, munosabat: true } });
     expect(r.xabarlar[1]!.matn).toMatch(/^Tushunarli — savdo tajribangiz bor ekan, bu katta yordam beradi\. \S/);
     if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
-    expect(r.keyingi.savol.id).toBe('qiziqish');
-    expect(r.keyingi.savol.tanlangan).toEqual(['uy']);
+    expect(r.keyingi.savol.id).toBe('marja');
   });
 
   it('javob + savol: LLM ga faktlar va savol qismi boradi; bazadagi javobni dastur AI dan keyin oʻzi qoʻshadi', async () => {
@@ -305,6 +312,13 @@ describe('suhbat: yozilgan javobga munosabat', () => {
     expect(s.tayyor).toBeTruthy();
     expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai', munosabat: true });
     expect(r.xabarlar[1]!.matn).toBe(`Maishiy texnika tajribangiz asqotadi.\n\n${s.tayyor}`);
+  });
+
+  it('eski yoʻl: gapdagi telefon munosabat LLM iga yashirilgan holda ketadi (2026-10-26)', async () => {
+    const b = soxtaBaza(TAJRIBA);
+    const llm = soxtaLlm(['Bozor tajribasi asqotadi.']);
+    await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman, raqamim 90 765 43 21' });
+    expect(llm.sorovlar[0]!.xabar).toBe('Bozorda kanstovar sotganman, raqamim …');
   });
 
   it('oddiy javobda (savolsiz) — LLM ga «savol bor» deyilmaydi, faqat AI munosabati', async () => {

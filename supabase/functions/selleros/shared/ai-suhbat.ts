@@ -46,7 +46,7 @@ export interface AiTushuncha {
 }
 
 export interface AiTushunSorovi {
-  /** Joriy savol va (1-qadamda) tanishuvning keyingi javobsiz savollari, tartibi bilan. */
+  /** Joriy savol va tanishuvning keyingi javobsiz savollari (qiziqish, byudjet, ism, tajriba — `kelgusiTanishuvSavollari`), tartibi bilan. */
   savollar: SuhbatSavoli[];
   /**
    * Mijoz yozgani (500 belgigacha). Ism/telefon savolida — ism va telefon ham shu yerda

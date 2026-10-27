@@ -24,12 +24,16 @@ export interface TezSavol {
 
 /** Savol id → tayyor savollar. */
 export const TEZ_SAVOLLAR: Readonly<Record<string, readonly TezSavol[]>> = {
-  ism: [
+  // Birinchi savol — qiziqish (2026-10-26): «nima bu, bepulmi» savollari shu yerda.
+  qiziqish: [
     { uz: 'ZumSavdo nima qiladi?', ru: 'Что делает ZumSavdo?' },
     { uz: 'Bu bepulmi?', ru: 'Это бесплатно?' },
-    // Birinchi savol telefonni ham soʻraydi (2026-10-14).
-    { uz: 'Raqamim nima uchun kerak?', ru: 'Зачем нужен мой номер?' },
+    { uz: 'Qaysi soha yaxshi?' },
     { uz: 'Misol bilan tushuntirasizmi?', ru: 'Объясните на примере?' },
+  ],
+  // Ism va telefon — yoʻnalishdan keyin, bitta savolda (2026-10-14, 2026-10-26).
+  ism: [
+    { uz: 'Raqamim nima uchun kerak?', ru: 'Зачем нужен мой номер?' },
   ],
   telefon: [
     { uz: 'Raqamim nima uchun kerak?', ru: 'Зачем нужен мой номер?' },
@@ -37,10 +41,6 @@ export const TEZ_SAVOLLAR: Readonly<Record<string, readonly TezSavol[]>> = {
   uzum_dokoni: [
     { uz: 'Tajribam yoʻq — boʻladimi?' },
     { uz: 'Uzumda sotish uchun nima kerak?' },
-  ],
-  qiziqish: [
-    { uz: 'Qaysi soha yaxshi?' },
-    { uz: 'Bilmasam nima qilay?' },
   ],
   byudjet: [
     { uz: 'Qancha pul kerak?' },

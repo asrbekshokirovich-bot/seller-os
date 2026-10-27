@@ -82,7 +82,8 @@ describe('suhbatlarOqi / suhbatBolagi / suhbatQaytar — baza bilan', () => {
     expect(b.chaqiruvlar.map((c) => c.nom)).toEqual(['so_suhbat_qaytar', 'so_suhbat_oqi']);
     if ('xato' in r && !('keyingi' in r)) throw new Error(r.xato);
     expect((r as { tarix: Array<{ matn: string }> }).tarix.map((x) => x.matn)).toEqual(['Aziz Karimov']);
-    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'uzum_dokoni' } });
+    // Ism va telefon bor, qolgani yoʻq — birinchi savol (qiziqish, 2026-10-26 tartibi).
+    expect(r.keyingi).toMatchObject({ tur: 'savol', savol: { id: 'qiziqish' } });
   });
 });
 

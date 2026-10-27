@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-22';
+const YANGILANDI = '2026-10-26';
 
 export default function Maxfiylik() {
   return (
@@ -38,8 +38,8 @@ export default function Maxfiylik() {
 
         <div className={u.urgu}>
           <p>
-            <strong>Suhbat boshida ism-familiya va telefon raqam soʻraladi</strong> — faqat
-            siz bilan bogʻlanish uchun. Ular boshqa hech kimga berilmaydi. Yozganingizdan ularni
+            <strong>Ism-familiya va telefon raqam yoʻnalish tanlangach soʻraladi</strong> —
+            natijalaringizni saqlash va siz bilan bogʻlanish uchun. Ular boshqa hech kimga berilmaydi. Yozganingizdan ularni
             sunʼiy intellekt ajratib olishi mumkin (pastda — qachon); keyingi xabarlarda telefon
             raqamingiz unga yuborilmaydi. Elektron pochta va parol soʻralmaydi, roʻyxatdan oʻtish yoʻq.
           </p>
@@ -145,8 +145,8 @@ export default function Maxfiylik() {
             <tbody>
               <tr>
                 <td>
-                  Ism-familiya va telefon raqam — suhbatning birinchi ikki savoli
-                  (2026-10-12 dan). Siz bilan bogʻlanish uchun; «Boshidan
+                  Ism-familiya va telefon raqam — yoʻnalish tanlangach soʻraladi
+                  (2026-10-26 dan; oldin suhbat boshida edi). Siz bilan bogʻlanish uchun; «Boshidan
                   boshlash» bosilsa ham oʻchmaydi, yangi javob eskisining oʻrniga yoziladi
                 </td>
                 <td><code>users</code></td>
@@ -307,13 +307,15 @@ export default function Maxfiylik() {
             (ism-familiya va telefonsiz) yuboriladi. Bu holatlarning hammasida
             javobni kod tekshiradi — yangi raqam yoki kafolat soʻzi boʻlsa, u
             tashlanadi va kodning oʻz jumlasi ketadi. Sessiya kaliti yuborilmaydi.
-            Ism-familiya va telefon savoliga yozgan javobingiz (2026-10-21 dan) — suhbatni
+            Ism-familiya va telefonni yozgan xabaringiz — ularning savoliga javob (2026-10-21 dan)
+            yoki boshqa gapingiz, masalan birinchi xabaringiz (2026-10-26 dan) — suhbatni
             sunʼiy intellekt olib borayotgan boʻlsa (Anthropic, Claude) — unga yuboriladi: u ism
             va telefonni gapingizdan ajratib oladi (ularni baribir kod tekshiradi va faqat
             profilingizga yozadi), gapingizda savol boʻlsa — javob beradi, keyin sizga ismingiz
             bilan murojaat qiladi. Telefon raqamingiz keyingi xabarlarda unga yuborilmaydi.
-            Gemini ishlatilsa yoki bu sozlama oʻchiq boʻlsa — ism-familiya va telefon (ularga
-            yozgan matningiz ham) sunʼiy intellektga umuman yuborilmaydi. Boshqa joyda suhbatga pasport kabi
+            Gemini ishlatilsa yoki bu sozlama oʻchiq boʻlsa — ism-familiya va telefon savoliga
+            yozgan matningiz sunʼiy intellektga umuman yuborilmaydi, boshqa xabarlaringizdagi
+            telefon raqami esa yashiriladi. Boshqa joyda suhbatga pasport kabi
             shaxsiy maʼlumot yozmang. Toʻrtinchisi: 10-qadamda «Kartochka matnini
             yozib ber» bossangiz — tanlangan tovarlarning Uzumdagi va 1688 dagi nomi
             hamda yoʻnalish nomi yuboriladi (shaxsiy maʼlumot emas); kelgan matnni kod

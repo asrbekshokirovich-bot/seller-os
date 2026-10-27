@@ -42,8 +42,8 @@
  */
 
 import { type AloqaJavoblari, type Keyingi, type KodHarakati, type SuhbatSavoli, type YolHolati, boshlangichHolat, havolalarsiz,
-  JIM_HARAKATLAR, javobniQabulQil, joriyQadam, kelgusiTanishuvSavollari, keyingi, kutilayotganHarakat, natijaniYoz, tushuntir, usdKursi,
-  uzumDokoniBormi, yiqilganNatija, yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.js';
+  JIM_HARAKATLAR, javobniQabulQil, joriyQadam, kelgusiTanishuvSavollari, keyingi, kutilayotganHarakat, natijaniYoz, salomsizSavol,
+  tushuntir, usdKursi, uzumDokoniBormi, yiqilganNatija, yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.js';
 import type { Darvoza } from './tarif.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
 import { minglik } from './fakt.js';
@@ -441,7 +441,8 @@ export async function suhbatTurn(
       const matn = qisqartir(yozgan);
       d.oqim?.holat('tushunmoqda');
       const t = await d.ai.tushun({
-        savollar: [k0.savol, ...kelgusiTanishuvSavollari(holat).filter((s) => s.id !== k0.savol.id)],
+        // Birinchi savol — salomsiz: AI ga faqat savolning oʻzi (salom chatda turibdi).
+        savollar: [salomsizSavol(k0.savol), ...kelgusiTanishuvSavollari(holat).filter((s) => s.id !== k0.savol.id)],
         xabar: matn, holat: mijozHolati(holat, k0.savol.qadam), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
       }, tushunVaqti).catch(() => null);
       if (t === null) {
@@ -625,7 +626,7 @@ export async function suhbatTurn(
         const x = yangi[i]!;
         return { harakat: x.savolId as KodHarakati, matn: natijaTavsifi(x.savolId as KodHarakati, x.javob) };
       }),
-      keyingi: k.tur === 'savol' ? k.savol : null, keyingiMatn: k.tur === 'savol' ? null : k.matn,
+      keyingi: k.tur === 'savol' ? salomsizSavol(k.savol) : null, keyingiMatn: k.tur === 'savol' ? null : k.matn,
       holat: mijozHolati(holat, joriyQadam(holat)), tarix: suhbatTarixi(songgiSuhbat(o.xabarlar ?? []), holat),
       eslab: eslabGaplari(holat, eslab, navbat), til: ak.til, bugun: bugunMatni(), tuzat: null, ism: mijozIsmi(holat),
     }, kodlar.flatMap((i) => natijaSonlari(yangi[i]!.javob)), qoldi, d.oqim);
@@ -824,7 +825,8 @@ async function munosabatYoz(
     let tuzat: string | null = null;
     for (let urinish = 0; urinish < 2; urinish++) {
       const taklif: string | null = (await d.munosabatLlm!({
-        savol: s.matn, xabar: matn, tushunilgan: asos, tayyor, bilim, holat, tarix,
+        // Telefon (2026-10-26 dan birinchi gapda ham yozilishi mumkin) — eski yoʻlda LLM ga yashirilgan.
+        savol: s.matn, xabar: shaxsiyniYashir(matn, h), tushunilgan: asos, tayyor, bilim, holat, tarix,
         keyingi: k.tur === 'savol' ? qisqaSavol(k.savol.matn, k.savol.id) : null, til, tuzat, savolBor: savolHam,
       }).catch(() => null))?.trim() || null;
       if (!taklif) break;
@@ -1130,7 +1132,8 @@ async function erkinJavob(
   const bilim = yordamchiBilimi(t, d.tarifCheklovi);
   // LLM ga asl matn ketadi — mijoz yozuvida (lotin, kirill, rus) javob bersin; til aniq aytiladi.
   const til = yozuvi(matn);
-  const sorov = { savol: s.matn, variantlar, xabar: matn, sabab, tayyor: baza?.matn ?? null, bilim, holat, tarix, til };
+  // Telefon (2026-10-26 dan birinchi gapda ham yozilishi mumkin) — eski yoʻlda LLM ga yashirilgan.
+  const sorov = { savol: s.matn, variantlar, xabar: shaxsiyniYashir(matn, h), sabab, tayyor: baza?.matn ?? null, bilim, holat, tarix, til };
   // Raqam faqat savol, tugmalar, sabab, bilim, bazaviy javob, mijoz holati, suhbat va obunachining
   // oʻz matnidan; kafolat — taqiq.
   const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, baza?.matn ?? '', holat, tarix], sonlar: [] };
@@ -1252,6 +1255,8 @@ function eslabGaplari(h: YolHolati, eslab: readonly AiJavob[], navbat: readonly 
     .flatMap((x) => {
       const s = savollar.find((y) => y.id === x.savol_id);
       if (!s) return [];
+      // Ism va telefon (2026-10-26 dan keyinroq soʻraladi, oldin aytilishi mumkin) — AI ga koʻrsatilmaydi.
+      if (SHAXSIY_SAVOLLAR.has(s.id)) return ['Mijoz ism va telefonini ham aytdi (shaxsiy maʼlumot — senga koʻrsatilmaydi).'];
       const javob = x.otkazish ? 'oʻtkazib yuboradi' : javobMatni(s.variantlar, s.turi === 'kopTanlov' ? x.qiymatlar : x.qiymatlar[0]);
       return [`«${qisqaSavol(s.matn, s.id)}» → ${javob}`];
     });
@@ -1370,11 +1375,9 @@ async function aiErkinXabar(
   const tt = tushunishUchun(matn);
   const malumot = t.sabab ? null : await bazadanMalumot(d, tt, holat);
   const baza = bazaJavobi(tt, ruschami(matn), k0.savol.id, t.sabab, holat, d.tarifCheklovi, malumot);
-  // Ism savolida salomlashish chatda bor yoki shu turnda qoʻyiladi — AI uni qayta aytmasin (jonli
-  // sinov, 2026-10-21: «Assalomu alaykum!» ikki marta chiqdi): unga savolning faqat oxirgi xatboshisi.
-  const keyingiSavol = k1.savol.id === 'ism' && k1.savol.matn.includes('\n\n')
-    ? { ...k1.savol, matn: k1.savol.matn.split('\n\n').at(-1)! }
-    : k1.savol;
+  // Birinchi savolda salomlashish chatda bor yoki shu turnda qoʻyiladi — AI uni qayta aytmasin (jonli
+  // sinov, 2026-10-21: «Assalomu alaykum!» ikki marta chiqdi): unga savolning faqat oʻzi, salomsiz.
+  const keyingiSavol = salomsizSavol(k1.savol);
   const y = d.ai ? await aiYozTekshirib(d.ai, {
     mijoz: matn, tanlov: false, qabul: [], rad: t.sabab ? [radGapi(k0.savol, t.qiymat, t.sabab)] : [],
     // Javob ham, rad ham boʻlmasa — mijoz nimadir soʻradi yoki aytdi: unga javob kerak.

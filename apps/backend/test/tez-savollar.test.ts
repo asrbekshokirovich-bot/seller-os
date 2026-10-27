@@ -61,8 +61,14 @@ const KOD = new Proxy({}, {
 }) as SuhbatBogliqliklari['kod'];
 
 describe('ism va telefon savolida bosilgan tayyor savol — javob, ism/telefon emas', () => {
+  // Ism va telefon — yoʻnalish tanlangach (2026-10-26).
+  const ISMGACHA: YolHolati = {
+    javoblar: { qiziqish: ['bilmayman'], byudjet: 10_000_000, yonalish: 11 },
+    natijalar: { yonalishlar: { olchov_yoq: false, royxat: [{ categoryId: 11, name: 'Quloqchinlar' }] } },
+  };
+
   it.each(TEZ_SAVOLLAR['ism']!.flatMap((s) => [s.uz, s.ru!]))('ism: «%s»', async (matn) => {
-    const b = soxtaBaza(null);
+    const b = soxtaBaza(ISMGACHA);
     const r = await suhbatTurn({ rpc: b.rpc, kod: KOD }, 'tok', { savolId: 'ism', matn });
     expect(r.xato).toBeUndefined();
     expect(b.holat()?.javoblar['ism']).toBeUndefined();
@@ -70,7 +76,7 @@ describe('ism va telefon savolida bosilgan tayyor savol — javob, ism/telefon e
   });
 
   it.each(TEZ_SAVOLLAR['telefon']!.flatMap((s) => [s.uz, s.ru!]))('telefon: «%s»', async (matn) => {
-    const b = soxtaBaza({ javoblar: { ism: 'Aziz Karimov' }, natijalar: {} });
+    const b = soxtaBaza({ javoblar: { ...ISMGACHA.javoblar, ism: 'Aziz Karimov' }, natijalar: ISMGACHA.natijalar });
     const r = await suhbatTurn({ rpc: b.rpc, kod: KOD }, 'tok', { savolId: 'telefon', matn });
     expect(r.xato).toBeUndefined();
     expect(b.holat()?.javoblar['telefon']).toBeUndefined();
