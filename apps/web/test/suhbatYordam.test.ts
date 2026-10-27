@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
+import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -143,5 +143,15 @@ describe('kichikRasm — 1688 rasmi kartada kichik nusxada', () => {
     expect(kichikRasm(tayyor2)).toBe(tayyor2);
     const soxta = 'https://alicdn.com.yomon.uz/a.jpg';
     expect(kichikRasm(soxta)).toBe(soxta);
+  });
+});
+
+describe('batafsilmi (3-taklif, 2026-10-27)', () => {
+  it('faqat menejerning `javob: {batafsil: true}` xabari', () => {
+    expect(batafsilmi({ rol: 'menejer', matn: 'x', javob: { batafsil: true } })).toBe(true);
+    expect(batafsilmi({ rol: 'menejer', matn: 'x', javob: { erkin: true } })).toBe(false);
+    expect(batafsilmi({ rol: 'menejer', matn: 'x' })).toBe(false);
+    expect(batafsilmi({ rol: 'kod', matn: 'x', javob: { batafsil: true } })).toBe(false);
+    expect(batafsilmi({ rol: 'menejer', matn: 'x', javob: null })).toBe(false);
   });
 });

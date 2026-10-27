@@ -779,3 +779,78 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
     expect(o.h.map(([n, x]) => (n === 'holat' ? `holat:${String(x)}` : n))).toEqual(['holat:tushunmoqda', 'holat:yozmoqda', 'qism', 'qism']);
   });
 });
+
+/*
+ * 3-taklif (nazoratchi, 2026-10-26): «telefonda bir qarashda oʻqilsin» — koʻrinadigan xabar 1–2 jumla,
+ * uzun tushuntirish — «Batafsil» (alohida yopiq xabar, `javob: {batafsil: true}`): tushuntirgan narsasidan
+ * keyin turadi. Koʻrinadigani uzun boʻlsa — birinchi urinishda qaytariladi.
+ */
+describe('qisqa xabar + «Batafsil» (2026-10-27)', () => {
+  const BATAFSIL = { batafsil: true };
+
+  it('tugma, natija bor: batafsil — natija kartasidan keyin, savol oxirida', async () => {
+    const b = soxtaBaza(BYUDJET);
+    const s = soxtaAi([], [{ oldin: '', izoh: 'Sizga «Ayollar potinkasi» mos.', savol: 'Qaysi yoʻnalishda boshlaymiz?', batafsil: 'Sumkalar ham bor, lekin…' }]);
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'byudjet', javob: 70_000_000 });
+    expect(r.xabarlar.map((x) => [x.rol, x.matn])).toEqual([
+      ['obunachi', '70 mln soʻm'],
+      ['kod', 'Sizga «Ayollar potinkasi» mos.'],
+      ['menejer', 'Sumkalar ham bor, lekin…'],
+      ['menejer', 'Qaysi yoʻnalishda boshlaymiz?'],
+    ]);
+    expect(r.xabarlar[2]!.javob).toEqual(BATAFSIL);
+    expect(r.xabarlar[2]!.savolId).toBeUndefined();
+  });
+
+  it('yozilgan savol, natijasiz: batafsil — javobdan keyin; natija va javob ham boʻlsa — kartadan keyin', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const s = soxtaAi([{ javoblar: [{ savol_id: 'qiziqish', qiymatlar: ['kiyim'], otkazish: false }], taklif_qiziqish: [], savol_bor: true }],
+      [{ oldin: 'Ha, boʻladi.', izoh: '', savol: 'Qancha pul bilan boshlaysiz?', batafsil: 'Tajribasiz boshlash uchun…' }]);
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'qiziqish', matn: 'kiyim, tajribasiz boʻladimi?' });
+    expect(r.xabarlar.map((x) => x.matn)).toEqual(['kiyim, tajribasiz boʻladimi?', 'Ha, boʻladi.', 'Tajribasiz boshlash uchun…', 'Qancha pul bilan boshlaysiz?']);
+    expect(r.xabarlar[2]!.javob).toEqual(BATAFSIL);
+
+    const b2 = soxtaBaza(BYUDJET);
+    const s2 = soxtaAi([{ javoblar: [{ savol_id: 'byudjet', qiymatlar: ['70 mln'], otkazish: false }], taklif_qiziqish: [], savol_bor: true }],
+      [{ oldin: 'Yetadi.', izoh: 'Potinka mos.', savol: 'Qaysi biri?', batafsil: 'Batafsil solishtirish.' }]);
+    const r2 = await suhbatTurn(bogliq(b2, s2.ai), 't', { savolId: 'byudjet', matn: '70 mln, yetadimi?' });
+    expect(r2.xabarlar.map((x) => [x.rol, x.matn])).toEqual([
+      ['obunachi', '70 mln, yetadimi?'], ['menejer', 'Yetadi.'], ['kod', 'Potinka mos.'], ['menejer', 'Batafsil solishtirish.'], ['menejer', 'Qaysi biri?'],
+    ]);
+  });
+
+  it('munosabat ham, natija ham yoʻq: batafsil — savoldan oldin; boʻsh batafsil — xabar yoʻq', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const s = soxtaAi([], [{ oldin: '', izoh: '', savol: 'Qancha pul bilan boshlaysiz?', batafsil: 'Nega soʻrayapman: …' }]);
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(r.xabarlar.map((x) => x.matn)).toEqual(['Kiyim va poyabzal', 'Nega soʻrayapman: …', 'Qancha pul bilan boshlaysiz?']);
+    const b2 = soxtaBaza(QIZIQISH);
+    const r2 = await suhbatTurn(bogliq(b2, soxtaAi([], [{ oldin: '', izoh: '', savol: 'Qancha?', batafsil: '' }]).ai), 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(r2.xabarlar.some((x) => (x.javob as { batafsil?: unknown } | undefined)?.batafsil)).toBe(false);
+  });
+
+  it('erkin savol: batafsil — javobdan keyin, savol oxirida', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const s = soxtaAi([{ javoblar: [], taklif_qiziqish: [], savol_bor: true }], [{ oldin: 'Ha, bepul.', izoh: '', savol: 'Qaysi soha?', batafsil: 'Obuna 5-qadamdan…' }]);
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'qiziqish', matn: 'Bu bepulmi?' });
+    expect(r.xabarlar.map((x) => x.matn)).toEqual(['Bu bepulmi?', 'Ha, bepul.', 'Obuna 5-qadamdan…', 'Qaysi soha?']);
+    expect(r.xabarlar[2]!.javob).toEqual(BATAFSIL);
+  });
+
+  it('koʻrinadigan qism uzun (650 dan ortiq) — birinchi urinishda qaytariladi: «batafsil ga oʻtkaz»', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const uzun = 'Juda uzun gap. '.repeat(50);
+    const s = soxtaAi([], [{ oldin: uzun, izoh: '', savol: 'Qancha?', batafsil: '' }, { oldin: 'Zoʻr.', izoh: '', savol: 'Qancha?', batafsil: uzun }]);
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(s.yozlar).toHaveLength(2);
+    expect(s.yozlar[1]!.k.tuzat).toContain('tushuntirishni batafsil ga oʻtkaz');
+    expect(r.xabarlar.map((x) => x.matn)).toEqual(['Kiyim va poyabzal', 'Zoʻr.', uzun, 'Qancha?']);
+  });
+
+  it('batafsil dagi raqam ham darvozadan oʻtadi: toʻqilgan raqam — qaytariladi', async () => {
+    const b = soxtaBaza(QIZIQISH);
+    const s = soxtaAi([], [{ oldin: '', izoh: '', savol: 'Qancha pul bilan boshlaysiz?', batafsil: 'Odatda 999 mln kerak.' }]);
+    await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(s.yozlar[1]!.k.tuzat).toContain('999 mln');
+  });
+});

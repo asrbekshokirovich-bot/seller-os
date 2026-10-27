@@ -17,6 +17,8 @@
  *  2. YOZ — mijozga xabar: munosabat (va savoliga javob), yangi natijalar
  *     izohi shu mijozga, keyingi savol oʻz soʻzi bilan. Raqamlar faqat
  *     natija, faktlar va holatdan — darvoza (`tekshir`) tekshiradi.
+ *     QISQA (nazoratchi, 2026-10-26, 3-taklif): koʻrinadigan uch qism — 1–2 jumladan,
+ *     uzun tushuntirish — `batafsil` da (chatda yopiq turadi, «Batafsil» bilan ochiladi).
  * AI yiqilsa — chat toʻxtamaydi, lekin TAYYOR JAVOB YOʻQ (nazoratchi, 2026-10-26: «AI hamma
  * joyda javob bersin, tayyor javoblar shartmas»): AI vaqt qolguncha qayta urinadi (`suhbat.ts`),
  * baribir yozolmasa — qisqa uzr (`aiUzr`) va savolning oʻzi.
@@ -108,8 +110,11 @@ export interface AiYozSorovi {
   ism?: string | null;
 }
 
-/** AI yozgan xabar uch qismda; boʻsh qism — `''`. */
-export interface AiYozuv { oldin: string; izoh: string; savol: string }
+/**
+ * AI yozgan xabar: koʻrinadigan uch qism va yopiq `batafsil` (2026-10-27); boʻsh qism — `''`.
+ * `batafsil` — ixtiyoriy (eski yozuvlar va testlarda yoʻq).
+ */
+export interface AiYozuv { oldin: string; izoh: string; savol: string; batafsil?: string }
 
 /**
  * AI baribir yozolmaganda (tarmoq, vaqt, darvoza) — yagona tayyor gap: qisqa uzr (2026-10-26).
@@ -157,8 +162,9 @@ export const AI_TUSHUN_SXEMA: Record<string, unknown> = {
 
 export const AI_YOZ_SXEMA: Record<string, unknown> = {
   type: 'object',
-  properties: { oldin: { type: 'string' }, izoh: { type: 'string' }, savol: { type: 'string' } },
-  required: ['oldin', 'izoh', 'savol'],
+  // `batafsil` oxirida: koʻrinadigan qismlar oldin yoziladi va oqimda birinchi chiqadi.
+  properties: { oldin: { type: 'string' }, izoh: { type: 'string' }, savol: { type: 'string' }, batafsil: { type: 'string' } },
+  required: ['oldin', 'izoh', 'savol', 'batafsil'],
   additionalProperties: false,
 };
 
@@ -208,21 +214,27 @@ export const AI_YOZ_KORSATMA = [
   'jonli, doʻstona — tajribali maslahatchi kabi. Lekin qadamlar tartibini, savollarni va raqamlarni dastur beradi:',
   'har javobingda keyingi savolni berishing shart.',
   '',
-  'Javobni JSON da uch qism bilan yoz — har qism chatda alohida pufak, boʻsh qism chiqmaydi:',
-  '- oldin: mijoz SAVOL bergan, xavotir yoki tushunmovchilik bildirgan boʻlsa — avval shunga aniq javob (FAKTLAR, TAYYOR',
-  'JAVOB, MIJOZ HOLATIdan; savolini eʼtiborsiz qoldirma). QABUL QILINMADI boʻlsa — nimasi tushunarsiz ekanini muloyim ayt.',
+  'Javobni JSON da toʻrt qism bilan yoz. Mijoz telefonda oʻqiydi: oldin, izoh va savol — chatda alohida pufak, HAR BIRI',
+  '1–2 QISQA JUMLA, bir qarashda oʻqiladi. Uzun tushuntirish — faqat batafsil da: u yopiq turadi, mijoz xohlasa',
+  '«Batafsil» ni bosib ochadi. Boʻsh qism chiqmaydi:',
+  '- oldin: mijoz SAVOL bergan, xavotir yoki tushunmovchilik bildirgan boʻlsa — avval shunga aniq, qisqa javob (FAKTLAR,',
+  'TAYYOR JAVOB, MIJOZ HOLATIdan; savolini eʼtiborsiz qoldirma); toʻliq tushuntirish kerak boʻlsa — davomi batafsil da.',
+  'QABUL QILINMADI boʻlsa — nimasi tushunarsiz ekanini muloyim ayt.',
   'Yozgan gapida muhim narsa boʻlsa (tajribasi, rejasi, qiyinchiligi) — unga qisqa, iliq munosabat. ESLAB QOLINDI boʻlsa —',
   'buni qisqa ayt (masalan: «Pulni ham yozib qoʻydim — keyin qayta soʻramayman»). Oddiy tugma bosilgan yoki mijoz',
   'shaxsiy maʼlumotini bergan va aytadigan muhim gap boʻlmasa — boʻsh qoldir: qisqa rahmat yoki bogʻlovchi gapni',
   '«savol» boshida ayt.',
-  '- izoh: YANGI NATIJALAR boʻlsa — ularni shu mijozga tushuntir: nima chiqdi, unga qaysi biri koʻproq mos va nega',
-  '(tajribasi, qiziqqan sohasi, puli bilan bogʻlab). Asosiylarini nomi va raqami bilan ayt; hammasini sanab oʻtirma —',
-  'kartalar ekranda turibdi. Natija boʻlmasa — boʻsh.',
-  '- savol: KEYINGI SAVOLni oʻz soʻzing bilan ber (oldiga qisqa bogʻlovchi gap qoʻshsang boʻladi): maʼnosi, shartlari va',
-  'misollari saqlansin; tugmalar pastda turibdi — ularni sanab oʻtirma. KEYINGI SAVOL boʻlmasa — KEYINGI QADAM',
-  'matnining maʼnosini ayt.',
+  '- izoh: YANGI NATIJALAR boʻlsa — eng muhim xulosa shu mijozga: qaysi biri unga mos va nega (tajribasi, qiziqqan',
+  'sohasi, puli bilan bogʻlab), nomi va raqami bilan, 1–2 jumla. Boshqalarini solishtirish — batafsil da; hammasini',
+  'sanab oʻtirma — kartalar ekranda turibdi. Natija boʻlmasa — boʻsh.',
+  '- savol: KEYINGI SAVOLni oʻz soʻzing bilan, qisqa ber (oldiga qisqa bogʻlovchi gap qoʻshsang boʻladi): maʼnosi va',
+  'shartlari saqlansin, misol — bittasi yetadi; tugmalar pastda turibdi — ularni sanab oʻtirma. KEYINGI SAVOL boʻlmasa —',
+  'KEYINGI QADAM matnining maʼnosini ayt.',
+  '- batafsil: kerak boʻlsa — toʻliq tushuntirish: savolga batafsil javob, natijalarni solishtirish, raqamlar nimani',
+  'anglatishi (6 jumlagacha, xatboshilar bilan). oldin va izoh dagini takrorlama. Kerak boʻlmasa (oddiy tugma, qisqa',
+  'tasdiq) — boʻsh.',
   '',
-  'USLUB: doʻstona, «siz» bilan; jonli va sodda, kitobiy soʻzsiz; har qism odatda 1–4 jumla (savolga javob — 6 jumlagacha).',
+  'USLUB: doʻstona, «siz» bilan; jonli va sodda, kitobiy soʻzsiz.',
   'Mijoz qaysi tilda va yozuvda yozgan boʻlsa (oʻzbek lotin, oʻzbek kirill yoki rus) — butun javob oʻshanda.',
   '',
   'QOIDALAR:',
@@ -365,7 +377,9 @@ export function aiYozuvniOqi(t: string): AiYozuv | null {
   const j = jsonMatn(t) as Partial<AiYozuv> | null;
   if (!j || typeof j !== 'object' || typeof j.savol !== 'string') return null;
   const str = (x: unknown) => (typeof x === 'string' ? x.trim() : '');
-  return { oldin: str(j.oldin), izoh: str(j.izoh), savol: str(j.savol) };
+  // «Batafsil» — faqat boʻlsa (boʻsh maydon yozilmaydi; eski yozuvlarda yoʻq).
+  const batafsil = str(j.batafsil);
+  return { oldin: str(j.oldin), izoh: str(j.izoh), savol: str(j.savol), ...(batafsil ? { batafsil } : {}) };
 }
 
 /**

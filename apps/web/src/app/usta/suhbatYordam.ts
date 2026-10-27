@@ -47,6 +47,14 @@ export interface Xabar {
   seq?: number;
 }
 
+/**
+ * «Batafsil» xabari (2026-10-27, 3-taklif): yordamchining uzun tushuntirishi — chatda yopiq
+ * turadi, «Batafsil» tugmasi bilan ochiladi (`{rol: 'menejer', javob: {batafsil: true}}`).
+ */
+export function batafsilmi(x: Xabar): boolean {
+  return x.rol === 'menejer' && (x.javob as { batafsil?: unknown } | null | undefined)?.batafsil === true;
+}
+
 export interface SuhbatJavobi {
   xato?: string;
   xabarlar: Xabar[];
