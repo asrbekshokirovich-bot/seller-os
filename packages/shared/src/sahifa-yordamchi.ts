@@ -9,9 +9,12 @@
  * yozilmaydi — faqat savol-javob.
  *
  * Raqam faqat faktlardan (`bilim.ts`), bazaviy javobdan va (sessiya boʻlsa)
- * mijoz holatidan — darvoza (`tekshir`) tekshiradi; oʻtmasa — sababi bilan bir
- * marta qayta, keyin bazaviy javob yoki umumiy gap. AI yoʻq yoki yiqilsa ham
- * javob bor. Ism va telefon yuborilmaydi (`mijozHolati` ularni olmaydi).
+ * mijoz holatidan — darvoza (`tekshir`) tekshiradi; oʻtmasa yoki yiqilsa — vaqt
+ * qolguncha qayta (uch martagacha). TAYYOR JAVOB YOʻQ (nazoratchi, 2026-10-26: «AI
+ * hamma joyda javob bersin, tayyor javoblar shartmas»): AI baribir yozolmasa —
+ * qisqa uzr (`aiUzr`); bazaviy javob faqat AI ga fakt boʻlib beriladi. AI umuman
+ * ulanmagan boʻlsa — bazaviy javob yoki umumiy gap. Ism va telefon yuborilmaydi
+ * (`mijozHolati` ularni olmaydi).
  */
 
 import { tayyorJavob } from './erkin.js';
@@ -19,7 +22,7 @@ import { yordamchiBilimi } from './bilim.js';
 import { bilimJavobi } from './bilim-javob.js';
 import { tekshir } from './tekshiruv.js';
 import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.js';
-import { SAYT_NOMLARI } from './ai-suhbat.js';
+import { aiUzr, SAYT_NOMLARI } from './ai-suhbat.js';
 
 export type Sahifa = 'bosh' | 'kirish' | 'maxfiylik' | 'obuna';
 export const SAHIFALAR: readonly Sahifa[] = ['bosh', 'kirish', 'maxfiylik', 'obuna'];
@@ -117,6 +120,12 @@ export const SAHIFA_SAVOL_MAX = 500;
 const SAHIFA_JAVOB_MAX = 1_600;
 /** AI chaqiruviga vaqt. */
 const SAHIFA_AI_MS = 25_000;
+/** Butun javobga vaqt — Vercel vositachisi 60 s da uziladi; urinishlar shunga sigʻadi (2026-10-26). */
+const SAHIFA_MUDDAT_MS = 50_000;
+/** Shundan kam vaqt qolsa — yana urinilmaydi. */
+const SAHIFA_KAM_MS = 6_000;
+/** Urinishlar (2026-10-26: ikki → uch): darvoza oʻtkazmasa — sababi bilan, yiqilsa — shunchaki qayta. */
+const SAHIFA_URINISH = 3;
 
 /** Brauzerdan kelgan tarix — tekshirib, oxirgi 6 tasi, har biri 500 belgigacha. */
 export function sahifaTarixi(x: unknown): SahifaXabari[] {
@@ -130,8 +139,8 @@ export function sahifaTarixi(x: unknown): SahifaXabari[] {
 }
 
 /**
- * Bitta savolga javob. AI boʻlsa — darvoza bilan (bir marta qayta); boʻlmasa yoki
- * oʻtmasa — bazadagi javob yoki umumiy gap. Hech qachon otmaydi.
+ * Bitta savolga javob. AI boʻlsa — darvoza bilan, vaqt qolguncha qayta; baribir yozolmasa —
+ * qisqa uzr. AI boʻlmasa — bazadagi javob yoki umumiy gap. Hech qachon otmaydi.
  */
 export async function sahifaJavobi(
   d: SahifaBogliqliklari,
@@ -157,11 +166,15 @@ export async function sahifaJavobi(
     let qoralama = false;
     const qism = oqim ? (m: string) => { qoralama = true; oqim.qism(m.trim()); } : undefined;
     const tashla = () => { if (qoralama) { qoralama = false; oqim?.qayta(); } };
-    for (let urinish = 0; urinish < 2; urinish++) {
+    const muddat = Date.now() + SAHIFA_MUDDAT_MS;
+    for (let urinish = 0; urinish < SAHIFA_URINISH; urinish++) {
+      const vaqt = Math.min(SAHIFA_AI_MS, muddat - Date.now() - 2_000);
+      if (vaqt < SAHIFA_KAM_MS) break;
       const taklif: string | null = (await d.ai({
         savol, sahifa: k.sahifa, tarix: k.tarix, holat: k.holat, bilim, tayyor: baza, til, tuzat,
-      }, SAHIFA_AI_MS, qism).catch(() => null))?.trim() || null;
-      if (!taklif) { tashla(); break; }
+      }, vaqt, qism).catch(() => null))?.trim() || null;
+      // Yiqildi — vaqt qolsa yana (2026-10-26: tayyor javob yoʻq, AI qayta urinadi).
+      if (!taklif) { tashla(); continue; }
       const tk = tekshir(taklif, manba);
       const tilMos: boolean = til === 'uz' || kirillUlushi(taklif) >= 0.5;
       const qisqa: boolean = taklif.length <= SAHIFA_JAVOB_MAX;
@@ -174,6 +187,8 @@ export async function sahifaJavobi(
         qisqa ? null : 'juda uzun — qisqaroq yoz.',
       ].filter(Boolean).join(' ');
     }
+    // AI baribir yozolmadi — tayyor javob YOʻQ (nazoratchi, 2026-10-26): qisqa uzr.
+    return { matn: aiUzr(til), manba: 'shablon' };
   }
   if (baza) return { matn: baza, manba: 'baza' };
   return {

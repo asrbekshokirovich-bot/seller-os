@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  aiQiymat, aiTushunchaniOqi, aiYozMatni, aiYozuvniOqi, aiYozuvQismi, AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA,
+  aiQiymat, aiTushunchaniOqi, aiUzr, aiYozMatni, aiYozuvniOqi, aiYozuvQismi, AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA,
   AI_YOZ_SXEMA, ixcham, natijaTavsifi, savolTavsifi, type AiYozSorovi,
 } from '../src/ai-suhbat';
 import { aiTushunBer, aiYozBer, type LlmChaqiruvi } from '../src/llm';
@@ -194,5 +194,20 @@ describe('aiYozuvQismi — yozilayotgan xabar (oqim, 2026-10-20)', () => {
     expect(aiYozuvQismi(' {\n "savol" : "S?",\n "boshqa": "x", "oldin": "O"')).toEqual({ oldin: 'O', izoh: '', savol: 'S?' });
     expect(aiYozuvQismi('')).toEqual({ oldin: '', izoh: '', savol: '' });
     expect(aiYozuvQismi('{"oldin":"A","son":5,"savol":"B"}')).toEqual({ oldin: 'A', izoh: '', savol: '' });
+  });
+});
+
+/*
+ * 2026-10-26 (nazoratchi: «AI hamma joyda javob bersin, tayyor javoblar shartmas»): AI baribir
+ * yozolmaganda — yagona tayyor gap, qisqa uzr. U savolga javob bermaydi va tilida boʻladi.
+ */
+describe('aiUzr', () => {
+  it('qisqa, rost: javob bermaydi, qayta yozishni soʻraydi; mijoz tilida', () => {
+    expect(aiUzr('uz')).toBe('Kechirasiz, hozir javob yoza olmadim — birozdan keyin qayta yozing.');
+    expect(aiUzr('uz', true)).toBe('Javobingizni yozib oldim. Kechirasiz, savolingizga hozir javob yoza olmadim — birozdan keyin qayta soʻrang.');
+    expect(aiUzr('ru')).toMatch(/^Извините/);
+    expect(aiUzr('ru', true)).toMatch(/^Ваш ответ записал\./);
+    expect(aiUzr('uz-kirill')).toMatch(/^Кечирасиз/);
+    expect(aiUzr('uz-kirill', true)).toMatch(/^Жавобингизни ёзиб олдим\./);
   });
 });

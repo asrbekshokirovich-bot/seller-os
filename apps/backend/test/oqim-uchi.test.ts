@@ -238,6 +238,32 @@ describe('AI sarfi — har Claude javobi `so_ai_sarf_yoz` ga (0072)', () => {
  * qoʻshadi (`kurs`). Server uni tekshirib ishlatadi va CBU ga oʻzi soʻramaydi; oʻtmasa — oʻzi
  * urinadi. Zanjir — Fastify `/suhbat` orqali (Edge bilan bir xil).
  */
+/*
+ * 2026-10-26: mijoz gapini tushunish — Haiku 5.5 (tez, arzon), yozish — Sonnet 5.5. Zanjir: Fastify
+ * `/suhbat` (Edge bilan bir xil) yozilgan gapda avval Haiku ga, keyin Sonnet ga soʻraydi.
+ */
+describe('/suhbat — tushunish Haiku da, yozish Sonnet da', () => {
+  it('yozilgan gap: birinchi soʻrov — Haiku (zaxirasiz), ikkinchisi — Sonnet (zaxira bilan)', async () => {
+    // Soxta Claude har soʻrovga bir xil javob beradi — ikkala shaklga ham mos (tushuncha va xabar).
+    const s = soxtalar(OQI(), ['{"javoblar":[],"taklif_qiziqish":[],"savol_bor":true,"oldin":"Ha, boshlash bepul.","izoh":"","savol":"Qaysi soha sizga yaqin?"}']);
+    await sora('/suhbat', { savolId: 'qiziqish', matn: 'bu bepulmi?' });
+    expect(s.claude.map((c) => c.model)).toEqual(['claude-haiku-5-5', 'claude-sonnet-5-5']);
+    expect(s.claude[0]!.fallbacks).toBeUndefined();
+    expect(s.claude[1]!.fallbacks).toBe('default');
+  });
+
+  it('CLAUDE_TUSHUN_MODEL bilan boshqa model', async () => {
+    const s = soxtalar(OQI(), ['{"javoblar":[],"taklif_qiziqish":[],"savol_bor":true}']);
+    process.env.CLAUDE_TUSHUN_MODEL = 'claude-sonnet-5-5';
+    try {
+      await sora('/suhbat', { savolId: 'qiziqish', matn: 'bu bepulmi?' });
+    } finally {
+      delete process.env.CLAUDE_TUSHUN_MODEL;
+    }
+    expect(s.claude[0]!.model).toBe('claude-sonnet-5-5');
+  });
+});
+
 describe('/suhbat — brauzer yuborgan CBU kursi', () => {
   /** Bugun, Toshkent boʻyicha, `kk.oo.yyyy` (CBU shakli). */
   const bugun = () => new Date(Date.now() + 5 * 3_600_000).toISOString().slice(0, 10).split('-').reverse().join('.');

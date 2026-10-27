@@ -17,7 +17,9 @@
  *  2. YOZ — mijozga xabar: munosabat (va savoliga javob), yangi natijalar
  *     izohi shu mijozga, keyingi savol oʻz soʻzi bilan. Raqamlar faqat
  *     natija, faktlar va holatdan — darvoza (`tekshir`) tekshiradi.
- * AI yiqilsa — kod qoliplari: chat toʻxtamaydi.
+ * AI yiqilsa — chat toʻxtamaydi, lekin TAYYOR JAVOB YOʻQ (nazoratchi, 2026-10-26: «AI hamma
+ * joyda javob bersin, tayyor javoblar shartmas»): AI vaqt qolguncha qayta urinadi (`suhbat.ts`),
+ * baribir yozolmasa — qisqa uzr (`aiUzr`) va savolning oʻzi.
  *
  * Bu modul SOF: koʻrsatma, soʻrov matni, JSON sxema va javobni oʻqish.
  */
@@ -108,6 +110,27 @@ export interface AiYozSorovi {
 
 /** AI yozgan xabar uch qismda; boʻsh qism — `''`. */
 export interface AiYozuv { oldin: string; izoh: string; savol: string }
+
+/**
+ * AI baribir yozolmaganda (tarmoq, vaqt, darvoza) — yagona tayyor gap: qisqa uzr (2026-10-26).
+ * Tayyor javob emas: savolga javob bermaydi, faqat rostini aytadi. `qabul` — mijoz javobi
+ * yozib olindi (uzr faqat savoli uchun).
+ */
+export function aiUzr(til: Yozuv, qabul = false): string {
+  if (til === 'ru') {
+    return qabul
+      ? 'Ваш ответ записал. Извините, на вопрос сейчас ответить не получилось — спросите ещё раз чуть позже.'
+      : 'Извините, сейчас не получилось ответить — напишите ещё раз чуть позже.';
+  }
+  if (til === 'uz-kirill') {
+    return qabul
+      ? 'Жавобингизни ёзиб олдим. Кечирасиз, саволингизга ҳозир жавоб ёза олмадим — бироздан кейин қайта сўранг.'
+      : 'Кечирасиз, ҳозир жавоб ёза олмадим — бироздан кейин қайта ёзинг.';
+  }
+  return qabul
+    ? 'Javobingizni yozib oldim. Kechirasiz, savolingizga hozir javob yoza olmadim — birozdan keyin qayta soʻrang.'
+    : 'Kechirasiz, hozir javob yoza olmadim — birozdan keyin qayta yozing.';
+}
 
 export const AI_TUSHUN_SXEMA: Record<string, unknown> = {
   type: 'object',

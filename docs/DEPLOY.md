@@ -33,12 +33,17 @@ Edge Function da (Supabase → Edge Functions → **Secrets**, yoki `supabase se
   nazoratchi «tezroq va arzonroq» dedi). Narx, 1M token: Opus 5.5 — $4 kirish /
   $20 chiqish; Sonnet 5.5 — $2 / $10; Haiku 5.5 — $0.10 / $0.50. Kalit qoʻyilgach
   `/health` → `live.llmProvayder: "claude"`, `live.claudeModel` — qaysi model ishlayapti.
+  Mijoz gapini **tushunish** (AI suhbat, JSON) — alohida, tezkor model: `CLAUDE_TUSHUN_MODEL`
+  (boʻlmasa `claude-haiku-5-5`, 2026-10-26; `live.claudeTushunModel`). Yozish — `CLAUDE_MODEL` da.
   Suhbat va «Savol bering» javobi yozilgan sari chiqadi (oqim, `oqim.ts`): sayt `{oqim: true}`
   yuboradi, Edge `text/event-stream` qaytaradi, Vercel vositachisi uni ushlab turmay uzatadi.
 - `GEMINI_API_KEY` (va ixtiyoriy `LLM_MODEL`) — Anthropic kaliti **boʻlmasa** ishlatiladi.
 
 **Hech biri boʻlmasa ham suhbat ishlaydi**: kalit yoʻq boʻlsa kodning jumlasi ketadi. Kalit
-qoʻyilgach javob `tekshiruv.ts` darvozasidan oʻtadi — LLM raqam qoʻshsa kod jumlasi qoladi.
+qoʻyilgach javob `tekshiruv.ts` darvozasidan oʻtadi. AI suhbatda (Claude) **tayyor javob yoʻq**
+(nazoratchi, 2026-10-26: «AI hamma joyda javob bersin, tayyor javoblar shartmas»): darvoza
+oʻtkazmasa yoki AI yiqilsa — vaqt qolguncha qayta (uch martagacha), baribir yozolmasa — qisqa
+uzr va savolning oʻzi (`aiUzr`).
 
 Boshqa ixtiyoriy sozlamalar (hammasi `llm.ts` / `suhbat.ts` da izohlangan):
 
