@@ -47,6 +47,18 @@ describe('javobni oʻqish', () => {
     expect(aiYozuvniOqi('buzuq')).toBeNull();
   });
 
+  it('yozuv: «batafsil» — boʻlsa oʻqiladi, boʻsh boʻlsa yozilmaydi (2026-10-27)', () => {
+    expect(aiYozuvniOqi('{"oldin":"Ha.","izoh":"","savol":"S?","batafsil":" Uzun tushuntirish. "}'))
+      .toEqual({ oldin: 'Ha.', izoh: '', savol: 'S?', batafsil: 'Uzun tushuntirish.' });
+    expect(aiYozuvniOqi('{"oldin":"Ha.","izoh":"","savol":"S?","batafsil":"  "}')).toEqual({ oldin: 'Ha.', izoh: '', savol: 'S?' });
+  });
+
+  it('koʻrsatma (3-taklif): koʻrinadigan qism 1–2 jumla, uzuni — batafsil da', () => {
+    expect(AI_YOZ_KORSATMA).toMatch(/HAR BIRI\n?\s*1–2 QISQA JUMLA/u);
+    expect(AI_YOZ_KORSATMA).toMatch(/- batafsil: kerak boʻlsa — toʻliq tushuntirish/u);
+    expect(AI_YOZ_KORSATMA).not.toMatch(/har qism odatda 1–4 jumla/u);
+  });
+
   it('qiymat: koʻp tanlov — roʻyxat, boshqasi — birinchisi; oʻtkazish faqat ruxsat boʻlsa', () => {
     expect(aiQiymat(SAVOL, { savol_id: 'qiziqish', qiymatlar: ['kiyim', ' '], otkazish: false })).toEqual(['kiyim']);
     expect(aiQiymat({ ...SAVOL, turi: 'son' }, { savol_id: 'qiziqish', qiymatlar: [' 70 mln ', '80'], otkazish: false })).toBe('70 mln');
@@ -152,8 +164,10 @@ describe('provayderga chaqiruv', () => {
     expect(await aiTushunBer({ kalit: null, provayder: soxta('{}').provayder }, { savollar: [SAVOL], xabar: 'x', holat: '', tarix: '' })).toBeNull();
   });
 
-  it('sxemalar — hamma maydon majburiy, ortiqchasi yoʻq (structured outputs)', () => {
-    expect(AI_YOZ_SXEMA.required).toEqual(['oldin', 'izoh', 'savol']);
+  it('sxemalar — hamma maydon majburiy, ortiqchasi yoʻq (structured outputs); «batafsil» oxirida', () => {
+    expect(AI_YOZ_SXEMA.required).toEqual(['oldin', 'izoh', 'savol', 'batafsil']);
+    // Koʻrinadigan qismlar oldin yoziladi — oqimda birinchi chiqadi.
+    expect(Object.keys(AI_YOZ_SXEMA.properties as object)).toEqual(['oldin', 'izoh', 'savol', 'batafsil']);
     expect(AI_YOZ_SXEMA.additionalProperties).toBe(false);
     expect(AI_TUSHUN_SXEMA.required).toEqual(['javoblar', 'taklif_qiziqish', 'savol_bor']);
     expect(AI_TUSHUN_SXEMA.additionalProperties).toBe(false);

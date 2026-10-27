@@ -40,7 +40,7 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
 
@@ -855,6 +855,7 @@ function XabarPufagi({ x, tr, katalog, xitoy, ilova }: {
   ilova?: ReactNode;
 }) {
   if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
+  if (batafsilmi(x)) return <BatafsilPufagi matn={x.matn} tr={tr} />;
   if (x.rol === 'menejer') {
     // Erkin javob (savolga javob, `{erkin: true, manba}`) — tagida 👍/👎.
     const erkin = (x.javob as { erkin?: unknown } | null | undefined)?.erkin === true;
@@ -868,6 +869,23 @@ function XabarPufagi({ x, tr, katalog, xitoy, ilova }: {
   }
   // «Boshidan boshlash» belgisi bu yerga yetmaydi (`songgiSuhbat`): yangi suhbat — chiziqsiz.
   return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} />;
+}
+
+/**
+ * «Batafsil» (nazoratchi, 2026-10-26, 3-taklif: «telefonda bir qarashda oʻqilsin»): yordamchining
+ * uzun tushuntirishi yopiq turadi — kim xohlasa ochadi. Koʻrinadigan xabar 1–2 jumla.
+ */
+function BatafsilPufagi({ matn, tr }: { matn: string; tr: Tr }) {
+  const [ochiq, setOchiq] = useState(false);
+  return (
+    <div className={u.batafsil}>
+      <button type="button" className={u.batafsilTugma} aria-expanded={ochiq} onClick={() => setOchiq(!ochiq)}>
+        {ochiq ? tr('Yopish', 'Свернуть') : tr('Batafsil', 'Подробнее')}
+        <span aria-hidden="true">{ochiq ? ' ▴' : ' ▾'}</span>
+      </button>
+      {ochiq && <div className={`${u.pufak} ${u.ai} ${u.batafsilMatn}`}><Havolali matn={matn} /></div>}
+    </div>
+  );
 }
 
 /**

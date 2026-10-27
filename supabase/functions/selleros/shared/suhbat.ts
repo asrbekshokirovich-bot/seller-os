@@ -197,8 +197,14 @@ const AI_YOZGA_QOLSIN = 20_000;
 const AI_YOZ_MS = 30_000;
 /** Shundan kam vaqt qolsa AI chaqirilmaydi — kod qoliplari. */
 const AI_KAM_MS = 6_000;
-/** AI xabarining uch qismi birga — shundan uzun boʻlsa qisqaroq yozish soʻraladi. */
+/** AI xabarining hamma qismi birga — shundan uzun boʻlsa qisqaroq yozish soʻraladi. */
 const AI_YOZ_MAX = 3_500;
+/**
+ * Koʻrinadigan uch qism (oldin, izoh, savol) birga — shundan uzun boʻlsa, tushuntirishni
+ * `batafsil` ga oʻtkazish soʻraladi (nazoratchi, 2026-10-26, 3-taklif: «telefonda bir qarashda
+ * oʻqilsin»; 10-27 gacha oʻrtacha 450 belgi, eng uzuni 1 100 dan ortiq edi).
+ */
+const AI_KORINADIGAN_MAX = 650;
 /**
  * Yozishga urinishlar (2026-10-26: ikki → uch). Darvoza oʻtkazmasa — sababi bilan qayta; yiqilsa —
  * shunchaki qayta. Vaqt (`AI_KAM_MS`) tugasa — erta toʻxtaydi.
@@ -1326,14 +1332,17 @@ async function aiYozTekshirib(
     const y: AiYozuv | null = await ai.yoz({ ...s, tuzat }, vaqt, qism).catch(() => null);
     // Yiqildi (tarmoq, rad, buzuq JSON) — vaqt qolsa yana (2026-10-26: tayyor javob yoʻq, AI qayta urinadi).
     if (!y) { tashla(); continue; }
-    const hammasi: string = [y.oldin, y.izoh, y.savol].filter(Boolean).join('\n');
+    const korinadigan: string = [y.oldin, y.izoh, y.savol].filter(Boolean).join('\n');
+    const hammasi: string = [korinadigan, y.batafsil ?? ''].filter(Boolean).join('\n');
     const tk = tekshir(hammasi, manba);
     const tilMos: boolean = s.til === 'uz' || kirillUlushi(hammasi) >= 0.5;
     const savolBerdi: boolean = s.keyingi === null || y.savol.length > 0;
     const javobBerdi: boolean = !s.savolBor || y.oldin.length > 0 || urinish > 0;
     const qisqa: boolean = hammasi.length <= AI_YOZ_MAX || urinish > 0;
+    // Koʻrinadigani uzun — birinchi urinishda qaytariladi: tushuntirish «Batafsil» ga (3-taklif).
+    const ixcham: boolean = korinadigan.length <= AI_KORINADIGAN_MAX || urinish > 0;
     // Oʻtdi — qoralama ekranda qoladi: uning oʻrnini shu xabar oladi (sahifa — turn oxirida).
-    if (tk.ok && tilMos && savolBerdi && javobBerdi && qisqa && hammasi) return y;
+    if (tk.ok && tilMos && savolBerdi && javobBerdi && qisqa && ixcham && korinadigan) return y;
     tashla();
     tuzat = [
       tk.dalilsiz.length ? `bu raqamlar manbalarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
@@ -1342,6 +1351,7 @@ async function aiYozTekshirib(
       savolBerdi ? null : '«savol» boʻsh — KEYINGI SAVOLni albatta ber.',
       javobBerdi ? null : 'mijoz savol berdi, «oldin» boʻsh — avval savoliga javob ber.',
       qisqa ? null : 'juda uzun — qisqaroq yoz.',
+      ixcham ? null : 'koʻrinadigan qism uzun — oldin, izoh va savolni 1–2 jumlagacha qisqartir, tushuntirishni batafsil ga oʻtkaz.',
     ].filter(Boolean).join(' ') || 'javob boʻsh.';
   }
   return null;
@@ -1349,18 +1359,31 @@ async function aiYozTekshirib(
 
 /**
  * AI yozganini xabarlarga qoʻyadi: izoh — oxirgi kod xabarining pufagiga (karta tepasida),
- * munosabat — mijoz xabaridan keyin, savol — oxirida (tugmalar shu pufakka).
+ * munosabat — mijoz xabaridan keyin, savol — oxirida (tugmalar shu pufakka). «Batafsil»
+ * (2026-10-27) — tushuntirgan narsasidan keyin, alohida yopiq xabar (`batafsilXabari`):
+ * natija izohi boʻlsa — kartadan keyin, boʻlmasa — munosabatdan keyin, ikkalasi ham boʻlmasa —
+ * savoldan oldin.
  */
 function aiXabarlariniQoy(yangi: SuhbatXabari[], y: AiYozuv, ak: AiKirish, kodlar: readonly number[], k: Keyingi): void {
   const oxirgi = kodlar[kodlar.length - 1];
-  if (y.izoh && oxirgi !== undefined) yangi[oxirgi] = { ...yangi[oxirgi]!, matn: y.izoh };
+  const izohBor = !!y.izoh && oxirgi !== undefined;
+  const batafsil = y.batafsil ? [batafsilXabari(y.batafsil)] : [];
+  if (izohBor) yangi.splice(oxirgi + 1, 0, ...batafsil);
+  if (izohBor) yangi[oxirgi] = { ...yangi[oxirgi]!, matn: y.izoh };
   if (y.oldin) {
     yangi.splice(ak.boshi, 0, ak.savolId !== null && ak.mijoz !== null
       ? { rol: 'menejer', matn: y.oldin, savolId: ak.savolId, javob: { erkin: true, manba: 'ai', munosabat: true } }
-      : { rol: 'menejer', matn: y.oldin });
+      : { rol: 'menejer', matn: y.oldin }, ...(izohBor ? [] : batafsil));
+  } else if (!izohBor) {
+    yangi.push(...batafsil);
   }
   const kodJumla = k.tur === 'savol' ? k.savol.matn : k.tur === 'kod' ? '' : k.matn;
   yangi.push({ rol: 'menejer', matn: y.savol || kodJumla, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
+}
+
+/** «Batafsil» — yopiq xabar (2026-10-27, 3-taklif): sahifa uni «Batafsil» tugmasi ostida koʻrsatadi. */
+function batafsilXabari(matn: string): SuhbatXabari {
+  return { rol: 'menejer', matn, javob: { batafsil: true } };
 }
 
 /**
@@ -1400,6 +1423,8 @@ async function aiErkinXabar(
       ? [
         // `javob` — erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
         ...(y.oldin ? [{ rol: 'menejer' as const, matn: y.oldin, savolId: k0.savol.id, javob: { erkin: true, manba: 'ai' } }] : []),
+        // «Batafsil» — javobdan keyin, yopiq (2026-10-27).
+        ...(y.batafsil ? [batafsilXabari(y.batafsil)] : []),
         { rol: 'menejer' as const, matn: y.savol || (keyingiSavol !== k1.savol ? keyingiSavol.matn : k0.savol.matn), savolId: k0.savol.id },
       ]
       // AI baribir yozolmadi — tayyor javob YOʻQ (2026-10-26): javob qabul qilinmagan boʻlsa — kodning
