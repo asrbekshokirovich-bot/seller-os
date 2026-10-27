@@ -96,30 +96,103 @@ export function royxatSahifasimi(yol: string): boolean {
   return turkumIdsi(yol) !== null || /\/search\/?$/.test(yol);
 }
 
-export interface SahifaTurkumi { id: number; nom: string | null; soni: number }
+export interface SahifaTurkumi {
+  id: number;
+  nom: string | null;
+  soni: number;
+  /** Chipdagi nom: bir xil nomli turkumlar sahifadagi tovar nomlaridan ajratiladi. */
+  yorliq: string;
+  /** Sahifadagi shu turkum tovarlaridan 2 tasining nomi (chip ustiga kelganda). */
+  misollar: string[];
+}
+
+/** Tovar nomidagi soʻzlar (kichik harf, 3 harfdan uzun, takrorsiz). */
+function sozlar(nom: string): Set<string> {
+  return new Set((nom.toLocaleLowerCase().match(/\p{L}[\p{L}'ʻʼ’`-]*/gu) ?? []).filter((s) => [...s].length >= 3));
+}
+
+/** Nomlarning qancha qismida soʻz bor (0–1); nom yoʻq — 0. */
+function ulush(nomlar: ReadonlyArray<Set<string>>, soz: string): number {
+  return nomlar.length ? nomlar.filter((s) => s.has(soz)).length / nomlar.length : 0;
+}
+
+/**
+ * Bir xil nomli turkumni ajratadigan soʻz: shu turkum tovarlari nomlarining kamida
+ * yarmida bor va boshqa bir xil nomli turkumlarnikida ancha kam (farq ≥ 0,3).
+ * Uzumda bu koʻpincha kimga ekani: «Qizlar …», «… erkaklar chinos shimi», «Ayollar …».
+ * Ikkala turkumda ham bor soʻz («shim», «uchun») ajratmaydi — oʻz-oʻzidan tushib qoladi.
+ * Faqat birinchi soʻz yetmadi (jonli «shim», 2026-10-27: erkaklar shimlari nomi har xil
+ * soʻzdan boshlanadi — «Zamonaviy…», «TERRA PRO erkaklar…»).
+ */
+function ajratuvchiSoz(bu: readonly string[], boshqalar: ReadonlyArray<readonly string[]>, turkumNomi: string): string | null {
+  if (bu.length < 2) return null;
+  const meniki = bu.map(sozlar);
+  const ularniki = boshqalar.map((b) => b.map(sozlar));
+  // Turkum nomining oʻzaklari: «Shimlar» → «shim» — «shim», «shimi» ajratuvchi emas
+  // (jonli «shim», 2026-10-27: «Shimlar (Shim)» chiqardi).
+  const ozaklar = [...sozlar(turkumNomi)].map((s) => [...s].slice(0, 4).join(''));
+  let eng: { soz: string; farq: number; u: number } | null = null;
+  for (const s of meniki) {
+    for (const soz of s) {
+      if (ozaklar.some((o) => soz.startsWith(o))) continue;
+      // Kamida 2 ta nomda: bitta nomdagi tasodifiy soʻz («polo») turkum belgisi emas.
+      const u = ulush(meniki, soz);
+      if (u < 0.5 || u * meniki.length < 2) continue;
+      const farq = u - Math.max(0, ...ularniki.map((b) => ulush(b, soz)));
+      if (farq < 0.3) continue;
+      if (!eng || farq > eng.farq || (farq === eng.farq && u > eng.u)) eng = { soz, farq, u };
+    }
+  }
+  return eng ? eng.soz.charAt(0).toLocaleUpperCase() + eng.soz.slice(1) : null;
+}
 
 /**
  * Sahifadagi tovarlarning turkumlari, koʻpidan ozigacha (teng boʻlsa — kichik id).
  * Qidiruv sahifasida manzilda turkum yoʻq: bozor paneli shu roʻyxatning
  * birinchisini oladi. Turkumi nomaʼlum tovar sanalmaydi.
+ *
+ * BIR XIL NOMLAR. Bazada turkumning faqat oʻz nomi bor («Shimlar»), otasi yoʻq —
+ * 312 ta nom bir necha turkumda takrorlanadi («Shimlar» — 6 ta: qizlar, ayollar…,
+ * oʻlchandi 2026-10-27). Takrorlangan nom chipda sahifadagi tovar nomlaridan topilgan
+ * ajratuvchi soʻz bilan beriladi («Shimlar (Qizlar)», «Shimlar (Ayollar)»). Soʻzsiz qolgan
+ * bitta turkum — oddiy nomi bilan (qolganlari belgilangan, u ham ajraladi); soʻzsiz
+ * ikkitasi va koʻprogʻi — tartib raqami bilan («Shimlar 1», «Shimlar 2»).
  */
 export function engKopTurkumlar(
-  tovarlar: Iterable<{ kategoriya?: number | null; kategoriyaNomi?: string | null }>,
+  tovarlar: Iterable<{ kategoriya?: number | null; kategoriyaNomi?: string | null; nom?: string | null }>,
   max = 3,
 ): SahifaTurkumi[] {
-  const s = new Map<number, SahifaTurkumi>();
+  const s = new Map<number, { id: number; nom: string | null; soni: number; nomlar: string[] }>();
   for (const t of tovarlar) {
     const id = t.kategoriya;
     if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) continue;
-    const bor = s.get(id);
-    if (bor) {
-      bor.soni += 1;
-      if (!bor.nom && t.kategoriyaNomi) bor.nom = t.kategoriyaNomi;
-    } else {
-      s.set(id, { id, nom: t.kategoriyaNomi ?? null, soni: 1 });
+    let bor = s.get(id);
+    if (!bor) {
+      bor = { id, nom: t.kategoriyaNomi ?? null, soni: 0, nomlar: [] };
+      s.set(id, bor);
     }
+    bor.soni += 1;
+    if (!bor.nom && t.kategoriyaNomi) bor.nom = t.kategoriyaNomi;
+    if (t.nom && t.nom.trim()) bor.nomlar.push(t.nom.trim());
   }
-  return [...s.values()].sort((a, b) => b.soni - a.soni || a.id - b.id).slice(0, max);
+  const tanlov = [...s.values()].sort((a, b) => b.soni - a.soni || a.id - b.id).slice(0, max);
+  const nomi = (t: { id: number; nom: string | null }) => t.nom ?? `Turkum ${t.id}`;
+  const yorliq = new Map<number, string>();
+  for (const t of tanlov) {
+    if (yorliq.has(t.id)) continue;
+    const guruh = tanlov.filter((x) => nomi(x).toLocaleLowerCase() === nomi(t).toLocaleLowerCase());
+    if (guruh.length === 1) {
+      yorliq.set(t.id, nomi(t));
+      continue;
+    }
+    const sozlar = guruh.map((x) => ajratuvchiSoz(x.nomlar, guruh.filter((y) => y !== x).map((y) => y.nomlar), nomi(x)));
+    const sozsiz = guruh.filter((_, i) => sozlar[i] === null);
+    guruh.forEach((x, i) => {
+      const soz = sozlar[i];
+      yorliq.set(x.id, soz ? `${nomi(x)} (${soz})` : sozsiz.length === 1 ? nomi(x) : `${nomi(x)} ${sozsiz.indexOf(x) + 1}`);
+    });
+  }
+  return tanlov.map((t) => ({ id: t.id, nom: t.nom, soni: t.soni, yorliq: yorliq.get(t.id)!, misollar: t.nomlar.slice(0, 2) }));
 }
 
 /** 1 kasr xonasi, vergul bilan, «,0» siz. */

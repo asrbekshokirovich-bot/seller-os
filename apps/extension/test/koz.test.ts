@@ -85,13 +85,60 @@ describe('bozor paneli: turkum va sahifa (0.4.0)', () => {
       { kategoriya: 12000, kategoriyaNomi: 'Termokrujkalar' }, { kategoriya: 12000 },
       { kategoriya: 900 }, { kategoriya: null }, {}, { kategoriya: 0 },
     ];
-    expect(engKopTurkumlar(t)).toEqual([
-      { id: 11931, nom: 'Termoslar', soni: 3 },
-      { id: 12000, nom: 'Termokrujkalar', soni: 2 },
-      { id: 900, nom: null, soni: 1 },
+    expect(engKopTurkumlar(t).map(({ id, nom, soni, yorliq }) => ({ id, nom, soni, yorliq }))).toEqual([
+      { id: 11931, nom: 'Termoslar', soni: 3, yorliq: 'Termoslar' },
+      { id: 12000, nom: 'Termokrujkalar', soni: 2, yorliq: 'Termokrujkalar' },
+      { id: 900, nom: null, soni: 1, yorliq: 'Turkum 900' },
     ]);
     expect(engKopTurkumlar(t, 1)).toHaveLength(1);
     expect(engKopTurkumlar([])).toEqual([]);
+  });
+
+  it('bir xil nomli turkumlar — sahifadagi tovar nomlarining asosiy soʻzi bilan (jonli «Shimlar», 2026-10-27)', () => {
+    const q = (kategoriya: number, nom: string) => ({ kategoriya, kategoriyaNomi: 'Shimlar', nom });
+    const t = [
+      q(13700, 'Qizlar shimi Playowo, choʻntakli, keng bichim'),
+      q(13700, 'Qizlar uchun klyosh shimlar, qulay kundalik'),
+      q(13700, 'Qizlar uchun maktab shimi, kuzgi qora palazzo'),
+      q(10663, 'Ayollar uchun kargo shimlar'),
+      q(10663, 'Ayollar shimi, keng, yozgi'),
+      { kategoriya: 900, kategoriyaNomi: 'Losinalar va legginslar', nom: 'Qizlar uchun losinalar' },
+    ];
+    const r = engKopTurkumlar(t);
+    expect(r.map((x) => x.yorliq)).toEqual(['Shimlar (Qizlar)', 'Shimlar (Ayollar)', 'Losinalar va legginslar']);
+    expect(r[0]!.misollar).toEqual(['Qizlar shimi Playowo, choʻntakli, keng bichim', 'Qizlar uchun klyosh shimlar, qulay kundalik']);
+  });
+
+  it('ajratuvchi soʻz nomning istalgan joyida (jonli «shim»: erkaklar shimlari har xil soʻzdan boshlanadi)', () => {
+    const q = (kategoriya: number, nom: string) => ({ kategoriya, kategoriyaNomi: 'Shimlar', nom });
+    const r = engKopTurkumlar([
+      q(1, 'Zamonaviy va qulay yozgi shimlar erkaklar uchun'),
+      q(1, 'TERRA PRO erkaklar chinos shimi'),
+      q(1, 'Klassik shim, erkaklar, qora'),
+      q(2, 'Ayollar sport shimi, katta oʻlchamli'),
+      q(2, 'Ayollar klassik shimi'),
+    ]);
+    expect(r.map((x) => x.yorliq)).toEqual(['Shimlar (Erkaklar)', 'Shimlar (Ayollar)']);
+  });
+
+  it('turkum nomining oʻzagi ajratuvchi emas («Shimlar (Shim)» boʻlmasin)', () => {
+    const q = (kategoriya: number, nom: string) => ({ kategoriya, kategoriyaNomi: 'Shimlar', nom });
+    const r = engKopTurkumlar([
+      q(1, 'Erkaklar shimi, klassik'), q(1, 'Erkaklar chinos'),
+      q(2, 'Shim keng, yozgi'), q(2, 'Shim paxta'), q(2, 'Shimi uzun'),
+    ]);
+    // Ikkinchisida «shim»/«shimi» dan boshqa umumiy soʻz yoʻq — u soʻzsiz yagona, oddiy nomi bilan.
+    expect(r.map((x) => x.yorliq)).toEqual(['Shimlar', 'Shimlar (Erkaklar)']);
+  });
+
+  it('ajratuvchi soʻz topilmasa — tartib raqami; bittasi soʻzsiz qolsa — oddiy nomi', () => {
+    const q = (kategoriya: number, nom: string) => ({ kategoriya, kategoriyaNomi: 'Futbolkalar', nom });
+    // Ikkalasida ham «Erkaklar» — soʻz ajratmaydi.
+    expect(engKopTurkumlar([q(1, 'Erkaklar futbolkasi'), q(1, 'Erkaklar polo'), q(2, 'Erkaklar sport')]).map((x) => x.yorliq))
+      .toEqual(['Futbolkalar 1', 'Futbolkalar 2']);
+    // Bittasida nom yoʻq (belgisiz kartochka): u soʻzsiz yagona — oddiy nomi bilan, ikkinchisi ajraladi.
+    expect(engKopTurkumlar([q(1, 'Ayollar futbolkasi'), q(1, 'Ayollar top'), { kategoriya: 2, kategoriyaNomi: 'Futbolkalar' }]).map((x) => x.yorliq))
+      .toEqual(['Futbolkalar (Ayollar)', 'Futbolkalar']);
   });
 
   it('somQisqa va minglik', () => {

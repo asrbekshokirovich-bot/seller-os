@@ -152,16 +152,22 @@ function chiz(): void {
   }
 }
 
-/** Sahifadagi tovarlarning (havolasi bor, belgisi kelgan) belgilari — bozor paneli turkumni shundan oladi. */
-export function sahifaBelgilari(): Belgi[] {
+/**
+ * Sahifadagi tovarlar (havolasi bor, belgisi kelgan): belgi va kartochkadagi nom —
+ * bozor paneli turkumni va bir xil nomli turkumlarni ajratish soʻzini shundan oladi.
+ */
+export function sahifaTovarlari(): Array<Belgi & { nom: string }> {
   const korildi = new Set<number>();
-  const natija: Belgi[] = [];
+  const natija: Array<Belgi & { nom: string }> = [];
   for (const a of tovarHavolalari()) {
     const id = hrefdanId(a.getAttribute('href'));
     if (id === null || korildi.has(id)) continue;
     korildi.add(id);
     const b = belgilar.get(id);
-    if (b) natija.push(b);
+    if (!b) continue;
+    const karta = kartaIldizi(a, id);
+    const nom = karta ? kartaNomi(karta, id) : '';
+    natija.push({ ...b, nom: nom === `Tovar ${id}` ? '' : nom });
   }
   return natija;
 }
