@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ZumSavdo — Xitoydan top",
-  "version": "0.3.0",
-  "description": "Uzumda nima sotishni raqam bilan tanlang: oyiga necha dona sotilishi, tovar pasporti, taqqoslash va Xitoydan (1688) top.",
+  "version": "0.4.0",
+  "description": "Uzumda nima sotishni raqam bilan tanlang: oyiga necha dona sotilishi, bozor paneli, pasport, taqqoslash va Xitoydan (1688) top.",
   "permissions": [
     "storage",
     "sidePanel"

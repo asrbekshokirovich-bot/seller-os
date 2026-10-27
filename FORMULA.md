@@ -266,9 +266,81 @@ Jonli natija (fikstura, 78 tovar): 1978350 → 430, 3302715 → 300 (1 098 dan 8
 kesildi, qolgani belgi va +45 sharh bilan mos), 1334924 → 504, KINSDA / 1580691 /
 «IRON 2L» → «Sotuv aniq emas».
 
+## Bozor paneli — kengaytma (`bozor-paneli-v1`, 2026-10-26)
+
+> **Tasdiq kutilmoqda.** Quyidagi guruhlash qoidalari (pogʻonalar, raqobat
+> darajasi, «yangi» va xulosa gaplari) nazoratchi koʻrib chiqqach ishga
+> tushadi. Har tovar sotuvining oʻzi — yuqoridagi `tovar-sotuvi-v1`
+> (tasdiqlangan); bu boʻlim YANGI SOTUV FORMULASI KIRITMAYDI.
+
+Nazoratchi qarori («Sotuvchi koʻzoynagi», 2-bosqich, 2026-10-26): Uzum turkum
+yoki qidiruv sahifasida — shu turkum boʻyicha talab, taklif, narx zinapoyasi,
+raqobat (B). Kod — `packages/shared/src/bozor-paneli.ts`, testlar — haqiqiy
+oʻlchov bilan (`packages/shared/test/fixtures/bozor-shimlar.json`: «Shimlar»,
+194 tovar, 2026-10-25). Qatorlar — `so_bozor_qatorlar` (0074): turkumning
+`zumsavdo.tovar_30kun` dagi hamma faol tovari (oxirgi 7 kunda oʻlchangan).
+
+**Talab** — raqamli tovarlarning `oyiga` yigʻindisi (kartochka belgisidagi oʻsha
+raqam, shuning uchun panel jami sahifadagi belgilar bilan bir xil hisobda):
+
+```
+raqamli  = oyiga bor va holat ≠ ziddiyat        (ziddiyat — raqam ishonchsiz, kirmaydi)
+talab    = Σ oyiga (raqamli)
+aylanma  = Σ oyiga × hozirgi narx               (soʻm, foyda emas)
+sotilgan = raqamli tovarlardan oyiga ≥ 1 sotilgani, ulushi — raqamlilarga nisbatan
+```
+
+Hali kam oʻlchangan (`kam`) va «aniq emas» (`ziddiyat`) tovarlar alohida sanaladi va
+panelda yoziladi — «talab ≈ N» ular kirmagan raqam ekani koʻrinsin.
+
+**Taklif** — turkumdagi faol tovarlar va ularning doʻkonlari soni.
+
+**Raqobat** — eng katta 3 doʻkonning talabdagi ulushi: < 30 % — «bozor ochiq»,
+30–60 % — «oʻrtacha», ≥ 60 % — «kuchli doʻkonlar qoʻlida». Sotuv 3 va undan kam
+doʻkonda boʻlsa — «bozor ular qoʻlida». Chegaralar taxmin (oʻlchanmagan).
+
+**Narx zinapoyasi** — raqamli tovarlar narx pogʻonalari boʻyicha: har pogʻonada
+tovar soni (taklif), oyiga jami (talab) va 1 tovarga talab.
+
+- Pogʻonalar soni — `min(5, ⌊raqamli / 10⌋)`; 2 dan kam boʻlsa zinapoya yoʻq.
+- Chegaralar — yumaloq narxlar (1; 1,5; 2; 2,5; 3; 4; 5; 6; 8 × 10ⁿ), 10- va
+  90-persentil orasida geometrik teng qadam bilan; pogʻonada narx qolmasa chegara
+  tashlanadi. **Kvintil emas:** kvintilda har pogʻonada tovar soni oʻz-oʻzidan teng
+  chiqadi va taklif ustuni hech narsa aytmaydi (jonli «Shimlar»: 33/35/40/32/34;
+  yumaloq chegarada — 33/20/55/32/34).
+- «1 tovarga eng koʻp» belgisi — kamida 10 tovarli pogʻonaga (2–3 tovarning
+  tasodifi «eng yaxshi narx» boʻlib koʻrinmasin).
+
+**Yangi tovar** — oxirgi 60 kunda Uzumga qoʻyilgan: tovar raqami 60 kun oldingi
+(yoki undan oldingi eng yaqin) kundagi eng katta raqamdan katta
+(`zumsavdo.market_day.id_frontier` — Uzum raqamlarni ketma-ket beradi). «Yaxshi» —
+oyiga ≥ 10. Chegara kuni 90 kundan eski boʻlsa (oʻlchov toʻxtagan) — koʻrsatilmaydi.
+
+**Xulosa** (kod yozadi; faqat fakt, «buni soting» yoʻq):
+
+| Gap | Shart |
+|---|---|
+| «Bu turkumda sotuvi oʻlchangan tovar kam (N ta)…» | raqamli < 10 — boshqa gap yoʻq |
+| «Talab eng katta — X soʻmlik tovarlarda: oyiga ≈ N dona (P %).» + «Tovar ham u yerda eng koʻp — M ta.» | zinapoya ≥ 2 pogʻona; ikkinchi gap — talab va tovar eng koʻp pogʻona bitta boʻlsa |
+| «1 tovarga eng koʻp sotuv — X soʻmlik tovarlarda: oyiga ≈ N dona.» | «eng» pogʻona talab eng katta pogʻonadan boshqa |
+| raqobat gapi (yuqoridagi uch daraja yoki «Sotuv faqat N ta doʻkonda») | talab > 0 |
+| «D dan keyin qoʻyilgan N tovardan M tasi oyiga 10 donadan koʻp sotilyapti.» (yoki «…hech biri… yetmagan») | yangi ≥ 5 |
+| «N ta yaxshi sotilgan tovar oxirgi kunlarda tugab qolgan — talab bor, tovar yetmayapti.» | tugagan va oyiga ≥ 30: ≥ 3 ta; 1–2 ta — faqat «tugab qolgan» |
+| «N ta tovar hali kam oʻlchangan — ularning sotuvi talabga kirmadi.» | kam oʻlchanganlar ≥ 30 % |
+| «Turkum juda katta — 20 000 ta tovar hisoblandi…» | turkumda 20 000 dan koʻp faol tovar |
+
+**Eng koʻp sotilayotgan 5 tovar** — raqamli, ishonchi `past` emas, oyiga boʻyicha.
+
+Jonli natija («Shimlar», 2026-10-25): talab ≈ 5 689 dona/oy (174 tovar; 9 tasi kam
+oʻlchangan, 11 tasi «aniq emas»), aylanma ≈ 746 mln soʻm, 194 tovar / 134 doʻkon,
+sotilgan 111 (64 %), eng katta 3 doʻkon 46 % («oʻrtacha»), talabning 53 % i
+80–150 ming soʻmlik tovarlarda, 26-avgustdan keyin qoʻyilgan 84 tovardan 29 tasi
+oyiga 10 dan koʻp.
+
 ## Versiya tarixi
 
 | Versiya | Sana | O'zgarish | Tasdiqladi |
 |---|---|---|---|
 | v0 | 2026-08-19 | Birinchi taklif | **kutilmoqda** |
 | tovar-sotuvi-v1 | 2026-10-21 | Kengaytma uchun tovar sotuvi (yuqoridagi boʻlim) | nazoratchi, 2026-10-26 |
+| bozor-paneli-v1 | 2026-10-26 | Kengaytma bozor paneli: guruhlash qoidalari (yuqoridagi boʻlim) | **kutilmoqda** |

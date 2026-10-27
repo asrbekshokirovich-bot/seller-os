@@ -494,14 +494,19 @@ function belgiAsosi(b: SotuvBahosi): Omit<KartochkaBelgisi, 'qisqa'> {
 export function kartochkaBelgilari(ids: readonly number[], qatorlar: readonly Tovar30Kun[]): {
   sana: string | null;
   versiya: string;
-  belgilar: KartochkaBelgisi[];
+  belgilar: Array<KartochkaBelgisi & { kategoriya: number | null; kategoriyaNomi: string | null }>;
 } {
   const boyicha = new Map(qatorlar.map((t) => [t.product_id, t]));
   const sanalar = qatorlar.map((t) => t.sana).sort();
   return {
     sana: sanalar.length ? sanalar[sanalar.length - 1]! : null,
     versiya: TOVAR_SOTUVI_VERSIYASI,
-    belgilar: ids.map((id) => kartochkaBelgisi(sotuvBahosi(boyicha.get(id) ?? null, id))),
+    // Turkum (2-bosqich): qidiruv sahifasida bozor paneli shu sahifadagi tovarlarning
+    // eng koʻp turkumini oladi — manzilda turkum raqami yoʻq.
+    belgilar: ids.map((id) => {
+      const t = boyicha.get(id) ?? null;
+      return { ...kartochkaBelgisi(sotuvBahosi(t, id)), kategoriya: t?.kategoriya ?? null, kategoriyaNomi: t?.kategoriya_nomi ?? null };
+    }),
   };
 }
 

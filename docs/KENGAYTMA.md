@@ -3,6 +3,28 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
+## 2026-10-26 — 0.4.0: bozor paneli (B, «Sotuvchi koʻzoynagi» 2-bosqich)
+
+Nazoratchi: «2-bosqichni boshla». Uzum turkum yoki qidiruv sahifasida dokda
+**«Bozor»** tugmasi (faqat shu sahifalarda, «Xaridor koʻzi» da yoʻq) — bosilganda
+dok ustida panel: talab (≈ N dona/oy, aylanma), taklif (tovar va doʻkon), sotilgan
+ulushi, raqobat (eng katta 3 doʻkon ulushi), narx zinapoyasi (pogʻonada taklif, talab
+va 1 tovarga), kod yozgan xulosa, eng koʻp sotilayotgan 5 tovar va eng katta doʻkonlar.
+Panel Uzum sahifasi tuzilmasiga tegmaydi (`position: fixed`) — kartochkalar toʻri siljimaydi.
+
+- Turkum: turkum sahifasida — manzildan (`/uz/category/<slug>-<id>`); qidiruv sahifasida —
+  sahifadagi tovarlarning eng koʻp turkumi (belgilar endi `kategoriya` va
+  `kategoriyaNomi` ni ham beradi), chiplar bilan boshqa turkumga oʻtiladi. Umumiy (ota)
+  turkumda bazada tovar yoʻq — sahifadagi eng koʻp barg turkum olinadi va yoziladi.
+- Server: Edge `/kengaytma/bozor` (POST `{kategoriya}` — raqam tanada), panel —
+  `packages/shared/src/bozor-paneli.ts` (har tovar sotuvi — `tovar-sotuvi.ts` dagi
+  oʻsha formula; FORMULA.md «Bozor paneli», tasdiq kutilmoqda), qatorlar —
+  `so_bozor_qatorlar` (migratsiya 0074, `tovar_30kun (kategoriya)` indeksi bilan).
+  Edge xotirasida 30 daqiqa, kengaytma ishchisida 3 soat kesh.
+- Obunada (pasport kabi; qulf oʻchiq): qulfda talab va taklif koʻrinadi.
+- Soʻrov faqat «Bozor» bosilganda; PRIVACY.md 0.4.0 — turkum raqami yuboriladi.
+- Ruxsatlar oʻzgarmadi. Tavsif 127 belgi (≤ 132, test bor).
+
 ## 2026-10-26 — 0.3.0 tavsifi 132 belgiga qisqartirildi (doʻkonga yuklashdan oldin)
 
 0.3.0 manifestidagi `description` 165 belgi edi — Chrome tavsifni 132 belgi bilan

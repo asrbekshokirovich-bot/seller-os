@@ -31,13 +31,40 @@ kodi uchun yangi Edge uchi + jadval (migratsiya) kerak; joriy tuzatish asosiy xa
 
 — [agent, 2026-10-22] **«Sotuvchi koʻzoynagi» 2–3-bosqichlari.** Nazoratchi 2026-10-21 da
 A (kartochka belgisi) + C (pasport) + D (taqqoslash) ni tanladi — ular qurildi (kengaytma
-0.3.0). Qolganlari taklif sahifasida (claude.ai/artifact/JgK5cYiw6fmdMicrcQ8DpD):
-B — turkum/qidiruv tepasida bozor paneli va «narx zinapoyasi» (talab va taklif narx
-oraligʻi boʻyicha; `tovar_30kun` ga `kategoriya` indeksi kerak); G — 1688 takliflari
+0.3.0). 2026-10-26 da 2-bosqich boshlandi: B (bozor paneli) — kengaytma 0.4.0 da.
+Qolganlari taklif sahifasida (claude.ai/artifact/JgK5cYiw6fmdMicrcQ8DpD):
+G — 1688 takliflari
 oʻzbekcha, saralash, bir xil rasmli takliflar guruhi (`rasmKaliti`); H — chegara narx har
 1688 taklifida ✓/✗; F — telefon: Uzum havolasi chatga tashlansa pasport (nazoratchi
 «chatga havola» ni tanlagan); E — «talab bor, tovar tugab qolyapti» roʻyxati; I — 1688
-saytining oʻzida panel (yangi host ruxsati). Keyinroq: 1-bosqich jonli sinovdan keyin.
+saytining oʻzida panel (yangi host ruxsati). Keyinroq: G/H — 2-bosqichning davomi.
+
+— [agent, 2026-10-26] **Bozor paneli: nazoratchi tasdigʻi va narxi.** FORMULA.md «Bozor
+paneli» (`bozor-paneli-v1`) — pogʻonalar, raqobat chegaralari (30/60 %), «yangi» (60 kun)
+va xulosa gaplari tasdiq kutadi. Panel hozir pasport kabi OBUNADA (`kengaytmaQismiOchiq`,
+qulf `TARIF_CHEKLOVI` bilan — oʻchiq); qulfda talab va taklif bepul koʻrinadi. Bepul
+qilish kerakmi — nazoratchi qarori. Keyinroq: nazoratchi kengaytma 0.4.0 ni koʻrgach.
+
+— [agent, 2026-10-26] **Umumiy (ota) turkum sahifasida bozor paneli.** Bazada turkum
+daraxti yoʻq: `zumsavdo.category` ning 5 448 qatoridan 5 199 tasida `parent_id` boʻsh,
+tovar esa faqat barg turkumda. «Kiyim» kabi umumiy sahifada panel sahifadagi
+tovarlarning eng koʻp barg turkumini oladi va buni ochiq yozadi. Ota turkum boʻyicha
+jami uchun yigʻuvchi Uzum turkum daraxtini (ota → bola) yozishi kerak. Keyinroq: barg
+turkumlarda panel toʻliq ishlaydi; umumiy sahifa — kamroq.
+
+— [agent, 2026-10-26] **«Yangi tovar» chegarasi eskiradi.** Bozor panelidagi «yangi» —
+`zumsavdo.market_day.id_frontier` (Supabase) dan; bu jadval 2026-10-03 dan beri
+yangilanmaydi (perepis VPS ga koʻchgan). Panel 90 kundan eski chegarani koʻrsatmaydi —
+2026-12 boshidan «yangi» gapi yoʻqoladi. Kerak: VPS kunlik chegarani Supabase ga yozsin
+(`zs_perepis` yoki `zs_xulosa` roli bilan). Keyinroq: dekabrgacha vaqt bor.
+
+— [agent, 2026-10-26] **`tovar_30kun` jadvallarida RLS oʻchiq (Supabase ogohlantiradi).**
+Advisor: `zumsavdo.tovar_30kun`, `tovar_30kun_yuk`, `xulosa_jurnal` — RLS yoʻq. Tekshirildi
+(2026-10-26): `anon` va `authenticated` da `zumsavdo` sxemasiga ham, jadvallarga ham
+huquq yoʻq — tashqaridan oʻqib boʻlmaydi; yozish/oʻqish faqat `security definer`
+funksiyalar (egasi `postgres`) orqali. Qoʻshimcha himoya: `alter table … enable row level
+security` (siyosatsiz — funksiyalar egasi sifatida ishlaydi). Keyinroq: faol xavf yoʻq;
+alohida migratsiya va nazoratchi OK.
 
 — [agent, 2026-10-22] **`/kengaytma/belgilar` cheklovsiz.** Bepul belgi uchi sessiya
 tokeni borligini tekshiradi, lekin sessiyalar anonim va bepul — kimdir butun katalog
@@ -46,7 +73,7 @@ yoki IP boʻyicha daqiqalik chegara (masalan, 30 soʻrov/daqiqa) va kunlik shift
 hozir foydalanuvchi oz; jadval va migratsiya kerak.
 
 — [agent, 2026-10-22] **Kengaytma uchlari Fastify da yoʻq.** `/kengaytma/belgilar`,
-`/kengaytma/pasport`, `/taqqos` faqat Edge Function da (u yagona ishlaydigan backend).
+`/kengaytma/pasport`, `/kengaytma/bozor`, `/taqqos` faqat Edge Function da (u yagona ishlaydigan backend).
 `apps/backend` ga ham qoʻshilsa, mahalliy sinov serveri bilan tekshirish osonlashadi.
 Keyinroq: Fastify hech qayerda ishlamaydi.
 

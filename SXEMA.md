@@ -228,6 +228,15 @@ tirik tovar, 431 147 faol, 222 MB. Yangilash bitta tranzaksiyada (yuk jadvali
 `tovar_30kun_yuk` → son tekshiriladi → almashadi): yarim yangilangan holat
 koʻrinmaydi, son mos kelmasa almashtirish rad etiladi.
 
+**Bozor paneli (B, 0074, 2026-10-26)** — `so_bozor_qatorlar(p_kategoriya,
+p_yangi_kun, p_max)`: turkumning hamma faol qatori (`narx` massivi va
+`yangilandi` siz; eng katta turkum ~15 ming qator, ~4 MB), shu qatorlardagi
+doʻkon nomlari (`zumsavdo.shop`) va «yangi» chegarasi (`market_day.id_frontier`,
+`p_yangi_kun` kun oldingi yoki undan oldingi eng yaqin kun). Indeks
+`tovar_30kun_kategoriya_idx (kategoriya)` — usiz har soʻrov 436 MB jadvalni
+toʻliq oʻqirdi. Panelni FORMULA.md «Bozor paneli» hisoblaydi, funksiya emas.
+Faqat `service_role`.
+
 ## 3. Usta jadvallari
 
 ### `product_flags`

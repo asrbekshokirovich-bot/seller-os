@@ -11,6 +11,7 @@
 
 import { savatTugmasimi, xatoMatni } from './matn';
 import { belgilarniBoshla, belgilarniYangila, pasportdanQosh } from './belgilar';
+import { bozorniTekshir } from './bozor';
 import { PASPORT_ID, pasportniQoy } from './pasport';
 
 const TUGMA_ID = 'selleros-xitoy-tugma';
@@ -341,13 +342,16 @@ function joylashtir(): void {
 }
 
 // SPA navigatsiyasini kuzatish. Har oʻzgarishda: tugma, pasport, roʻyxat
-// belgilari (belgilar 400 ms kechiktirib — Uzum kartochkalarni toʻlqin bilan chizadi).
+// belgilari (belgilar 400 ms kechiktirib — Uzum kartochkalarni toʻlqin bilan chizadi),
+// dokdagi «Bozor» tugmasi (0.4.0).
 const kuzatuvchi = new MutationObserver(() => {
   joylashtir();
   pasportniTekshir();
   belgilarniYangila();
+  bozorniTekshir();
 });
 kuzatuvchi.observe(document.body, { childList: true, subtree: true });
 joylashtir();
 pasportniTekshir();
 void belgilarniBoshla();
+bozorniTekshir();

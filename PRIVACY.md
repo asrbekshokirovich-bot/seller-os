@@ -1,6 +1,6 @@
 # Privacy Policy — ZumSavdo: Xitoydan top
 
-**Last updated: 22 October 2026** (version 0.3.0 of the extension)
+**Last updated: 26 October 2026** (version 0.4.0 of the extension)
 
 This policy describes what the Chrome extension **"ZumSavdo — Xitoydan top"**
 does with data. It is written to match the extension's source code exactly;
@@ -20,12 +20,17 @@ the code is public at
    "Xitoydan top" button, a panel shows the same product's 30-day sales
    chart, price range, days out of stock, Uzum's commission for its category
    and a break-even purchase price.
-3. **Comparison tray** (new in 0.3.0). "+ Taqqoslash" adds up to five
+3. **Market panel** (new in 0.4.0). On `uzum.uz` category and search
+   pages, a "Bozor" button in the bar at the bottom of the page opens a panel
+   for that category: estimated monthly demand, number of products and shops,
+   a price ladder, the share of the largest shops and the best-selling
+   products. Nothing is requested until you click the button.
+4. **Comparison tray** (new in 0.3.0). "+ Taqqoslash" adds up to five
    products to a tray; "Jadvalda taqqoslash" opens a comparison table on our
    website in a new tab.
-4. **"Xitoydan top"** — on a product page, looks up visually similar products
+5. **"Xitoydan top"** — on a product page, looks up visually similar products
    on the Chinese wholesale marketplace 1688 and shows the results there.
-5. **Side panel** — clicking the extension icon opens the ZumSavdo chat (our
+6. **Side panel** — clicking the extension icon opens the ZumSavdo chat (our
    website's `/usta` page) in Chrome's side panel. Everything you type there
    goes to our server exactly as it would if you opened the website in a tab;
    the website's own privacy terms apply.
@@ -42,6 +47,9 @@ Only to our own server at `duequijnnzcngzzvjqst.supabase.co`, and only these:
   from the product links on that page), so the server can return their
   labels. With "Xaridor koʻzi" on, nothing is requested.
 - **The product number of the product page you open** — for its passport.
+- **When you open the market panel**: the numeric ID of one Uzum category —
+  taken from the page address, or, on a search page, the most common category
+  among the products listed there (from the labels above).
 - **When you click "Xitoydan top"**: that product's number and the public web
   address of its main photo (`images.uzum.uz/...`). Our server downloads that
   public photo, converts it to JPEG and sends it to an image-search provider
@@ -52,8 +60,9 @@ Only to our own server at `duequijnnzcngzzvjqst.supabase.co`, and only these:
 Nothing else from the page is sent: no page text, no prices you see, no
 photos (except the public product photo address above, only on click).
 
-Product numbers sent for labels and passports are used only to answer that
-request. They are **not stored** and are not linked to you.
+Product numbers sent for labels and passports, and the category number sent
+for the market panel, are used only to answer that request. They are **not
+stored** and are not linked to you.
 
 ## What is stored on your device
 
@@ -130,7 +139,7 @@ asrbekshokirovich@gmail.com
 
 # Maxfiylik siyosati — ZumSavdo: Xitoydan top
 
-**Oxirgi yangilanish: 2026-yil 22-oktabr** (kengaytma 0.3.0)
+**Oxirgi yangilanish: 2026-yil 26-oktabr** (kengaytma 0.4.0)
 
 Bu hujjat **"ZumSavdo — Xitoydan top"** Chrome kengaytmasi maʼlumot bilan
 nima qilishini tushuntiradi. Matn kodning oʻziga qarab yozilgan; kod ochiq:
@@ -146,12 +155,17 @@ nima qilishini tushuntiradi. Matn kodning oʻziga qarab yozilgan; kod ochiq:
 2. **Tovar pasporti** (0.3.0 dan). Tovar sahifasida, «Xitoydan top» tugmasi
    ostida: shu tovarning 30 kunlik sotuv grafigi, narx oraligʻi, tugab qolgan
    kunlar, turkum boʻyicha Uzum komissiyasi va chegara narx.
-3. **Taqqoslash savati** (0.3.0 dan). «+ Taqqoslash» beshtagacha tovarni
+3. **Bozor paneli** (0.4.0 dan). `uzum.uz` turkum va qidiruv sahifalarida
+   sahifa pastidagi «Bozor» tugmasi shu turkum panelini ochadi: oyiga
+   taxminiy talab, tovar va doʻkonlar soni, narx zinapoyasi, eng katta
+   doʻkonlar ulushi va eng koʻp sotilayotgan tovarlar. Tugma bosilmaguncha
+   hech narsa soʻralmaydi.
+4. **Taqqoslash savati** (0.3.0 dan). «+ Taqqoslash» beshtagacha tovarni
    savatchaga qoʻshadi; «Jadvalda taqqoslash» saytimizda taqqoslash
    jadvalini yangi oynada ochadi.
-4. **«Xitoydan top»** — tovar sahifasida 1688 ulgurji bozoridan oʻxshash
+5. **«Xitoydan top»** — tovar sahifasida 1688 ulgurji bozoridan oʻxshash
    tovarlarni qidiradi va natijani oʻsha sahifada koʻrsatadi.
-5. **Yon panel** — kengaytma belgisini bossangiz Chrome yon panelida ZumSavdo
+6. **Yon panel** — kengaytma belgisini bossangiz Chrome yon panelida ZumSavdo
    chati (saytimizning `/usta` sahifasi) ochiladi. U yerga yozganingiz
    saytni oddiy ochgandagidek serverimizga boradi; saytning oʻz maxfiylik
    shartlari amal qiladi.
@@ -168,6 +182,9 @@ Faqat oʻz serverimizga (`duequijnnzcngzzvjqst.supabase.co`) va faqat shular:
   tovar havolalaridan oʻqiladi): server ularning belgisini qaytaradi.
   «Xaridor koʻzi» yoqiq boʻlsa — hech narsa soʻralmaydi.
 - **Siz ochgan tovar sahifasining raqami** — pasport uchun.
+- **Bozor paneli ochilganda**: bitta Uzum turkumining raqami — sahifa
+  manzilidan, qidiruv sahifasida esa sahifadagi tovarlarning eng koʻp
+  turkumi (yuqoridagi belgilardan).
 - **«Xitoydan top» bosilganda**: oʻsha tovar raqami va asosiy rasmining ochiq
   manzili (`images.uzum.uz/...`). Server shu ochiq rasmni yuklab oladi, JPEG
   ga oʻgiradi va rasm-qidiruv provayderiga (Apify, 1688 rasm-qidiruv aktori)
@@ -178,8 +195,9 @@ Faqat oʻz serverimizga (`duequijnnzcngzzvjqst.supabase.co`) va faqat shular:
 Sahifadan boshqa hech narsa ketmaydi: sahifa matni ham, siz koʻrgan narxlar
 ham, rasmlar ham (yuqoridagi ochiq rasm manzilidan tashqari, faqat bosilganda).
 
-Belgi va pasport uchun yuborilgan tovar raqamlari faqat oʻsha soʻrovga javob
-berish uchun ishlatiladi. Ular **saqlanmaydi** va sizga bogʻlanmaydi.
+Belgi va pasport uchun yuborilgan tovar raqamlari, bozor paneli uchun
+yuborilgan turkum raqami faqat oʻsha soʻrovga javob berish uchun ishlatiladi.
+Ular **saqlanmaydi** va sizga bogʻlanmaydi.
 
 ## Qurilmangizda nima saqlanadi
 

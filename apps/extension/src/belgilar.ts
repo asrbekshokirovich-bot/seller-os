@@ -22,6 +22,9 @@ interface Belgi {
   /** Rasm ustidagi qisqa yozuv (server, 0.3.0). Eski server bermasa — `matn`. */
   qisqa?: string;
   izoh: string;
+  /** Tovar turkumi (server, 0.4.0) — qidiruv sahifasida bozor paneli shu boʻyicha. */
+  kategoriya?: number | null;
+  kategoriyaNomi?: string | null;
 }
 
 /** Sahifa ichidagi kesh: Uzum kartochkani qayta chizsa, qator darhol qaytadi. */
@@ -37,8 +40,16 @@ let malumotSanasi: string | null = null;
 let sotuvchiKozi = true;
 let savat: SavatTovari[] = [];
 
+/**
+ * Bizning oynalar (bozor paneli, dok, pasport) ichidagi tovar havolalari Uzum
+ * kartochkasi emas: bozor panelidagi «eng koʻp sotilayotganlar» havolasiga belgi
+ * yopishib qolardi (haqiqiy sahifada koʻrildi, 2026-10-27).
+ */
+const BIZNING_OYNALAR = '#zs-bozor, #zs-dok, #zs-pasport, #selleros-xitoy-panel';
+
 function tovarHavolalari(): HTMLAnchorElement[] {
-  return Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="/product/"]'));
+  return Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="/product/"]'))
+    .filter((a) => !a.closest(BIZNING_OYNALAR));
 }
 
 /**
@@ -139,6 +150,20 @@ function chiz(): void {
     if (getComputedStyle(joy).position === 'static') joy.classList.add('zs-joy');
     joy.appendChild(belgiYasa(b, karta));
   }
+}
+
+/** Sahifadagi tovarlarning (havolasi bor, belgisi kelgan) belgilari — bozor paneli turkumni shundan oladi. */
+export function sahifaBelgilari(): Belgi[] {
+  const korildi = new Set<number>();
+  const natija: Belgi[] = [];
+  for (const a of tovarHavolalari()) {
+    const id = hrefdanId(a.getAttribute('href'));
+    if (id === null || korildi.has(id)) continue;
+    korildi.add(id);
+    const b = belgilar.get(id);
+    if (b) natija.push(b);
+  }
+  return natija;
 }
 
 let kutish: ReturnType<typeof setTimeout> | null = null;

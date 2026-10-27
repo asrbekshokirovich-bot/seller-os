@@ -111,6 +111,12 @@ import {
   tovar30KunOqi,
   tovarPasporti,
   type KengaytmaQismi,
+  BOZOR_MAX_QATOR,
+  YANGI,
+  bozorKirishiniOqi,
+  bozorPaneli,
+  turkumniOqi,
+  type BozorPaneli,
 } from './shared/index.ts';
 
 /** `so_tovar_royxati()` javobi. */
@@ -863,6 +869,27 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     return javob({ sana, jadval });
   }
 
+  // B — bozor paneli (obunada; 2-bosqich, 2026-10-26): Uzum turkumining hamma
+  // faol tovari — talab, taklif, narx zinapoyasi, raqobat. Panelni
+  // `shared/bozor-paneli.ts` yasaydi (har tovar sotuvi — oʻsha `tovar-sotuvi.ts`),
+  // qatorlar — `so_bozor_qatorlar` (0074). Turkum raqami tanada, manzilda emas.
+  if (yol === '/kengaytma/bozor' && req.method === 'POST') {
+    const token = req.headers.get('x-sessiya');
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+    const kategoriya = turkumniOqi(tana.kategoriya);
+    if (kategoriya === null) return javob({ xato: 'kategoriya — musbat butun son' }, 400);
+    const panel = await bozorniOl(kategoriya);
+    if (panel === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
+    const ruxsat = await kengaytmaRuxsati(token, 'bozor');
+    // Qulf: taklif va talab (bepul qism) baribir beriladi — kengaytma «nima ochiladi» ni koʻrsatadi.
+    if (!ruxsat.ochiq) {
+      return javob({ ...ruxsat.javob, sana: panel.sana, nom: panel.nom, taklif: panel.taklif, talab: panel.talab }, 402);
+    }
+    return javob({ sana: panel.sana, panel });
+  }
+
   // 4-qadam — bir dona tovarning haqiqiy tannarxi (reja B4).
   //
   // Kirishlar soʻrov tanasida keladi: 1688 narxi rasm-qidiruv
@@ -1182,9 +1209,29 @@ async function kengaytmaRuxsati(token: string | null, qism: KengaytmaQismi): Pro
       reja: n.reja,
       reja_sababi: n.sabab,
       narx_som: OBUNA_NARXI,
-      izoh: 'Tovar pasporti va taqqoslash jadvali obuna bilan ochiladi. Kartochkadagi sotuv belgilari bepul.',
+      izoh: 'Bozor paneli, tovar pasporti va taqqoslash jadvali obuna bilan ochiladi. Kartochkadagi sotuv belgilari bepul.',
     },
   };
+}
+
+/**
+ * Bozor paneli keshi — Edge nusxasi xotirasida, 30 daqiqa. Maʼlumot kuniga bir
+ * marta yangilanadi; eng katta turkum (~15 ming qator, ~4 MB) har ochilishda
+ * qayta oʻqilmasin. Nusxa uxlasa kesh yoʻqoladi — bu xato emas, qayta oʻqiladi.
+ */
+const bozorKeshi = new Map<number, { panel: BozorPaneli; vaqt: number }>();
+const BOZOR_KESH_MS = 30 * 60_000;
+
+async function bozorniOl(kategoriya: number): Promise<BozorPaneli | null> {
+  const k = bozorKeshi.get(kategoriya);
+  if (k && Date.now() - k.vaqt < BOZOR_KESH_MS) return k.panel;
+  const xom = await rpc<unknown>('so_bozor_qatorlar', { p_kategoriya: kategoriya, p_yangi_kun: YANGI.kun, p_max: BOZOR_MAX_QATOR });
+  const kirish = xom === null ? null : bozorKirishiniOqi(xom);
+  if (kirish === null) return null;
+  const panel = bozorPaneli(kirish);
+  if (bozorKeshi.size >= 200) bozorKeshi.clear();
+  bozorKeshi.set(kategoriya, { panel, vaqt: Date.now() });
+  return panel;
 }
 
 /**

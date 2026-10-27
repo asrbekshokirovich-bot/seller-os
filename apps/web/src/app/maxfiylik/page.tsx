@@ -132,6 +132,11 @@ export default function Maxfiylik() {
             ulashsa boʻladi. Batafsil — kengaytmaning oʻz maxfiylik siyosatida (omborda{' '}
             <code>PRIVACY.md</code>).
           </li>
+          <li>
+            <strong>Bozor paneli</strong> (kengaytma 0.4.0): «Bozor» tugmasi bosilgandagina
+            bitta Uzum turkumining <em>raqami</em> yuboriladi — shu turkum boʻyicha talab va
+            taklifni qaytarish uchun. Raqam saqlanmaydi va sizga bogʻlanmaydi.
+          </li>
         </ul>
 
         <h2>Nima saqlanadi</h2>
