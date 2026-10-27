@@ -32,6 +32,12 @@ export const SHAXSIY_SAVOLLAR: ReadonlySet<string> = new Set(['ism', 'telefon'])
  * qanday yozilishda: «+998 90 123-45-67», «90 123 45 67», «901234567» (oxirgi 9 raqami
  * boʻyicha). Ilgari faqat saqlangan shakl va «+998…» yashirilardi, «90 123 45 67» esa
  * tarixda qolardi.
+ *
+ * Saqlanmagan raqam ham (2026-10-26): ism va telefon endi yoʻnalishdan keyin soʻraladi, mijoz esa
+ * raqamini birinchi gapidayoq yozishi mumkin — u hali `javoblar` da yoʻq. Shuning uchun har qanday
+ * oʻzbek mobil raqami shakli («90 123 45 67», «(90) 123-45-67», «901234567») ham yashiriladi.
+ * Summalar unga tushmaydi: «30 000 000» — 2-3-3 xona, raqam esa 2-3-2-2; ajratmasiz yozilgan
+ * 9 xonali summa («150000000», «125000000») — oxiri kamida 5 ta nol, telefon emas deb olinadi.
  */
 export function shaxsiyniYashir(t: string, h: YolHolati): string {
   const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string) : '';
@@ -43,7 +49,9 @@ export function shaxsiyniYashir(t: string, h: YolHolati): string {
     const ora = '[\\s\\-().]*';
     m = m.replace(new RegExp(`(?:\\+?${ora}9${ora}9${ora}8${ora})?${raqam.split('').join(ora)}`, 'gu'), '…');
   }
-  return m.replace(/\+?998[\s\d-]{9,}/gu, '…');
+  return m
+    .replace(/\+?998[\s\d-]{9,}/gu, '…')
+    .replace(/(?<!\d)(?!\d{4}0{5}(?!\d))\(?\d{2}\)?[\s\-.]?\d{3}[\s\-.]?\d{2}[\s\-.]?\d{2}(?!\d)/gu, '…');
 }
 
 const guruh = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/gu, ' ');
@@ -100,7 +108,8 @@ export function mijozHolati(h: YolHolati, qadam: number): string {
 
   const tajriba = j['uzum_dokoni'];
   if (typeof tajriba === 'string') {
-    s.push(`- Savdo tajribasi: ${UZUM_DOKONI.find((v) => v.qiymat === tajriba)?.nom ?? `«${tajriba.slice(0, 200)}»`}.`);
+    // Oʻzi yozgan tajriba matnida telefon boʻlishi mumkin (2026-10-26: birinchi gapda ham yozadi) — yashiriladi.
+    s.push(`- Savdo tajribasi: ${UZUM_DOKONI.find((v) => v.qiymat === tajriba)?.nom ?? `«${shaxsiyniYashir(tajriba, h).slice(0, 200)}»`}.`);
   }
   const qiziqish = Array.isArray(j['qiziqish']) ? (j['qiziqish'] as string[]) : null;
   if (qiziqish) {

@@ -34,7 +34,7 @@ afterEach(() => {
 });
 
 /** Tajriba savoli turgan holat: tugma bosilsa keyingisi — qiziqish (kod harakatisiz). */
-const TAJRIBA: YolHolati = { javoblar: { ism: 'Aziz', telefon: '+998901234567' }, natijalar: {} };
+const QIZIQISH: YolHolati = { javoblar: { ism: 'Aziz', telefon: '+998901234567' }, natijalar: {} };
 
 /** Anthropic oqimi (SSE): matn boʻlaklari bitta matn blokida. */
 function claudeOqimi(bolaklar: string[]): Response {
@@ -105,9 +105,9 @@ async function hodisalar(tana: string): Promise<Array<[string, unknown]>> {
 }
 
 const OQI = () => {
-  const k = keyingi(TAJRIBA);
+  const k = keyingi(QIZIQISH);
   return {
-    holat: TAJRIBA, qadam: 1,
+    holat: QIZIQISH, qadam: 1,
     xabarlar: k.tur === 'savol' ? [{ rol: 'menejer', matn: k.savol.matn, savolId: k.savol.id, seq: 1, at: '2026-10-20T08:00:00Z' }] : [],
   };
 };
@@ -116,12 +116,12 @@ const BOLAKLAR = ['{"oldin":"","izoh":"","savol":"Qaysi so', 'ha sizga ', 'yaqin
 describe('/suhbat oqim bilan', () => {
   it('oqim: yozmoqda → qoralama boʻlaklari → tayyor; tayyor — oqimsiz javobning aynan oʻzi', async () => {
     soxtalar(OQI(), BOLAKLAR);
-    const oddiy = await sora('/suhbat', { savolId: 'uzum_dokoni', javob: 'yoq' });
+    const oddiy = await sora('/suhbat', { savolId: 'qiziqish', javob: ['kiyim'] });
     expect(oddiy.statusCode).toBe(200);
     expect(oddiy.headers['content-type']).toMatch(/application\/json/);
 
     const s = soxtalar(OQI(), BOLAKLAR);
-    const res = await sora('/suhbat', { savolId: 'uzum_dokoni', javob: 'yoq', oqim: true });
+    const res = await sora('/suhbat', { savolId: 'qiziqish', javob: ['kiyim'], oqim: true });
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toMatch(/^text\/event-stream/);
     expect(res.headers['cache-control']).toMatch(/no-transform/);
@@ -141,7 +141,7 @@ describe('/suhbat oqim bilan', () => {
 
   it('sessiya topilmasa — oqim YOʻQ: oddiy JSON va 401', async () => {
     soxtalar({ xato: 'sessiya topilmadi' }, BOLAKLAR);
-    const res = await sora('/suhbat', { savolId: 'uzum_dokoni', javob: 'yoq', oqim: true });
+    const res = await sora('/suhbat', { savolId: 'qiziqish', javob: ['kiyim'], oqim: true });
     expect(res.statusCode).toBe(401);
     expect(res.headers['content-type']).toMatch(/application\/json/);
     expect(res.json()).toMatchObject({ xato: 'sessiya topilmadi' });
@@ -177,7 +177,7 @@ describe('AI sarfi — har Claude javobi `so_ai_sarf_yoz` ga (0072)', () => {
 
   it('/suhbat — sessiya tokeni bilan; har Claude chaqiruvi — bitta yozuv (100×$2 + 30×$10 = $0,0005)', async () => {
     const s = soxtalar(OQI(), BOLAKLAR);
-    expect((await sora('/suhbat', { savolId: 'uzum_dokoni', javob: 'yoq' })).statusCode).toBe(200);
+    expect((await sora('/suhbat', { savolId: 'qiziqish', javob: ['kiyim'] })).statusCode).toBe(200);
     expect(s.claude.length).toBeGreaterThan(0);
     expect(sarflar(s.rpclar)).toHaveLength(s.claude.length);
     expect(sarflar(s.rpclar)).toContainEqual({
@@ -188,7 +188,7 @@ describe('AI sarfi — har Claude javobi `so_ai_sarf_yoz` ga (0072)', () => {
 
   it('/suhbat oqim bilan ham — chiqish tokenlari oqim oxiridan', async () => {
     const s = soxtalar(OQI(), BOLAKLAR);
-    const res = await sora('/suhbat', { savolId: 'uzum_dokoni', javob: 'yoq', oqim: true });
+    const res = await sora('/suhbat', { savolId: 'qiziqish', javob: ['kiyim'], oqim: true });
     await hodisalar(res.body);
     expect(sarflar(s.rpclar)).toContainEqual(expect.objectContaining({
       p_token: 'sessiya-1', p_maqsad: 'ai-yoz', p_kirish: 100, p_chiqish: 30, p_narx_usd: 0.0005,

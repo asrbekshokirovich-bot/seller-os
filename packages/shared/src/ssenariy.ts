@@ -201,7 +201,12 @@ export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
  * har qanday savolga javob. Tafsilot (12 qadam, tuzoq-filtrlar, vaʼdalar)
  * birinchi gapda emas — soʻralsa javobda (`erkin.ts`: xizmat, kafolat).
  * Foyda vaʼda qilinmaydi (QOIDALAR §4). Salomlashish matni oʻzicha chiqadi (LLM
- * yozmaydi); unga yozilgan javobni esa AI suhbatda Claude oʻqiydi (2026-10-21).
+ * yozmaydi — chat ochilishi bilan darhol koʻrinsin); unga yozilgan javobni AI oʻqiydi.
+ *
+ * NATIJA 2 SAVOLDAN KEYIN (nazoratchi, 2026-10-26: «hamma taklif menga yoqdi»): salom endi
+ * qiziqish savoli bilan keladi — avval qiziqish va byudjet, darhol yoʻnalishlar; ism va telefon
+ * yoʻnalish tanlangach («natijani saqlash»), savdo tajribasi — 4-qadam oldidan. Chatda yozgan
+ * 141 kishidan 78 tasi birinchi natijani koʻrmasdan, oldingi 5 ta tanishuv savolida toʻxtagan edi.
  */
 const SALOM = [
   'Assalomu alaykum! Men ZumSavdo yordamchingizman.',
@@ -209,12 +214,26 @@ const SALOM = [
   'Uzumda savdo qilishning butun yoʻlida yoningizdaman: nima sotishni tanlashdan tortib, tovarni Xitoydan topish, '
     + 'olib kelish va Uzumda sotishgacha. Har bir qadamda nima qilishni oddiy tilda tushuntiraman — savol tugʻilsa, bemalol soʻrang.',
   '',
-  // Ism va telefon bitta savolda (nazoratchi, 2026-10-14). Faqat ism yozilsa — telefon keyin alohida soʻraladi.
-  `Boshlash bepul. Avval tanishib olaylik: ismingiz, familiyangiz va telefon raqamingizni yozing — masalan: ${ISM_TELEFON_MISOL}. `
-    + 'Raqam faqat siz bilan bogʻlanish uchun, boshqa hech kimga berilmaydi.',
+  'Boshlash bepul. Ikkita savoldan keyin sizga mos yoʻnalishlarni koʻrsataman.',
 ].join('\n');
 
-/** Faqat telefon yozilgan boʻlsa — ism qayta soʻraladi (salomlashish takrorlanmaydi). */
+/**
+ * Salom bilan boshlangan savol (birinchi savol) — salomsiz, faqat savolning oʻzi (oxirgi xatboshi).
+ * AI ga va qayta soʻrashga shu beriladi: salom chatda allaqachon turibdi (jonli sinov, 2026-10-21:
+ * «Assalomu alaykum!» ikki marta chiqdi; kod qolipi butun salomni «Hozirgi savol: «…»» deb qaytardi).
+ */
+export function salomsizSavol<T extends { matn: string }>(s: T): T {
+  return s.matn.startsWith(SALOM) ? { ...s, matn: s.matn.slice(SALOM.length).trim() } : s;
+}
+
+/**
+ * Ism va telefon (nazoratchi, 2026-10-14: bitta savolda) — 2026-10-26 dan yoʻnalish tanlangach:
+ * mijoz natijani koʻrgan, endi uni saqlash uchun soʻraladi. Faqat ism yozilsa — telefon alohida.
+ */
+const ISM_SAQLASH = 'Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz '
+  + `va telefon raqamingizni yozing — masalan: ${ISM_TELEFON_MISOL}. Raqam boshqa hech kimga berilmaydi.`;
+
+/** Faqat telefon yozilgan boʻlsa — ism qayta soʻraladi. */
 const ISM_QAYTA = 'Rahmat, raqamingizni yozib oldim. Endi ismingiz va familiyangizni yozing — masalan: Aziz Karimov.';
 
 /** Dollar tugmasining dollar summasi (soʻmdagi qiymatidan), boʻlmasa `null`. */
@@ -1477,21 +1496,28 @@ function xitoyHavolasiz(n: unknown): unknown {
 
 // ------------------------------------------------------------ tanishuv savollari
 
+/** Savdo tajribasi — 2026-10-26 dan 3-qadam oxirida, tannarxdan oldin (ilgari — tanishuvda). */
 function uzumDokoniSavoli(): SuhbatSavoli {
-  return savol('uzum_dokoni', 1,
+  return savol('uzum_dokoni', 3,
     'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.',
     'tanlov', { variantlar: UZUM_DOKONI, erkin: true, profilMaydoni: 'hasUzumShop' });
 }
 
-function qiziqishSavoli(h: YolHolati): SuhbatSavoli {
+/** Qiziqish — suhbatning birinchi savoli (2026-10-26); yangi mijozga salom bilan (`salom`). */
+function qiziqishSavoli(h: YolHolati, salom = false): SuhbatSavoli {
   const oldindan = tajribadanSohalar(h);
-  return savol('qiziqish', 1,
-    oldindan.length
-      ? `Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab ${oldindan.map((x) => `«${sohaNomi(x)}»`).join(', ')} ni `
-        + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
-      : 'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
-        + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.',
+  const matn = oldindan.length
+    ? `Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab ${oldindan.map((x) => `«${sohaNomi(x)}»`).join(', ')} ni `
+      + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
+    : 'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
+      + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.';
+  return savol('qiziqish', 1, salom ? `${SALOM}\n\n${matn}` : matn,
     'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true, tanlangan: oldindan });
+}
+
+/** Ism va telefon — yoʻnalish tanlangach (2-qadam oxiri). Faqat telefon berilgan boʻlsa — ism qayta. */
+function ismSavoli(h: YolHolati): SuhbatSavoli {
+  return savol('ism', 2, berilgan(h, 'telefon') ? ISM_QAYTA : ISM_SAQLASH, 'matn', { erkin: true, profilMaydoni: 'fullName' });
 }
 
 function byudjetSavoli(h: YolHolati): SuhbatSavoli {
@@ -1511,12 +1537,17 @@ function byudjetSavoli(h: YolHolati): SuhbatSavoli {
  * Ism/telefon savolida ham (2026-10-21): «Aziz, 90 123 45 67, 2 yil kiyim sotganman, 50 mln
  * bor» — tajriba va byudjet ham shu gapdan olinsin, qayta soʻralmasin. Ilgari bu yerda
  * «ism va telefon berilmaguncha — boʻsh» sharti bor edi: u savollarni AI umuman koʻrmasdi.
+ *
+ * 2026-10-26 dan ism va tajriba keyinroq soʻraladi — ular ham shu roʻyxatda: birinchi gapda
+ * «Aziz, 90 123 45 67, kiyim, 30 mln» deb yozsa, ismi soʻralmaydi (navbatdan olinadi) va
+ * telefon keyingi xabarlarda AI ga yashirilgan holda boradi (`shaxsiyniYashir`).
  */
 export function kelgusiTanishuvSavollari(h: YolHolati): SuhbatSavoli[] {
   const r: SuhbatSavoli[] = [];
-  if (!berilgan(h, 'uzum_dokoni')) r.push(uzumDokoniSavoli());
   if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) r.push(qiziqishSavoli(h));
   if (!berilgan(h, 'byudjet')) r.push(byudjetSavoli(h));
+  if (!berilgan(h, 'ism')) r.push(ismSavoli(h));
+  if (!berilgan(h, 'uzum_dokoni')) r.push(uzumDokoniSavoli());
   return r;
 }
 
@@ -1539,31 +1570,16 @@ function keyingiAsl(h: YolHolati): Keyingi {
   }
 
   // ---------------------------------------------------------- 1. Tanishuv
-  // Nazoratchi tartibi (2026-10-12): ism-familiya → telefon → savdo
-  // tajribasi → qancha pul bilan boshlash (soʻm yoki dollar). Eski suhbatda
-  // byudjet javobi bor-u ism yoʻq boʻlsa — ism va telefon bir marta
-  // soʻraladi, keyin yoʻl oʻsha joyidan davom etadi.
-  if (!berilgan(h, 'ism')) {
-    return { tur: 'savol', savol: savol('ism', 1, berilgan(h, 'telefon') ? ISM_QAYTA : SALOM, 'matn', { erkin: true, profilMaydoni: 'fullName' }) };
-  }
-  if (!berilgan(h, 'telefon')) {
-    const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;
-    return { tur: 'savol', savol: savol('telefon', 1,
-      `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.`,
-      'matn', { erkin: true, profilMaydoni: 'phone' }) };
-  }
-  if (!berilgan(h, 'uzum_dokoni')) return { tur: 'savol', savol: uzumDokoniSavoli() };
-  if (h.javoblar['uzum_dokoni'] === 'sotyapman' && !berilgan(h, 'dokon_nomi')) {
-    // Vaʼda yoʻq: doʻkon nomi boʻyicha sotuv raqamlari kodda koʻrsatilmaydi
-    // (oʻz sotuvi 11-qadamda kartochka havolasidan oʻlchanadi).
-    return { tur: 'savol', savol: savol('dokon_nomi', 1,
-      'Doʻkoningiz nomi qanday?',
-      'matn', { erkin: true, otkazishMumkin: true }) };
-  }
+  // Nazoratchi tartibi (2026-10-26, «Natija 2 savoldan keyin»): qiziqish → byudjet → darhol
+  // yoʻnalishlar. Ism va telefon — yoʻnalish tanlangach, savdo tajribasi — 4-qadam oldidan
+  // (ilgari: ism → telefon → tajriba → qiziqish → byudjet, 2026-10-12). Eski suhbatda ism yoki
+  // tajriba javobi bor boʻlsa — qayta soʻralmaydi.
   // Qiziqish (nazoratchi, 2026-10-13): yoʻnalish roʻyxati shunga qarab
   // aralashtiriladi. Yoʻnalishi tanlangan eski suhbatda soʻralmaydi.
-  // Tajribada sohani oʻzi yozgan boʻlsa — oʻsha oldindan belgilanadi va savolda aytiladi (2026-10-15).
-  if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) return { tur: 'savol', savol: qiziqishSavoli(h) };
+  // Yangi mijozga (ismi hali yoʻq) — salom bilan; «Boshidan» da tanish mijozga salomni suhbat oʻzi aytadi.
+  if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) {
+    return { tur: 'savol', savol: qiziqishSavoli(h, !berilgan(h, 'ism') && !berilgan(h, 'byudjet')) };
+  }
   if (!berilgan(h, 'byudjet')) {
     // Dollar tugmalari va dollarni soʻmga oʻgirish uchun — CBU kursi (jim harakat).
     if (h.natijalar.kurs === undefined) return { tur: 'kod', harakat: 'kurs', qadam: 1 };
@@ -1608,6 +1624,15 @@ function keyingiAsl(h: YolHolati): Keyingi {
       }) };
   }
 
+  // Ism va telefon — yoʻnalish tanlangach: mijoz natijani koʻrdi, endi uni saqlash uchun (2026-10-26).
+  if (!berilgan(h, 'ism')) return { tur: 'savol', savol: ismSavoli(h) };
+  if (!berilgan(h, 'telefon')) {
+    const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;
+    return { tur: 'savol', savol: savol('telefon', 2,
+      `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.`,
+      'matn', { erkin: true, profilMaydoni: 'phone' }) };
+  }
+
   // ---------------------------------------------------------- 3. Tovar va miqdor
   const tn = tovarlarNatija(h);
   if (tn === null) return { tur: 'kod', harakat: 'tovarlar', qadam: 3 };
@@ -1643,6 +1668,17 @@ function keyingiAsl(h: YolHolati): Keyingi {
         ? `«${nom}»: ${m.hisob}. Birinchi partiya uchun nechta olasiz?`
         : `«${nom}»: miqdorni hisoblab bera olmadim. ${t?.miqdorSababi ?? 'Sotuv oʻlchanmagan.'} Oʻzingiz nechta olmoqchisiz?`,
       'son', { variantlar, erkin: true, otkazishMumkin: true }) };
+  }
+
+  // Savdo tajribasi — tannarxdan oldin (2026-10-26; ilgari tanishuvda). Javobi 7-qadamda kerak
+  // («kabinet bor» — roʻyxatdan oʻtish oʻtkazib yuboriladi) va AI tushuntirishiga yordam beradi.
+  if (!berilgan(h, 'uzum_dokoni')) return { tur: 'savol', savol: uzumDokoniSavoli() };
+  if (h.javoblar['uzum_dokoni'] === 'sotyapman' && !berilgan(h, 'dokon_nomi')) {
+    // Vaʼda yoʻq: doʻkon nomi boʻyicha sotuv raqamlari kodda koʻrsatilmaydi
+    // (oʻz sotuvi 11-qadamda kartochka havolasidan oʻlchanadi).
+    return { tur: 'savol', savol: savol('dokon_nomi', 3,
+      'Doʻkoningiz nomi qanday?',
+      'matn', { erkin: true, otkazishMumkin: true }) };
   }
 
   // ---------------------------------------------------------- 4. Tannarx

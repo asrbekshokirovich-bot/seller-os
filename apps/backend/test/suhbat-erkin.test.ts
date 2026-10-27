@@ -56,10 +56,19 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, erkinLlm?: SuhbatBogliqliklari[
   return { rpc: b.rpc, kod: KOD_YOQ as SuhbatBogliqliklari['kod'], ...(erkinLlm ? { erkinLlm } : {}) };
 }
 
-/** Byudjet savoli turgan holat (2026-10-12: avval ism, telefon, tajriba; dollar kursi olingan). */
-const BYUDJET_HOLATI: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', uzum_dokoni: 'yoq', qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS } };
-/** Tajriba savoli (`uzum_dokoni`) turgan holat. */
-const TAJRIBA_HOLATI: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567' }, natijalar: {} };
+/** Byudjet savoli turgan holat (2026-10-26: qiziqishdan keyin; dollar kursi olingan). */
+const BYUDJET_HOLATI: YolHolati = { javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS } };
+const YONALISHLAR_N = { olchov_yoq: false, royxat: [{ categoryId: 11, name: 'Quloqchinlar' }] };
+/** Ism savoli — yoʻnalish tanlangach (2026-10-26). */
+const ISM_HOLATI: YolHolati = { javoblar: { qiziqish: ['bilmayman'], byudjet: 10_000_000, yonalish: 11 }, natijalar: { kurs: KURS, yonalishlar: YONALISHLAR_N } };
+/** Tajriba savoli (`uzum_dokoni`) — tovar va miqdordan keyin, tannarxdan oldin (2026-10-26). */
+const TAJRIBA_HOLATI: YolHolati = {
+  javoblar: { ...ISM_HOLATI.javoblar, ism: 'Aziz Karimov', telefon: '+998901234567', tovarlar: [100], 'miqdor:100': 30 },
+  natijalar: {
+    ...ISM_HOLATI.natijalar,
+    tovarlar: { olchov_yoq: false, royxat: [{ nomzod: { productId: 100, title: 'Quloqchin A' }, miqdor: { dona: 30, hisob: 'oyiga ~600 dona sotiladi' } }] },
+  },
+};
 
 describe('erkin xabar', () => {
   it('son savoliga "10 mln" — JAVOB sifatida qabul qilinadi', async () => {
@@ -145,6 +154,14 @@ describe('erkin xabar', () => {
     expect(kelgan!.xabar).toBe('salom');
     expect(kelgan!.savol).toMatch(/qancha/i);
     expect(kelgan!.variantlar.length).toBeGreaterThan(0);
+  });
+
+  it('eski yoʻl: birinchi gapdagi telefon LLM ga yashirilgan holda ketadi (2026-10-26)', async () => {
+    // Ism va telefon endi yoʻnalishdan keyin soʻraladi — mijoz raqamini birinchi savolda yozishi mumkin.
+    const b = soxtaBaza(null);
+    let kelgan: ErkinSorov | null = null;
+    await suhbatTurn(bogliq(b, async (k) => { kelgan = k; return null; }), 'tok', { savolId: 'qiziqish', matn: 'salom, raqamim 90 765 43 21' });
+    expect(kelgan!.xabar).toBe('salom, raqamim …');
   });
 
   it('LLM oʻzidan RAQAM qoʻshsa — shablon ketadi', async () => {
@@ -259,7 +276,8 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
     // Yordamchi mijozni "koʻradi": bilim, holat, suhbat — ism va telefonsiz.
     expect(kelgan!.bilim).toMatch(/Hamma pulni birinchi partiyaga tikmang/);
     expect(kelgan!.holat).toMatch(/1-qadam «Tanishuv»/);
-    expect(kelgan!.holat).toMatch(/Savdo tajribasi: Yoʻq, birinchi marta/);
+    // Savdo tajribasi bu yerda hali yoʻq: 2026-10-26 dan u tannarx oldidan soʻraladi.
+    expect(kelgan!.holat).not.toMatch(/Savdo tajribasi/);
     const yuborilgan = JSON.stringify(kelgan);
     expect(yuborilgan).not.toMatch(/Aziz|Karimov|998901234567/);
   });
@@ -327,7 +345,7 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
   });
 
   it('ism va telefon savolida "…mi" bilan tugagan ism savol hisoblanmaydi', async () => {
-    const b = soxtaBaza(null);
+    const b = soxtaBaza(ISM_HOLATI);
     await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Ilhom Hakimi' });
     expect(b.holat()!.javoblar['ism']).toBe('Ilhom Hakimi');
   });
@@ -385,12 +403,15 @@ describe('yordamchi asosi (nazoratchi tanlovi, 2026-10-13 kechqurun)', () => {
 describe('birinchi tashrif — salomlashish yoʻqolmaydi (tayyor savollar sinovi, 2026-10-13)', () => {
   it('jurnalda joriy savol yoʻq boʻlsa — erkin javob oldidan savolning oʻzi yoziladi; keyingi safar qayta yozilmaydi', async () => {
     const b = soxtaBaza(null, { savolYozilgan: false });
-    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Bu bepulmi?' });
+    // Birinchi savol — qiziqish, salom bilan (2026-10-26).
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'qiziqish', matn: 'Bu bepulmi?' });
     expect(r.xabarlar.map((x) => x.rol)).toEqual(['menejer', 'obunachi', 'menejer']);
-    expect(r.xabarlar[0]).toMatchObject({ savolId: 'ism' });
+    expect(r.xabarlar[0]).toMatchObject({ savolId: 'qiziqish' });
     expect(r.xabarlar[0]!.matn).toMatch(/^Assalomu alaykum! Men ZumSavdo yordamchingizman/);
     expect(r.xabarlar[0]!.javob).toBeUndefined();
-    const r2 = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'ZumSavdo nima qiladi?' });
+    // Qayta soʻraladigan savol — salomsiz (butun salom «Hozirgi savol: «…»» boʻlib qaytmaydi).
+    expect(r.xabarlar[2]!.matn).not.toMatch(/Assalomu alaykum/);
+    const r2 = await suhbatTurn(bogliq(b), 'tok', { savolId: 'qiziqish', matn: 'ZumSavdo nima qiladi?' });
     expect(r2.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
   });
 });
