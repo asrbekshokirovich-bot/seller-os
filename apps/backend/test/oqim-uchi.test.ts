@@ -232,3 +232,48 @@ describe('AI sarfi — har Claude javobi `so_ai_sarf_yoz` ga (0072)', () => {
     expect(j.kpi.find((k) => k.kalit === 'ai_xarajat')).toMatchObject({ qiymat: 1.1, holat: 'yaxshi', namuna: 25 });
   });
 });
+
+/*
+ * 2026-10-27: cbu.uz serverlarimizga javob bermaydi — sahifa kursni brauzerda oladi va soʻrovga
+ * qoʻshadi (`kurs`). Server uni tekshirib ishlatadi va CBU ga oʻzi soʻramaydi; oʻtmasa — oʻzi
+ * urinadi. Zanjir — Fastify `/suhbat` orqali (Edge bilan bir xil).
+ */
+describe('/suhbat — brauzer yuborgan CBU kursi', () => {
+  /** Bugun, Toshkent boʻyicha, `kk.oo.yyyy` (CBU shakli). */
+  const bugun = () => new Date(Date.now() + 5 * 3_600_000).toISOString().slice(0, 10).split('-').reverse().join('.');
+
+  function cbuSanogi() {
+    const asl = globalThis.fetch;
+    const cbu: string[] = [];
+    globalThis.fetch = (async (url: unknown, sozlama: unknown) => {
+      const u = String(url instanceof Request ? url.url : url);
+      if (u.includes('cbu.uz')) cbu.push(u);
+      return asl(url as string, sozlama as RequestInit);
+    }) as typeof fetch;
+    return cbu;
+  }
+  const kursi = (s: ReturnType<typeof soxtalar>) =>
+    ((s.yozildi[0] as { p_holat: YolHolati }).p_holat.natijalar['kurs'] as { usd: { somPerYuan: number } | null }).usd?.somPerYuan;
+
+  it('toʻgʻri kurs — serverda ishlatiladi, CBU ga soʻrov yoʻq', async () => {
+    const s = soxtalar(OQI(), BOLAKLAR);
+    const cbu = cbuSanogi();
+    const res = await sora('/suhbat', {
+      savolId: 'qiziqish', javob: ['kiyim'],
+      kurs: { USD: { Ccy: 'USD', Rate: '11861.96', Nominal: '1', Date: bugun() } },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(kursi(s)).toBe(11861.96);
+    expect(cbu).toEqual([]);
+  });
+
+  it('soxta yoki eskirgan kurs — qabul qilinmaydi: server CBU ga oʻzi soʻraydi', async () => {
+    for (const USD of [{ Ccy: 'USD', Rate: '99', Nominal: '1', Date: bugun() }, { Ccy: 'USD', Rate: '11861.96', Nominal: '1', Date: '01.01.2026' }]) {
+      const s = soxtalar(OQI(), BOLAKLAR);
+      const cbu = cbuSanogi();
+      await sora('/suhbat', { savolId: 'qiziqish', javob: ['kiyim'], kurs: { USD } });
+      expect(kursi(s), USD.Rate).toBe(12800);
+      expect(cbu, USD.Rate).toHaveLength(1);
+    }
+  });
+});

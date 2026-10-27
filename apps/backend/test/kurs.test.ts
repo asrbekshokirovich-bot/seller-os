@@ -6,7 +6,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cbuKursiniOqi, cbuManzili, kursniOl } from '@selleros/shared';
+import { brauzerKursi, cbuKursiniOqi, cbuManzili, kursniOl } from '@selleros/shared';
 
 const CBU = [{
   id: 1, Code: '156', Ccy: 'CNY', CcyNm_RU: 'Юань', CcyNm_UZ: 'Xitoy yuani',
@@ -74,5 +74,51 @@ describe('kursniOl', () => {
     const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     await kursniOl((async () => new Response(JSON.stringify(CBU), { status: 200 })) as unknown as typeof fetch);
     expect(log).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * 2026-10-27: cbu.uz serverlarimizga javob bermaydi — kursni mijoz brauzeri oladi va suhbat
+ * soʻroviga qoʻshadi. Bu mijoz yuborgan qiymat: shakli, oqilona chegarasi va sanasi tekshiriladi;
+ * oʻtmasa — null (server CBU ga oʻzi urinadi).
+ */
+describe('brauzerKursi', () => {
+  const BUGUN = new Date('2026-10-27T10:00:00Z');
+  const USD = { Ccy: 'USD', Rate: '11861.96', Nominal: '1', Date: '27.10.2026' };
+  const CNY = { Ccy: 'CNY', Rate: '1663.05', Nominal: '1', Date: '27.10.2026' };
+
+  it('toʻgʻri qatorlar — CBU kursi (manba CBU)', () => {
+    expect(brauzerKursi({ USD, CNY }, BUGUN)).toEqual({
+      USD: { somPerYuan: 11861.96, valyuta: 'USD', sana: '27.10.2026', manba: 'CBU' },
+      CNY: { somPerYuan: 1663.05, valyuta: 'CNY', sana: '27.10.2026', manba: 'CBU' },
+    });
+  });
+
+  it('yoʻq, buzuq yoki notoʻgʻri valyuta — null (otmaydi)', () => {
+    for (const x of [undefined, null, 'USD', 42, [], { USD: 'x' }, { USD: { ...USD, Ccy: 'CNY' } }]) {
+      expect(brauzerKursi(x, BUGUN), JSON.stringify(x)).toEqual({ USD: null, CNY: null });
+    }
+    // Bittasi toʻgʻri — oʻshasi.
+    expect(brauzerKursi({ CNY }, BUGUN).USD).toBeNull();
+    expect(brauzerKursi({ CNY }, BUGUN).CNY?.somPerYuan).toBe(1663.05);
+  });
+
+  it('oqilona chegaradan tashqari — null (USD 8–20 ming, CNY 1–3 ming soʻm); Nominal hisobga olinadi', () => {
+    expect(brauzerKursi({ USD: { ...USD, Rate: '7999' } }, BUGUN).USD).toBeNull();
+    expect(brauzerKursi({ USD: { ...USD, Rate: '20001' } }, BUGUN).USD).toBeNull();
+    expect(brauzerKursi({ CNY: { ...CNY, Rate: '999' } }, BUGUN).CNY).toBeNull();
+    expect(brauzerKursi({ CNY: { ...CNY, Rate: '3001' } }, BUGUN).CNY).toBeNull();
+    expect(brauzerKursi({ CNY: { ...CNY, Rate: '16630.5', Nominal: '10' } }, BUGUN).CNY?.somPerYuan).toBeCloseTo(1663.05, 6);
+  });
+
+  it('sana: bugundan 7 kun oldin — ertagacha (Toshkent); eskirgan yoki uzoq kelajak — null', () => {
+    const sana = (d: string) => brauzerKursi({ USD: { ...USD, Date: d } }, BUGUN).USD?.sana ?? null;
+    expect(sana('20.10.2026')).toBe('20.10.2026');
+    expect(sana('19.10.2026')).toBeNull();
+    expect(sana('28.10.2026')).toBe('28.10.2026');
+    expect(sana('29.10.2026')).toBeNull();
+    expect(sana('2026-10-27')).toBeNull();
+    // Toshkentda yarim tun oʻtgan (UTC 19:30 — Toshkent 00:30, 28-oktyabr): ertangi sana — bugun.
+    expect(brauzerKursi({ USD: { ...USD, Date: '29.10.2026' } }, new Date('2026-10-27T19:30:00Z')).USD?.sana).toBe('29.10.2026');
   });
 });

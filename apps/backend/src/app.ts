@@ -91,6 +91,8 @@ import {
   type TurkumHolati,
   type XitoyLimitJavobi,
   type XitoyTovar,
+  type BrauzerKurslari,
+  brauzerKursi,
   kursniOl,
 } from '@selleros/shared';
 // Claude SDK faqat serverda (2026-10-19) — paketning asosiy eksportida yoʻq (sayt brauzerga oladi).
@@ -443,7 +445,8 @@ export function build(): FastifyInstance {
     kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL, provayder: claude,
     sarf: aiSarfYozuvchi(rpc, token),
   });
-  const suhbatBogliq = async (token: string) => ({
+  // Brauzer CBU dan olgan kurs (2026-10-27) — POST tanasidan, tekshirilgan (`brauzerKursi`); Edge bilan bir xil.
+  const suhbatBogliq = async (token: string, kurs: BrauzerKurslari | null = null) => ({
     rpc,
     // Obuna darvozasi (2026-10-14) — Edge bilan bir xil: cheklov yoqilgan boʻlsa har soʻrovda bazadan.
     darvoza: tarifCheklovi()
@@ -453,6 +456,7 @@ export function build(): FastifyInstance {
     kod: suhbatKodHarakatlari(rpc, (t) => tovarniTekshir(t, { oy: hozirgiOy() }), hozirgiOy,
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
+        kurs: { qiymat: kurs },
         ...(llmBor
           ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(token), k) }
           : {}) }),
@@ -500,7 +504,7 @@ export function build(): FastifyInstance {
       return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
     }
     const tana = (request.body ?? {}) as Record<string, unknown>;
-    const d = await suhbatBogliq(token);
+    const d = await suhbatBogliq(token, brauzerKursi(tana.kurs));
     if (tana.boshdan === true) return suhbatBoshdan(d, token);
     // «Suhbatlarim» → «Davom ettirish» (0066) — Edge bilan bir xil.
     if (typeof tana.qaytish === 'number') {

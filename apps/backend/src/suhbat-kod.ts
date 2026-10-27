@@ -43,6 +43,8 @@ import {
   KESH_ESKI_SOAT,
   kabinetBormi,
   kursniOl,
+  type BrauzerKurslari,
+  type Valyuta,
   oylikSoliq,
   RASMIY_KALITLARI,
   rasmiyFaktlari,
@@ -156,6 +158,12 @@ export interface XitoyBogliqligi {
    * matn yozilmaydi, qolip koʻrsatiladi. Kirish — faqat tovar nomlari va yoʻnalish.
    */
   kartochkaLlm?: (k: { namuna: string; turkum: string | null; xitoy: string | null; tuzat?: string | null }) => Promise<KartochkaMatni | null>;
+  /**
+   * Brauzer CBU dan olgan kurslar (2026-10-27: cbu.uz serverlarimizga javob bermaydi) —
+   * tekshirilgan (`brauzerKursi`). `qiymat` soʻrov tanasi oʻqilgach qoʻyiladi; boʻlmasa yoki
+   * valyuta `null` boʻlsa — CBU ga oʻzimiz urinamiz (`kursniOl`).
+   */
+  kurs?: { qiymat: BrauzerKurslari | null };
 }
 
 /**
@@ -163,9 +171,9 @@ export interface XitoyBogliqligi {
  * bir xil manba. Fakt boʻlmasa (2026-09-28: hamkor yoʻq) `izoh` bilan
  * qaytadi; hech qayerda nol yoki taxmin paydo boʻlmaydi.
  */
-async function kargoFaktlari(rpc: Rpc, f: typeof fetch | null) {
+async function kargoFaktlari(rpc: Rpc, usdOl: () => Promise<Kurs | null>) {
   const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...KARGO_KALITLARI] });
-  const usd = f ? await kursniOl(f, 'USD') : null;
+  const usd = await usdOl();
   const stavka = kargoStavkasi(faktlarniOqi(xom), usd?.somPerYuan ?? null);
   // Baza javob bermadi (masalan 0056 hali qoʻllanmagan) — bu "fakt boʻsh"
   // emas, "oʻqilmadi": izoh shuni aytadi (QOIDALAR §4, jim oʻlim yoʻq).
@@ -295,6 +303,9 @@ export function suhbatKodHarakatlari(
   hozirgiOy: () => number,
   xitoy: XitoyBogliqligi | null = null,
 ): SuhbatBogliqliklari['kod'] {
+  // Kurs: avval brauzer CBU dan olgani (tekshirilgan), boʻlmasa — CBU ga oʻzimiz (2026-10-27).
+  const kursOl = async (v: Valyuta, ms?: number): Promise<Kurs | null> =>
+    xitoy?.kurs?.qiymat?.[v] ?? (xitoy ? kursniOl(xitoy.fetch, v, ms) : null);
   return {
     async yonalishlar(profil: Partial<ProfilJavoblari>) {
       const kesh = await rpc<NomzodJavobi>('so_yonalish_nomzodlari', {});
@@ -367,7 +378,7 @@ export function suhbatKodHarakatlari(
 
       // Kargo — fakt stavkasi (arzon yo'l, og'irlik bo'yicha) bo'lsa chegaraga
       // kiradi; bo'lmasa `null` va `yetishmaydi` da "kargo" turadi (avvalgidek).
-      const kf = await kargoFaktlari(rpc, xitoy?.fetch ?? null);
+      const kf = await kargoFaktlari(rpc, () => kursOl('USD'));
       const yol = arzonYol(kf.stavka);
 
       const qatorlar = tanlangan.map((id) => {
@@ -513,7 +524,7 @@ export function suhbatKodHarakatlari(
         return yakun(null, tanlangan.map((id) => qidirilmadi(id, limitSababi(limitH.xato))), null);
       }
       // Kurs — o'lchov. Olinmasa so'mga o'girilmaydi va bu aytiladi.
-      const kurs = await kursniOl(xitoy.fetch);
+      const kurs = await kursOl('CNY');
 
       const qatorlar: XitoyQatori[] = [];
       const boshlanadigan: Array<{ productId: number; rasmUrl: string }> = [];
@@ -584,10 +595,10 @@ export function suhbatKodHarakatlari(
       const tovar = (id: number) => tn?.royxat?.find((x) => x.nomzod.productId === id)?.nomzod;
       const IZOH = 'Varaqa: 5-qadamda tanlangan 1688 takliflari. Yuan narxlar provayderdan, soʻm — CBU kursi bilan. Kargo — fakt stavkasi (hamkor kiritganda); boʻlmasa hisobga kirmaydi va shunday yoziladi. Tizim buyurtma bermaydi va toʻlov qilmaydi.';
 
-      const kf = await kargoFaktlari(rpc, xitoy?.fetch ?? null);
+      const kf = await kargoFaktlari(rpc, () => kursOl('USD'));
       const cny: Kurs | null = xn?.kurs
         ? { somPerYuan: xn.kurs.somPerYuan, valyuta: 'CNY', sana: xn.kurs.sana, manba: 'CBU' }
-        : (xitoy ? await kursniOl(xitoy.fetch, 'CNY') : null);
+        : await kursOl('CNY');
       const yolTanlovi = holat.javoblar['kargo_yol'];
       const yol = yolTanlovi === 'avia' ? kf.stavka.avia : yolTanlovi === 'quruqlik' ? kf.stavka.quruqlik : arzonYol(kf.stavka);
 
@@ -694,7 +705,7 @@ export function suhbatKodHarakatlari(
     async kurs() {
       // Birinchi javobdan keyin darhol keladi — kutish qisqa (2026-10-27: CBU olinmayotganda har yangi
       // suhbat 10 s kutardi). Olinmasa — dollar tugmalarisiz, bu ochiq aytiladi.
-      const usd = xitoy ? await kursniOl(xitoy.fetch, 'USD', TANISHUV_KURS_MS).catch(() => null) : null;
+      const usd = await kursOl('USD', TANISHUV_KURS_MS).catch(() => null);
       return usd === null ? { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null } : { olchov_yoq: false, usd };
     },
 

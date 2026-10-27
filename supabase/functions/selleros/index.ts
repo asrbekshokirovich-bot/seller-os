@@ -99,6 +99,8 @@ import {
   type TovarNomzodi,
   type TovarToliq,
   type TurkumHolati,
+  type BrauzerKurslari,
+  brauzerKursi,
   kursniOl,
   BELGI_MAX,
   TAQQOS_MAX,
@@ -517,6 +519,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       // Har Claude javobining sarfi — `ai_usage` ga, shu mijoz nomiga (0072).
       sarf: aiSarfYozuvchi(rpc, token, fonda),
     };
+    // Brauzer CBU dan olgan kurs (2026-10-27: cbu.uz Edge ga javob bermaydi) — POST tanasidan,
+    // tekshirib (`brauzerKursi`); kod harakatlari avval shuni oladi.
+    const brauzerKurs: { qiymat: BrauzerKurslari | null } = { qiymat: null };
     // Obuna darvozasi (nazoratchi, 2026-10-14): cheklov yoqilgan boʻlsa — har soʻrovda bazadan.
     // 5-qadamdan keyin obunasiz yoʻl ochilmaydi (`keyingi`); baza javob bermasa — «nomaʼlum».
     const darvoza = tarifCheklovi()
@@ -532,6 +537,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         { kalit: Deno.env.get('XITOY_API_KEY') ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
           // 9-qadam studiyasi: Cloudflare Worker manzili va imzo kaliti (docs/STUDIYA.md).
           studiya: { url: Deno.env.get('STUDIYA_URL') ?? null, kalit: Deno.env.get('STUDIYA_KALIT') ?? null },
+          kurs: brauzerKurs,
           // 10-qadam kartochka matni — AI (kalit boʻlmasa qolip). Faqat tovar nomlari ketadi.
           ...(kalit ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}) }),
       ...(kalit ? {
@@ -568,6 +574,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     if (req.method === 'POST') {
       let tana: Record<string, unknown> = {};
       try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+      brauzerKurs.qiymat = brauzerKursi(tana.kurs);
       if (tana.boshdan === true) {
         // Boshidan boshlanmasa — 200 EMAS: sahifa ekranni 1-qadamga oʻtkazib qoʻymasin.
         const b = await suhbatBoshdan(d, token);
