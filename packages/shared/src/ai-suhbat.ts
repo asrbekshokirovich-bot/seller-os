@@ -55,7 +55,7 @@ export interface AiTushunSorovi {
   /**
    * Mijoz yozgani (500 belgigacha). Ism/telefon savolida — ism va telefon ham shu yerda
    * (nazoratchi, 2026-10-21: «LLM shaxsiy maʼlumotni savoldan ajratib olsin»). Faqat Claude:
-   * `ai` faqat Anthropic kaliti bilan ulanadi, Gemini ga bu yoʻl yoʻq.
+   * `ai` faqat Anthropic kaliti bilan ulanadi.
    */
   xabar: string;
   /** Mijoz holati — shaxsiy maʼlumotsiz. */

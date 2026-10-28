@@ -16,8 +16,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boyMatnmi, javobgaMunosabat, javobHamBormi, keyingi, suhbatTurn, tajribaTuri,
-  type MunosabatSorovi, type SuhbatBogliqliklari, type YolHolati,
+  javobgaMunosabat, javobHamBormi, keyingi, suhbatTurn, tajribaTuri,
+  type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
 function soxtaBaza(boshlangich: YolHolati) {
@@ -56,15 +56,13 @@ const KOD = new Proxy({}, {
           : async () => { throw new Error(`bu testda kod chaqirilmasligi kerak: ${String(nom)}`); }),
 });
 
-function bogliq(b: ReturnType<typeof soxtaBaza>, munosabatLlm?: SuhbatBogliqliklari['munosabatLlm']): SuhbatBogliqliklari {
-  return { rpc: b.rpc, kod: KOD as SuhbatBogliqliklari['kod'], ...(munosabatLlm ? { munosabatLlm } : {}) };
+function bogliq(b: ReturnType<typeof soxtaBaza>): SuhbatBogliqliklari {
+  return { rpc: b.rpc, kod: KOD as SuhbatBogliqliklari['kod'] };
 }
 
 const SHAXS = { ism: 'Aziz Karimov', telefon: '+998901234567' };
 /** Qiziqish — birinchi savol (2026-10-26); ismi bor (tanish) mijoz — salomsiz. */
 const QIZIQISH: YolHolati = { javoblar: { ...SHAXS }, natijalar: {} };
-/** Byudjet savoli turgan holat. */
-const BYUDJET: YolHolati = { javoblar: { ...SHAXS, qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS } };
 /** Ism savoli — yoʻnalish tanlangach (2026-10-26). */
 const ISM: YolHolati = { javoblar: { qiziqish: ['bilmayman'], byudjet: 10_000_000, yonalish: 11 }, natijalar: { kurs: KURS, yonalishlar: YONALISHLAR } };
 /** Tajriba savoli (`uzum_dokoni`) — tovar va miqdordan keyin, tannarxdan oldin (2026-10-26). */
@@ -72,15 +70,6 @@ const TAJRIBA: YolHolati = {
   javoblar: { ...ISM.javoblar, ...SHAXS, tovarlar: [100], 'miqdor:100': 30 }, natijalar: { ...ISM.natijalar, tovarlar: TOVARLAR },
 };
 
-/** LLM ga nima borganini yozib, berilgan javoblarni navbat bilan qaytaradi. */
-function soxtaLlm(javoblar: Array<string | null>) {
-  const sorovlar: MunosabatSorovi[] = [];
-  const f = async (k: MunosabatSorovi) => {
-    sorovlar.push(k);
-    return javoblar[Math.min(sorovlar.length - 1, javoblar.length - 1)] ?? null;
-  };
-  return { f, sorovlar };
-}
 
 describe('tajriba gapi turi', () => {
   it.each([
@@ -157,11 +146,6 @@ describe('kod jumlasi (LLM siz)', () => {
     expect(javobgaMunosabat('byudjet', '70000000', { javoblar: { byudjet: 70_000_000 }, natijalar: {} })).toBeNull();
   });
 
-  it('LLM ga arziydigan gap — kamida 3 soʻz', () => {
-    expect(boyMatnmi('oldin sotganman maishiy texnika')).toBe(true);
-    expect(boyMatnmi('Samarqand')).toBe(false);
-    expect(boyMatnmi('60 ta')).toBe(false);
-  });
 });
 
 describe('suhbat: yozilgan javobga munosabat', () => {
@@ -181,104 +165,17 @@ describe('suhbat: yozilgan javobga munosabat', () => {
     expect(r.keyingi.savol.id).toBe('marja');
   });
 
-  it('LLM munosabati darvozadan oʻtsa — u ketadi (👍/👎 bilan); LLM ga tushunilgan, keyingi savol, holat boradi — ism yoʻq', async () => {
+  it('tugma matnini oʻzi yozsa («Yoʻq, birinchi marta») — tugma bosilgandek: munosabat yoʻq', async () => {
     const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm(['Velosiped savdosi oʻxshamagan boʻlsa ham, bu tajriba foydali. Uzumni noldan birga oʻrganamiz.']);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', {
-      savolId: 'uzum_dokoni', matn: "Sotganman, velosiped opkeb sotganman. Lekin o'xshamagan biznesim. Uzumga vapshe aloqam yoq",
-    });
-    expect(r.xabarlar[1]).toMatchObject({
-      rol: 'menejer', savolId: 'uzum_dokoni', matn: 'Velosiped savdosi oʻxshamagan boʻlsa ham, bu tajriba foydali. Uzumni noldan birga oʻrganamiz.',
-      javob: { erkin: true, manba: 'ai', munosabat: true },
-    });
-    const s = llm.sorovlar[0]!;
-    expect(s.tushunilgan).toMatch(/^Tushunarli — savdo tajribangiz bor ekan/);
-    expect(s.keyingi).toMatch(/Qancha marja bilan sotmoqchisiz\?/);
-    expect(s.holat).toMatch(/Savdo tajribasi/);
-    expect(`${s.holat}\n${s.tarix}`).not.toMatch(/Aziz|Karimov|901234567/);
-    expect(s.tayyor).toBeNull();
-    expect(s.bilim).toBeNull();
-    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
-    expect(r.keyingi.savol.id).toBe('marja');
-  });
-
-  it('LLM yangi raqam qoʻshsa — sababi bilan bir marta qayta; yana oʻtmasa — kod jumlasi', async () => {
-    const b = soxtaBaza(TAJRIBA);
-    // Sonlar holatda yoʻq (miqdor 30 dona, byudjet 10 mln — 2026-10-26 holatida) — darvoza ushlasin.
-    const llm = soxtaLlm(['Zoʻr! Bunday tajriba bilan 3 oyda 50 mln topasiz.', 'Ajoyib — 77 % foyda qilasiz.']);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman' });
-    expect(llm.sorovlar).toHaveLength(2);
-    expect(llm.sorovlar[1]!.tuzat).toMatch(/faktlarda yoʻq/);
-    expect(r.xabarlar[1]!.matn).toBe('Tushunarli — savdo tajribangiz bor ekan, bu katta yordam beradi.');
-  });
-
-  it('LLM savol bilan tugatsa (keyingi savolni oʻzi bersa) — qaytariladi', async () => {
-    const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm(['Zoʻr! Qaysi sohani tanlaysiz?', 'Zoʻr, kanstovar boʻyicha tajribangiz bor ekan — bu juda asqotadi.']);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman' });
-    expect(llm.sorovlar[1]!.tuzat).toMatch(/savol berma/);
-    expect(r.xabarlar[1]!.matn).toBe('Zoʻr, kanstovar boʻyicha tajribangiz bor ekan — bu juda asqotadi.');
-  });
-
-  it('LLM yiqilsa (null) — kod jumlasi, qayta soʻralmaydi', async () => {
-    const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm([null]);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman' });
-    expect(llm.sorovlar).toHaveLength(1);
-    expect(r.xabarlar[1]!.matn).toBe('Tushunarli — savdo tajribangiz bor ekan, bu katta yordam beradi.');
-  });
-
-  it('tugma matnini oʻzi yozsa («Yoʻq, birinchi marta») — tugma bosilgandek: munosabat ham, LLM ham yoʻq', async () => {
-    const llm = soxtaLlm(['xxx']);
-    const b = soxtaBaza(TAJRIBA);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Yoʻq, birinchi marta' });
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'uzum_dokoni', matn: 'Yoʻq, birinchi marta' });
     expect(b.holat().javoblar['uzum_dokoni']).toBe('yoq');
     expect(r.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
-    expect(llm.sorovlar).toHaveLength(0);
   });
 
-  it('qiziqishni uzun yozsa ham — LLM chaqirilmaydi: kod qaysi sohalar olinganini aniq aytadi', async () => {
-    const llm = soxtaLlm(['Ajoyib tanlov!']);
+  it('qiziqishni uzun yozsa — kod qaysi sohalar olinganini aniq aytadi', async () => {
     const b = soxtaBaza(QIZIQISH);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'qiziqish', matn: 'kiyim va kosmetika sotmoqchiman' });
-    expect(llm.sorovlar).toHaveLength(0);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'qiziqish', matn: 'kiyim va kosmetika sotmoqchiman' });
     expect(r.xabarlar[1]!.matn).toMatch(/^Tushundim — yoʻnalishlarni asosan «Kiyim va poyabzal», «Goʻzallik va parvarish»/);
-  });
-
-  it('LLM ga faqat HOZIRGI suhbat tarixi boradi («Boshidan boshlash» dan oldingisi emas)', async () => {
-    const b = soxtaBaza(TAJRIBA);
-    b.jurnal.unshift(
-      { rol: 'obunachi', matn: 'ESKI SUHBATDAGI GAP' },
-      { rol: 'kod', matn: 'Yoʻl boshidan boshlandi', savolId: 'boshdan' },
-    );
-    const llm = soxtaLlm(['Tushunarli, bozor tajribasi asqotadi.']);
-    await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman' });
-    expect(llm.sorovlar[0]!.tarix).not.toMatch(/ESKI SUHBATDAGI GAP/);
-    expect(llm.sorovlar[0]!.tarix).toMatch(/Oldin savdo qilganmisiz/);
-  });
-
-  it('LLM chaqirilMAYDI: tugma, qisqa yozuv, son savoli (byudjet)', async () => {
-    const llm = soxtaLlm(['xxx']);
-    const b1 = soxtaBaza(TAJRIBA);
-    const r1 = await suhbatTurn(bogliq(b1, llm.f), 'tok', { savolId: 'uzum_dokoni', javob: 'yoq' });
-    expect(r1.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
-    const b2 = soxtaBaza(QIZIQISH);
-    await suhbatTurn(bogliq(b2, llm.f), 'tok', { savolId: 'qiziqish', matn: 'kiyim' });
-    const b3 = soxtaBaza(BYUDJET);
-    const r3 = await suhbatTurn(bogliq(b3, llm.f), 'tok', { savolId: 'byudjet', matn: 'hozir 100 mln bor lekin 70 mln bilan boshlamoqchiman' });
-    expect(llm.sorovlar).toHaveLength(0);
-    // Byudjet: avvalgidek — yozgani oʻzicha, keyin qaysi summa olingani.
-    expect(r3.xabarlar[0]!.matn).toBe('hozir 100 mln bor lekin 70 mln bilan boshlamoqchiman');
-    expect(r3.xabarlar[1]).toEqual({ rol: 'menejer', matn: 'Tushunarli — 70 000 000 soʻm bilan boshlaymiz.' });
-  });
-
-  it('ism va telefon LLM ga HECH QACHON ketmaydi — uzun yozilgan boʻlsa ham (maxfiylik)', async () => {
-    const llm = soxtaLlm(['xxx']);
-    const b = soxtaBaza(ISM);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'ism', matn: 'Mening ismim Aziz Karimov, telefonim +998 90 123 45 67' });
-    expect(r.xato).toBeUndefined();
-    expect(b.holat().javoblar['ism']).toBe('Aziz Karimov');
-    expect(llm.sorovlar).toHaveLength(0);
   });
 
   it('qiziqishni yozsa — pufakda yozgani, keyin qanday tushunilgani', async () => {
@@ -298,36 +195,6 @@ describe('suhbat: yozilgan javobga munosabat', () => {
     expect(r.xabarlar[1]!.matn).toMatch(/^Tushunarli — savdo tajribangiz bor ekan, bu katta yordam beradi\. \S/);
     if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
     expect(r.keyingi.savol.id).toBe('marja');
-  });
-
-  it('javob + savol: LLM ga faktlar va savol qismi boradi; bazadagi javobni dastur AI dan keyin oʻzi qoʻshadi', async () => {
-    // Jonli sinov (2026-10-15): AI «…endi nima sotsam boʻladi?» savolini javobsiz qoldirgan edi.
-    const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm(['Maishiy texnika tajribangiz asqotadi.']);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'oldin maishiy texnika sotganman, endi nima sotsam boʻladi?' });
-    const s = llm.sorovlar[0]!;
-    expect(s.bilim).toBeTruthy();
-    expect(s.savolBor).toBe(true);
-    expect(s.xabar).toBe('oldin maishiy texnika sotganman, endi nima sotsam boʻladi?');
-    expect(s.tayyor).toBeTruthy();
-    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai', munosabat: true });
-    expect(r.xabarlar[1]!.matn).toBe(`Maishiy texnika tajribangiz asqotadi.\n\n${s.tayyor}`);
-  });
-
-  it('eski yoʻl: gapdagi telefon munosabat LLM iga yashirilgan holda ketadi (2026-10-26)', async () => {
-    const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm(['Bozor tajribasi asqotadi.']);
-    await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman, raqamim 90 765 43 21' });
-    expect(llm.sorovlar[0]!.xabar).toBe('Bozorda kanstovar sotganman, raqamim …');
-  });
-
-  it('oddiy javobda (savolsiz) — LLM ga «savol bor» deyilmaydi, faqat AI munosabati', async () => {
-    const b = soxtaBaza(TAJRIBA);
-    const llm = soxtaLlm(['Bozor tajribasi asqotadi.']);
-    const r = await suhbatTurn(bogliq(b, llm.f), 'tok', { savolId: 'uzum_dokoni', matn: 'Bozorda kanstovar sotganman' });
-    expect(llm.sorovlar[0]!.savolBor).toBe(false);
-    expect(llm.sorovlar[0]!.tayyor).toBeNull();
-    expect(r.xabarlar[1]!.matn).toBe('Bozor tajribasi asqotadi.');
   });
 
   it('bazadan maʼlumot kodi matn emas narsa qaytarsa yoki yiqilsa — javob yiqilmaydi (soxta serverda topilgan)', async () => {

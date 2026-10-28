@@ -32,8 +32,6 @@ import {
   FORMULA_VERSION,
   KESH_ESKI_SOAT,
   REJA_QADAMI,
-  erkinJavobBer,
-  munosabatBer,
   aiTushunBer,
   aiYozBer,
   type AiTushunSorovi,
@@ -53,9 +51,6 @@ import {
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
-  odamlashtir,
-  type ErkinSorov,
-  type MunosabatSorovi,
   suhbatBoshdan,
   suhbatTahrir,
   suhbatBolagi,
@@ -163,7 +158,7 @@ function fonda(p: Promise<unknown>): void {
 
 /** Qaysi AI ishlayapti — `/health` dagidek, lekin kalit shakli ham tekshiriladi. */
 function llmProvayderi(): AiMuhit['provayder'] {
-  return kalitniAjrat(Deno.env.get('ANTHROPIC_API_KEY')) ? 'claude' : Deno.env.get('GEMINI_API_KEY') ? 'gemini' : null;
+  return kalitniAjrat(Deno.env.get('ANTHROPIC_API_KEY')) ? 'claude' : null;
 }
 
 /**
@@ -262,9 +257,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         // yoʻq, yoqilsa hech kim 3-qadamga oʻta olmasdi.
         tarifCheklovi: tarifCheklovi(),
         // LLM kaliti bormi (qiymati emas) — "LLM ishlayaptimi?" ni tashqaridan bilish uchun.
-        llm: Boolean(Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('GEMINI_API_KEY')),
-        // Qaysi provayder: Anthropic kaliti boʻlsa — Claude (2026-10-19), boʻlmasa — Gemini.
-        llmProvayder: Deno.env.get('ANTHROPIC_API_KEY') ? 'claude' : Deno.env.get('GEMINI_API_KEY') ? 'gemini' : null,
+        llm: Boolean(Deno.env.get('ANTHROPIC_API_KEY')),
+        // Qaysi provayder: faqat Claude (2026-10-28: Gemini olib tashlandi); kalit boʻlmasa — null.
+        llmProvayder: Deno.env.get('ANTHROPIC_API_KEY') ? 'claude' : null,
         // Qaysi Claude modeli (2026-10-20: standart — Sonnet 5.5; `CLAUDE_MODEL` bilan almashadi).
         claudeModel: Deno.env.get('ANTHROPIC_API_KEY') ? (Deno.env.get('CLAUDE_MODEL')?.trim() || CLAUDE_MODELI) : null,
         // Tushunish modeli (2026-10-26: standart — Haiku 5.5; `CLAUDE_TUSHUN_MODEL` bilan almashadi).
@@ -512,16 +507,14 @@ async function ishla(req: Request, yol: string): Promise<Response> {
   if (yol === '/suhbat') {
     const token = req.headers.get('x-sessiya') ?? '';
     if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
-    // LLM (nazoratchi, 2026-10-19): Anthropic kaliti boʻlsa — Claude (`CLAUDE_MODEL`, boʻlmasa
-    // `claude-sonnet-5-5`); boʻlmasa — Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
+    // LLM — faqat Claude (`CLAUDE_MODEL`, boʻlmasa `claude-sonnet-5-5`); kalit boʻlmasa AI yoʻq — kod
+    // jumlalari (2026-10-28: Gemini va eski LLM yoʻllari olib tashlandi, nazoratchi, 4-taklif).
     const claude = claudeProvayderi({ kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_MODEL') });
     // Tushunish — tezkor model (2026-10-26: Haiku 5.5; `CLAUDE_TUSHUN_MODEL` bilan almashadi).
     const claudeTushun = claudeProvayderi({
       kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_TUSHUN_MODEL')?.trim() || CLAUDE_TUSHUN_MODELI,
     });
-    const kalit = claude !== null || Boolean(Deno.env.get('GEMINI_API_KEY'));
     const llmSozlama = {
-      kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
       provayder: claude,
       // Har Claude javobining sarfi — `ai_usage` ga, shu mijoz nomiga (0072).
       sarf: aiSarfYozuvchi(rpc, token, fonda),
@@ -546,24 +539,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           studiya: { url: Deno.env.get('STUDIYA_URL') ?? null, kalit: Deno.env.get('STUDIYA_KALIT') ?? null },
           kurs: brauzerKurs,
           // 10-qadam kartochka matni — AI (kalit boʻlmasa qolip). Faqat tovar nomlari ketadi.
-          ...(kalit ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}) }),
-      ...(kalit ? {
-        // Kod jumlasini qayta aytish — FAQAT `LLM_ODAMLASHTIR=1` boʻlsa (nazoratchi, 2026-10-13):
-        // bepul Gemini limiti kunlik va kichik; har xabarni qayta aytish uni mijoz savoli
-        // kelmasidan sarflardi. Jumlalar oʻzi sodda yozilgan; limit savollarga qoladi.
-        ...(Deno.env.get('LLM_ODAMLASHTIR') === '1'
-          ? { llm: (m: string) => odamlashtir(llmSozlama, m) }
-          : {}),
-        // Obunachi javob oʻrniga boshqa narsa yozsa — menejer javobi (tekshiruv bilan).
-        erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama, k),
-        // Oʻzi yozgan javobga munosabat (2026-10-15) — `LLM_MUNOSABAT=0` oʻchiradi (kod jumlasi qoladi).
-        ...(Deno.env.get('LLM_MUNOSABAT') === '0'
-          ? {}
-          : { munosabatLlm: (k: MunosabatSorovi) => munosabatBer(llmSozlama, k) }),
-        // AI birinchi: bazada javobi bor savol ham LLM ga (doʻstona, batafsil, mijoz tilida).
-        // FAQAT `LLM_AVVAL=1` boʻlsa — nazoratchi Gemini toʻlovini yoqqach (2026-10-13).
-        erkinAvval: Deno.env.get('LLM_AVVAL') === '1',
-      } : {}),
+          ...(claude ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}) }),
       // AI SUHBAT (nazoratchi, 2026-10-19: "hamma xabarni AI yozsin, javobni AI tushunsin, natijani AI
       // tushuntirsin; 12 qadam qolsin"). Faqat Claude bilan; `AI_SUHBAT=0` — oʻchiradi (eski yoʻl).
       ...(claude !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {
@@ -651,17 +627,15 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const token = req.headers.get('x-sessiya') ?? '';
     const o = token ? await rpc<{ xato?: string; holat?: YolHolati | null }>('so_suhbat_oqi', { p_token: token }) : null;
     const holat = o && !o.xato && o.holat ? mijozHolati(o.holat, joriyQadam(o.holat)) : null;
-    // LLM — `/suhbat` dagidek: Anthropic kaliti boʻlsa Claude, boʻlmasa Gemini.
+    // LLM — `/suhbat` dagidek: faqat Claude; kalit boʻlmasa — bazadagi javob.
     const claude = claudeProvayderi({ kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_MODEL') });
-    const llmBor = claude !== null || Boolean(Deno.env.get('GEMINI_API_KEY'));
     const llmSozlama = {
-      kalit: Deno.env.get('GEMINI_API_KEY'), model: Deno.env.get('LLM_MODEL'), zaxiraModel: Deno.env.get('LLM_ZAXIRA_MODEL'),
       provayder: claude,
       // Sarf — `ai_usage` ga (0072); sessiyasiz savol — mijozsiz.
       sarf: aiSarfYozuvchi(rpc, token || null, fonda),
     };
     const sd = {
-      ai: llmBor
+      ai: claude
         ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama, vaqtMs: ms }, k, qism)
         : null,
       tarifCheklovi: tarifCheklovi(),

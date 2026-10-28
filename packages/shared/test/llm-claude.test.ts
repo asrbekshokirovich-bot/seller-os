@@ -10,10 +10,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CLAUDE_MODELI, CLAUDE_TUSHUN_MODELI, claudeNarxi, claudeProvayderi, javobMatni, kalitniAjrat, sirsiz } from '../src/llm-claude';
 import {
-  aiSarfYozuvchi, aiTushunBer, aiYozBer, erkinJavobBer, kartochkaYozBer, KARTOCHKA_KORSATMA, MUNOSABAT_KORSATMA, munosabatBer, odamlashtir,
+  aiSarfYozuvchi, aiTushunBer, aiYozBer, kartochkaYozBer, KARTOCHKA_KORSATMA,
   sahifaJavobBer, type LlmSarfi,
 } from '../src/llm';
 import { AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_SXEMA } from '../src/ai-suhbat';
+import { SAHIFA_KORSATMA, type SahifaSorovi } from '../src/sahifa-yordamchi';
 
 interface Yozuv { url: string; tana: Record<string, unknown>; sarlavha: Headers }
 
@@ -35,13 +36,12 @@ function soxtaFetch(javoblar: Array<{ status?: number; json: unknown }>, y: Yozu
   }) as unknown as typeof fetch;
 }
 
-const MUNOSABAT = {
-  savol: 'Oldin savdo qilganmisiz?', xabar: 'oldin sotganman maishiy texnika', tushunilgan: null, tayyor: null, bilim: null,
-  holat: '- Hozir: 1-qadam.', tarix: '', keyingi: null, til: 'uz' as const, tuzat: null, savolBor: false,
+const SAHIFA: SahifaSorovi = {
+  savol: 'oldin sotganman maishiy texnika', sahifa: 'bosh', tarix: [], holat: null, bilim: 'B', tayyor: null, til: 'uz', tuzat: null,
 };
 
 describe('Claude provayderi', () => {
-  it('kalit yoʻq yoki boʻsh — provayder yoʻq (Gemini yoki kod javobi ishlaydi)', () => {
+  it('kalit yoʻq yoki boʻsh — provayder yoʻq (AI ishlamaydi — kod javobi)', () => {
     expect(claudeProvayderi({ kalit: undefined })).toBeNull();
     expect(claudeProvayderi({ kalit: '  \n' })).toBeNull();
   });
@@ -49,7 +49,7 @@ describe('Claude provayderi', () => {
   it('soʻrov: model, kalit sarlavhada, tizim koʻrsatmasi keshlanadi, effort low, rad etilsa — zaxira modeli', async () => {
     const y: Yozuv[] = [];
     const provayder = claudeProvayderi({ kalit: ' sk-ant-sinov \n', fetchFn: soxtaFetch([{ json: MATN('Tajribangiz asqotadi.') }], y) });
-    const r = await munosabatBer({ kalit: null, provayder }, MUNOSABAT);
+    const r = await sahifaJavobBer({ provayder }, SAHIFA);
     expect(r).toBe('Tajribangiz asqotadi.');
     expect(y).toHaveLength(1);
     expect(y[0]!.url).toMatch(/\/v1\/messages/);
@@ -58,7 +58,7 @@ describe('Claude provayderi', () => {
     const t = y[0]!.tana;
     // 2026-10-20: standart — Sonnet 5.5 (nazoratchi: «tezroq va arzonroq»).
     expect(t.model).toBe('claude-sonnet-5-5');
-    expect(t.system).toEqual([{ type: 'text', text: MUNOSABAT_KORSATMA, cache_control: { type: 'ephemeral' } }]);
+    expect(t.system).toEqual([{ type: 'text', text: SAHIFA_KORSATMA, cache_control: { type: 'ephemeral' } }]);
     expect(t.output_config).toEqual({ effort: 'low' });
     // Javob qisqa; fikrlash ham shu chegaraga kiradi.
     expect(t.max_tokens).toBe(4_000);
@@ -74,14 +74,14 @@ describe('Claude provayderi', () => {
       kalit: 'k',
       fetchFn: soxtaFetch([{ json: javob([{ type: 'thinking', thinking: 'ICHKI FIKR', signature: 'imzo' }, { type: 'text', text: 'Salom,' }, { type: 'text', text: ' xush kelibsiz.' }]) }], y),
     });
-    expect(await odamlashtir({ kalit: null, provayder }, 'Qancha pul ajratasiz?')).toBe('Salom, xush kelibsiz.');
+    expect(await sahifaJavobBer({ provayder }, { ...SAHIFA, savol: 'Qancha pul ajratasiz?' })).toBe('Salom, xush kelibsiz.');
   });
 
   it('kartochka — JSON sxema bilan (structured outputs), effort medium; javob maydonlarga ajraladi', async () => {
     const y: Yozuv[] = [];
     const M = { nom_uz: 'Gel ruchka koʻk', nom_ru: 'Гелевая ручка синяя', qisqa_uz: 'q', qisqa_ru: 'к', tavsif_uz: 't', tavsif_ru: 'т' };
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json: MATN(JSON.stringify(M)) }], y) });
-    const r = await kartochkaYozBer({ kalit: null, provayder }, { namuna: 'Gel ruchka 0,5 mm', turkum: 'Ruchkalar', xitoy: '中性笔' });
+    const r = await kartochkaYozBer({ provayder }, { namuna: 'Gel ruchka 0,5 mm', turkum: 'Ruchkalar', xitoy: '中性笔' });
     expect(r).toEqual({ nomUz: M.nom_uz, nomRu: M.nom_ru, qisqaUz: 'q', qisqaRu: 'к', tavsifUz: 't', tavsifRu: 'т' });
     const t = y[0]!.tana as { system: Array<{ text: string }>; output_config: { effort: string; format: { type: string; schema: { required: string[]; additionalProperties: boolean } } } };
     expect(t.system[0]!.text).toBe(KARTOCHKA_KORSATMA);
@@ -95,7 +95,7 @@ describe('Claude provayderi', () => {
   it('AI suhbat — JSON sxema bilan, lekin effort low (chat tez boʻlsin; medium faqat kartochkada)', async () => {
     const y: Yozuv[] = [];
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json: MATN('{"oldin":"","izoh":"","savol":"Qaysi soha?"}') }], y) });
-    const r = await aiYozBer({ kalit: null, provayder }, {
+    const r = await aiYozBer({ provayder }, {
       mijoz: null, tanlov: false, qabul: [], rad: [], eslab: [], savolBor: false, bilim: null, tayyor: null, natijalar: [],
       keyingi: null, keyingiMatn: 'Kutamiz', holat: '-', tarix: '', til: 'uz', bugun: '20.10.2026', tuzat: null,
     });
@@ -109,7 +109,7 @@ describe('Claude provayderi', () => {
   it('rad etildi (zaxira modeli ham) yoki max_tokens da kesildi — null: chala javob chiqmaydi', async () => {
     for (const sabab of ['refusal', 'max_tokens']) {
       const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json: javob([{ type: 'text', text: 'chala' }], sabab) }], []) });
-      expect(await munosabatBer({ kalit: null, provayder }, MUNOSABAT), sabab).toBeNull();
+      expect(await sahifaJavobBer({ provayder }, SAHIFA), sabab).toBeNull();
     }
   });
 
@@ -117,7 +117,7 @@ describe('Claude provayderi', () => {
     for (const status of [400, 401]) {
       const y: Yozuv[] = [];
       const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ status, json: { type: 'error', error: { type: 'x', message: 'yoʻq' } } }], y) });
-      expect(await munosabatBer({ kalit: null, provayder }, MUNOSABAT), String(status)).toBeNull();
+      expect(await sahifaJavobBer({ provayder }, SAHIFA), String(status)).toBeNull();
       expect(y, String(status)).toHaveLength(1);
     }
     const y: Yozuv[] = [];
@@ -125,7 +125,7 @@ describe('Claude provayderi', () => {
       kalit: 'k',
       fetchFn: soxtaFetch([{ status: 529, json: { type: 'error', error: { type: 'overloaded_error', message: 'band' } } }, { json: MATN('Ikkinchisida chiqdi.') }], y),
     });
-    expect(await munosabatBer({ kalit: null, provayder }, MUNOSABAT)).toBe('Ikkinchisida chiqdi.');
+    expect(await sahifaJavobBer({ provayder }, SAHIFA)).toBe('Ikkinchisida chiqdi.');
     expect(y).toHaveLength(2);
   });
 
@@ -135,8 +135,7 @@ describe('Claude provayderi', () => {
     })) as unknown as typeof fetch;
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: osilgan });
     const boshi = Date.now();
-    expect(await erkinJavobBer({ kalit: null, provayder, vaqtMs: 150 },
-      { savol: 'S', variantlar: [], xabar: 'X', sabab: null, tayyor: null, bilim: 'B' })).toBeNull();
+    expect(await sahifaJavobBer({ provayder, vaqtMs: 150 }, SAHIFA)).toBeNull();
     expect(Date.now() - boshi).toBeLessThan(3_000);
   });
 
@@ -148,7 +147,7 @@ describe('Claude provayderi', () => {
       kalit: 'k', model: CLAUDE_TUSHUN_MODELI,
       fetchFn: soxtaFetch([{ json: javob([{ type: 'text', text: JSON.stringify(TUSHUNCHA) }], 'end_turn', CLAUDE_TUSHUN_MODELI) }], y),
     });
-    const r = await aiTushunBer({ kalit: null, provayder }, { savollar: [], xabar: 'kiyim sotaman', holat: '-', tarix: '' });
+    const r = await aiTushunBer({ provayder }, { savollar: [], xabar: 'kiyim sotaman', holat: '-', tarix: '' });
     expect(r).toEqual(TUSHUNCHA);
     const t = y[0]!.tana;
     expect(t.model).toBe('claude-haiku-5-5');
@@ -162,7 +161,7 @@ describe('Claude provayderi', () => {
   it('CLAUDE_MODEL bilan boshqa model', async () => {
     const y: Yozuv[] = [];
     const provayder = claudeProvayderi({ kalit: 'k', model: ' claude-opus-5-5 ', fetchFn: soxtaFetch([{ json: MATN('ok') }], y) });
-    await odamlashtir({ kalit: null, provayder }, 'x');
+    await sahifaJavobBer({ provayder }, { ...SAHIFA, savol: 'x' });
     expect(y[0]!.tana.model).toBe('claude-opus-5-5');
   });
 });
@@ -200,7 +199,7 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
     }) as unknown as typeof fetch;
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
     const qismlar: Array<{ oldin: string; izoh: string; savol: string }> = [];
-    const r = await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, (q) => qismlar.push(q));
+    const r = await aiYozBer({ provayder }, YOZ_SOROVI, (q) => qismlar.push(q));
     expect(r).toEqual({ oldin: 'Rahmat! Yaxshi tanlov.', izoh: '', savol: 'Qaysi soha?' });
     expect(y[0]!.tana.stream).toBe(true);
     // Soʻrov shakli oqimsizdagi bilan bir xil: model, effort, sxema, zaxira.
@@ -214,7 +213,7 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
   it('qism berilmasa — oddiy soʻrov (stream emas)', async () => {
     const y: Yozuv[] = [];
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json: MATN('{"oldin":"","izoh":"","savol":"S?"}') }], y) });
-    expect(await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI)).toEqual({ oldin: '', izoh: '', savol: 'S?' });
+    expect(await aiYozBer({ provayder }, YOZ_SOROVI)).toEqual({ oldin: '', izoh: '', savol: 'S?' });
     expect(y[0]!.tana.stream).toBeUndefined();
   });
 
@@ -230,7 +229,7 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
     ])) as unknown as typeof fetch;
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
     const qismlar: string[] = [];
-    const r = await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, (q) => qismlar.push(q.oldin));
+    const r = await aiYozBer({ provayder }, YOZ_SOROVI, (q) => qismlar.push(q.oldin));
     expect(r).toEqual({ oldin: 'Yangi', izoh: '', savol: 'S?' });
     expect(qismlar).toEqual(['CHALA', '', 'Yangi']);
   });
@@ -240,7 +239,7 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
       const f = (async () => sseJavob([BOSHI(), ...MATN_BLOKI(0, ['{"oldin":"chala']), ...OXIRI(sabab)])) as unknown as typeof fetch;
       const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
       const qismlar: string[] = [];
-      expect(await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, (q) => qismlar.push(q.oldin)), sabab).toBeNull();
+      expect(await aiYozBer({ provayder }, YOZ_SOROVI, (q) => qismlar.push(q.oldin)), sabab).toBeNull();
       expect(qismlar, sabab).toEqual(['chala']);
     }
   });
@@ -258,7 +257,7 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
     }) as unknown as typeof fetch;
     const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
-    expect(await aiYozBer({ kalit: null, provayder }, YOZ_SOROVI, () => undefined)).toBeNull();
+    expect(await aiYozBer({ provayder }, YOZ_SOROVI, () => undefined)).toBeNull();
     expect(log.mock.calls.flat().join(' ')).toMatch(/llm ai-yoz/);
   });
 
@@ -266,7 +265,7 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
     const f = (async () => sseJavob([BOSHI(), ...MATN_BLOKI(0, ['Salom! ', 'ZumSavdo — yoʻl.']), ...OXIRI()])) as unknown as typeof fetch;
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
     const qismlar: string[] = [];
-    const r = await sahifaJavobBer({ kalit: null, provayder }, {
+    const r = await sahifaJavobBer({ provayder }, {
       savol: 'Bu nima?', sahifa: 'bosh', tarix: [], holat: null, bilim: '', tayyor: null, til: 'uz', tuzat: null,
     }, (m) => qismlar.push(m));
     expect(r).toBe('Salom! ZumSavdo — yoʻl.');
@@ -280,8 +279,8 @@ describe('oqim — matn yozilgan sari (2026-10-20)', () => {
   });
 });
 
-describe('provayder tanlovi (llm.ts)', () => {
-  it('provayder berilsa — Gemini chaqirilmaydi; har ish oʻz vaqt chegarasi va koʻrsatmasi bilan', async () => {
+describe('provayder chaqiruvi (llm.ts)', () => {
+  it('har ish oʻz vaqt chegarasi va koʻrsatmasi bilan; provayder yoʻq — chaqiruv yoʻq, null', async () => {
     const chaqiruvlar: Array<{ belgi: string; vaqtMs: number; json: unknown; korsatma: string }> = [];
     const provayder = async (c: { belgi: string; vaqtMs: number; json: unknown; korsatma: string }) => {
       chaqiruvlar.push(c);
@@ -289,23 +288,21 @@ describe('provayder tanlovi (llm.ts)', () => {
         ? JSON.stringify({ nom_uz: 'a', nom_ru: 'б', qisqa_uz: 'a', qisqa_ru: 'б', tavsif_uz: 'a', tavsif_ru: 'б' })
         : 'javob';
     };
-    let gemini = 0;
-    const fetchFn = (async () => { gemini++; return new Response('{}'); }) as unknown as typeof fetch;
-    const s = { kalit: 'AIza-gemini', fetchFn, provayder };
-    await odamlashtir(s, 'x');
-    await erkinJavobBer(s, { savol: 'S', variantlar: [], xabar: 'X', sabab: null, tayyor: null, bilim: 'B' });
-    await munosabatBer(s, MUNOSABAT);
-    await kartochkaYozBer(s, { namuna: 'n', turkum: null, xitoy: null });
-    expect(gemini).toBe(0);
+    await sahifaJavobBer({ provayder }, SAHIFA);
+    await kartochkaYozBer({ provayder }, { namuna: 'n', turkum: null, xitoy: null });
+    await aiTushunBer({ provayder }, { savollar: [], xabar: 'x', holat: '-', tarix: '' });
     expect(chaqiruvlar.map((c) => [c.belgi, c.vaqtMs, c.json === null])).toEqual([
-      ['odamlashtir', 8_000, true], ['erkin', 25_000, true], ['munosabat', 12_000, true], ['kartochka', 30_000, false],
+      ['sahifa', 25_000, true], ['kartochka', 30_000, false], ['ai-tushun', 20_000, false],
     ]);
-    expect(chaqiruvlar[2]!.korsatma).toBe(MUNOSABAT_KORSATMA);
+    expect(chaqiruvlar[0]!.korsatma).toBe(SAHIFA_KORSATMA);
+    // Kalit yoʻq — provayder yoʻq: AI ishlamaydi, kod javobi (2026-10-28: Gemini olib tashlandi).
+    expect(await sahifaJavobBer({ provayder: null }, SAHIFA)).toBeNull();
+    expect(await kartochkaYozBer({ provayder: null }, { namuna: 'n', turkum: null, xitoy: null })).toBeNull();
   });
 
   it('provayder yiqilsa (istisno) — null, oqim toʻxtamaydi', async () => {
     const provayder = async () => { throw new Error('tarmoq'); };
-    expect(await munosabatBer({ kalit: null, provayder }, MUNOSABAT)).toBeNull();
+    expect(await sahifaJavobBer({ provayder }, SAHIFA)).toBeNull();
   });
 });
 
@@ -339,7 +336,7 @@ describe('kalit va log xavfsizligi', () => {
   it('sirga butun buyruq qoʻyilsa ham — soʻrovga faqat kalit ketadi', async () => {
     const y: Yozuv[] = [];
     const provayder = claudeProvayderi({ kalit: CURL, fetchFn: soxtaFetch([{ json: MATN('ok') }], y) });
-    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBe('ok');
+    expect(await sahifaJavobBer({ provayder }, { ...SAHIFA, savol: 'x' })).toBe('ok');
     expect(y[0]!.sarlavha.get('x-api-key')).toBe(KALIT);
   });
 
@@ -353,7 +350,7 @@ describe('kalit va log xavfsizligi', () => {
     const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const xato = { type: 'error', error: { type: 'invalid_request_error', message: `notoʻgʻri sarlavha ${KALIT}` } };
     const provayder = claudeProvayderi({ kalit: KALIT, fetchFn: soxtaFetch([{ status: 400, json: xato }], []) });
-    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBeNull();
+    expect(await sahifaJavobBer({ provayder }, { ...SAHIFA, savol: 'x' })).toBeNull();
     const yozilgan = log.mock.calls.flat().join(' ');
     expect(yozilgan).toMatch(/HTTP 400/);
     expect(yozilgan).not.toContain('SINOV_kalit');
@@ -363,9 +360,9 @@ describe('kalit va log xavfsizligi', () => {
     const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const buzuq = (async () => new Response(`${KALIT} bu JSON emas`, { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
     const provayder = claudeProvayderi({ kalit: KALIT, fetchFn: buzuq });
-    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBeNull();
+    expect(await sahifaJavobBer({ provayder }, { ...SAHIFA, savol: 'x' })).toBeNull();
     const yozilgan = log.mock.calls.flat().join(' ');
-    expect(yozilgan).toMatch(/llm odamlashtir/);
+    expect(yozilgan).toMatch(/llm sahifa/);
     expect(yozilgan).not.toMatch(/sk-ant-a/);
   });
 
@@ -373,9 +370,9 @@ describe('kalit va log xavfsizligi', () => {
     const log = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const yiqil = (async () => { throw new TypeError(`Invalid header value: "${CURL}"`); }) as unknown as typeof fetch;
     const provayder = claudeProvayderi({ kalit: KALIT, fetchFn: yiqil });
-    expect(await odamlashtir({ kalit: null, provayder }, 'x')).toBeNull();
+    expect(await sahifaJavobBer({ provayder }, { ...SAHIFA, savol: 'x' })).toBeNull();
     const yozilgan = log.mock.calls.flat().join(' ');
-    expect(yozilgan).toMatch(/llm odamlashtir/);
+    expect(yozilgan).toMatch(/llm sahifa/);
     expect(yozilgan).not.toContain(KALIT);
     expect(yozilgan).not.toContain('SINOV_kalit');
   });
@@ -397,10 +394,10 @@ describe('sarf — har javob narxi (2026-10-22)', () => {
     usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, ...usage },
     ...ortiq,
   });
-  const sor = async (json: unknown, ortiq: Partial<Parameters<typeof munosabatBer>[0]> = {}) => {
+  const sor = async (json: unknown, ortiq: Partial<Parameters<typeof sahifaJavobBer>[0]> = {}) => {
     const sarflar: LlmSarfi[] = [];
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ json }], []) });
-    const javobi = await munosabatBer({ kalit: null, provayder, sarf: (s) => sarflar.push(s), ...ortiq }, MUNOSABAT);
+    const javobi = await sahifaJavobBer({ provayder, sarf: (s) => sarflar.push(s), ...ortiq }, SAHIFA);
     return { javobi, sarflar };
   };
 
@@ -409,7 +406,7 @@ describe('sarf — har javob narxi (2026-10-22)', () => {
     expect(javobi).toBe('Javob');
     // 120 × $2 + 30 × $10 = 540 mikrodollar.
     expect(sarflar).toEqual([{
-      belgi: 'munosabat', model: 'claude-sonnet-5-5', kirish: 120, chiqish: 30, keshOqildi: 0, keshYozildi: 0, narxUsd: 0.00054,
+      belgi: 'sahifa', model: 'claude-sonnet-5-5', kirish: 120, chiqish: 30, keshOqildi: 0, keshYozildi: 0, narxUsd: 0.00054,
     }]);
   });
 
@@ -488,7 +485,7 @@ describe('sarf — har javob narxi (2026-10-22)', () => {
     const f = (async () => sseJavob([BOSHI(), ...MATN_BLOKI(0, ['{"oldin":"","izoh":"","savol":"S?"}']), ...OXIRI()])) as unknown as typeof fetch;
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: f });
     const sarflar: LlmSarfi[] = [];
-    const r = await aiYozBer({ kalit: null, provayder, sarf: (s) => sarflar.push(s) }, YOZ_SOROVI, () => undefined);
+    const r = await aiYozBer({ provayder, sarf: (s) => sarflar.push(s) }, YOZ_SOROVI, () => undefined);
     expect(r).toEqual({ oldin: '', izoh: '', savol: 'S?' });
     // 120×2 + 40×10 = 640 mikrodollar.
     expect(sarflar).toEqual([{
@@ -501,7 +498,7 @@ describe('sarf — har javob narxi (2026-10-22)', () => {
     const sarflar: LlmSarfi[] = [];
     const xato = { type: 'error', error: { type: 'invalid_request_error', message: 'yoʻq' } };
     const provayder = claudeProvayderi({ kalit: 'k', fetchFn: soxtaFetch([{ status: 400, json: xato }], []) });
-    expect(await munosabatBer({ kalit: null, provayder, sarf: (s) => sarflar.push(s) }, MUNOSABAT)).toBeNull();
+    expect(await sahifaJavobBer({ provayder, sarf: (s) => sarflar.push(s) }, SAHIFA)).toBeNull();
     expect(sarflar).toEqual([]);
   });
 

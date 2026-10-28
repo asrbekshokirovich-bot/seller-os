@@ -144,7 +144,7 @@ describe('provayderga chaqiruv', () => {
 
   it('tushunish: sxema bilan, oʻylash low, vaqt — berilgani; javob oʻqiladi', async () => {
     const s = soxta('{"javoblar":[],"taklif_qiziqish":[],"savol_bor":true}');
-    const t = await aiTushunBer({ kalit: null, provayder: s.provayder, vaqtMs: 9_000 },
+    const t = await aiTushunBer({ provayder: s.provayder, vaqtMs: 9_000 },
       { savollar: [SAVOL], xabar: 'bu nima?', holat: '', tarix: '' });
     expect(t).toEqual({ javoblar: [], taklif_qiziqish: [], savol_bor: true });
     expect(s.c[0]!.json).toBe(AI_TUSHUN_SXEMA);
@@ -156,12 +156,12 @@ describe('provayderga chaqiruv', () => {
 
   it('yozish: sxema bilan; standart vaqt 30 s; buzuq JSON yoki javob yoʻq — null', async () => {
     const s = soxta('{"oldin":"","izoh":"","savol":"Qaysi soha?"}');
-    expect(await aiYozBer({ kalit: null, provayder: s.provayder }, YOZ)).toEqual({ oldin: '', izoh: '', savol: 'Qaysi soha?' });
+    expect(await aiYozBer({ provayder: s.provayder }, YOZ)).toEqual({ oldin: '', izoh: '', savol: 'Qaysi soha?' });
     expect(s.c[0]!.json).toBe(AI_YOZ_SXEMA);
     expect(s.c[0]!.vaqtMs).toBe(30_000);
-    expect(await aiYozBer({ kalit: null, provayder: soxta('buzuq').provayder }, YOZ)).toBeNull();
-    expect(await aiYozBer({ kalit: null, provayder: soxta(null).provayder }, YOZ)).toBeNull();
-    expect(await aiTushunBer({ kalit: null, provayder: soxta('{}').provayder }, { savollar: [SAVOL], xabar: 'x', holat: '', tarix: '' })).toBeNull();
+    expect(await aiYozBer({ provayder: soxta('buzuq').provayder }, YOZ)).toBeNull();
+    expect(await aiYozBer({ provayder: soxta(null).provayder }, YOZ)).toBeNull();
+    expect(await aiTushunBer({ provayder: soxta('{}').provayder }, { savollar: [SAVOL], xabar: 'x', holat: '', tarix: '' })).toBeNull();
   });
 
   it('sxemalar — hamma maydon majburiy, ortiqchasi yoʻq (structured outputs); «batafsil» oxirida', () => {

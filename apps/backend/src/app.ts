@@ -19,8 +19,6 @@ import {
   type AiMuhit,
   KESH_ESKI_SOAT,
   demping,
-  erkinJavobBer,
-  munosabatBer,
   aiTushunBer,
   aiYozBer,
   type AiTushunSorovi,
@@ -40,7 +38,6 @@ import {
   javobniBahola,
   kartochkaYozBer,
   turkumRasmlari,
-  odamlashtir,
   suhbatBoshdan,
   suhbatTahrir,
   suhbatBolagi,
@@ -83,8 +80,6 @@ import {
   type TannarxKirishi,
   type NomzodJavobi,
   type ObunaXom,
-  type ErkinSorov,
-  type MunosabatSorovi,
   type RejaNatijasi,
   type TovarHolati,
   type TovarNomzodi,
@@ -437,19 +432,15 @@ export function build(): FastifyInstance {
   //
   // Bu uch Edge Function dagi `/suhbat` bilan BIR XIL javob berishi
   // SHART — ikkalasi ham `suhbatTurn` ni chaqiradi.
-  // LLM (2026-10-19, Edge bilan bir xil): Anthropic kaliti boʻlsa — Claude (`CLAUDE_MODEL`), boʻlmasa —
-  // Gemini: model `LLM_MODEL`, 503/429 da zaxira `LLM_ZAXIRA_MODEL`.
+  // LLM (Edge bilan bir xil) — faqat Claude: Anthropic kaliti boʻlsa (`CLAUDE_MODEL`); boʻlmasa AI yoʻq —
+  // kod jumlalari (2026-10-28: Gemini va eski LLM yoʻllari olib tashlandi, 4-taklif).
   const claude = claudeProvayderi({ kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_MODEL });
   // Tushunish — tezkor model (2026-10-26, Edge bilan bir xil: Haiku 5.5; `CLAUDE_TUSHUN_MODEL`).
   const claudeTushun = claudeProvayderi({
     kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_TUSHUN_MODEL?.trim() || CLAUDE_TUSHUN_MODELI,
   });
-  const llmBor = claude !== null || Boolean(process.env.GEMINI_API_KEY);
   // Sarf (0072, Edge bilan bir xil) — har Claude javobi `ai_usage` ga, shu sessiya nomiga.
-  const llmSozlama = (token: string | null) => ({
-    kalit: process.env.GEMINI_API_KEY, model: process.env.LLM_MODEL, zaxiraModel: process.env.LLM_ZAXIRA_MODEL, provayder: claude,
-    sarf: aiSarfYozuvchi(rpc, token),
-  });
+  const llmSozlama = (token: string | null) => ({ provayder: claude, sarf: aiSarfYozuvchi(rpc, token) });
   // Brauzer CBU dan olgan kurs (2026-10-27) — POST tanasidan, tekshirilgan (`brauzerKursi`); Edge bilan bir xil.
   const suhbatBogliq = async (token: string, kurs: BrauzerKurslari | null = null) => ({
     rpc,
@@ -462,24 +453,9 @@ export function build(): FastifyInstance {
       { kalit: process.env.XITOY_API_KEY ?? null, fetch, token, tarifCheklovi: tarifCheklovi(),
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
         kurs: { qiymat: kurs },
-        ...(llmBor
+        ...(claude
           ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(token), k) }
           : {}) }),
-    ...(llmBor
-      ? {
-        // Kod jumlasini qayta aytish — faqat `LLM_ODAMLASHTIR=1` (2026-10-13: bepul limit savollarga qoladi).
-        ...(process.env.LLM_ODAMLASHTIR === '1'
-          ? { llm: (m: string) => odamlashtir(llmSozlama(token), m) }
-          : {}),
-        erkinLlm: (k: ErkinSorov) => erkinJavobBer(llmSozlama(token), k),
-        // Oʻzi yozgan javobga munosabat — `LLM_MUNOSABAT=0` oʻchiradi (Edge bilan bir xil).
-        ...(process.env.LLM_MUNOSABAT === '0'
-          ? {}
-          : { munosabatLlm: (k: MunosabatSorovi) => munosabatBer(llmSozlama(token), k) }),
-        // AI birinchi — faqat `LLM_AVVAL=1` (Gemini toʻlovi yoqilgach; Edge bilan bir xil).
-        erkinAvval: process.env.LLM_AVVAL === '1',
-      }
-      : {}),
     // AI suhbat (2026-10-19) — Edge bilan bir xil: faqat Claude bilan, `AI_SUHBAT=0` oʻchiradi.
     ...(claude !== null && process.env.AI_SUHBAT !== '0'
       ? {
@@ -570,7 +546,7 @@ export function build(): FastifyInstance {
       : null;
     const holat = o && !o.xato && o.holat ? mijozHolati(o.holat, joriyQadam(o.holat)) : null;
     const sd = {
-      ai: llmBor
+      ai: claude
         ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama(typeof token === 'string' && token ? token : null), vaqtMs: ms }, k, qism)
         : null,
       tarifCheklovi: tarifCheklovi(),
@@ -741,7 +717,7 @@ export function build(): FastifyInstance {
     const kurs = xom?.ai?.kun30?.usd ? await kursniOl(fetch, 'USD', 5_000) : null;
     const tezlik = tezlikniOl();
     const ai: AiMuhit = {
-      provayder: kalitniAjrat(process.env.ANTHROPIC_API_KEY) ? 'claude' : process.env.GEMINI_API_KEY ? 'gemini' : null,
+      provayder: kalitniAjrat(process.env.ANTHROPIC_API_KEY) ? 'claude' : null,
       somPerUsd: kurs?.somPerYuan ?? null,
       kursSanasi: kurs?.sana ?? null,
     };

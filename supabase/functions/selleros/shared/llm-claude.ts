@@ -2,7 +2,7 @@
  * CLAUDE (Anthropic) — LLM provayderi.
  *
  * Nazoratchi (2026-10-19): "menda Anthropic API kaliti bor — shuni ZumSavdo ga
- * ulaymiz, Gemini ga muhtoj boʻlmaymiz". `llm.ts` dagi koʻrsatmalar, darvoza
+ * ulaymiz, Gemini ga muhtoj boʻlmaymiz" (2026-10-28 dan Gemini butunlay olib tashlandi). `llm.ts` dagi koʻrsatmalar, darvoza
  * (`tekshiruv.ts`) va kod shablonlari oʻzgarmaydi — bu fayl faqat BITTA
  * chaqiruvni rasmiy Anthropic SDK bilan bajaradi (`LlmProvayder`).
  *
@@ -158,7 +158,7 @@ export function javobMatni(bloklar: ReadonlyArray<{ type: string; text?: string 
   return matn || null;
 }
 
-/** Kalit boʻlmasa — `null`: provayder yoʻq (Gemini yoki kod javobi ishlaydi). */
+/** Kalit boʻlmasa — `null`: provayder yoʻq (AI ishlamaydi — kod javobi). */
 export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
   const kalit = kalitniAjrat(s.kalit);
   if (!kalit) {

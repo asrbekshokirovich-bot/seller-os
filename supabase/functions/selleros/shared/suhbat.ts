@@ -13,7 +13,7 @@
  *   2. javob kelgan bo'lsa — FAQAT kutilayotgan savolga qabul qil
  *   3. `keyingi()` kod harakati desa — bajar, natijani yoz, jumla qo'sh;
  *      savol chiqquncha takrorla
- *   4. menejer jumlasini (ixtiyoriy) LLM bilan odamlashtir va TEKSHIR
+ *   4. menejer jumlasi: AI yozadi (tekshiruv bilan); AI ulanmagan boʻlsa — kod jumlasi
  *   5. hammasini bitta RPC bilan yoz
  *
  * LLM YIQILSA HECH NARSA YIQILMAYDI: kodning jumlasi ketadi.
@@ -57,7 +57,7 @@ import type { ProfilJavoblari } from './profil.ts';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.ts';
 import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.ts';
 import { malumotNiyati, type MalumotNiyati } from './erkin-malumot.ts';
-import { boyMatnmi, javobgaMunosabat, javobHamBormi } from './munosabat.ts';
+import { javobgaMunosabat, javobHamBormi } from './munosabat.ts';
 import {
   aiQiymat, aiUzr, natijaTavsifi, savolTavsifi, type AiJavob, type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv,
   type AiYozuvQismi,
@@ -126,27 +126,6 @@ export interface SuhbatBogliqliklari {
      */
     erkinMalumot?: (niyat: MalumotNiyati, holat: YolHolati) => Promise<string | null>;
   };
-  /** Jumlani odamdek aytadi. `null` — ishlatilmadi. */
-  llm?: (matn: string) => Promise<string | null>;
-  /**
-   * Obunachi savolga javob oʻrniga boshqa narsa yozdi — menejerning qisqa
-   * javobi (LLM). `null` — ishlatilmadi, kod shabloni ketadi.
-   */
-  erkinLlm?: (k: ErkinSorov) => Promise<string | null>;
-  /**
-   * Obunachi savolga oʻzi YOZIB javob berdi va javob qabul qilindi — yordamchining
-   * qisqa munosabati (LLM, 2026-10-15). `null` — ishlatilmadi: kod jumlasi ketadi
-   * (`munosabat.ts`). Berilmasa — faqat kod jumlasi.
-   */
-  munosabatLlm?: (k: MunosabatSorovi) => Promise<string | null>;
-  /**
-   * AI BIRINCHI (env `LLM_AVVAL=1`). Yoqilsa — javobi bazada bor savol ham
-   * LLM ga boradi: bazaviy javob unga `tayyor` boʻlib beriladi va u uni
-   * doʻstona, batafsil, mijoz tilida aytadi (nazoratchi, 2026-10-13). Oʻchiq
-   * boʻlsa — bazada javobi bor savolga LLM chaqirilmaydi (bepul limit
-   * tejaladi). Nazoratchi Gemini toʻlovini yoqqach yoqiladi.
-   */
-  erkinAvval?: boolean;
   /**
    * Saytda tarif cheklovi yoqilganmi (Edge env). `false` — hamma qadam bepul ochiq:
    * tarif haqidagi javob va LLM faktlari shuni aytadi («Bu bepulmi?», 2026-10-13).
@@ -236,62 +215,6 @@ interface AiKirish {
  * `{erkin: true, manba}` boʻlib yoziladi — 👍/👎 bahosi shu xabarlarga.
  */
 export type ErkinManba = 'ai' | 'baza' | 'shablon';
-
-/** Erkin xabar uchun LLM ga beriladigan narsa — faqat shu, boshqa maʼlumot yoʻq. */
-export interface ErkinSorov {
-  /** Joriy savol matni (kod yozgan). */
-  savol: string;
-  /** Joriy savol variantlari nomlari (boʻsh boʻlishi mumkin). */
-  variantlar: string[];
-  /** Obunachi yozgan matn (500 belgigacha). */
-  xabar: string;
-  /** Javob sifatida nega qabul qilinmadi (`null` — savol berdi). */
-  sabab: string | null;
-  /** Koʻp soʻraladigan savolga koddagi tayyor javob (`erkin.ts`), boʻlmasa `null`. */
-  tayyor: string | null;
-  /** ZumSavdo va Uzum haqida faktlar, lugʻat, umumiy maslahatlar (`bilim.ts`). */
-  bilim: string;
-  /** Mijoz holati: qadam, pul, qiziqish, ekrandagi kartalar — shaxsiy maʼlumotsiz (`yordamchi.ts`). */
-  holat?: string;
-  /** Oxirgi xabarlar — shaxsiy maʼlumotsiz. */
-  tarix?: string;
-  /** Oldingi javob darvozadan oʻtmadi — nima uchun (bir marta qayta yoziladi). */
-  tuzat?: string | null;
-  /** Mijoz yozgan til/yozuv — javob shunda (`yozuv.ts`). */
-  til?: Yozuv;
-}
-
-/**
- * Javobga munosabat uchun LLM ga beriladigan narsa (2026-10-15). Javob allaqachon
- * qabul qilingan; LLM faqat uni eshitganini aytadi (va gapdagi savolga javob beradi).
- */
-export interface MunosabatSorovi {
-  /** Obunachi javob bergan savol matni. */
-  savol: string;
-  /** Obunachi yozgan matn (500 belgigacha). */
-  xabar: string;
-  /** Kod javobni qanday tushungani (`munosabat.ts`) — maʼnosi va raqamlari saqlanadi. `null` — yoʻq. */
-  tushunilgan: string | null;
-  /**
-   * Gapda savol ham bor boʻlsa — unga bazadagi javob, boʻlmasa `null`. Bor boʻlsa uni dastur
-   * oʻzi LLM munosabatidan keyin qoʻshadi (LLM takrorlamaydi).
-   */
-  tayyor: string | null;
-  /** Gapda savol ham bor (javob bilan birga) — bazada javob boʻlmasa LLM unga oʻzi javob beradi. */
-  savolBor: boolean;
-  /** Gapda savol ham bor boʻlsa — faktlar (`bilim.ts`), boʻlmasa `null`. */
-  bilim: string | null;
-  /** Mijoz holati — shaxsiy maʼlumotsiz (`yordamchi.ts`). */
-  holat: string;
-  /** Oxirgi xabarlar — shaxsiy maʼlumotsiz. */
-  tarix: string;
-  /** Keyingi savol (uni kod beradi — LLM takrorlamasin). `null` — savol emas. */
-  keyingi: string | null;
-  /** Mijoz yozgan til/yozuv. */
-  til: Yozuv;
-  /** Oldingi javob darvozadan oʻtmadi — nima uchun. */
-  tuzat: string | null;
-}
 
 export interface SuhbatJavobi {
   xato?: string;
@@ -671,7 +594,7 @@ export async function suhbatTurn(
   }
   holat = aiNavbatYoz(holat, navbat);
 
-  // ---- 4. menejer jumlasi (+ ixtiyoriy odamlashtirish, tekshiruv bilan)
+  // ---- 4. menejer jumlasi (AI yozadi, tekshiruv bilan; AI ulanmagan boʻlsa — kod jumlasi)
   //
   // `kod` bu yerga faqat himoya sanog'i tugaganda yetadi — ya'ni
   // ssenariy aylanib qolgan. Bu dasturchi xatosi; obunachiga rost
@@ -719,13 +642,10 @@ export async function suhbatTurn(
     if (navbatdan.length) yangi.splice(ak.boshi, 0, { rol: 'menejer', matn: `Oldin yozganingizdan oldim: ${navbatdan.join('; ')}.` });
     // ---- 3b. oʻzi yozgan javobga munosabat — obunachi xabaridan keyin (kod xabarlaridan oldin)
     if (yozilganJavob) {
-      const m = await munosabatYoz(d, yozilganJavob, holat, k, songgiSuhbat(o.xabarlar ?? []));
+      const m = await munosabatYoz(d, yozilganJavob, holat);
       if (m) yangi.splice(yozilganJavob.orni + 1, 0, m);
     }
-    const kodJumla = k.tur === 'savol' ? k.savol.matn : k.matn;
-    // Shaxsiy savol (ism, telefon) LLM ga yuborilmaydi — telefon savolida ism bor.
-    const menejerMatn = k.tur === 'savol' && SHAXSIY_SAVOLLAR.has(k.savol.id) ? kodJumla : await odamlashtirTekshirib(d, kodJumla, yangi);
-    yangi.push({ rol: 'menejer', matn: menejerMatn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
+    yangi.push({ rol: 'menejer', matn: k.tur === 'savol' ? k.savol.matn : k.matn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
   }
 
   // ---- 5. yozish
@@ -838,99 +758,27 @@ async function bajar(d: SuhbatBogliqliklari, harakat: KodHarakati, h: YolHolati)
   }
 }
 
-/**
- * LLM bilan odamlashtirish — TEKSHIRUV bilan.
- *
- * Ruxsat hovuzi: kodning jumlasi, shu turndagi kod natijalari (faqat
- * o'lchov sonlari), obunachining javobi. LLM raqam qo'shsa yoki
- * kafolat yozsa — kod jumlasi ketadi.
- */
-async function odamlashtirTekshirib(d: SuhbatBogliqliklari, kodJumla: string, yangi: SuhbatXabari[]): Promise<string> {
-  if (!d.llm) return kodJumla;
-  const taklif = await d.llm(kodJumla).catch(() => null);
-  if (!taklif) return kodJumla;
-  const t = tekshir(taklif, {
-    matnlar: [kodJumla, ...yangi.map((x) => x.matn)],
-    sonlar: yangi.flatMap((x) => (x.rol === 'kod' ? natijaSonlari(x.javob) : [])),
-  });
-  return t.ok ? taklif : kodJumla;
-}
-
 // ------------------------------------------------------------ javobga munosabat
 
 /**
- * Munosabati LLM siz (faqat kod jumlasi) savollar: ism va telefon — maxfiylik; qiziqish —
- * kod qaysi sohalar olinganini aniq aytadi (pufakda mijoz yozgani turadi, LLM uni oʻz soʻzi
- * bilan aytib, sohalarni tushirib qoldirishi mumkin); yoʻnalish — yozgani qidiruv; havola
- * va rasm manzili. Son savollari ham (`turi: 'son'`) — raqam aniq aytilishi kerak.
- */
-const MUNOSABAT_LLMSIZ = /^(?:ism|telefon|qiziqish|yonalish|uzum_havola:.*|rasm:.*)$/u;
-
-/** Munosabat uzunligi chegarasi: oddiy — qisqa; gapdagi savolga javob bilan — uzunroq. */
-const MUNOSABAT_MAX = 600;
-const MUNOSABAT_SAVOL_MAX = 1_400;
-
-/**
- * Oʻzi yozgan javobga munosabat (nazoratchi, 2026-10-15: "mijozning javobiga eʼtibor
- * bermay keyingi savolga oʻtib ketyapti").
- *
- * Kod jumlasi (`javobgaMunosabat`) — javob qanday tushunilgani. Gap uzun boʻlsa yoki
- * ichida savol boʻlsa — LLM uni odamdek aytadi va savolga javob beradi; darvoza
- * (`tekshir`) oʻtkazmasa — sababi bilan bir marta qayta. LLM yoʻq, yiqildi yoki
- * oʻtmadi — kod jumlasi (+ gapdagi savolga bazadagi javob). Aytadigan gap
- * boʻlmasa — `null`. Qaysi savollarda LLM chaqirilmasligi — `MUNOSABAT_LLMSIZ`.
+ * Oʻzi yozgan javobga munosabat — AI ulanmaganda (nazoratchi, 2026-10-15: "mijozning javobiga
+ * eʼtibor bermay keyingi savolga oʻtib ketyapti"). AI suhbatda munosabatni AI yozadi; bu —
+ * kalitsiz rejim: kod jumlasi (`javobgaMunosabat`) — javob qanday tushunilgani, gapda savol
+ * boʻlsa — bazadagi javob (yoʻq boʻlsa — rostini aytadi). Aytadigan gap boʻlmasa — `null`.
+ * Eski munosabat LLM i 2026-10-28 da olib tashlandi (4-taklif).
  */
 async function munosabatYoz(
-  d: SuhbatBogliqliklari, j: { savol: JoriySavol['savol']; matn: string; savolHam: boolean },
-  h: YolHolati, k: Keyingi, xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>,
+  d: SuhbatBogliqliklari, j: { savol: JoriySavol['savol']; matn: string; savolHam: boolean }, h: YolHolati,
 ): Promise<SuhbatXabari | null> {
   const { savol: s, matn, savolHam } = j;
   const ruscha = ruschami(matn);
   const asos = javobgaMunosabat(s.id, matn, h);
-  // Gapdagi savolga bazadagi javob — LLM siz ham (erkin xabardagi tartibda).
   let tayyor: string | null = null;
   if (savolHam) {
     const t = tushunishUchun(matn);
     tayyor = bazaJavobi(t, ruscha, s.id, null, h, d.tarifCheklovi, await bazadanMalumot(d, t, h))?.matn ?? null;
   }
-  const llmBop = d.munosabatLlm && !MUNOSABAT_LLMSIZ.test(s.id) && s.turi !== 'son' && (savolHam || boyMatnmi(matn));
-  if (llmBop) {
-    const til = yozuvi(matn);
-    const holat = mijozHolati(h, s.qadam);
-    const tarix = suhbatTarixi(xabarlar, h);
-    const bilim = savolHam ? yordamchiBilimi(tushunishUchun(matn), d.tarifCheklovi) : null;
-    const max = savolHam ? MUNOSABAT_SAVOL_MAX : MUNOSABAT_MAX;
-    const manba = { matnlar: [s.matn, matn, asos ?? '', tayyor ?? '', bilim ?? '', holat, tarix], sonlar: [] };
-    let tuzat: string | null = null;
-    for (let urinish = 0; urinish < 2; urinish++) {
-      const taklif: string | null = (await d.munosabatLlm!({
-        // Telefon (2026-10-26 dan birinchi gapda ham yozilishi mumkin) — eski yoʻlda LLM ga yashirilgan.
-        savol: s.matn, xabar: shaxsiyniYashir(matn, h), tushunilgan: asos, tayyor, bilim, holat, tarix,
-        keyingi: k.tur === 'savol' ? qisqaSavol(k.savol.matn, k.savol.id) : null, til, tuzat, savolBor: savolHam,
-      }).catch(() => null))?.trim() || null;
-      if (!taklif) break;
-      const tk = tekshir(taklif, manba);
-      const tilMos: boolean = til === 'uz' || kirillUlushi(taklif) >= 0.5;
-      // Savol bilan tugasa — keyingi savolni oʻzi bergan (u alohida chiqadi): ikki savol boʻlib qolardi.
-      const savolsiz: boolean = !/[?？]["»”)]*$/u.test(taklif);
-      if (tk.ok && tilMos && savolsiz && taklif.length <= max) {
-        // Gapdagi savolga bazada javob boʻlsa — AI munosabatidan keyin u ham (jonli sinov, 2026-10-15:
-        // AI «…endi nima sotsam boʻladi?» savolini javobsiz qoldirgan edi).
-        return {
-          rol: 'menejer', matn: tayyor ? `${taklif}\n\n${tayyor}` : taklif, savolId: s.id,
-          javob: { erkin: true, manba: 'ai', munosabat: true },
-        };
-      }
-      tuzat = [
-        tk.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
-        tk.taqiq.length ? `taqiqlangan gap: ${tk.taqiq.join(', ')}.` : null,
-        tilMos ? null : til === 'ru' ? 'javob rus tilida emas — rus tilida yoz.' : 'javob kirill yozuvida emas — oʻzbek kirillda yoz.',
-        savolsiz ? null : 'savol berma — keyingi savolni dastur oʻzi beradi.',
-        taklif.length <= max ? null : 'juda uzun — qisqaroq yoz.',
-      ].filter(Boolean).join(' ');
-    }
-  }
-  // Kod jumlasi. Gapdagi savolga bazada javob boʻlmasa — rostini aytadi.
+  // Gapdagi savolga bazada javob boʻlmasa — rostini aytadi.
   const savolQismi = savolHam
     ? tayyor ?? (ruscha
       ? 'На ваш вопрос сейчас точно не отвечу — разберём его по ходу пути.'
@@ -945,11 +793,6 @@ async function munosabatYoz(
 }
 
 // ------------------------------------------------------------ erkin xabar
-
-// Shaxsiy maʼlumot soʻraladigan savollar (ism, telefon) — `yordamchi.ts` dagi
-// `SHAXSIY_SAVOLLAR`: eski yoʻlda (munosabat, erkin javob, odamlashtirish — Gemini ham
-// boʻlishi mumkin) ular va ularga yozilgan matn LLM ga YUBORILMAYDI. AI suhbatda (Claude)
-// esa yuboriladi — fayl boshidagi izoh (2026-10-21).
 
 type JoriySavol = Extract<Keyingi, { tur: 'savol' }>;
 
@@ -1173,64 +1016,15 @@ function erkinShablon(
 }
 
 /**
- * Menejer javobi: LLM (tekshiruv bilan) yoki shablon.
- *
- * LLM endi mijozni "koʻradi" (nazoratchi, 2026-10-13): bilim (`bilim.ts`),
- * mijoz holati va oxirgi xabarlar (`yordamchi.ts`, shaxsiy maʼlumotsiz).
- * Raqam faqat shulardan: darvoza oʻtkazmasa — sababi bilan BIR MARTA qayta
- * soʻraladi (ilgari darrov "aniq javob bera olmayman" shabloni chiqardi).
- *
- * Javobi bazada bor savol: `erkinAvval` oʻchiq boʻlsa LLM chaqirilmaydi
- * (bepul limit); yoqilgan boʻlsa bazaviy javob LLM ga `tayyor` boʻlib
- * beriladi — u uni mijoz tilida, doʻstona va batafsil aytadi. LLM yiqilsa
- * yoki darvozadan oʻtmasa — bazaviy javob oʻzi ketadi.
- *
- * Bazadagi raqam bilan javob (`erkin-malumot.ts`, 2026-10-14) — tayyor javob
- * boʻlmasa, savol turi mos kelsa (soliq, bank, eng koʻp sotiladigan, «X sotish
- * osonmi», raqobat) — kod bazadan oʻqiydi; LLM ga ham `tayyor` boʻlib beriladi.
+ * Erkin xabarga javob — AI ulanmaganda (kalitsiz rejim): bazadagi tayyor javob, bazadagi raqam
+ * (`erkin-malumot.ts`: soliq, bank, eng koʻp sotiladigan, «X sotish osonmi», raqobat) yoki umumiy
+ * shablon (`erkinShablon`). AI suhbatda erkin javobni AI yozadi (`aiErkinXabar`). Eski erkin LLM
+ * 2026-10-28 da olib tashlandi (4-taklif).
  */
-async function erkinJavob(
-  d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null,
-  h: YolHolati, xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>,
-): Promise<ErkinNatija> {
+async function erkinJavob(d: SuhbatBogliqliklari, s: JoriySavol['savol'], matn: string, sabab: string | null, h: YolHolati): Promise<ErkinNatija> {
   const t = tushunishUchun(matn);
   const malumot = sabab ? null : await bazadanMalumot(d, t, h);
-  const shablon = erkinShablon(s, matn, sabab, h, d.tarifCheklovi, malumot);
-  // Ism va telefon savolida yozilgan matn (ism, raqam) LLM ga yuborilmaydi — kod shabloni.
-  if (!d.erkinLlm || SHAXSIY_SAVOLLAR.has(s.id)) return shablon;
-  const baza = bazaJavobi(t, ruschami(matn), s.id, sabab, h, d.tarifCheklovi, malumot);
-  // Javobi bazada bor savol — AI birinchi rejimi oʻchiq boʻlsa LLM CHAQIRILMAYDI
-  // (nazoratchi, 2026-10-13, "ha qil"): bepul Gemini limiti kunlik va kichik,
-  // u bazada javobi yoʻq savollarga qolsin. Bazaviy javob aniq va manbasi bilan.
-  // Rus savoliga javob faqat oʻzbekcha boʻlsa — LLM uni rus tilida aytadi (mijoz tilida).
-  if (baza && !d.erkinAvval && !baza.tarjimaKerak) return shablon;
-  const variantlar = s.variantlar.map((v) => v.nom);
-  const holat = mijozHolati(h, s.qadam);
-  const tarix = suhbatTarixi(xabarlar, h);
-  // Bilim — asos va FAQAT savolga tegishli Uzum faktlari (`yordamchiBilimi`), hammasi emas.
-  const bilim = yordamchiBilimi(t, d.tarifCheklovi);
-  // LLM ga asl matn ketadi — mijoz yozuvida (lotin, kirill, rus) javob bersin; til aniq aytiladi.
-  const til = yozuvi(matn);
-  // Telefon (2026-10-26 dan birinchi gapda ham yozilishi mumkin) — eski yoʻlda LLM ga yashirilgan.
-  const sorov = { savol: s.matn, variantlar, xabar: shaxsiyniYashir(matn, h), sabab, tayyor: baza?.matn ?? null, bilim, holat, tarix, til };
-  // Raqam faqat savol, tugmalar, sabab, bilim, bazaviy javob, mijoz holati, suhbat va obunachining
-  // oʻz matnidan; kafolat — taqiq.
-  const manba = { matnlar: [s.matn, matn, sabab ?? '', ...variantlar, bilim, baza?.matn ?? '', holat, tarix], sonlar: [] };
-  let tuzat: string | null = null;
-  for (let urinish = 0; urinish < 2; urinish++) {
-    const taklif: string | null = await d.erkinLlm({ ...sorov, tuzat }).catch(() => null);
-    if (!taklif) return shablon;
-    const tk = tekshir(taklif, manba);
-    // Rus yoki kirill savolga lotincha javob — mijoz tilida emas (jonli oʻlchov, 2026-10-14).
-    const tilMos: boolean = til === 'uz' || kirillUlushi(taklif) >= 0.5;
-    if (tk.ok && tilMos) return { matn: taklif, manba: 'ai' };
-    tuzat = [
-      tk.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,
-      tk.taqiq.length ? `taqiqlangan gap: ${tk.taqiq.join(', ')}.` : null,
-      tilMos ? null : til === 'ru' ? 'javob rus tilida emas — butun javobni rus tilida yoz.' : 'javob kirill yozuvida emas — butun javobni oʻzbek kirill yozuvida yoz.',
-    ].filter(Boolean).join(' ');
-  }
-  return shablon;
+  return erkinShablon(s, matn, sabab, h, d.tarifCheklovi, malumot);
 }
 
 /**
@@ -1263,7 +1057,7 @@ async function erkinXabar(
   xabarlar: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }> = [],
 ): Promise<SuhbatJavobi> {
   const matn = yozgan.length > ERKIN_MAX ? `${yozgan.slice(0, ERKIN_MAX)}…` : yozgan;
-  const javob = await erkinJavob(d, k0.savol, matn, sabab, holat, songgiSuhbat(xabarlar));
+  const javob = await erkinJavob(d, k0.savol, matn, sabab, holat);
   const k1 = summaTugmalari(k0, yozgan, holat);
   // Joriy savol jurnalda hali yoʻq boʻlsa — avval savolning oʻzi yoziladi. Birinchi
   // tashrifda savol `keyingi` dan chiziladi, jurnalga esa POST da tushadi: birinchi

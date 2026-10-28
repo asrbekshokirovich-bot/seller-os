@@ -17,7 +17,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   boshlangichHolat, keyingi, suhbatTurn,
-  type ErkinSorov, type SuhbatBogliqliklari, type YolHolati,
+  type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
 function soxtaBaza(boshlangich: YolHolati | null = null, { savolYozilgan = true } = {}) {
@@ -52,8 +52,8 @@ const KOD_YOQ = new Proxy({}, {
       : async () => { throw new Error('bu testda kod chaqirilmasligi kerak'); }),
 });
 
-function bogliq(b: ReturnType<typeof soxtaBaza>, erkinLlm?: SuhbatBogliqliklari['erkinLlm']): SuhbatBogliqliklari {
-  return { rpc: b.rpc, kod: KOD_YOQ as SuhbatBogliqliklari['kod'], ...(erkinLlm ? { erkinLlm } : {}) };
+function bogliq(b: ReturnType<typeof soxtaBaza>): SuhbatBogliqliklari {
+  return { rpc: b.rpc, kod: KOD_YOQ as SuhbatBogliqliklari['kod'] };
 }
 
 /** Byudjet savoli turgan holat (2026-10-26: qiziqishdan keyin; dollar kursi olingan). */
@@ -145,38 +145,6 @@ describe('erkin xabar', () => {
     expect(r.xabarlar[1]!.matn).toMatch(/[А-Яа-я]/);
   });
 
-  it('LLM javobi tekshiruvdan oʻtsa — u ketadi; LLM joriy savol va sababni oladi', async () => {
-    const b = soxtaBaza(BYUDJET_HOLATI);
-    let kelgan: ErkinSorov | null = null;
-    const r = await suhbatTurn(bogliq(b, async (k) => { kelgan = k; return 'Assalomu alaykum! Avval byudjetni aniqlaylik — qancha ajratasiz?'; }), 'tok',
-      { savolId: 'byudjet', matn: 'salom' });
-    expect(r.xabarlar[1]!.matn).toBe('Assalomu alaykum! Avval byudjetni aniqlaylik — qancha ajratasiz?');
-    expect(kelgan!.xabar).toBe('salom');
-    expect(kelgan!.savol).toMatch(/qancha/i);
-    expect(kelgan!.variantlar.length).toBeGreaterThan(0);
-  });
-
-  it('eski yoʻl: birinchi gapdagi telefon LLM ga yashirilgan holda ketadi (2026-10-26)', async () => {
-    // Ism va telefon endi yoʻnalishdan keyin soʻraladi — mijoz raqamini birinchi savolda yozishi mumkin.
-    const b = soxtaBaza(null);
-    let kelgan: ErkinSorov | null = null;
-    await suhbatTurn(bogliq(b, async (k) => { kelgan = k; return null; }), 'tok', { savolId: 'qiziqish', matn: 'salom, raqamim 90 765 43 21' });
-    expect(kelgan!.xabar).toBe('salom, raqamim …');
-  });
-
-  it('LLM oʻzidan RAQAM qoʻshsa — shablon ketadi', async () => {
-    const b = soxtaBaza(BYUDJET_HOLATI);
-    const r = await suhbatTurn(bogliq(b, async () => 'Koʻpchilik 25 mln bilan boshlaydi.'), 'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
-    expect(r.xabarlar[1]!.matn).not.toMatch(/25 mln/);
-  });
-
-  it('LLM yiqilsa — shablon ketadi, oqim toʻxtamaydi', async () => {
-    const b = soxtaBaza(BYUDJET_HOLATI);
-    const r = await suhbatTurn(bogliq(b, async () => { throw new Error('tarmoq'); }), 'tok', { savolId: 'byudjet', matn: 'salom' });
-    expect(r.xato).toBeUndefined();
-    expect(r.xabarlar[1]!.matn.length).toBeGreaterThan(10);
-  });
-
   it('TUGMA (savolId + javob) notoʻgʻri boʻlsa — avvalgidek xato, hech narsa yozilmaydi', async () => {
     const b = soxtaBaza(BYUDJET_HOLATI);
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 'salom' });
@@ -256,32 +224,6 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
   /** Nazoratchi sinovidagi aynan gap — maslahat soʻrovi, javob emas. */
   const MASLAHAT = '100 mln pulim bor birinchi 80 mln bsohlasammikan yoki 100 mln bilan nima maslahat berasan';
 
-  it('maslahat soʻrovi javob deb olinmaydi: byudjet yozilmaydi, yordamchi javob beradi, summalar tugma boʻladi', async () => {
-    const b = soxtaBaza(BYUDJET_HOLATI);
-    let kelgan: ErkinSorov | null = null;
-    const r = await suhbatTurn(bogliq(b, async (k) => {
-      kelgan = k;
-      return 'Hamma pulni birinchi partiyaga tikmaslik yaxshi: 80 mln bilan boshlab, qolganini zaxirada saqlasangiz xavf kamroq. Qaror sizniki — qaysi summa bilan boshlaymiz?';
-    }), 'tok', { savolId: 'byudjet', matn: MASLAHAT });
-    expect(r.xato).toBeUndefined();
-    expect(b.holat()!.javoblar['byudjet']).toBeUndefined();
-    expect(r.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'menejer']);
-    expect(r.xabarlar[1]!.matn).toMatch(/80 mln bilan boshlab/);
-    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
-    // Aytgan summalari — birinchi tugmalar (kichigi oldin); bosilsa oʻsha summa bilan boshlanadi.
-    expect(r.keyingi.savol.variantlar.slice(0, 2)).toEqual([{ qiymat: 80_000_000, nom: '80 mln soʻm' }, { qiymat: 100_000_000, nom: '100 mln soʻm' }]);
-    const r2 = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 80_000_000 });
-    expect(r2.xato).toBeUndefined();
-    expect(b.holat()!.javoblar['byudjet']).toBe(80_000_000);
-    // Yordamchi mijozni "koʻradi": bilim, holat, suhbat — ism va telefonsiz.
-    expect(kelgan!.bilim).toMatch(/Hamma pulni birinchi partiyaga tikmang/);
-    expect(kelgan!.holat).toMatch(/1-qadam «Tanishuv»/);
-    // Savdo tajribasi bu yerda hali yoʻq: 2026-10-26 dan u tannarx oldidan soʻraladi.
-    expect(kelgan!.holat).not.toMatch(/Savdo tajribasi/);
-    const yuborilgan = JSON.stringify(kelgan);
-    expect(yuborilgan).not.toMatch(/Aziz|Karimov|998901234567/);
-  });
-
   it('LLM boʻlmasa ham — maslahat shabloni (raqamsiz) va summalar tugmasi', async () => {
     const b = soxtaBaza(BYUDJET_HOLATI);
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', matn: MASLAHAT });
@@ -317,33 +259,6 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
     expect(r.xabarlar[1]!.matn).toMatch(/Yoʻnalish qadamida koʻrsataman/);
   });
 
-  it('javobi bazada bor savol — LLM chaqirilmaydi (bepul limit tejaladi, 2026-10-13)', async () => {
-    const b = soxtaBaza(BYUDJET_HOLATI);
-    let chaqirildi = 0;
-    const r = await suhbatTurn(bogliq(b, async () => { chaqirildi++; return 'LLM javobi'; }), 'tok', { savolId: 'byudjet', matn: 'pul qachon tushadi?' });
-    expect(chaqirildi).toBe(0);
-    expect(r.xabarlar[1]!.matn).toMatch(/to‘lov jadvali/);
-    // Bazada yoʻq savol — LLM ga, faqat tegishli bilim bilan.
-    let bilim = '';
-    await suhbatTurn(bogliq(b, async (k) => { chaqirildi++; bilim = k.bilim; return 'Buni keyingi qadamda koʻrsataman.'; }), 'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
-    expect(chaqirildi).toBe(1);
-    expect(bilim).not.toMatch(/Uzum haqida faktlar/);
-  });
-
-  it('LLM manbasiz raqam yozsa — sababi bilan BIR MARTA qayta soʻraladi; toʻgʻri javob ketadi', async () => {
-    const b = soxtaBaza(BYUDJET_HOLATI);
-    const kelganlar: ErkinSorov[] = [];
-    const r = await suhbatTurn(bogliq(b, async (k) => {
-      kelganlar.push(k);
-      return kelganlar.length === 1
-        ? 'Koʻpchilik 25 mln bilan boshlaydi.'
-        : 'Boshlash uchun qancha kerakligini keyingi qadamda har yoʻnalish uchun koʻrsataman. Qancha pul bilan boshlaymiz?';
-    }), 'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
-    expect(kelganlar).toHaveLength(2);
-    expect(kelganlar[1]!.tuzat).toMatch(/25 mln/);
-    expect(r.xabarlar[1]!.matn).toMatch(/^Boshlash uchun qancha kerakligini keyingi qadamda/);
-  });
-
   it('ism va telefon savolida "…mi" bilan tugagan ism savol hisoblanmaydi', async () => {
     const b = soxtaBaza(ISM_HOLATI);
     await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', matn: 'Ilhom Hakimi' });
@@ -352,38 +267,13 @@ describe('yordamchi har savolga javob beradi (nazoratchi, 2026-10-13)', () => {
 });
 
 describe('yordamchi asosi (nazoratchi tanlovi, 2026-10-13 kechqurun)', () => {
-  it('erkin javob belgilanadi: manba — baza / shablon / ai (👍/👎 shu xabarlarga)', async () => {
+  it('erkin javob belgilanadi: manba — baza / shablon (👍/👎 shu xabarlarga; «ai» — AI suhbatda)', async () => {
     const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'pul qachon tushadi?' });
     expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
     const s = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI)), 'tok', { savolId: 'byudjet', matn: 'ertaga ob-havo qanday?' });
     expect(s.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'shablon' });
-    const a = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async () => 'Buni keyingi qadamda aniq hisoblaymiz. Qancha pul bilan boshlaymiz?'),
-      'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
-    expect(a.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
     // Obunachi xabari belgisiz qoladi.
-    expect(a.xabarlar[0]!.javob).toBeUndefined();
-  });
-
-  it('AI birinchi (LLM_AVVAL): bazada javobi bor savol ham LLM ga — bazaviy javob `tayyor`, raqamlari darvozadan oʻtadi', async () => {
-    let kelgan: ErkinSorov | null = null;
-    const d: SuhbatBogliqliklari = {
-      ...bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => {
-        kelgan = k;
-        return 'Logistika yigʻimi 1 litrgacha boʻlgan tovar uchun 5 250 soʻm.\n\nXavotir olmang, hammasini 4-qadamda birga hisoblaymiz.';
-      }),
-      erkinAvval: true,
-    };
-    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: 'logistika qancha turadi?' });
-    expect(kelgan!.tayyor).toMatch(/5 250/);
-    expect(r.xabarlar[1]!.matn).toMatch(/^Logistika yigʻimi/);
-    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
-  });
-
-  it('AI birinchi: LLM yiqilsa — bazaviy javob oʻzi ketadi', async () => {
-    const d: SuhbatBogliqliklari = { ...bogliq(soxtaBaza(BYUDJET_HOLATI), async () => null), erkinAvval: true };
-    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: 'logistika qancha turadi?' });
-    expect(r.xabarlar[1]!.matn).toMatch(/5 250/);
-    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
+    expect(s.xabarlar[0]!.javob).toBeUndefined();
   });
 
   it('oʻzbek kirillda savol — lotinda tushuniladi, javob oʻzbekcha (ruscha emas)', async () => {
@@ -417,16 +307,9 @@ describe('birinchi tashrif — salomlashish yoʻqolmaydi (tayyor savollar sinovi
 });
 
 describe('tarif cheklovi oʻchiq — «Bu bepulmi?» rost javob oladi (2026-10-13)', () => {
-  it('cheklov oʻchiq: «hozir hamma qadamlar bepul», LLM faktlarida ham; yoqilgan: rejalar roʻyxati', async () => {
-    let bilim = '';
-    const d: SuhbatBogliqliklari = {
-      ...bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => { bilim = k.bilim; return null; }),
-      tarifCheklovi: false, erkinAvval: true,
-    };
-    const r = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: 'Bu bepulmi?' });
+  it('cheklov oʻchiq: «hozir hamma qadamlar bepul»; yoqilgan: rejalar roʻyxati', async () => {
+    const r = await suhbatTurn({ ...bogliq(soxtaBaza(BYUDJET_HOLATI)), tarifCheklovi: false }, 'tok', { savolId: 'byudjet', matn: 'Bu bepulmi?' });
     expect(r.xabarlar.at(-1)!.matn).toMatch(/Hozir hamma qadamlar bepul ochiq/);
-    expect(bilim).toMatch(/Hozir hamma qadamlar bepul ochiq/);
-    expect(bilim).not.toMatch(/1–2-qadam/);
     const y = await suhbatTurn({ ...bogliq(soxtaBaza(BYUDJET_HOLATI)), tarifCheklovi: true }, 'tok', { savolId: 'byudjet', matn: 'Bu bepulmi?' });
     expect(y.xabarlar.at(-1)!.matn).toMatch(/1–5-qadamlar \(yoʻnalish, tovar, tannarx, Xitoydan topish\) — bepul\. 6-qadamdan/);
   });
@@ -440,9 +323,8 @@ describe('bazadagi raqam bilan javob va ruscha savol (jonli oʻlchov, 2026-10-14
     }) as SuhbatBogliqliklari['kod'];
   }
 
-  it('soliq savoli — kod bazadan javob beradi (manba: baza); LLM chaqirilmaydi; kodga savol turi va holat boradi', async () => {
+  it('soliq savoli — kod bazadan javob beradi (manba: baza); kodga savol turi va holat boradi', async () => {
     const turlar: string[] = [];
-    let llm = 0;
     const r = await suhbatTurn({
       rpc: soxtaBaza(BYUDJET_HOLATI).rpc,
       kod: kodMalumot(async (n, h) => {
@@ -450,10 +332,8 @@ describe('bazadagi raqam bilan javob va ruscha savol (jonli oʻlchov, 2026-10-14
         expect(h.javoblar['qiziqish']).toEqual(['bilmayman']);
         return 'YATT uchun aylanma soligʻi — 1 %.';
       }),
-      erkinLlm: async () => { llm++; return 'x'; },
     }, 'tok', { savolId: 'byudjet', matn: 'Soliq qancha toʻlayman?' });
     expect(turlar).toEqual(['soliq']);
-    expect(llm).toBe(0);
     expect(r.xabarlar[1]!.matn).toMatch(/^YATT uchun aylanma soligʻi — 1 %\. Hozirgi savol: «/);
     expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
   });
@@ -489,53 +369,4 @@ describe('bazadagi raqam bilan javob va ruscha savol (jonli oʻlchov, 2026-10-14
     expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'baza' });
   });
 
-  it('ruscha savol, javobi faqat oʻzbekcha — LLM bor boʻlsa unga `tayyor` boʻlib boradi (rus tilida aytadi)', async () => {
-    let kelgan: ErkinSorov | null = null;
-    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => {
-      kelgan = k;
-      return 'Для продажи на Uzum нужны свидетельство ИП и паспорт. Сколько денег вы готовы вложить?';
-    }), 'tok', { savolId: 'byudjet', matn: 'Какие документы нужны для продажи на Uzum?' });
-    expect(kelgan!.tayyor).toMatch(/Hujjatlar: YaTT/);
-    expect(kelgan!.til).toBe('ru');
-    expect(r.xabarlar[1]!.matn).toMatch(/^Для продажи на Uzum/);
-    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
-  });
-
-  it('ruscha savolga LLM oʻzbekcha yozsa — sababi bilan qayta soʻraladi (jonli oʻlchov, 2026-10-14)', async () => {
-    const kelganlar: ErkinSorov[] = [];
-    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => {
-      kelganlar.push(k);
-      return kelganlar.length === 1
-        ? 'Uzumda savdo qilish uchun YATT guvohnomasi va pasport kerak boʻladi.'
-        : 'Для продажи на Uzum нужны свидетельство ИП и паспорт.';
-    }), 'tok', { savolId: 'byudjet', matn: 'Какие документы нужны для продажи на Uzum?' });
-    expect(kelganlar).toHaveLength(2);
-    expect(kelganlar[1]!.tuzat).toMatch(/javob rus tilida emas/);
-    expect(r.xabarlar[1]!.matn).toMatch(/^Для продажи на Uzum/);
-    // Oʻzbek lotin savolga — til tekshirilmaydi (lotin javob — toʻgʻri).
-    const lotin: ErkinSorov[] = [];
-    await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async (k) => { lotin.push(k); return 'Buni keyingi qadamda koʻrsataman.'; }),
-      'tok', { savolId: 'byudjet', matn: 'avval nima qilsam toʻgʻri boʻladi?' });
-    expect(lotin).toHaveLength(1);
-    expect(lotin[0]!.til).toBe('uz');
-  });
-
-  it('ruscha savol, ruscha tayyor javobi bor — LLM chaqirilmaydi (bepul limit)', async () => {
-    let llm = 0;
-    const r = await suhbatTurn(bogliq(soxtaBaza(BYUDJET_HOLATI), async () => { llm++; return 'x'; }), 'tok', { savolId: 'byudjet', matn: 'Что такое ZumSavdo?' });
-    expect(llm).toBe(0);
-    expect(r.xabarlar[1]!.matn).toMatch(/^ZumSavdo — помощник/);
-  });
-
-  it('AI birinchi: bazadagi raqam LLM ga `tayyor` boʻlib boradi, raqamlari darvozadan oʻtadi', async () => {
-    let kelgan: ErkinSorov | null = null;
-    const r = await suhbatTurn({
-      rpc: soxtaBaza(BYUDJET_HOLATI).rpc,
-      kod: kodMalumot(async () => 'Ijtimoiy soliq — har oy 440 000 soʻm.'),
-      erkinLlm: async (k) => { kelgan = k; return 'YATT boʻlsangiz, har oy 440 000 soʻm ijtimoiy soliq toʻlaysiz.'; },
-      erkinAvval: true,
-    }, 'tok', { savolId: 'byudjet', matn: 'Soliq qancha toʻlayman?' });
-    expect(kelgan!.tayyor).toBe('Ijtimoiy soliq — har oy 440 000 soʻm.');
-    expect(r.xabarlar[1]!.javob).toEqual({ erkin: true, manba: 'ai' });
-  });
 });

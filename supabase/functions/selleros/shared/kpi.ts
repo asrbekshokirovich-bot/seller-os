@@ -168,8 +168,8 @@ export interface AiDavr { chaqiruv: number; usd: number | null }
 
 /** AI xarajati uchun bazadan tashqaridagi maʼlumot. */
 export interface AiMuhit {
-  /** `/health` dagidek: Anthropic kaliti — `claude`, faqat Gemini — `gemini`, hech biri — `null`. */
-  provayder: 'claude' | 'gemini' | null;
+  /** `/health` dagidek: Anthropic kaliti — `claude`, yoʻq — `null` (2026-10-28: Gemini olib tashlandi). */
+  provayder: 'claude' | null;
   /** 1 dollar necha soʻm (CBU); olinmasa — `null`. */
   somPerUsd: number | null;
   /** Kurs sanasi (CBU, "22.10.2026"). */
@@ -359,7 +359,6 @@ export function kpilar(
  * boʻyicha (`llm-claude.ts`); kurs — CBU.
  */
 function aiXarajatQatori(x: KpiXom['ai'], m: AiMuhit | null): Kpi {
-  if (m?.provayder === 'gemini') return yoq('ai_xarajat', 'Gemini (bepul daraja) ishlayapti — uning sarfi yozilmaydi');
   if (m !== null && m.provayder === null) return yoq('ai_xarajat', 'AI kaliti yoʻq — AI ishlamayapti');
   const oy = x.kun30;
   if (!oy) {
