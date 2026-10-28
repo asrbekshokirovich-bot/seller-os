@@ -143,7 +143,7 @@ function soxtaBaza(boshlangich: YolHolati | null = null) {
   return { rpc, jurnal, holat: () => holat, profil: () => profil };
 }
 
-function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm']): SuhbatBogliqliklari {
+function bogliq(b: ReturnType<typeof soxtaBaza>): SuhbatBogliqliklari {
   return {
     rpc: b.rpc,
     kod: {
@@ -172,7 +172,6 @@ function bogliq(b: ReturnType<typeof soxtaBaza>, llm?: SuhbatBogliqliklari['llm'
       ustaFikri: async () => ({ olchov_yoq: false, yozildi: true }),
       kurs: async () => KURS_N,
     },
-    ...(llm ? { llm } : {}),
   };
 }
 
@@ -392,44 +391,6 @@ describe('suhbatTurn', () => {
     expect(r2.xato).toBeUndefined();
     if (r2.keyingi.tur !== 'savol') throw new Error(r2.keyingi.tur);
     expect(r2.keyingi.savol.id).toBe('shahar');
-  });
-
-  it('LLM jumlani odamlashtiradi — raqam qo\'shmasa qabul', async () => {
-    const b = soxtaBaza();
-    const d = bogliq(b, async (m) => `Yaxshi! ${m}`);
-    const r = await suhbatTurn(d, 'tok', { savolId: 'qiziqish', javob: ['bilmayman'] });
-    expect(r.xabarlar.at(-1)!.matn).toBe(`Yaxshi! ${BYUDJET_SAVOLI}`);
-  });
-
-  it('shaxsiy savol (telefon savolida ism bor) LLM ga YUBORILMAYDI — kod jumlasi oʻzi', async () => {
-    const b = soxtaBaza(ISMGACHA);
-    const yuborilgan: string[] = [];
-    const d = bogliq(b, async (m) => { yuborilgan.push(m); return `Yaxshi! ${m}`; });
-    const r = await suhbatTurn(d, 'tok', { savolId: 'ism', javob: 'Aziz Karimov' });
-    expect(r.xabarlar.at(-1)!.matn).toBe(TELEFON_SAVOLI);
-    expect(yuborilgan).toEqual([]);
-  });
-
-  it('LLM RAQAM QO\'SHSA — kod jumlasi ketadi', async () => {
-    const b = soxtaBaza();
-    const d = bogliq(b, async () => 'Qancha pul bilan boshlaysiz? Odatda 350 ta sotuvchi bor.');
-    const r = await suhbatTurn(d, 'tok', { savolId: 'qiziqish', javob: ['bilmayman'] });
-    expect(r.xabarlar.at(-1)!.matn).toBe(BYUDJET_SAVOLI);
-  });
-
-  it('LLM KAFOLAT yozsa — kod jumlasi ketadi', async () => {
-    const b = soxtaBaza();
-    const d = bogliq(b, async () => 'Qancha pul bilan boshlaysiz? Kafolat beraman, ishlaydi.');
-    const r = await suhbatTurn(d, 'tok', { savolId: 'qiziqish', javob: ['bilmayman'] });
-    expect(r.xabarlar.at(-1)!.matn).toBe(BYUDJET_SAVOLI);
-  });
-
-  it('LLM yiqilsa — oqim to\'xtamaydi', async () => {
-    const b = soxtaBaza();
-    const d = bogliq(b, async () => { throw new Error('429'); });
-    const r = await suhbatTurn(d, 'tok', { savolId: 'qiziqish', javob: ['bilmayman'] });
-    expect(r.xato).toBeUndefined();
-    expect(r.xabarlar.at(-1)!.matn).toBe(BYUDJET_SAVOLI);
   });
 
   it('to\'liq yo\'l: 1-qadamdan 12-qadam va yangi oyga qaytishgacha, har turnda bitta savol', async () => {

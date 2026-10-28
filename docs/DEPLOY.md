@@ -37,23 +37,21 @@ Edge Function da (Supabase → Edge Functions → **Secrets**, yoki `supabase se
   (boʻlmasa `claude-haiku-5-5`, 2026-10-26; `live.claudeTushunModel`). Yozish — `CLAUDE_MODEL` da.
   Suhbat va «Savol bering» javobi yozilgan sari chiqadi (oqim, `oqim.ts`): sayt `{oqim: true}`
   yuboradi, Edge `text/event-stream` qaytaradi, Vercel vositachisi uni ushlab turmay uzatadi.
-- `GEMINI_API_KEY` (va ixtiyoriy `LLM_MODEL`) — Anthropic kaliti **boʻlmasa** ishlatiladi.
+- Gemini (`GEMINI_API_KEY`, `LLM_MODEL`, `LLM_ZAXIRA_MODEL`) va eski LLM sozlamalari (`LLM_AVVAL`,
+  `LLM_ODAMLASHTIR`, `LLM_MUNOSABAT`) 2026-10-28 da olib tashlandi (nazoratchi, 4-taklif): ular endi
+  oʻqilmaydi — sirlarda qolgan boʻlsa, oʻchirsa boʻladi.
 
-**Hech biri boʻlmasa ham suhbat ishlaydi**: kalit yoʻq boʻlsa kodning jumlasi ketadi. Kalit
+**Kalit boʻlmasa ham suhbat ishlaydi**: AI yoʻq — kod jumlalari va bazadagi javoblar. Kalit
 qoʻyilgach javob `tekshiruv.ts` darvozasidan oʻtadi. AI suhbatda (Claude) **tayyor javob yoʻq**
 (nazoratchi, 2026-10-26: «AI hamma joyda javob bersin, tayyor javoblar shartmas»): darvoza
 oʻtkazmasa yoki AI yiqilsa — vaqt qolguncha qayta (uch martagacha), baribir yozolmasa — qisqa
 uzr va savolning oʻzi (`aiUzr`).
 
-Boshqa ixtiyoriy sozlamalar (hammasi `llm.ts` / `suhbat.ts` da izohlangan):
+Boshqa ixtiyoriy sozlama:
 
 | Sir | Nima qiladi |
 |---|---|
-| `LLM_ZAXIRA_MODEL` | Gemini: asosiy model 503/429 qaytarsa — shu bilan bir marta qayta soʻraladi. Boʻlmasa `gemini-3.5-flash-lite`. Claude da — server zaxirasi (`fallbacks`) va SDK qayta urinishi. |
-| `LLM_AVVAL=1` | AI birinchi: javobi bazada bor savol ham LLM ga (bazaviy javob `tayyor` boʻlib). Pullik kalit (Claude yoki Gemini toʻlovi) bilan. |
-| `LLM_ODAMLASHTIR=1` | Kod jumlalarini ham LLM qayta aytadi (bepul limitni tez yeydi). |
-| `LLM_MUNOSABAT=0` | Mijoz oʻzi yozgan javobga AI munosabatini oʻchiradi (standart — yoqilgan; oʻchsa kod jumlasi qoladi). |
-| `AI_SUHBAT=0` | **AI suhbatni** oʻchiradi (2026-10-19, `ai-suhbat.ts`). Standart — Claude kaliti boʻlsa yoqilgan: mijoz yozganini AI tushunadi (bir gapdagi bir nechta javob ham), har xabarni AI yozadi, natijalarni tushuntiradi; 12 qadam va raqamlar — koddan. Oʻchsa — eski yoʻl (kod jumlalari + erkin/munosabat AI). `/health` → `live.aiSuhbat`. |
+| `AI_SUHBAT=0` | **AI suhbatni** oʻchiradi (2026-10-19, `ai-suhbat.ts`). Standart — Claude kaliti boʻlsa yoqilgan: mijoz yozganini AI tushunadi (bir gapdagi bir nechta javob ham), har xabarni AI yozadi, natijalarni tushuntiradi; 12 qadam va raqamlar — koddan. Oʻchsa — kod jumlalari va bazadagi javoblar (AI siz). `/health` → `live.aiSuhbat`. |
 
 ## Studiya (9-qadam) sirlari
 

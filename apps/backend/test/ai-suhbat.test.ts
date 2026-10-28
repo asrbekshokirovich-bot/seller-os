@@ -84,11 +84,8 @@ function soxtaAi(tushunJavob: Array<AiTushuncha | null>, yozJavob: Array<AiYozuv
   return { ai, tushunlar, yozlar };
 }
 
-function bogliq(
-  b: ReturnType<typeof soxtaBaza>, ai: NonNullable<SuhbatBogliqliklari['ai']> | null,
-  qoshimcha: Pick<SuhbatBogliqliklari, 'munosabatLlm' | 'erkinLlm' | 'llm'> = {},
-): SuhbatBogliqliklari {
-  return { rpc: b.rpc, kod: KOD as SuhbatBogliqliklari['kod'], ai, ...qoshimcha };
+function bogliq(b: ReturnType<typeof soxtaBaza>, ai: NonNullable<SuhbatBogliqliklari['ai']> | null): SuhbatBogliqliklari {
+  return { rpc: b.rpc, kod: KOD as SuhbatBogliqliklari['kod'], ai };
 }
 
 const SHAXS = { ism: 'Aziz Karimov', telefon: '+998901234567' };
@@ -526,27 +523,14 @@ describe('AI yozadi — tugma bosilganda ham', () => {
   });
 });
 
-/** Eski yoʻl LLM lari — AI rejimida hech qachon chaqirilmasligi kerak (2026-10-26). */
-function eskiLlmlar() {
-  const n = { munosabat: 0, erkin: 0, odamlashtir: 0 };
-  const llm = {
-    munosabatLlm: async () => { n.munosabat++; return 'ESKI MUNOSABAT'; },
-    erkinLlm: async () => { n.erkin++; return 'ESKI ERKIN'; },
-    llm: async () => { n.odamlashtir++; return 'ESKI ODAMLASHTIR'; },
-  };
-  return { n, llm };
-}
-
 describe('AI yiqilsa — tayyor javob yoʻq (2026-10-26), chat toʻxtamaydi', () => {
-  it('tushunish yiqildi → javobni kod oʻqiydi, xabarni baribir AI yozadi; eski LLM va tayyor munosabat yoʻq', async () => {
+  it('tushunish yiqildi → javobni kod oʻqiydi, xabarni baribir AI yozadi; tayyor munosabat yoʻq', async () => {
     const b = soxtaBaza(TAJRIBA);
     const s = soxtaAi([null], [YOZUV]);
-    const e = eskiLlmlar();
-    const r = await suhbatTurn(bogliq(b, s.ai, e.llm), 't', { savolId: 'uzum_dokoni', matn: 'oldin sotganman maishiy texnika' });
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'uzum_dokoni', matn: 'oldin sotganman maishiy texnika' });
     expect(s.tushunlar).toHaveLength(1);
     expect(s.yozlar).toHaveLength(1);
     expect(s.yozlar[0]!.k.mijoz).toBe('oldin sotganman maishiy texnika');
-    expect(e.n).toEqual({ munosabat: 0, erkin: 0, odamlashtir: 0 });
     expect(b.holat().javoblar['uzum_dokoni']).toBe('oldin sotganman maishiy texnika');
     const matnlar = r.xabarlar.map((x) => x.matn);
     expect(matnlar).not.toContain('Tushunarli — savdo tajribangiz bor ekan, bu katta yordam beradi.');
@@ -554,12 +538,10 @@ describe('AI yiqilsa — tayyor javob yoʻq (2026-10-26), chat toʻxtamaydi', ()
     expect(matnlar.at(-1)).toBe(YOZUV.savol);
   });
 
-  it('tushunish yiqilib, kod ham qabul qilmasa — erkin javobni AI yozadi (eski erkin LLM emas), sababi AI ga', async () => {
+  it('tushunish yiqilib, kod ham qabul qilmasa — erkin javobni AI yozadi, sababi AI ga', async () => {
     const b = soxtaBaza(TAJRIBA);
     const s = soxtaAi([null], [{ oldin: 'Tushunmadim — qayerda sotgansiz?', izoh: '', savol: 'Oldin savdo qilganmisiz?' }]);
-    const e = eskiLlmlar();
-    const r = await suhbatTurn(bogliq(b, s.ai, e.llm), 't', { savolId: 'uzum_dokoni', matn: 'hmm' });
-    expect(e.n).toEqual({ munosabat: 0, erkin: 0, odamlashtir: 0 });
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'uzum_dokoni', matn: 'hmm' });
     expect(s.yozlar).toHaveLength(1);
     expect(s.yozlar[0]!.k.rad[0]).toMatch(/qabul qilinmadi/);
     expect(b.holat().javoblar['uzum_dokoni']).toBeUndefined();
@@ -567,13 +549,11 @@ describe('AI yiqilsa — tayyor javob yoʻq (2026-10-26), chat toʻxtamaydi', ()
     expect(r.keyingi.tur === 'savol' && r.keyingi.savol.id).toBe('uzum_dokoni');
   });
 
-  it('yozilgan javob+savolga AI yozolmasa (uch urinish) — qisqa uzr va savolning oʻzi; tayyor javob ham, eski LLM ham yoʻq', async () => {
+  it('yozilgan javob+savolga AI yozolmasa (uch urinish) — qisqa uzr va savolning oʻzi; tayyor javob yoʻq', async () => {
     const b = soxtaBaza(QIZIQISH);
     const s = soxtaAi([{ javoblar: [{ savol_id: 'qiziqish', qiymatlar: ['kiyim'], otkazish: false }], taklif_qiziqish: [], savol_bor: true }], [null]);
-    const e = eskiLlmlar();
-    const r = await suhbatTurn(bogliq(b, s.ai, e.llm), 't', { savolId: 'qiziqish', matn: 'kiyim sotmoqchiman, tajribasiz boʻladimi?' });
+    const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'qiziqish', matn: 'kiyim sotmoqchiman, tajribasiz boʻladimi?' });
     expect(s.yozlar).toHaveLength(3);
-    expect(e.n).toEqual({ munosabat: 0, erkin: 0, odamlashtir: 0 });
     expect(b.holat().javoblar['qiziqish']).toEqual(['kiyim']);
     if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
     expect(r.xabarlar.map((x) => [x.rol, x.matn])).toEqual([

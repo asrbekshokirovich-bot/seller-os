@@ -232,7 +232,6 @@ describe('AI xarajat / mijoz (0072)', () => {
     const holatlar: Array<[KpiXom['ai'], AiMuhit | null, RegExp]> = [
       [{ qatorlar: 0, xarajat_usd: null }, CLAUDE, /`ai_usage` boʻsh/],
       [{ qatorlar: 12, xarajat_usd: 0.1 }, CLAUDE, /0072 qoʻllanmagan/],
-      [AI(), { provayder: 'gemini', somPerUsd: 12_800 }, /Gemini/],
       [AI(), { provayder: null, somPerUsd: 12_800 }, /AI kaliti yoʻq/],
       [AI({ chaqiruv: 0, usd: null, mijoz: 0 }), CLAUDE, /30 kunda AI chaqiruvi yozilmagan/],
       [AI({ mijoz: 0 }), CLAUDE, /sessiyasiz mehmonlar/],

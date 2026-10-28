@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { keyingi, sseOqi, type YolHolati } from '@selleros/shared';
 import { build } from '../src/app.js';
 
-const KALITLAR = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'CLAUDE_MODEL', 'AI_SUHBAT'] as const;
+const KALITLAR = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'ANTHROPIC_API_KEY', 'CLAUDE_MODEL', 'CLAUDE_TUSHUN_MODEL', 'AI_SUHBAT'] as const;
 const OLDINGI = new Map<string, string | undefined>();
 const HAQIQIY_FETCH = globalThis.fetch;
 

@@ -11,8 +11,8 @@
  * (`shaxsiyniYashir`). Istisno — AI suhbat (faqat Claude, 2026-10-21, nazoratchi:
  * «LLM shaxsiy maʼlumotni savoldan ajratib olsin»): ism/telefon savoliga yozilgan
  * gapni AI oʻqiydi (ajratadi, savoliga javob beradi) va mijozning ismini biladi;
- * telefon keyingi xabarlarda baribir yashiriladi. Gemini va eski yoʻllarda — hech
- * narsa yuborilmaydi. Maxfiylik sahifasi shunga moslangan.
+ * telefon keyingi xabarlarda baribir yashiriladi. AI ulanmagan boʻlsa — hech narsa
+ * yuborilmaydi (2026-10-28: Gemini va eski LLM yoʻllari olib tashlandi). Maxfiylik sahifasi shunga moslangan.
  */
 
 import type { TovarTavsiyasi, Yonalish } from './qadamlar.ts';

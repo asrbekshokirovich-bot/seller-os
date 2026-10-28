@@ -10,9 +10,9 @@
  * sohadagi tovarlar sizga yaqin?» chiqqan, hech narsa belgilanmagan.
  *
  * Bu modul SOF (LLM siz): kod javobni qanday tushunganini aytadigan qisqa jumla
- * (`javobgaMunosabat`), gapda savol bilan birga javob ham bormi (`javobHamBormi`)
- * va LLM ga arziydigan gapmi (`boyMatnmi`). LLM boʻlsa `suhbat.ts` shu jumla bilan
- * uni odamdek aytadi va savoliga javob beradi; boʻlmasa — shu jumla ketadi.
+ * (`javobgaMunosabat`) va gapda savol bilan birga javob ham bormi (`javobHamBormi`).
+ * AI suhbatda munosabatni AI yozadi (`ai-suhbat.ts`); AI ulanmagan boʻlsa — shu jumla
+ * ketadi (2026-10-28: eski munosabat LLM i olib tashlandi).
  */
 
 import { BILMAYMAN, gapdagiSohalar, normla, SAVDO_SOHALARI, sohaNomi } from './soha.ts';
@@ -72,11 +72,6 @@ export function javobHamBormi(savolId: string, matn: string): boolean {
     return gapdagiSohalar(t).length > 0 && QIZIQISH_GAPI.test(t);
   }
   return false;
-}
-
-/** LLM munosabatiga arziydigan gap: kamida 3 soʻz (bitta nom yoki son emas). */
-export function boyMatnmi(matn: string): boolean {
-  return matn.split(/\s+/u).filter((x) => /\p{L}{2,}/u.test(x)).length >= 3;
 }
 
 /**

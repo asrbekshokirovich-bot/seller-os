@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-26';
+const YANGILANDI = '2026-10-28';
 
 export default function Maxfiylik() {
   return (
@@ -286,50 +286,29 @@ export default function Maxfiylik() {
             keshida 30 kungacha turadi.
           </li>
           <li>
-            <strong>Anthropic (Claude)</strong> — sunʼiy intellekt (ulangan boʻlsa; ulanmagan
-            boʻlsa — <strong>Google Gemini</strong>). Quyidagi holatlarda matn yuboriladi.
-            Asosiysi (2026-10-19 dan): suhbatni sunʼiy intellekt olib boradi — yozgan
-            har bir xabaringiz (500 belgigacha) yoki bosgan tugmangiz nomi, joriy va
-            keyingi savollar, suhbatdagi holatingiz, oxirgi xabarlar va shu qadamda
-            chiqqan natijalar (yoʻnalishlar, tovarlar, hisoblar — havola va rasmlarsiz)
-            yuboriladi: u javobingizni tushunadi va yordamchi xabarini yozadi;
-            javobingizni va raqamlarni baribir kod tekshiradi. Saytning boshqa
-            sahifalaridagi «Savol bering» oynasida esa — yozgan savolingiz, oynadagi
-            oldingi savol-javoblar va (suhbatingiz boʻlsa) holatingiz, ism-familiya va
-            telefonsiz; ZumSavdo ularni saqlamaydi. Bu sozlama oʻchirilgan
-            boʻlsa — quyidagi toʻrt holatda. Birinchisi: yordamchi savolini tabiiyroq qilish uchun kod yozgan jumla
-            yuboriladi; unda raqamlar boʻlishi mumkin (masalan, dona soni).
-            Ikkinchisi: savolga javob oʻrniga boshqa narsa yozsangiz (savol, salom
-            va h.k.) va u javob sifatida qabul qilinmasa —{' '}
-            <strong>oʻzingiz yozgan matn</strong> (500 belgigacha; bosilgan tayyor
-            savol ham shunday), joriy savol va uning variantlari, mahsulot va Uzum
-            haqidagi tayyor faktlar, suhbatdagi holatingiz (qaysi qadam, boshlash
-            puli, qiziqqan sohangiz, ekrandagi yoʻnalish va tovarlar) va oxirgi
-            xabarlar — ism-familiya va telefonsiz — yuboriladi: javobni sunʼiy
-            intellekt soʻzlaydi. Uchinchisi: savolga oʻzingiz yozib javob bersangiz
-            (masalan, «oldin maishiy texnika sotganman») — yordamchi munosabat
-            bildirishi uchun shu matn, savol, holatingiz va oxirgi xabarlar
-            (ism-familiya va telefonsiz) yuboriladi. Bu holatlarning hammasida
-            javobni kod tekshiradi — yangi raqam yoki kafolat soʻzi boʻlsa, u
-            tashlanadi va yordamchi qayta yozadi; baribir oʻtmasa — qisqa uzr va
-            savolning oʻzi chiqadi (2026-10-26 dan tayyor javob yoʻq). Sessiya kaliti yuborilmaydi.
+            <strong>Anthropic (Claude)</strong> — sunʼiy intellekt (ulangan boʻlsa). Quyidagi
+            holatlarda matn yuboriladi. Suhbatni sunʼiy intellekt olib boradi (2026-10-19 dan):
+            yozgan har bir xabaringiz (500 belgigacha) yoki bosgan tugmangiz nomi, joriy va
+            keyingi savollar, suhbatdagi holatingiz, oxirgi xabarlar va shu qadamda chiqqan
+            natijalar (yoʻnalishlar, tovarlar, hisoblar — havola va rasmlarsiz) yuboriladi: u
+            javobingizni tushunadi va yordamchi xabarini yozadi. Javobingizni va raqamlarni
+            baribir kod tekshiradi — yangi raqam yoki kafolat soʻzi boʻlsa, xabar tashlanadi va
+            yordamchi qayta yozadi; baribir oʻtmasa — qisqa uzr va savolning oʻzi chiqadi
+            (2026-10-26 dan tayyor javob yoʻq). Saytning boshqa sahifalaridagi «Savol bering»
+            oynasida — yozgan savolingiz, oynadagi oldingi savol-javoblar va (suhbatingiz boʻlsa)
+            holatingiz, ism-familiya va telefonsiz; ZumSavdo ularni saqlamaydi. 10-qadamda
+            «Kartochka matnini yozib ber» bossangiz — tanlangan tovarlarning Uzumdagi va 1688
+            dagi nomi hamda yoʻnalish nomi (shaxsiy maʼlumot emas); kelgan matnni kod Uzum
+            qoidalari va raqamlar boʻyicha tekshiradi. Sessiya kaliti yuborilmaydi.
             Ism-familiya va telefonni yozgan xabaringiz — ularning savoliga javob (2026-10-21 dan)
-            yoki boshqa gapingiz, masalan birinchi xabaringiz (2026-10-26 dan) — suhbatni
-            sunʼiy intellekt olib borayotgan boʻlsa (Anthropic, Claude) — unga yuboriladi: u ism
-            va telefonni gapingizdan ajratib oladi (ularni baribir kod tekshiradi va faqat
-            profilingizga yozadi), gapingizda savol boʻlsa — javob beradi, keyin sizga ismingiz
-            bilan murojaat qiladi. Telefon raqamingiz keyingi xabarlarda unga yuborilmaydi.
-            Gemini ishlatilsa yoki bu sozlama oʻchiq boʻlsa — ism-familiya va telefon savoliga
-            yozgan matningiz sunʼiy intellektga umuman yuborilmaydi, boshqa xabarlaringizdagi
-            telefon raqami esa yashiriladi. Boshqa joyda suhbatga pasport kabi
-            shaxsiy maʼlumot yozmang. Toʻrtinchisi: 10-qadamda «Kartochka matnini
-            yozib ber» bossangiz — tanlangan tovarlarning Uzumdagi va 1688 dagi nomi
-            hamda yoʻnalish nomi yuboriladi (shaxsiy maʼlumot emas); kelgan matnni kod
-            Uzum qoidalari va raqamlar boʻyicha tekshiradi. Anthropic bilan
-            ishlash shartlari — anthropic.com/legal. Gemini ishlatilsa — uning{' '}
-            <strong>bepul darajasi</strong>: Google shartlariga koʻra bepul
-            darajada yuborilgan matnlardan Google oʻz mahsulotlarini yaxshilash uchun
-            foydalanishi mumkin. Shuning uchun suhbatga shaxsiy maʼlumot yozmang.
+            yoki boshqa gapingiz, masalan birinchi xabaringiz (2026-10-26 dan) — ham unga
+            yuboriladi: u ism va telefonni gapingizdan ajratib oladi (ularni baribir kod
+            tekshiradi va faqat profilingizga yozadi), gapingizda savol boʻlsa — javob beradi,
+            keyin sizga ismingiz bilan murojaat qiladi. Telefon raqamingiz keyingi xabarlarda
+            unga yuborilmaydi. Sunʼiy intellekt ulanmagan boʻlsa — suhbat kod jumlalari va
+            bazadagi javoblar bilan ishlaydi, hech narsa yuborilmaydi (2026-10-28 dan Google
+            Gemini ishlatilmaydi). Boshqa joyda suhbatga pasport kabi shaxsiy maʼlumot yozmang.
+            Anthropic bilan ishlash shartlari — anthropic.com/legal.
           </li>
           <li>
             Ichki oʻlchov paneli (<code>/olchov</code>) — parol bilan yopiq. U
