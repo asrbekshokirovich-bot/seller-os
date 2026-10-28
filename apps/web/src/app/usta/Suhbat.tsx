@@ -40,7 +40,7 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
 
@@ -132,6 +132,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const bandQil = (b: boolean) => { bandRef.current = b; setBand(b); };
   /** Hozirgi savol kaliti — yozuv va tanlov shu almashganda tozalanadi. */
   const savolKaliti = useRef('');
+  /** «Siz haqingizda» belgilari (5-taklif, 2026-10-28) — server har holat oʻzgarishida yuboradi. */
+  const [siz, setSiz] = useState<SizBelgi[]>([]);
   /**
    * CBU kursi — brauzerning oʻzidan (2026-10-27: cbu.uz serverlarimizga javob bermaydi). Sahifa
    * ochilishi bilan olinadi va har soʻrovga qoʻshiladi; server uni tekshiradi (`brauzerKursi`).
@@ -155,6 +157,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     else if (r.xabarlar.length) setXabarlar((eski) => (o.almashtir ? songgiSuhbat(r.xabarlar) : [...eski, ...r.xabarlar]));
     setKeyingi(r.keyingi);
     setQadam(r.qadam);
+    if (r.sizHaqingizda) setSiz(r.sizHaqingizda);
     setXato(r.xato && r.xabarlar.length === 0 && r.tarix === undefined ? r.xato : null);
     const kalit = keyingiKaliti(r.keyingi);
     const almashdi = kalit !== savolKaliti.current;
@@ -430,6 +433,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const matnYubor = (savolId: string, t: string) => { setMatn(''); void yubor({ savolId, matn: t }, false, false, t); };
   // Tayyor savol (bosiladi): yozilgan savol kabi ketadi, lekin pastdagi qoralama oʻchmaydi.
   const tezSoroq = (savolId: string, t: string) => void yubor({ savolId, matn: t }, false, true, t);
+  // «Siz haqingizda» belgisi: savol qayta ochiladi (server darhol qaytaradi, AI siz) — javobni oʻzgartirish.
+  const tahrirla = (id: string) => void yubor({ tahrir: id }, false, false, tahrirGapi(id, tr));
 
   // Eng soʻnggi `yubor` — taymer va effektlar eski yopilmani chaqirmasin.
   const yuborRef = useRef(yubor);
@@ -699,6 +704,26 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
           </div>
         </header>
 
+        {/* «Siz haqingizda» (nazoratchi, 2026-10-26, 5-taklif): nima yozib olingani; bosilsa — oʻzgartirish. */}
+        {siz.length > 0 && (
+          <div className={u.siz} style={yashir} role="group" aria-label={tr('Siz haqingizda', 'О вас')}>
+            <span className={u.sizYorliq}>{tr('Siz haqingizda:', 'О вас:')}</span>
+            {siz.map((b) => (b.tahrir
+              ? (
+                <button key={b.id} type="button" className={u.sizBelgi} disabled={band} onClick={() => tahrirla(b.id)}
+                  title={tr('Oʻzgartirish', 'Изменить')} aria-label={`${sizNomi(b.id, tr)}: ${b.matn}. ${tr('Oʻzgartirish', 'Изменить')}`}>
+                  <span className={u.sizMatn}>{b.matn}</span>
+                  <span className={u.sizQalam} aria-hidden="true">✎</span>
+                </button>
+              )
+              : (
+                <span key={b.id} className={`${u.sizBelgi} ${u.sizQotgan}`} title={sizNomi(b.id, tr)}>
+                  <span className={u.sizMatn}>{b.matn}</span>
+                </span>
+              )))}
+          </div>
+        )}
+
         <div className={u.oqim} ref={oqim} style={yashir}>
           <div className={u.ichi} role="log" aria-label={tr('Suhbat', 'Чат')}>
             {xabarlar.map((x, i) => (
@@ -816,6 +841,17 @@ function tarixdagiXitoyTanlov(xabarlar: Xabar[], kodIdx: number): Record<number,
     }
   }
   return t;
+}
+
+/** «Siz haqingizda» belgisining nomi (ekran oʻquvchi va sarlavha uchun). */
+function sizNomi(id: string, tr: Tr): string {
+  return id === 'qiziqish' ? tr('Soha', 'Сфера') : id === 'byudjet' ? tr('Pul', 'Бюджет') : tr('Tajriba', 'Опыт');
+}
+
+/** Belgi bosilganda chatda darhol koʻrinadigan gap — server yozadigani bilan bir xil. */
+function tahrirGapi(id: string, tr: Tr): string {
+  return id === 'qiziqish' ? tr('Sohani oʻzgartiraman', 'Изменю сферу')
+    : id === 'byudjet' ? tr('Pulni oʻzgartiraman', 'Изменю бюджет') : tr('Tajribamni oʻzgartiraman', 'Изменю опыт');
 }
 
 /** 1688 kartasining tanlash rejimi (5-qadam). */

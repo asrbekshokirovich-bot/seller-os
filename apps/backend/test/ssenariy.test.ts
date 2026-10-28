@@ -15,6 +15,7 @@ import {
   boshlangichHolat, deklaratsiyaQadamlari, faktlarniOqi, hisobotFaktlari, javobniQabulQil, joriyQadam, keyingi,
   kutilayotganHarakat, natijaniYoz, oyHisobi, qabulFaktlari, rasmiyFaktlari, SHAHARLAR, sotuvTovarlari, SUHBAT_QADAMLARI,
   suratTalablari, tushuntir, yiqilganNatija, yonalishYanaNatija, type KodHarakati, type YolHolati, kelgusiTanishuvSavollari, salomsizSavol,
+  sizHaqingizda, tahrirgaOch,
   havolalarsiz, OBUNA_SAVOLI, suhbatTurn, type Darvoza, type Keyingi, type SuhbatBogliqliklari, type SuhbatSavoli,
 } from '@selleros/shared';
 
@@ -2203,5 +2204,81 @@ describe('obuna darvozasi — 5-qadamdan keyin obuna (nazoratchi, 2026-10-14)', 
     const of = await suhbatOqi(f.d, 'tok');
     if ('xato' in of && !('keyingi' in of)) throw new Error(of.xato);
     expect(JSON.stringify(of.tarix.find((m) => m.savolId === 'xitoy')!.javob)).toContain('detail.1688.com');
+  });
+});
+
+/*
+ * 5-taklif (nazoratchi, 2026-10-26): «mijoz qayerdaligini va nima yozib olinganini koʻrsin» — soha, pul va
+ * tajriba belgilar boʻlib turadi; bittasini bossa, oʻsha savol qayta ochiladi va javobni bir bosishda oʻzgartiradi.
+ */
+describe('«Siz haqingizda» va javobni qayta ochish (5-taklif, 2026-10-28)', () => {
+  const YON: YolHolati = { javoblar: { qiziqish: ['kiyim', 'sport'], byudjet: 30_000_000 }, natijalar: { kurs: KURS, yonalishlar: YONALISHLAR } };
+
+  it('belgilar: soha nomlari, pul (soʻm), tajriba — berilganlari, tartibi bilan; ism va telefon yoʻq', () => {
+    expect(sizHaqingizda(boshlangichHolat())).toEqual([]);
+    expect(sizHaqingizda({ ...YON, javoblar: { ...YON.javoblar, ism: 'Aziz', telefon: '+998901234567' } })).toEqual([
+      { id: 'qiziqish', matn: 'Kiyim va poyabzal, Sport', tahrir: true },
+      { id: 'byudjet', matn: '30 mln soʻm', tahrir: true },
+    ]);
+    expect(sizHaqingizda({ javoblar: { qiziqish: ['bilmayman'], byudjet: null, uzum_dokoni: 'yoq' }, natijalar: {} })).toEqual([
+      { id: 'qiziqish', matn: 'Hamma sohadan', tahrir: true },
+      { id: 'byudjet', matn: 'Aytilmagan', tahrir: true },
+      { id: 'uzum_dokoni', matn: 'Yoʻq, birinchi marta', tahrir: true },
+    ]);
+  });
+
+  it('soha va pul — tovar tanlanguncha; tajriba — 7-qadamgacha', () => {
+    const tovarli: YolHolati = { ...YON, javoblar: { ...YON.javoblar, yonalish: 11, tovarlar: [100], uzum_dokoni: 'yoq' } };
+    expect(sizHaqingizda(tovarli).map((b) => [b.id, b.tahrir])).toEqual([['qiziqish', false], ['byudjet', false], ['uzum_dokoni', true]]);
+    expect(tahrirgaOch(tovarli, 'byudjet').xato).toMatch(/«Boshidan boshlash»/);
+    expect(tahrirgaOch(tovarli, 'byudjet').holat).toBe(tovarli);
+  });
+
+  it('pul: javob va yoʻnalish roʻyxati, tanlangan yoʻnalish oʻchadi — keyingi savol yana pul; navbatdagi eski pul ham oʻchadi', () => {
+    const h: YolHolati = { ...YON, javoblar: { ...YON.javoblar, byudjet_usd: 2_500, yonalish: 11, yonalish_sahifa: 2,
+      ai_navbat: [{ savol_id: 'byudjet', qiymatlar: ['30 mln'], otkazish: false }, { savol_id: 'uzum_dokoni', qiymatlar: ['yoq'], otkazish: false }] } };
+    const r = tahrirgaOch(h, 'byudjet');
+    expect(r.xato).toBeNull();
+    expect(r.holat.javoblar).toEqual({ qiziqish: ['kiyim', 'sport'], ai_navbat: [{ savol_id: 'uzum_dokoni', qiymatlar: ['yoq'], otkazish: false }] });
+    expect(r.holat.natijalar).toEqual({ kurs: KURS });
+    expect(savolId(r.holat)).toBe('byudjet');
+    // Kirgan holat oʻzgarmaydi.
+    expect(h.javoblar['byudjet']).toBe(30_000_000);
+  });
+
+  it('soha: qayta soʻraladi (salomsiz — pul allaqachon bor), eski AI taklifi aralashmaydi; pul qoladi', () => {
+    const h: YolHolati = { ...YON, javoblar: { ...YON.javoblar, qiziqish_taklif: ['kiyim'] } };
+    const r = tahrirgaOch(h, 'qiziqish');
+    expect(r.holat.javoblar).toEqual({ byudjet: 30_000_000 });
+    const k = keyingi(r.holat);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('qiziqish');
+    expect(k.savol.matn).toMatch(/^Qaysi sohadagi tovarlar sizga yaqin\?/);
+    expect(k.savol.tanlangan ?? []).toEqual([]);
+  });
+
+  it('tajriba: oʻzi va doʻkon nomi oʻchadi, boshqasi qoladi; keyingi savol — tajriba', () => {
+    const h: YolHolati = { ...YON, javoblar: { ...YON.javoblar, yonalish: 11, ism: 'Aziz', telefon: '+998901234567', tovarlar: [100], 'miqdor:100': 30, uzum_dokoni: 'sotyapman', dokon_nomi: 'Dokon', marja: 30 },
+      natijalar: { ...YON.natijalar, tovarlar: TOVARLAR } };
+    const r = tahrirgaOch(h, 'uzum_dokoni');
+    expect(r.xato).toBeNull();
+    expect(Object.keys(r.holat.javoblar).sort()).toEqual(['byudjet', 'ism', 'marja', 'miqdor:100', 'qiziqish', 'telefon', 'tovarlar', 'yonalish']);
+    expect(savolId(r.holat)).toBe('uzum_dokoni');
+  });
+
+  it('tajriba — 7-qadamda (rasmiylashtirish) va undan keyin oʻzgartirilmaydi: rasmiy natija eski javob bilan hisoblangan', () => {
+    const h7 = rasmiyBoshi();
+    expect(joriyQadam(h7)).toBe(7);
+    expect(sizHaqingizda(h7).find((b) => b.id === 'uzum_dokoni')?.tahrir).toBe(false);
+    expect(tahrirgaOch(h7, 'uzum_dokoni').xato).toMatch(/Rasmiylashtirish qadamidan keyin/);
+    // 6-qadamda hali mumkin (boshqa javoblar — tovardan keyin: soha va pul — yoʻq).
+    const h6 = { ...h7, javoblar: Object.fromEntries(Object.entries(h7.javoblar).filter(([k]) => k !== 'dokon_tayyorlash')) };
+    expect(joriyQadam(h6)).toBeLessThan(7);
+    expect(sizHaqingizda(h6).map((b) => [b.id, b.tahrir])).toEqual([['qiziqish', false], ['byudjet', false], ['uzum_dokoni', true]]);
+  });
+
+  it('notanish yoki hali berilmagan javob — oʻzgartirilmaydi', () => {
+    expect(tahrirgaOch(YON, 'ism').xato).toBe('Bu javobni oʻzgartirib boʻlmaydi.');
+    expect(tahrirgaOch(YON, 'uzum_dokoni').xato).toBe('Bu javobni oʻzgartirib boʻlmaydi.');
   });
 });

@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  boshlangichHolat, deklaratsiyaQadamlari, eskiSavolsiz, hisobotFaktlari, keyingi, oyHisobi, suhbatBoshdan, suhbatOqi, suhbatTurn,
+  boshlangichHolat, deklaratsiyaQadamlari, eskiSavolsiz, hisobotFaktlari, keyingi, oyHisobi, suhbatBoshdan, suhbatOqi, suhbatTahrir, suhbatTurn,
   type SuhbatBogliqliklari, type YolHolati,
 } from '@selleros/shared';
 
@@ -696,5 +696,71 @@ describe('suhbatTurn', () => {
     expect(b.holat()).toBe(oldin);
     const s = await suhbatBoshdan(d, 'eskirgan');
     expect(s.xato).toBe('sessiya topilmadi');
+  });
+});
+
+describe('«Siz haqingizda» — suhbatTahrir (5-taklif, 2026-10-28)', () => {
+  const KURS_N = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
+  const YON: YolHolati = { javoblar: { qiziqish: ['kiyim'], byudjet: 30_000_000 }, natijalar: { kurs: KURS_N, yonalishlar: YONALISHLAR } };
+
+  it('pul: chatga mijoz gapi va savolning oʻzi (AI siz, darhol), holat qayta ochiladi, belgilar yangilanadi', async () => {
+    const b = soxtaBaza(YON);
+    const r = await suhbatTahrir(bogliq(b), 'tok', 'byudjet');
+    expect(r.xato).toBeUndefined();
+    expect(r.yozildi).toBe(true);
+    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
+    expect(r.keyingi.savol.id).toBe('byudjet');
+    expect(r.xabarlar).toEqual([
+      { rol: 'obunachi', matn: 'Pulni oʻzgartiraman' },
+      { rol: 'menejer', matn: r.keyingi.savol.matn, savolId: 'byudjet' },
+    ]);
+    expect(b.holat()!.javoblar['byudjet']).toBeUndefined();
+    expect(b.holat()!.natijalar['yonalishlar']).toBeUndefined();
+    expect(r.sizHaqingizda).toEqual([{ id: 'qiziqish', matn: 'Kiyim va poyabzal', tahrir: true }]);
+  });
+
+  it('yangi pul — oddiy turn: yoʻnalishlar qayta hisoblanadi, belgida yangi summa', async () => {
+    const b = soxtaBaza(YON);
+    await suhbatTahrir(bogliq(b), 'tok', 'byudjet');
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: 70_000_000 });
+    expect(r.xato).toBeUndefined();
+    expect(b.holat()!.natijalar['yonalishlar']).toEqual(YONALISHLAR);
+    expect(r.sizHaqingizda?.find((x) => x.id === 'byudjet')?.matn).toBe('70 mln soʻm');
+  });
+
+  it('soha: rus sahifasida mijoz gapi ruscha; salomli birinchi savol — salomsiz', async () => {
+    const b = soxtaBaza({ javoblar: { qiziqish: ['kiyim'] }, natijalar: { kurs: KURS_N } });
+    const r = await suhbatTahrir(bogliq(b), 'tok', 'qiziqish', 'ru');
+    expect(r.xabarlar[0]).toEqual({ rol: 'obunachi', matn: 'Изменю сферу' });
+    expect(r.xabarlar[1]!.matn).toMatch(/^Qaysi sohadagi tovarlar sizga yaqin\?/);
+  });
+
+  it('mumkin emas (tovar tanlangan) — sababi qaytadi, hech narsa yozilmaydi, holat oʻsha', async () => {
+    const h: YolHolati = { ...YON, javoblar: { ...YON.javoblar, yonalish: 11, tovarlar: [100] }, natijalar: { ...YON.natijalar, tovarlar: TOVARLAR } };
+    const b = soxtaBaza(h);
+    const jurnal = b.jurnal.length;
+    const r = await suhbatTahrir(bogliq(b), 'tok', 'byudjet');
+    expect(r.xato).toMatch(/Tovarlar tanlangan/);
+    expect(r.xabarlar).toEqual([]);
+    expect(r.yozildi).toBe(false);
+    expect(b.jurnal).toHaveLength(jurnal);
+    expect(b.holat()).toBe(h);
+  });
+
+  it('eski suhbat (dollar kursi olinmagan): savol oldidan kod harakati bajariladi, keyin savol chiqadi — AI siz', async () => {
+    const b = soxtaBaza({ javoblar: { qiziqish: ['kiyim'], byudjet: 30_000_000 }, natijalar: {} });
+    const r = await suhbatTahrir(bogliq(b), 'tok', 'byudjet');
+    expect(r.xato).toBeUndefined();
+    if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
+    expect(r.keyingi.savol.id).toBe('byudjet');
+    expect(r.xabarlar[0]).toEqual({ rol: 'obunachi', matn: 'Pulni oʻzgartiraman' });
+    expect(r.xabarlar.at(-1)).toMatchObject({ rol: 'menejer', savolId: 'byudjet' });
+    expect(b.holat()!.natijalar['kurs']).toEqual(KURS_N);
+  });
+
+  it('suhbatOqi va oddiy turn ham belgilarni qaytaradi', async () => {
+    const b = soxtaBaza(YON);
+    const o = await suhbatOqi(bogliq(b), 'tok');
+    expect('sizHaqingizda' in o && o.sizHaqingizda?.map((x) => x.id)).toEqual(['qiziqish', 'byudjet']);
   });
 });

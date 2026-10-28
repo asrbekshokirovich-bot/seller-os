@@ -59,7 +59,7 @@ import type { KartochkaMatniNatijasi } from './kartochka-matn.js';
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.js';
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.js';
 import { matndanSon, valyutami } from './tekshiruv.js';
-import { BYUDJET_DOLLAR, byudjetniOqi, ISM_TELEFON_MISOL, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.js';
+import { BYUDJET_DOLLAR, byudjetMatni, byudjetniOqi, mlnMatni, ISM_TELEFON_MISOL, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.js';
 import { REJA_QADAMI, type Darvoza } from './tarif.js';
 
 // ==================================================================== turlar
@@ -1542,6 +1542,95 @@ function byudjetSavoli(h: YolHolati): SuhbatSavoli {
  * «Aziz, 90 123 45 67, kiyim, 30 mln» deb yozsa, ismi soʻralmaydi (navbatdan olinadi) va
  * telefon keyingi xabarlarda AI ga yashirilgan holda boradi (`shaxsiyniYashir`).
  */
+/** Oʻzgartirsa boʻladigan javoblar (5-taklif): soha, pul, savdo tajribasi. */
+export type TahrirSavoli = 'qiziqish' | 'byudjet' | 'uzum_dokoni';
+const TAHRIR_SAVOLLARI: readonly TahrirSavoli[] = ['qiziqish', 'byudjet', 'uzum_dokoni'];
+
+/**
+ * «SIZ HAQINGIZDA» (nazoratchi, 2026-10-26, 5-taklif: «mijoz qayerdaligini va nima yozib
+ * olinganini koʻrsin»): yozib olingan javoblar — suhbat tepasida kichik belgilar. Bittasini
+ * bossa — oʻsha savol qayta ochiladi va javobni bir bosishda oʻzgartiradi (`tahrirgaOch`).
+ * Ism va telefon bu yerda yoʻq — ular «Profilim» da.
+ */
+export interface SizHaqingizda {
+  id: TahrirSavoli;
+  /** Javob — chatdagi kabi («Kiyim va poyabzal», «30 mln soʻm», «Yoʻq, birinchi marta»). */
+  matn: string;
+  /** Hozir oʻzgartirsa boʻladimi (`tahrirgaOch` bilan bir xil qoida). */
+  tahrir: boolean;
+}
+
+/**
+ * Soha va pul — tovar tanlanguncha: undan keyin oʻzgarsa, tanlangan tovar va miqdorlar boshqa
+ * yoʻnalishniki boʻlib qoladi (u holda — «Boshidan boshlash»). Tajriba — 7-qadamgacha: undan
+ * keyin rasmiylashtirish natijasi eski javob bilan hisoblangan boʻladi.
+ */
+function tahrirMumkin(h: YolHolati, id: TahrirSavoli): boolean {
+  if (!berilgan(h, id)) return false;
+  return id === 'uzum_dokoni' ? joriyQadam(h) < 7 : !berilgan(h, 'tovarlar');
+}
+
+export function sizHaqingizda(h: YolHolati): SizHaqingizda[] {
+  const j = h.javoblar;
+  const r: SizHaqingizda[] = [];
+  if (Array.isArray(j['qiziqish'])) {
+    const q = (j['qiziqish'] as unknown[]).map(String);
+    r.push({ id: 'qiziqish', matn: q.includes(BILMAYMAN) ? 'Hamma sohadan' : q.map(sohaNomi).join(', '), tahrir: tahrirMumkin(h, 'qiziqish') });
+  }
+  if (berilgan(h, 'byudjet')) {
+    const b = j['byudjet'];
+    const usd = typeof j['byudjet_usd'] === 'number' ? (j['byudjet_usd'] as number) : null;
+    // Belgida qisqa: «70 mln soʻm»; dollarda aytgan boʻlsa — «$5 000 (≈ 59,3 mln soʻm)».
+    const matn = typeof b !== 'number' ? 'Aytilmagan' : usd !== null ? byudjetMatni(b, usd) : mlnMatni(b);
+    r.push({ id: 'byudjet', matn, tahrir: tahrirMumkin(h, 'byudjet') });
+  }
+  const t = j['uzum_dokoni'];
+  if (typeof t === 'string') {
+    r.push({ id: 'uzum_dokoni', matn: UZUM_DOKONI.find((v) => v.qiymat === t)?.nom ?? t, tahrir: tahrirMumkin(h, 'uzum_dokoni') });
+  }
+  return r;
+}
+
+/**
+ * Javobni oʻzgartirish uchun savolni qayta ochadi (5-taklif): javob oʻchadi — `keyingi()` oʻsha
+ * savolni beradi. Soha yoki pul — yoʻnalishlar roʻyxati, tanlangan yoʻnalish va tovarlar
+ * roʻyxati ham oʻchadi (qayta hisoblanadi); tajriba — doʻkon nomi bilan. Navbatda kutayotgan
+ * shu savol javobi ham oʻchadi (aks holda eski javob darhol qaytib qolardi), soha taklifi ham —
+ * eski taklif yangi tanlovga aralashmasin. Mumkin emas — `xato` (mijozga, sababi bilan).
+ */
+export function tahrirgaOch(h: YolHolati, id: string): { holat: YolHolati; xato: string | null } {
+  const savol = TAHRIR_SAVOLLARI.find((x) => x === id);
+  if (!savol || !berilgan(h, savol)) return { holat: h, xato: 'Bu javobni oʻzgartirib boʻlmaydi.' };
+  if (!tahrirMumkin(h, savol)) {
+    return {
+      holat: h,
+      xato: savol === 'uzum_dokoni'
+        ? 'Rasmiylashtirish qadamidan keyin tajribani oʻzgartirib boʻlmaydi.'
+        : 'Tovarlar tanlangan — soha yoki pulni oʻzgartirish uchun «Boshidan boshlash» ni bosing.',
+    };
+  }
+  const javoblar = { ...h.javoblar };
+  const natijalar = { ...h.natijalar };
+  const navbat = javoblar['ai_navbat'];
+  if (Array.isArray(navbat)) {
+    const qoldi = navbat.filter((x) => (x as { savol_id?: unknown } | null)?.savol_id !== savol);
+    if (qoldi.length) javoblar['ai_navbat'] = qoldi;
+    else delete javoblar['ai_navbat'];
+  }
+  delete javoblar[savol];
+  if (savol === 'uzum_dokoni') {
+    delete javoblar['dokon_nomi'];
+  } else {
+    if (savol === 'byudjet') delete javoblar['byudjet_usd'];
+    for (const k of ['qiziqish_taklif', 'yonalish', 'yonalish_sahifa', 'yonalish_qidiruv']) delete javoblar[k];
+    delete natijalar.yonalishlar;
+    delete natijalar.yonalish_yana;
+    delete natijalar.yonalish_qidiruv;
+    delete natijalar.tovarlar;
+  }
+  return { holat: { javoblar, natijalar }, xato: null };
+}
+
 export function kelgusiTanishuvSavollari(h: YolHolati): SuhbatSavoli[] {
   const r: SuhbatSavoli[] = [];
   if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) r.push(qiziqishSavoli(h));

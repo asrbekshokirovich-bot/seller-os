@@ -411,6 +411,63 @@
   justify-content: center;
 }
 
+/*
+ * «Siz haqingizda» (2026-10-28, 5-taklif) — yozib olingan javoblar sarlavha ostida. Kichik
+ * belgilar; ✎ — bosilsa savol qayta ochiladi. Tor ekranda bitta qator, yonga suriladi.
+ */
+.siz {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 32px;
+  border-bottom: 1px solid var(--chiziq);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.siz::-webkit-scrollbar { display: none; }
+
+.sizYorliq {
+  flex: none;
+  font-size: 13px;
+  color: var(--xira);
+}
+
+.sizBelgi {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--kart);
+  box-shadow: inset 0 0 0 1px var(--chiziq);
+  font-size: 13px;
+  color: var(--matn);
+}
+
+button.sizBelgi { cursor: pointer; }
+
+button.sizBelgi:not(:disabled):hover {
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  color: var(--acc);
+}
+
+button.sizBelgi:disabled { opacity: 0.6; }
+
+.sizMatn {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sizQalam { color: var(--acc); }
+
+.sizQotgan { color: var(--xira); }
+
 /* ---------------------------------------------------------- suhbat oqimi */
 
 /*
@@ -1929,6 +1986,7 @@
 
   .tepaOng .pill { display: none; }
 
+  .siz { padding: 6px 14px; }
   .oqim { padding: 18px 0 14px; }
   .past_ { padding: 12px 0 14px; }
 

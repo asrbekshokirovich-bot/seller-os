@@ -55,6 +55,12 @@ export function batafsilmi(x: Xabar): boolean {
   return x.rol === 'menejer' && (x.javob as { batafsil?: unknown } | null | undefined)?.batafsil === true;
 }
 
+/**
+ * «Siz haqingizda» belgisi (5-taklif, 2026-10-28): yozib olingan javob — soha, pul, tajriba.
+ * `tahrir` — hozir oʻzgartirsa boʻladi (bosilsa savol qayta ochiladi).
+ */
+export interface SizBelgi { id: string; matn: string; tahrir: boolean }
+
 export interface SuhbatJavobi {
   xato?: string;
   xabarlar: Xabar[];
@@ -62,6 +68,8 @@ export interface SuhbatJavobi {
   qadam: number;
   yozildi: boolean;
   tarix?: Xabar[];
+  /** Holat oʻzgargan javoblarda; yoʻq boʻlsa — oldingisi qoladi. */
+  sizHaqingizda?: SizBelgi[];
 }
 
 /* ------------------------------------------------------ holat */
