@@ -57,6 +57,7 @@ import {
   type ErkinSorov,
   type MunosabatSorovi,
   suhbatBoshdan,
+  suhbatTahrir,
   suhbatBolagi,
   suhbatlarOqi,
   suhbatQaytar,
@@ -586,6 +587,14 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         const b = await suhbatBoshdan(d, token);
         if (b.xato) return javob(b, /sessiya topilmadi/.test(b.xato) ? 401 : 503);
         return javob(b);
+      }
+      // «Siz haqingizda» belgisi (5-taklif, 2026-10-28): savol qayta ochiladi — javobni oʻzgartirish.
+      if (typeof tana.tahrir === 'string') {
+        const t = await suhbatTahrir(d, token, tana.tahrir, tana.til === 'ru' ? 'ru' : 'uz');
+        if (t.xato && t.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(t.xato)) {
+          return javob(t, t.xato.includes('baza') ? 503 : 401);
+        }
+        return javob(t);
       }
       // «Suhbatlarim» → «Davom ettirish» (0066): eski suhbatga qaytish; javob — yangi holat.
       if (typeof tana.qaytish === 'number') {

@@ -43,6 +43,7 @@
 
 import { type AloqaJavoblari, type Keyingi, type KodHarakati, type SuhbatSavoli, type YolHolati, boshlangichHolat, havolalarsiz,
   JIM_HARAKATLAR, javobniQabulQil, joriyQadam, kelgusiTanishuvSavollari, keyingi, kutilayotganHarakat, natijaniYoz, salomsizSavol,
+  sizHaqingizda, tahrirgaOch, type SizHaqingizda,
   tushuntir, usdKursi, uzumDokoniBormi, yiqilganNatija, yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.ts';
 import type { Darvoza } from './tarif.ts';
 import { natijaSonlari, tekshir } from './tekshiruv.ts';
@@ -301,6 +302,11 @@ export interface SuhbatJavobi {
   qadam: number;
   /** Jurnalga yozildimi — yozilmagan bo'lsa ham javob beriladi, lekin aytiladi. */
   yozildi: boolean;
+  /**
+   * «Siz haqingizda» belgilari (5-taklif, 2026-10-28) — holat oʻzgargan javoblarda. Yoʻq boʻlsa
+   * (xato, eski server) — sahifa oldingisini koʻrsatib turadi.
+   */
+  sizHaqingizda?: SizHaqingizda[];
 }
 
 interface OqishJavobi {
@@ -355,8 +361,57 @@ export async function suhbatOqi(d: Pick<SuhbatBogliqliklari, 'rpc' | 'darvoza'>,
   return {
     xabarlar: [],
     tarix: havolalarsiz(eskiSavolsiz(songgiSuhbat(o.xabarlar ?? []), k.tur === 'savol' ? k.savol.id : null), d.darvoza),
-    keyingi: k, qadam: joriyQadam(holat), yozildi: true,
+    keyingi: k, qadam: joriyQadam(holat), yozildi: true, sizHaqingizda: sizHaqingizda(holat),
   };
+}
+
+/** «Siz haqingizda» belgisidagi nom — mijoz gapida («Pulni oʻzgartiraman»). */
+const TAHRIR_GAPI: Readonly<Record<string, { uz: string; ru: string }>> = {
+  qiziqish: { uz: 'Sohani oʻzgartiraman', ru: 'Изменю сферу' },
+  byudjet: { uz: 'Pulni oʻzgartiraman', ru: 'Изменю бюджет' },
+  uzum_dokoni: { uz: 'Tajribamni oʻzgartiraman', ru: 'Изменю опыт' },
+};
+
+/**
+ * «Siz haqingizda» belgisi bosildi (nazoratchi, 2026-10-26, 5-taklif: «bittasini bossa, oʻsha
+ * savolga qaytadi va javobni bir bosishda oʻzgartiradi»). Savol qayta ochiladi (`tahrirgaOch`):
+ * chatga mijozning «…ni oʻzgartiraman» gapi va savolning oʻzi yoziladi — DARHOL, AI siz (bu
+ * tugma, mijoz gapi emas; tugmali savol chat oxirida turadi). Yangi javob — oddiy turn: natijalar
+ * qayta hisoblanadi va ularni AI tushuntiradi. Mumkin boʻlmasa — `xato` (sababi bilan), hech
+ * narsa yozilmaydi.
+ */
+export async function suhbatTahrir(
+  d: SuhbatBogliqliklari, token: string, id: string, til: 'uz' | 'ru' = 'uz',
+): Promise<SuhbatJavobi> {
+  const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
+  if (o === null || o.xato) {
+    return { xato: o?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: keyingi(boshlangichHolat()), qadam: 1, yozildi: false };
+  }
+  const holat = o.holat ?? boshlangichHolat();
+  const r = tahrirgaOch(holat, id);
+  if (r.xato) return { xato: r.xato, xabarlar: [], keyingi: keyingi(holat, d.darvoza), qadam: joriyQadam(holat), yozildi: false };
+  const k = keyingi(r.holat, d.darvoza);
+  const gap = TAHRIR_GAPI[id]!;
+  const yangi: SuhbatXabari[] = [
+    { rol: 'obunachi', matn: til === 'ru' ? gap.ru : gap.uz },
+    // Salomli birinchi savol (qiziqish) — salomsiz: salom chat boshida bor.
+    ...(k.tur === 'savol' ? [{ rol: 'menejer' as const, matn: salomsizSavol(k.savol).matn, savolId: k.savol.id }] : []),
+  ];
+  const qadam = joriyQadam(r.holat);
+  const y = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {
+    p_token: token, p_xabarlar: yangi, p_holat: r.holat, p_qadam: qadam, p_profil: null,
+  });
+  if (y === null || y.xato) {
+    // Yozilmadi — holat oʻzgarmadi: belgilar va savol eskicha qoladi.
+    return { xato: y?.xato ?? 'jurnalga yozilmadi', xabarlar: [], keyingi: keyingi(holat, d.darvoza), qadam: joriyQadam(holat), yozildi: false };
+  }
+  if (k.tur === 'kod') {
+    // Qayta ochilgan savol oldidan kod harakati (masalan, dollar kursi hali olinmagan eski
+    // suhbatda) — oddiy turn bilan, AI siz: harakat bajariladi va savol chiqadi.
+    const t = await suhbatTurn({ ...d, ai: null }, token, {});
+    return { ...t, xabarlar: [...yangi, ...t.xabarlar] };
+  }
+  return { xabarlar: yangi, keyingi: k, qadam, yozildi: true, sizHaqingizda: sizHaqingizda(r.holat) };
 }
 
 /**
@@ -685,7 +740,10 @@ export async function suhbatTurn(
   const yozildi = y !== null && !y.xato;
 
   // Jurnalga toʻliq yozildi; brauzerga — obunasiz boʻlsa 1688 havolasiz (`havolalarsiz`).
-  return { xabarlar: havolalarsiz(yangi, dz), keyingi: k, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
+  return {
+    xabarlar: havolalarsiz(yangi, dz), keyingi: k, qadam, yozildi,
+    ...(yozildi ? { sizHaqingizda: sizHaqingizda(holat) } : { xato: y?.xato ?? 'jurnalga yozilmadi' }),
+  };
 }
 
 /**
@@ -723,7 +781,7 @@ export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Prom
   if (y === null || y.xato) {
     return { xato: y?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: k, qadam: 1, yozildi: false };
   }
-  return { xabarlar: savol, keyingi: k, qadam: joriyQadam(h), yozildi: true };
+  return { xabarlar: savol, keyingi: k, qadam: joriyQadam(h), yozildi: true, sizHaqingizda: sizHaqingizda(h) };
 }
 
 /** 1-qadam qiziqishi (sohalar) — `null`: soʻralmagan yoki oʻtkazib yuborilgan. */
@@ -1223,7 +1281,7 @@ async function erkinXabar(
     p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
   });
   const yozildi = y !== null && !y.xato;
-  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? {} : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
+  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? { sizHaqingizda: sizHaqingizda(holat) } : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 // ------------------------------------------------------------ AI suhbat
@@ -1437,7 +1495,7 @@ async function aiErkinXabar(
     p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
   });
   const yozildi = w !== null && !w.xato;
-  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? {} : { xato: w?.xato ?? 'jurnalga yozilmadi' }) };
+  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? { sizHaqingizda: sizHaqingizda(holat) } : { xato: w?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 /**

@@ -303,3 +303,30 @@ describe('/suhbat — brauzer yuborgan CBU kursi', () => {
     }
   });
 });
+
+/* 5-taklif (2026-10-28): «Siz haqingizda» belgisi — Fastify `/suhbat` `{tahrir}` (Edge bilan bir xil). */
+describe('/suhbat — «Siz haqingizda» belgisi (tahrir)', () => {
+  const KURS_N = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
+  const BYUDJETLI: YolHolati = { javoblar: { ...QIZIQISH.javoblar, qiziqish: ['kiyim'], byudjet: 30_000_000 }, natijalar: { kurs: KURS_N } };
+  const oqi = (h: YolHolati) => ({ holat: h, qadam: 2, xabarlar: [] });
+
+  it('savol qayta ochiladi: mijoz gapi va savol, AI chaqirilmaydi; belgilar javobda', async () => {
+    const s = soxtalar(oqi(BYUDJETLI), BOLAKLAR);
+    const res = await sora('/suhbat', { tahrir: 'byudjet', til: 'uz' });
+    expect(res.statusCode).toBe(200);
+    const j = res.json() as { xabarlar: Array<{ rol: string; matn: string }>; keyingi: { tur: string; savol?: { id: string } }; sizHaqingizda: unknown[] };
+    expect(j.xabarlar[0]).toEqual({ rol: 'obunachi', matn: 'Pulni oʻzgartiraman' });
+    expect(j.keyingi.savol?.id).toBe('byudjet');
+    expect(j.sizHaqingizda).toEqual([{ id: 'qiziqish', matn: 'Kiyim va poyabzal', tahrir: true }]);
+    expect(s.claude).toHaveLength(0);
+    expect(s.yozildi).toHaveLength(1);
+  });
+
+  it('mumkin boʻlmasa — 200 va sababi, hech narsa yozilmaydi', async () => {
+    const s = soxtalar(oqi(QIZIQISH), BOLAKLAR);
+    const res = await sora('/suhbat', { tahrir: 'byudjet' });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { xato: string }).xato).toBe('Bu javobni oʻzgartirib boʻlmaydi.');
+    expect(s.yozildi).toHaveLength(0);
+  });
+});

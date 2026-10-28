@@ -42,6 +42,7 @@ import {
   turkumRasmlari,
   odamlashtir,
   suhbatBoshdan,
+  suhbatTahrir,
   suhbatBolagi,
   suhbatlarOqi,
   suhbatQaytar,
@@ -510,6 +511,14 @@ export function build(): FastifyInstance {
     const tana = (request.body ?? {}) as Record<string, unknown>;
     const d = await suhbatBogliq(token, brauzerKursi(tana.kurs));
     if (tana.boshdan === true) return suhbatBoshdan(d, token);
+    // «Siz haqingizda» belgisi (5-taklif, 2026-10-28) — Edge bilan bir xil.
+    if (typeof tana.tahrir === 'string') {
+      const t = await suhbatTahrir(d, token, tana.tahrir, tana.til === 'ru' ? 'ru' : 'uz');
+      if (t.xato && t.xabarlar.length === 0 && /sessiya topilmadi|baza javob bermadi/.test(t.xato)) {
+        return javob.code(t.xato.includes('baza') ? 503 : 401).send(t);
+      }
+      return t;
+    }
     // «Suhbatlarim» → «Davom ettirish» (0066) — Edge bilan bir xil.
     if (typeof tana.qaytish === 'number') {
       const q = await suhbatQaytar(d, token, tana.qaytish);
