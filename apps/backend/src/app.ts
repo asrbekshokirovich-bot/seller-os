@@ -36,6 +36,9 @@ import {
   joriyQadam,
   type YolHolati,
   javobniBahola,
+  hisobniYoz,
+  voronkaniOl,
+  boshNamunasi,
   kartochkaYozBer,
   turkumRasmlari,
   suhbatBoshdan,
@@ -671,11 +674,30 @@ export function build(): FastifyInstance {
     return { olchov_yoq: false, baholar: b };
   });
 
+  /** Bosh sahifa hisoblagichi (0076; Edge bilan bir xil, `hisob.ts`) — ismsiz, sessiyasiz. */
+  app.post('/hisob', async (request, javob) => {
+    const n = await hisobniYoz(rpc, (request.body ?? {}) as Record<string, unknown>);
+    return javob.code(n.status).send(n.tana);
+  });
+
+  /** Hisoblagich sanogʻi kunma-kun — /olchov paneli (Edge bilan bir xil). Faqat sanoq. */
+  app.get('/hisob-voronka', async (request, javob) => {
+    const kun = (request.query as Record<string, unknown> | undefined)?.kun;
+    const n = await voronkaniOl(rpc, typeof kun === 'string' ? kun : null);
+    return javob.code(n.status).send(n.tana);
+  });
+
   /** B2 darvozasi holati — nechta odam "mantiqli" dedi. */
   app.get('/darvoza', async () => {
     const d = await rpc<unknown>('so_darvoza_b2', {});
     if (d === null) return { olchov_yoq: true, sabab: 'baza javob bermadi' };
     return { b2: d };
+  });
+
+  /** Bosh sahifa namunasi — bugungi bazadan 3 ta yoʻnalish (Edge bilan bir xil, `bosh-namuna.ts`). */
+  app.get('/bosh-namuna', async (_soov, javob) => {
+    const n = await boshNamunasi(rpc, hozirgiOy());
+    return javob.code(n.status).send(n.tana);
   });
 
   /**

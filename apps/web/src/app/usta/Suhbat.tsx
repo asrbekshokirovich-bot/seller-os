@@ -29,7 +29,9 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
+import { boshXabarniOl } from '@/lib/bosh-xabar';
 import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
+import { hisobla } from '@/lib/hisob';
 import { sessiyaSarlavhasi } from '@/lib/kengaytma';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { tarjima, type Til, type Tr } from '@/lib/til';
@@ -484,6 +486,54 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     void yuborRef.current({});
   }, [keyingi, band]);
 
+  /*
+   * Bosh sahifadan kelgan birinchi xabar (nazoratchi, 2026-10-28): bosh sahifada soha va pul
+   * tanlangan yoki oʻzi yozgan — chat ochilishi bilan yuboriladi (`lib/bosh-xabar.ts`), AI uni
+   * bitta gapdan tushunadi. Suhbat yangi boʻlsa — darhol birinchi javob. Eski suhbat davom
+   * etayotgan boʻlsa — avval yangi suhbat (eskisi «Suhbatlarim» da qoladi), keyin xabar.
+   * Yangi suhbat ochilmasa yoki savol kutilmayotgan boʻlsa — matn yozish maydoniga tushadi:
+   * odam oʻzi yuboradi, tanlovi yoʻqolmaydi. Kod qadami effektidan KEYIN turadi va
+   * `bandRef` ni tekshiradi — ikkalasi bitta paytda soʻrov yubormasin.
+   */
+  const boshXabar = useRef<string | null | undefined>(undefined);
+  const boshdanSorandi = useRef(false);
+  useEffect(() => {
+    if (boshXabar.current === undefined) boshXabar.current = boshXabarniOl();
+    const t = boshXabar.current;
+    if (t === null || !yuklandi || bandRef.current || keyingi === null) return;
+    const yangi = !xabarlar.some((x) => x.rol === 'obunachi');
+    if (yangi && keyingi.tur === 'savol') {
+      boshXabar.current = null;
+      void yuborRef.current({ savolId: keyingi.savol.id, matn: t }, false, false, t);
+    } else if (!yangi && !boshdanSorandi.current) {
+      boshdanSorandi.current = true;
+      avlod.current += 1;
+      void yuborRef.current({ boshdan: true });
+    } else {
+      boshXabar.current = null;
+      setMatn(t);
+    }
+  });
+
+  /*
+   * Hisoblagich (0076; nazoratchi, 2026-10-28: «hisoblagich qoʻy»): chatdagi birinchi javob va
+   * yoʻnalishlar birinchi chiqqani — ismsiz (`lib/hisob.ts`). Birinchi yuklashdagi tarix
+   * sanalmaydi (u avvalgi tashrifda sanalgan); «Boshidan boshlash» dan keyingi yangi suhbat —
+   * yana sanaladi. «Suhbatlarim» dan eski suhbatga qaytilsa asos qayta olinadi.
+   */
+  const obunachiBor = xabarlar.some((x) => x.rol === 'obunachi');
+  const yonalishBor = xabarlar.some((x) => x.rol === 'kod' && x.savolId === 'yonalishlar');
+  const holatKeldi = keyingi !== null;
+  const hisobAsosi = useRef<{ javob: boolean; yonalish: boolean } | null>(null);
+  useEffect(() => {
+    if (!yuklandi || !holatKeldi) return;
+    const o = hisobAsosi.current;
+    hisobAsosi.current = { javob: obunachiBor, yonalish: yonalishBor };
+    if (o === null) return;
+    if (!o.javob && obunachiBor) hisobla('suhbat_birinchi_javob');
+    if (!o.yonalish && yonalishBor) hisobla('suhbat_yonalish');
+  }, [yuklandi, holatKeldi, obunachiBor, yonalishBor]);
+
   const menyuOch = () => { qatlamOch(); setMenyu(true); };
   const profilOch = () => { qatlamOch(); setMenyu(false); setOyna('profil'); };
   /** «Boshidan boshlash» endi faqat tasdiqdan keyin — bitta bosish butun yoʻlni oʻchirardi. */
@@ -518,6 +568,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       });
       const d = await jsonOl(r);
       if (!r.ok || d === null || !d.keyingi) return d?.xato ?? XATO.buzuq;
+      hisobAsosi.current = null;
       qabul(d, { almashtir: true, tozala: true });
       yop('oyna');
       return null;

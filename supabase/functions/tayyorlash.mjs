@@ -75,6 +75,8 @@ export const FAYLLAR = [
   ['packages/shared/src/sotuv.ts', 'shared/sotuv.ts'],
   ['packages/shared/src/xizmat.ts', 'shared/xizmat.ts'],
   ['packages/shared/src/kartochka.ts', 'shared/kartochka.ts'],
+  ['packages/shared/src/hisob.ts', 'shared/hisob.ts'],
+  ['packages/shared/src/bosh-namuna.ts', 'shared/bosh-namuna.ts'],
   ['apps/backend/src/tahlil.ts', 'tahlil.ts'],
   ['apps/backend/src/suhbat-kod.ts', 'suhbat-kod.ts'],
 ];
