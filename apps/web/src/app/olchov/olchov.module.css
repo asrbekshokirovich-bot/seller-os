@@ -553,3 +553,48 @@
   font-size: 0.8rem;
   white-space: nowrap;
 }
+
+/* ---- Bosh sahifa voronkasi (0076) ---- */
+.voronkaJoy {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.voronkaJadval {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.voronkaJadval th,
+.voronkaJadval td {
+  padding: 0.55rem 0.9rem;
+  text-align: right;
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.voronkaJadval th {
+  border-top: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.voronkaJadval th:first-child,
+.voronkaJadval td:first-child {
+  text-align: left;
+}
+
+.voronkaJadval td {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.yoqKun td {
+  color: var(--none);
+}

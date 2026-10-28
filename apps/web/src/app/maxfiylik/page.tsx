@@ -84,6 +84,12 @@ export default function Maxfiylik() {
             (til) va <code>so_mavzu</code> (yorugʻ yoki tungi mavzu). Xotiradagi
             yozuvlar serverga yuborilmaydi.
           </li>
+          <li>
+            Varaq xotirasida (<code>sessionStorage</code>, varaq yopilsa oʻchadi) —{' '}
+            <code>zs-hisob:…</code> belgilari (shu varaqda tashrif sanalganmi — ikki marta
+            sanamaslik uchun) va <code>zs-bosh-xabar</code>: bosh sahifada tanlagan yoki
+            yozgan javobingiz, chatga oʻtguncha; chat ochilishi bilan oʻchiriladi.
+          </li>
         </ul>
 
         <h2>Chrome kengaytmasi</h2>
@@ -205,6 +211,15 @@ export default function Maxfiylik() {
               </tr>
               <tr>
                 <td>
+                  Ismsiz tashrif sanogʻi (2026-10-28 dan): bosh sahifa ochildi, «Boshlash»
+                  bosildi, suhbatda birinchi javob, yoʻnalishlar chiqdi — faqat shu nom va
+                  vaqt. Ism, telefon, IP manzil, sessiya va matn yozilmaydi; har biri bir
+                  varaqda bir marta sanaladi
+                </td>
+                <td><code>events</code></td>
+              </tr>
+              <tr>
+                <td>
                   Ochiq ishlar: «keyinroq» degan qadamlaringiz va yuk yoki
                   Uzum qabulini kutish muddati
                 </td>
@@ -249,7 +264,8 @@ export default function Maxfiylik() {
         <p>
           Sahifada Google Analytics, Facebook piksel yoki boshqa kuzatuv
           vositasi <strong>yoʻq</strong>. Shriftlar oʻzimizning serverdan
-          yuklanadi.
+          yuklanadi. Oʻzimizning ismsiz hisoblagichimiz bor (yuqoridagi
+          jadvalda): u sizni tanimaydi va boshqa saytga hech narsa yubormaydi.
         </p>
         <p>
           <strong>Tovar rasmlari</strong> esa oʻz manbasidan koʻrsatiladi:

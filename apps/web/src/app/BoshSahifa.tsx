@@ -5,23 +5,37 @@
  * nazoratchi 2026-10-21). Oʻlcham, rang va matn dizayndagi inline
  * uslubdan aynan; oʻrniga CSS modul (`bosh.module.css`).
  *
- * DIZAYNDAN FARQ — ataylab, halollik uchun:
- *   1. 12 qadam holati dizayndagi qoʻlda yozilgan «tez orada» dan emas,
- *      `SUHBAT_QADAMLARI.qurilgan` dan (bugun 12 tasi ham qurilgan).
- *   2. Birinchi kartada jonli son (kuzatilayotgan tovarlar) — bazadan,
- *      sanasi bilan; olinmasa — chiziqcha (QOIDALAR.md, 4-boʻlim).
- *   3. Qidiruv qutisi — yozib boʻlmaydigan rasm emas, suhbatga havola:
- *      haqiqiy qidiruv suhbatning oʻzida.
- *   4. Pastki qatorda «Maxfiylik siyosati» havolasi qoladi.
+ * BIRINCHI MARTA KIRGAN ODAM UCHUN (nazoratchi, 2026-10-28: «hammasini
+ * qil, narx koʻrinsin, hisoblagich qoʻy»). Birinchi kirgan odam uch
+ * narsani tez bilishi kerak: bu nima, menga nima beradi, qancha turadi.
+ *   1. Tepada chatning birinchi 2 savoli (soha va pul) — shu yerning
+ *      oʻzida. Javob chatga birinchi xabar boʻlib ketadi (`BoshSavol`,
+ *      `lib/bosh-xabar.ts`). Ilgari qidiruv qutisi yozilmaydigan havola edi.
+ *   2. «Misol foyda» (oʻylab topilgan +9,0 mln) oʻrniga bugungi bazadan
+ *      3 ta haqiqiy yoʻnalish (`/bosh-namuna`); olinmasa — halol izoh.
+ *   3. Narx: tarif cheklovi oʻchiq boʻlsa — «Hozir hammasi bepul»; Pro
+ *      narxi (`OBUNA_NARXI`) va doim bepul qadamlar (`REJA_QADAMI`) koddan.
+ *   4. Matnlar chatga mos; «Kirish» oʻrniga «Boshlash» (qaytgan odamga —
+ *      «Davom etish»); UZ | RU tugmasi.
+ *   5. 12 qadam oʻrniga «Bugun nima olasiz» — qolgan qadamlar yigʻiq.
+ *   6. Ismsiz hisoblagich (`lib/hisob.ts`, 0076).
  *
- * Mavzu — faqat yorugʻ (dizaynda tungi nusxa yoʻq). Til — Ustadagi
- * «Profilim» da tanlanadi (`so_til`), bu yerda faqat oʻqiladi.
+ * DIZAYNDAN FARQ — ataylab, halollik uchun: 12 qadam holati `SUHBAT_QADAMLARI.qurilgan`
+ * dan; jonli son (kuzatilayotgan tovarlar) — bazadan, sanasi bilan, olinmasa —
+ * chiziqcha (QOIDALAR.md, 4-boʻlim); pastki qatorda «Maxfiylik siyosati».
+ *
+ * Mavzu — faqat yorugʻ (dizaynda tungi nusxa yoʻq).
  */
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { SUHBAT_QADAMLARI } from '@selleros/shared';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import {
+  BILMAYMAN, BYUDJET_TUGMALARI, OBUNA_NARXI, REJA_QADAMI, SAVDO_SOHALARI, SUHBAT_QADAMLARI,
+  type BoshNamuna, type NamunaYonalish, type SohaId,
+} from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
-import { mlnKasr } from '@/lib/mln';
+import { boshXabarMatni, boshXabarniSaqla, pulMatni } from '@/lib/bosh-xabar';
+import { birMarta, sinovniOqi } from '@/lib/hisob';
+import { hashBilan, useKengaytmaHashi } from '@/lib/kengaytma';
 import { ruShakl, tarjima, type Til, type Tr } from '@/lib/til';
 import { useTil } from '@/lib/useTil';
 import { Havola } from './Havola';
@@ -52,31 +66,47 @@ const IZOH: readonly (readonly [string, string])[] = [
   ['Natija va keyingi qadam.', 'Итог и следующий шаг.'],
 ];
 
-/** Qidiruv qutisida yozilib-oʻchiriladigan misollar. */
-const MISOLLAR: Record<Til, readonly string[]> = {
-  uz: ['telefon gʻilofi, byudjet 5 mln', 'oshxona idishlari, 20 mln', 'bolalar kiyimi, 10 mln', 'avto aksessuarlar, 8 mln'],
-  ru: ['чехол для телефона, бюджет 5 млн', 'посуда для кухни, 20 млн', 'детская одежда, 10 млн', 'автоаксессуары, 8 млн'],
+/** Hero tugmalaridagi qisqa soha nomi; chatga toʻliq nomi ketadi (`boshXabarMatni`). */
+const SOHA_QISQA: Readonly<Record<SohaId, readonly [string, string]>> = {
+  kiyim: ['Kiyim, poyabzal', 'Одежда, обувь'],
+  gozallik: ['Goʻzallik', 'Красота'],
+  uy: ['Uy-roʻzgʻor', 'Дом, техника'],
+  bolalar: ['Bolalar', 'Детское'],
+  elektronika: ['Elektronika', 'Электроника'],
+  kanstovar: ['Kanstovar', 'Канцтовары'],
+  aksessuar: ['Aksessuar', 'Аксессуары'],
+  sport: ['Sport', 'Спорт'],
+  avto: ['Avto', 'Авто'],
 };
 
-/**
- * Misol hisob (dizayndagi): 300 dona × 89 000 soʻm, tannarx 36 700/dona,
- * Uzum ulushi 25 %. Raqamlar misol va kartada shunday yozilgan.
- */
-const MISOL = { dona: 300, sotuv: 89_000, tannarx: 36_700, uzumUlush: 0.25 } as const;
-const SARMOYA = MISOL.dona * MISOL.tannarx;
-const TUSHUM = MISOL.dona * MISOL.sotuv;
-const FOYDA = TUSHUM * (1 - MISOL.uzumUlush) - SARMOYA;
+/** «Bugun nima olasiz» — 2–5-qadam natijalari; `vaqt` — birinchi natija qancha vaqtda. */
+const OLISH: readonly (readonly [string, string, string, string, boolean])[] = [
+  ['Yoʻnalishlar', 'Sohangiz va pulingizga mos — bazadagi raqamlar va Uzumdagi rasmlari bilan.',
+    'Направления', 'Под вашу сферу и бюджет — с цифрами из базы и фото с Uzum.', true],
+  ['Tovar va nechta olish', 'Uzumda qancha sotilayotganiga qarab; sotilmaydiganlari chiqarib tashlanadi.',
+    'Товар и сколько брать', 'По тому, сколько продаётся на Uzum; неходовые отсеиваются.', false],
+  ['Tannarx va Xitoydagi narx', 'Kargo, bojxona va Uzum ulushi bilan, soʻmda; Xitoydagi zavodlar — rasm boʻyicha.',
+    'Себестоимость и цена в Китае', 'С карго, таможней и долей Uzum, в сумах; фабрики в Китае — по фото.', false],
+];
+
+/** Imkoniyat kartasidagi misol (dizayndagi): Xitoyda 36 700, Uzumda 89 000 soʻm. Kartada «misol» deb yozilgan. */
+const MISOL = { sotuv: 89_000, tannarx: 36_700 } as const;
 
 /** Misol zavodlar: [shahar, harf, narx soʻmda]. */
 const ZAVODLAR = [['Yiwu', 'A', 36_700], ['Guangzhou', 'B', 38_200], ['Shenzhen', 'C', 41_500]] as const;
 
-export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
+export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil, namuna, cheklov, qaytgan }: {
   tovar: number | null; holat: string; holatRu: string; til: Til;
+  /** Bugungi namuna yoʻnalishlar; olinmagan — `null`. */
+  namuna: BoshNamuna | null;
+  /** Tarif cheklovi yoqilganmi; bilinmasa — `null` (ikkala holatda ham rost matn). */
+  cheklov: boolean | null;
+  /** Bu brauzerda chat oldin ochilgan (sessiya cookie si bor). */
+  qaytgan: boolean;
 }) {
-  const [til] = useTil(boshTil);
+  const [til, tilniTanla] = useTil(boshTil);
   const tr = tarjima(til);
   const ildiz = useRef<HTMLDivElement>(null);
-  const yozuv = useYozuv(MISOLLAR[til]);
 
   /* Pastdagi bloklar koʻrinishga kirganda chiqadi (dizayndagi `zs-rv`). */
   useEffect(() => {
@@ -93,7 +123,17 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
     return () => io.disconnect();
   }, []);
 
-  const boshlash = tr('Suhbatni boshlash', 'Начать чат');
+  /* Hisoblagich: sahifa ochildi (shu varaqda bir marta). Sinovchi brauzeri — `?sinov=1`. */
+  useEffect(() => {
+    sinovniOqi(window.location.search);
+    birMarta('bosh_ochildi');
+  }, []);
+
+  /** Chatga oʻtish — hisoblagichda «boshladi». */
+  const boshladi = () => birMarta('bosh_boshladi');
+  const boshlash = qaytgan ? tr('Suhbatni davom ettirish', 'Продолжить чат') : tr('Suhbatni boshlash', 'Начать чат');
+  const bepulQadam = REJA_QADAMI.bepul;
+  const keyingiQadamlar = SUHBAT_QADAMLARI.slice(bepulQadam);
 
   return (
     <div ref={ildiz} className={`zs-mavzu ${b.sahifa}`} data-til={til}>
@@ -104,11 +144,14 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
             <span className={b.logoMatn}>ZumSavdo</span>
           </Havola>
           <nav className={b.navOng} aria-label={tr('Asosiy', 'Главное')}>
-            <Havola className={b.navHavola} href="#natija">{tr('Imkoniyatlar', 'Возможности')}</Havola>
-            <Havola className={b.navHavola} href="#yol">{tr('12 qadam', '12 шагов')}</Havola>
+            <Havola className={b.navHavola} href="#natija">{tr('Namuna', 'Пример')}</Havola>
+            <Havola className={b.navHavola} href="#yol">{tr('Nima olasiz', 'Что получите')}</Havola>
             <Havola className={b.navHavola} href="#narx">{tr('Narx', 'Цена')}</Havola>
             <Havola className={b.navHavola} href="#savol">{tr('Savollar', 'Вопросы')}</Havola>
-            <Havola className={b.kirish} href="/usta">{tr('Kirish', 'Войти')}</Havola>
+            <TilTanlov til={til} tanla={tilniTanla} tr={tr} className={b.tilNav} />
+            <Havola className={b.kirish} href="/usta" onClick={boshladi}>
+              {qaytgan ? tr('Davom etish', 'Продолжить') : tr('Boshlash', 'Начать')}
+            </Havola>
           </nav>
         </div>
       </header>
@@ -121,32 +164,27 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
             <span className={`${b.orb} ${b.orb3}`} aria-hidden="true" />
             <div className={b.heroIchi}>
               <div className={b.heroChap}>
-                <span className={b.bepulTeg}>{tr('Boshlash bepul', 'Начать бесплатно')}</span>
+                <div className={b.heroTepa}>
+                  <span className={b.bepulTeg}>
+                    {cheklov === false ? tr('Hozir hammasi bepul', 'Сейчас всё бесплатно') : tr('Boshlash bepul', 'Начать бесплатно')}
+                  </span>
+                  {/* Telefonda tepadagi panelga sigʻmaydi — til shu yerda. */}
+                  <TilTanlov til={til} tanla={tilniTanla} tr={tr} className={b.tilHero} />
+                </div>
                 <h1 className={b.h1}>
                   {til === 'ru'
-                    ? <>Не знаете, что продавать? <span className={b.urgu}>Напишите</span> — найдём.</>
-                    : <>Nima sotishni bilmaysizmi? <span className={b.urgu}>Yozing</span> — topib beramiz.</>}
+                    ? <>Не знаете, что продавать? <span className={b.urgu}>2 вопроса</span> — и направления готовы.</>
+                    : <>Nima sotishni bilmaysizmi? <span className={b.urgu}>2 ta savol</span> — yoʻnalishlar tayyor.</>}
                 </h1>
-              </div>
-              <div className={b.heroOng}>
                 <p className={b.lead}>
                   {tr(
-                    'Uzum bazasidan tovar, Xitoydan zavod, soʻmda tannarx va foyda. Savollarga javob bering, yordamchi hisobini chiqaradi.',
-                    'Товар из базы Uzum, фабрика в Китае, себестоимость и прибыль в сумах. Ответьте на вопросы — помощник всё посчитает.',
+                    'Uzum bazasidan tovar, Xitoydan zavod, soʻmda tannarx. Ikki savolga javob bering — mos yoʻnalishlarni raqamlari bilan koʻrasiz.',
+                    'Товар из базы Uzum, фабрика в Китае, себестоимость в сумах. Ответьте на два вопроса — увидите подходящие направления с цифрами.',
                   )}
                 </p>
-                <Havola className={b.qidiruv} href="/usta" aria-label={boshlash}>
-                  <span className={b.qidiruvChap}>
-                    <Chiz o={22} rang="#6B5A74" q={2.2} className={b.flexNone}><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></Chiz>
-                    <span className={b.qidiruvMatn}>
-                      <span className={b.yozuv}>{tr('Masalan: ', 'Например: ')}{yozuv}</span>
-                      <span className={b.kursor} aria-hidden="true" />
-                    </span>
-                  </span>
-                  <span className={`${b.tugma} ${b.tugmaGrad} ${b.shine} ${b.qidiruvTugma}`}>
-                    {tr('Topish', 'Найти')}<Strelka />
-                  </span>
-                </Havola>
+              </div>
+              <div className={b.heroOng}>
+                <BoshSavol til={til} tr={tr} />
               </div>
             </div>
 
@@ -244,79 +282,50 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
           <div className={b.natija}>
             <div className={b.natijaChap}>
               <Sarlavha
-                h={tr('Bitta suhbat — uchta javob.', 'Один чат — три ответа.')}
-                p={tr('Tovar nomini yozing. Yordamchi oʻzi qidiradi, solishtiradi va hisoblaydi.', 'Напишите название товара. Помощник сам найдёт, сравнит и посчитает.')}
+                h={tr('Raqamlar — bugungi Uzum bazasidan.', 'Цифры — из сегодняшней базы Uzum.')}
+                p={tr(
+                  `Mana namuna: ${pulMatni(namuna?.byudjet ?? 30_000_000, 'uz')} bilan boshlaganda bugun turli sohalardagi eng yuqori baholangan yoʻnalishlar. Sizga moslarini chat sohangiz va pulingiz bilan topadi.`,
+                  `Вот пример: направления с лучшей оценкой в разных сферах сегодня при старте с ${pulMatni(namuna?.byudjet ?? 30_000_000, 'ru')}. Подходящие именно вам чат подберёт по вашей сфере и бюджету.`,
+                )}
               />
               <div className={b.belgilar}>
-                <Belgili>{tr('Uzum bazasi: 6 qismli ball va 8 ta tuzoq-filtr', 'База Uzum: балл из 6 частей и 8 фильтров-ловушек')}</Belgili>
-                <Belgili>{tr('Xitoydan oʻxshash zavodlar, narx soʻmda', 'Похожие фабрики в Китае, цена в сумах')}</Belgili>
-                <Belgili>{tr('Tannarx va sof foyda, har qator manbasi bilan', 'Себестоимость и чистая прибыль, у каждой строки — источник')}</Belgili>
+                <Belgili>{tr('Har yoʻnalishda — sotuvchilar soni va katta doʻkonlar ulushi', 'В каждом направлении — число продавцов и доля крупных магазинов')}</Belgili>
+                <Belgili>{tr('Tannarx soʻmda: kargo, bojxona va Uzum ulushi bilan', 'Себестоимость в сумах: с карго, таможней и долей Uzum')}</Belgili>
+                <Belgili>{tr('Xitoydagi zavod narxlari — rasm boʻyicha', 'Цены фабрик в Китае — по фото')}</Belgili>
               </div>
               <div>
-                <Havola className={`${b.tugma} ${b.tugmaGrad} ${b.tugma60} ${b.pulse} ${b.shine}`} href="/usta">{boshlash}<Strelka /></Havola>
+                <Havola className={`${b.tugma} ${b.tugmaGrad} ${b.tugma60} ${b.pulse} ${b.shine}`} href="/usta" onClick={boshladi}>
+                  {tr('Oʻz yoʻnalishimni topish', 'Найти своё направление')}<Strelka />
+                </Havola>
               </div>
             </div>
 
             <div className={`${b.rv} ${b.grad} ${b.namuna}`}>
               <span className={`${b.orb} ${b.orb4}`} aria-hidden="true" />
               <span className={`${b.orb} ${b.orb5}`} aria-hidden="true" />
-              <div className={b.float} style={{ maxWidth: 380, '--d': '0s', '--r': '-2deg' } as CSSProperties}>
+              {namuna ? (
+                <>
+                  <div className={b.namunaBosh}>
+                    <span>{tr(`Bugun bazada · ${pulMatni(namuna.byudjet, 'uz')} bilan`, `Сегодня в базе · с ${pulMatni(namuna.byudjet, 'ru')}`)}</span>
+                    {namuna.hisoblandi && <span>{sanaMatni(namuna.hisoblandi)}</span>}
+                  </div>
+                  {namuna.royxat.map((y, i) => <NamunaKarta key={y.categoryId} y={y} i={i} tr={tr} />)}
+                  <p className={b.namunaIzoh}>
+                    {tr(
+                      'Uzum bazasi, har kuni yangilanadi. Foyda vaʼda qilinmaydi — hisobini chatda, oʻz narxingiz bilan qilamiz.',
+                      'База Uzum, обновляется каждый день. Прибыль не обещаем — считаем в чате, по вашим ценам.',
+                    )}
+                    {namuna.kesh_eskirgan && tr(' Raqamlar kechagi.', ' Цифры вчерашние.')}
+                  </p>
+                </>
+              ) : (
                 <div className={b.oqKarta}>
-                  <div className={b.tovarQator}>
-                    <div className={b.tovarRasm} aria-hidden="true" />
-                    <div className={b.tovarMatn}>
-                      <div className={b.tovarNom}>{tr('Silikon gʻilof', 'Силиконовый чехол')}</div>
-                      <div className={b.tovarTur}>{tr('Uy-roʻzgʻor · Uzum bazasi', 'Дом · база Uzum')}</div>
-                    </div>
-                    <svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={tr('Ball 78', 'Балл 78')}>
-                      <circle cx="32" cy="32" r="26" fill="none" stroke="#EFE6F4" strokeWidth="8" />
-                      <circle cx="32" cy="32" r="26" fill="none" stroke="#4A2A57" strokeWidth="8" strokeLinecap="round" strokeDasharray="163" strokeDashoffset="38" transform="rotate(-90 32 32)" />
-                      <text x="32" y="38" textAnchor="middle" fontFamily="Manrope" fontWeight="800" fontSize="18" fill="#2A1733">78</text>
-                    </svg>
-                  </div>
-                  <div className={b.chiplar14}>
-                    <span className={b.binafChip}>{tr('6 qismli ball', 'Балл из 6 частей')}</span>
-                    <span className={b.binafChip}>{tr('8 filtr oʻtdi', '8 фильтров пройдено')}</span>
-                    <Misol tr={tr} />
-                  </div>
+                  <div className={b.tovarNom}>{tr('Bugungi namuna hozir yuklanmadi.', 'Сегодняшний пример сейчас не загрузился.')}</div>
+                  <p className={b.oqKartaMatn}>
+                    {tr('Yoʻnalishlarni chatda koʻrasiz — raqamlari bilan.', 'Направления увидите в чате — с цифрами.')}
+                  </p>
                 </div>
-              </div>
-
-              <div className={b.float} style={{ maxWidth: 360, alignSelf: 'flex-end', '--d': '-1.5s', '--r': '2deg' } as CSSProperties}>
-                <div className={b.oqKarta}>
-                  <div className={b.kartaBosh}>
-                    <span>{tr(`Hisob · ${son(MISOL.dona)} dona`, `Расчёт · ${son(MISOL.dona)} шт.`)}</span><Misol tr={tr} />
-                  </div>
-                  <div className={b.ikkiUstun}>
-                    <div>
-                      <div className={b.kichikYorliq}>{tr('Sarmoya', 'Вложения')}</div>
-                      <div className={b.mln}>{mlnKasr(SARMOYA)} <span>{tr('mln', 'млн')}</span></div>
-                    </div>
-                    <div>
-                      <div className={b.kichikYorliq}>{tr('Tushum', 'Выручка')}</div>
-                      <div className={b.mln}>{mlnKasr(TUSHUM)} <span>{tr('mln', 'млн')}</span></div>
-                    </div>
-                  </div>
-                  <div className={b.foyda}>
-                    <span className={b.foydaYorliq}>{tr('Sof foyda', 'Чистая прибыль')}</span>
-                    <span className={b.foydaSon}>+{mlnKasr(FOYDA)} {tr('mln', 'млн')}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={b.float} style={{ maxWidth: 400, '--d': '-3s', '--r': '-1deg' } as CSSProperties}>
-                <div className={b.oqKarta}>
-                  <div className={b.kartaBosh}>
-                    <span>{tr('Xitoy · oʻxshash zavodlar', 'Китай · похожие фабрики')}</span><Misol tr={tr} />
-                  </div>
-                  {ZAVODLAR.map(([shahar, h, narx], n) => (
-                    <div key={h} className={`${b.zavodQator} ${n === 0 ? b.zavodQatorBirinchi : ''}`}>
-                      <span>{shahar} {tr(`zavodi ${h}`, `фабрика ${h}`)}</span>
-                      <span className={b.zavodNarx}>{son(narx)} {tr('soʻm', 'сум')}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </section>
@@ -324,21 +333,48 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
         <div className={b.yolFon}>
           <section id="yol" className={`${b.ichi} ${b.yolBolim}`}>
             <Sarlavha
-              h={tr('12 qadam, bitta suhbat.', '12 шагов, один чат.')}
-              p={tr('Tanishuvdan hisobotgacha. Har qadamda nima qilish oddiy tilda tushuntiriladi.', 'От знакомства до отчёта. На каждом шаге простым языком объясняется, что делать.')}
+              h={tr('Bugun nima olasiz', 'Что вы получите сегодня')}
+              p={tr('Bitta suhbatda, oddiy tilda. Har raqam yonida — qayerdan olingani.', 'В одном чате, простым языком. У каждой цифры — источник.')}
             />
-            <div className={b.ikkiBlok}>
-              <QadamBlok
-                tr={tr} til={til} bosh={0}
-                nom={tr('Tayyorgarlik', 'Подготовка')}
-                izoh={tr('1–6 qadam: tanlash, hisob, zavod', 'Шаги 1–6: выбор, расчёт, фабрика')}
-              />
-              <QadamBlok
-                tr={tr} til={til} bosh={6}
-                nom={tr('Sotuv', 'Продажи')}
-                izoh={tr('7–12 qadam: yetkazish va Uzum', 'Шаги 7–12: доставка и Uzum')}
-              />
-            </div>
+            <ol className={b.olish}>
+              {OLISH.map(([nUz, iUz, nRu, iRu, tez], n) => (
+                <li key={nUz} className={`${b.rv} ${b.lift} ${b.ochKarta} ${b.olishKarta}`}>
+                  <span className={b.qadamRaqam}>{n + 1}</span>
+                  <div className={b.qadamMatn}>
+                    <div className={b.olishNom}>
+                      {tr(nUz, nRu)}
+                      {tez && <span className={b.vaqtChip}>{tr('1 daqiqada', 'за минуту')}</span>}
+                    </div>
+                    <p className={b.olishIzoh}>{tr(iUz, iRu)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <details className={`${b.rv} ${b.ochKarta} ${b.keyin}`}>
+              <summary className={b.keyinBosh}>
+                {tr(
+                  `Keyin yana ${keyingiQadamlar.length} qadam: buyurtma, bojxona, Uzumga yuklash, sotuv va hisobot`,
+                  `Дальше ещё ${keyingiQadamlar.length} ${ruShakl(keyingiQadamlar.length, ['шаг', 'шага', 'шагов'])}: заказ, таможня, загрузка на Uzum, продажи и отчёт`,
+                )}
+              </summary>
+              <ol className={b.qadamlar}>
+                {keyingiQadamlar.map((q) => {
+                  const [iUz, iRu] = IZOH[q.n - 1] ?? ['', ''];
+                  return (
+                    <li key={q.n} className={b.qadam}>
+                      <span className={b.qadamRaqam}>{q.n}</span>
+                      <div className={b.qadamMatn}>
+                        <div className={b.qadamNom}>{til === 'ru' ? q.ru : q.nom}</div>
+                        <div className={b.qadamIzoh}>{tr(iUz, iRu)}</div>
+                      </div>
+                      {q.qurilgan
+                        ? <span className={`${b.holat} ${b.holatBor}`}>{tr('ishlaydi', 'работает')}</span>
+                        : <span className={b.holat}>{tr('tez orada', 'скоро')}</span>}
+                    </li>
+                  );
+                })}
+              </ol>
+            </details>
           </section>
         </div>
 
@@ -346,12 +382,12 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
           <Sarlavha h={tr('Kim uchun?', 'Для кого?')} />
           <div className={b.kimlar}>
             {([
-              ['Endi boshlayotganlar', 'Nima sotishni bilmaysizmi? Yoʻnalish va tovarni Uzum bazasidan, raqamlar bilan tanlaymiz.',
-                'Новичкам', 'Не знаете, что продавать? Подберём направление и товар по базе Uzum, с цифрами.'],
-              ['Uzumda sotayotganlar', 'Yangi tovar va tannarxni tekshiring: 8 ta tuzoq-filtr, chegara narx bilan.',
-                'Продавцам Uzum', 'Проверьте новый товар и себестоимость: 8 фильтров-ловушек и предельная цена.'],
-              ['Importchilar', 'Xitoydan zavod va narx: rasm boʻyicha, soʻmda, chegara narx bilan solishtirib.',
-                'Импортёрам', 'Фабрика и цена в Китае: по фото, в сумах, в сравнении с предельной ценой.'],
+              ['Endi boshlayotganlar', 'Nima sotishni bilmaysizmi? Yoʻnalish va tovarni Uzum bazasidagi raqamlar bilan tanlaymiz.',
+                'Новичкам', 'Не знаете, что продавать? Подберём направление и товар по цифрам из базы Uzum.'],
+              ['Uzumda sotayotganlar', 'Yangi tovarni tekshiring: sotilmaydigan va xavfli tovarlar oldindan chiqarib tashlanadi, tannarx soʻmda.',
+                'Продавцам Uzum', 'Проверьте новый товар: неходовые и рискованные отсеиваются заранее, себестоимость в сумах.'],
+              ['Importchilar', 'Xitoydan zavod va narx: rasm boʻyicha, soʻmda, Uzumdagi narx bilan solishtirib.',
+                'Импортёрам', 'Фабрика и цена в Китае: по фото, в сумах, в сравнении с ценой на Uzum.'],
               ['Qoʻshimcha daromad izlayotganlar', 'Byudjetingizdan boshlaymiz. Har qadamda raqam, qaror sizniki.',
                 'Ищущим доп. доход', 'Начнём с вашего бюджета. На каждом шаге — цифры, решение за вами.'],
             ] as const).map(([nUz, mUz, nRu, mRu], n) => (
@@ -364,39 +400,65 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
         </section>
 
         <section id="narx" className={`${b.ichi} ${b.bolim} ${b.ustma}`}>
-          <Sarlavha h={tr('Narx', 'Цена')} p={tr('Boshlash bepul. Davom etasiz — toʻliq yoʻl pullik tarifda.', 'Начать бесплатно. Дальше — полный путь на платном тарифе.')} />
+          <Sarlavha
+            h={tr('Narx', 'Цена')}
+            p={cheklov === false
+              ? tr('Hozir hammasi bepul: karta ham, toʻlov ham soʻralmaydi.', 'Сейчас всё бесплатно: ни карта, ни оплата не нужны.')
+              : cheklov === true
+                ? tr(`1–${bepulQadam} qadam doim bepul. Keyingilari — Pro tarifda.`, `Шаги 1–${bepulQadam} всегда бесплатны. Дальше — тариф Pro.`)
+                : tr(`1–${bepulQadam} qadam doim bepul.`, `Шаги 1–${bepulQadam} всегда бесплатны.`)}
+          />
           <div className={b.tariflar}>
-            <div className={`${b.rv} ${b.lift} ${b.tarif}`}>
-              <div>
-                <div className={b.tarifYorliq}>{tr('Boshlash', 'Старт')}</div>
-                <div className={b.bepul}>{tr('Bepul', 'Бесплатно')}</div>
-              </div>
-              <div className={b.belgilar12}>
-                <Belgili>{tr('Yordamchi bilan tanishuv', 'Знакомство с помощником')}</Belgili>
-                <Belgili>{tr('Yoʻnalish boʻyicha dastlabki maslahat', 'Первый совет по направлению')}</Belgili>
-                <Belgili>{tr('Umumiy savollarga javob', 'Ответы на общие вопросы')}</Belgili>
-              </div>
-              <div><Havola className={`${b.tugma} ${b.tugmaOch} ${b.tugma56}`} href="/usta">{tr('Bepul boshlash', 'Начать бесплатно')}<Strelka /></Havola></div>
-            </div>
             <div className={`${b.rv} ${b.lift} ${b.grad} ${b.tarif} ${b.tarifQora}`}>
               <div>
-                <div className={b.tarifYorliqOch}>{tr('Toʻliq yoʻl', 'Полный путь')}</div>
-                <div className={b.pullik}>{tr('Pullik tarif', 'Платный тариф')}</div>
-                <div className={b.tarifIzoh}>{tr('Narx tez orada eʼlon qilinadi.', 'Цена будет объявлена скоро.')}</div>
+                <div className={b.tarifYorliqOch}>{cheklov === false ? tr('Hozir', 'Сейчас') : tr('Bepul', 'Бесплатно')}</div>
+                <div className={b.pullik}>{cheklov === false ? tr('Hammasi bepul', 'Всё бесплатно') : tr(`1–${bepulQadam} qadam`, `Шаги 1–${bepulQadam}`)}</div>
+                <div className={b.tarifIzoh}>
+                  {cheklov === false
+                    ? tr('12 qadamning hammasi ochiq. Karta ham, toʻlov ham soʻralmaydi.', 'Открыты все 12 шагов. Ни карта, ни оплата не нужны.')
+                    : tr('Yoʻnalish, tovar, tannarx va Xitoydagi narxlar — doim bepul.', 'Направление, товар, себестоимость и цены в Китае — всегда бесплатно.')}
+                </div>
               </div>
               <div className={b.ochBelgilar}>
-                {[
-                  tr('12 qadamning hammasi', 'Все 12 шагов'),
-                  tr('Uzum bazasi tahlili, 8 ta tuzoq-filtr', 'Анализ базы Uzum, 8 фильтров-ловушек'),
-                  tr('Tannarx va foyda hisobi', 'Расчёт себестоимости и прибыли'),
-                  tr('Xitoydan zavod topish', 'Поиск фабрики в Китае'),
-                ].map((m) => (
+                {(cheklov === false
+                  ? [
+                    tr('Yoʻnalish va tovar', 'Направление и товар'),
+                    tr('Tannarx: kargo, bojxona va Uzum ulushi bilan', 'Себестоимость: с карго, таможней и долей Uzum'),
+                    tr('Xitoydagi zavod narxlari', 'Цены фабрик в Китае'),
+                    tr('Buyurtmadan Uzumda sotuvgacha', 'От заказа до продаж на Uzum'),
+                  ]
+                  : [
+                    tr('Yoʻnalish va tovar', 'Направление и товар'),
+                    tr('Tannarx: kargo, bojxona va Uzum ulushi bilan', 'Себестоимость: с карго, таможней и долей Uzum'),
+                    tr('Xitoydagi zavod narxlari', 'Цены фабрик в Китае'),
+                  ]).map((m) => (
                   <div key={m} className={b.ochBelgi}>
                     <Chiz o={20} rang="#CDA9DE" q={2.6} className={b.flexNone}><path d="M5 12l5 5L20 7" /></Chiz>{m}
                   </div>
                 ))}
               </div>
-              <div><Havola className={`${b.tugma} ${b.tugmaOq} ${b.tugma56}`} href="/usta">{boshlash}<Strelka /></Havola></div>
+              <div>
+                <Havola className={`${b.tugma} ${b.tugmaOq} ${b.tugma56}`} href="/usta" onClick={boshladi}>
+                  {tr('Bepul boshlash', 'Начать бесплатно')}<Strelka />
+                </Havola>
+              </div>
+            </div>
+            <div className={`${b.rv} ${b.lift} ${b.tarif}`}>
+              <div>
+                <div className={b.tarifYorliq}>{cheklov === false ? tr('Keyinchalik · Pro', 'Позже · Pro') : 'Pro'}</div>
+                <div className={b.narxKatta}>{son(OBUNA_NARXI)} <span>{tr('soʻm / oy', 'сум / мес')}</span></div>
+                <div className={b.tarifIzohXira}>
+                  {cheklov === false
+                    ? tr(`Pro tarif yoqilganda ham 1–${bepulQadam} qadam bepul qoladi.`, `И после включения Pro шаги 1–${bepulQadam} останутся бесплатными.`)
+                    : tr(`${bepulQadam + 1}–12 qadam: buyurtmadan hisobotgacha.`, `Шаги ${bepulQadam + 1}–12: от заказа до отчёта.`)}
+                </div>
+              </div>
+              <div className={b.belgilar12}>
+                <Belgili>{tr('Buyurtma va kargo', 'Заказ и карго')}</Belgili>
+                <Belgili>{tr('Bojxona va qabul', 'Таможня и приёмка')}</Belgili>
+                <Belgili>{tr('Surat, kartochka va Uzumga yuklash', 'Фото, карточка и загрузка на Uzum')}</Belgili>
+                <Belgili>{tr('Sotuv kuzatuvi va oylik hisobot', 'Отслеживание продаж и отчёт за месяц')}</Belgili>
+              </div>
             </div>
           </div>
         </section>
@@ -407,12 +469,18 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
             {([
               ['ZumSavdo nima qiladi?', 'Uzumda savdo qilishning butun yoʻlida yoningizda boʻladi: nima sotishni tanlashdan tortib, tovarni Xitoydan topish, olib kelish va Uzumda sotishgacha.',
                 'Что делает ZumSavdo?', 'Помогает на всём пути продаж на Uzum: от выбора, что продавать, до поиска товара в Китае, доставки и продаж на Uzum.'],
-              ['Bu bepulmi?', 'Boshlash bepul. Toʻliq yoʻl pullik tarifda.',
-                'Это бесплатно?', 'Начать бесплатно. Полный путь — на платном тарифе.'],
-              ['Raqamim nima uchun kerak?', 'Faqat siz bilan bogʻlanish uchun. Boshqa hech kimga berilmaydi.',
-                'Зачем мой номер?', 'Только чтобы связаться с вами. Никому не передаётся.'],
-              ['Raqamlar qayerdan olinadi?', 'Uzum bazasidan, 8 ta tuzoq-filtr bilan. Har qator manbasi bilan koʻrsatiladi.',
-                'Откуда цифры?', 'Из базы Uzum, с 8 фильтрами-ловушками. У каждой строки указан источник.'],
+              ['Roʻyxatdan oʻtish kerakmi?', 'Yoʻq. Email ham, parol ham soʻralmaydi: chatni ochasiz va darhol boshlaysiz.',
+                'Нужна регистрация?', 'Нет. Ни email, ни пароль не нужны: открываете чат и сразу начинаете.'],
+              ['Bu bepulmi?', cheklov === false
+                ? `Hozir hamma qadamlar bepul. Pro tarif yoqilganda ham 1–${bepulQadam} qadam bepul qoladi: yoʻnalish, tovar, tannarx va Xitoydagi narxlar.`
+                : `1–${bepulQadam} qadam doim bepul: yoʻnalish, tovar, tannarx va Xitoydagi narxlar. Pro tarif — ${son(OBUNA_NARXI)} soʻm / oy.`,
+              'Это бесплатно?', cheklov === false
+                ? `Сейчас все шаги бесплатны. И после включения Pro шаги 1–${bepulQadam} останутся бесплатными: направление, товар, себестоимость и цены в Китае.`
+                : `Шаги 1–${bepulQadam} всегда бесплатны: направление, товар, себестоимость и цены в Китае. Тариф Pro — ${son(OBUNA_NARXI)} сум / мес.`],
+              ['Raqamim nima uchun kerak?', 'Birinchi natijani raqamsiz koʻrasiz. Raqam yoʻnalish tanlangach soʻraladi — natijangizni saqlash va siz bilan bogʻlanish uchun. Boshqa hech kimga berilmaydi.',
+                'Зачем мой номер?', 'Первый результат вы увидите без номера. Номер спрашиваем после выбора направления — чтобы сохранить результат и связаться с вами. Никому не передаётся.'],
+              ['Raqamlar qayerdan olinadi?', 'Uzumning ochiq sahifalaridan, har kuni oʻlchanadi. Sotilmaydigan va xavfli tovarlar oldindan chiqarib tashlanadi. Har raqam yonida qayerdan olingani yozilgan.',
+                'Откуда цифры?', 'С открытых страниц Uzum, измеряем каждый день. Неходовые и рискованные товары отсеиваются заранее. У каждой цифры указан источник.'],
               ['Qaror kimniki?', 'Sizniki. Yordamchi tavsiya beradi va hisoblaydi, tanlov har doim sizda.',
                 'Кто принимает решение?', 'Вы. Помощник советует и считает, выбор всегда за вами.'],
             ] as const).map(([sUz, jUz, sRu, jRu]) => (
@@ -430,12 +498,12 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
               <h2 className={b.ctaSarlavha}>{tr('Birinchi tovaringizni bugun toping.', 'Найдите свой первый товар сегодня.')}</h2>
               <p className={b.ctaMatn}>
                 {tr(
-                  'Bir necha oddiy savol: tajribangiz, qiziqishingiz va byudjetingiz. Boshlash bepul.',
-                  'Несколько простых вопросов: опыт, интересы и бюджет. Начать бесплатно.',
+                  'Ikki savol: qaysi soha va qancha pul. Birinchi natija bir daqiqada.',
+                  'Два вопроса: какая сфера и сколько денег. Первый результат — за минуту.',
                 )}
               </p>
             </div>
-            <Havola className={`${b.tugma} ${b.tugmaOq} ${b.tugma64}`} href="/usta">{boshlash}<Strelka /></Havola>
+            <Havola className={`${b.tugma} ${b.tugmaOq} ${b.tugma64}`} href="/usta" onClick={boshladi}>{boshlash}<Strelka /></Havola>
           </section>
         </div>
       </main>
@@ -457,58 +525,160 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil }: {
 }
 
 /**
- * Qidiruv qutisidagi «yozilayotgan» misol: harf-harf yoziladi, 1,8 s
- * turadi, oʻchadi, keyingisi. Birinchi chizishda (va harakat oʻchiq
- * boʻlsa doim) — birinchi misol toʻliq, jim.
+ * Tepadagi 2 savol (nazoratchi, 2026-10-28; 1-taklif): chatning birinchi ikki savoli — qaysi
+ * soha va qancha pul — shu yerning oʻzida, variantlari chatdagidek (`SAVDO_SOHALARI` +
+ * «Bilmayman», `BYUDJET_TUGMALARI`). «Yoʻnalishlarni koʻrish» — matn varaq xotirasiga, chat
+ * ochiladi va u bilan boshlanadi (`lib/bosh-xabar.ts`). Oʻzi yozsa ham boʻladi — AI tushunadi.
  */
-function useYozuv(misollar: readonly string[]): string {
-  const [matn, setMatn] = useState(misollar[0] ?? '');
-  useEffect(() => {
-    setMatn(misollar[0] ?? '');
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let pi = 0;
-    let ci = misollar[0]?.length ?? 0;
-    let ochir = true;
-    let t = 0;
-    const qadam = () => {
-      const m = misollar[pi] ?? '';
-      ci += ochir ? -1 : 1;
-      setMatn(m.slice(0, ci));
-      let kut = ochir ? 28 : 55;
-      if (!ochir && ci === m.length) { ochir = true; kut = 1800; }
-      else if (ochir && ci <= 0) { ochir = false; pi = (pi + 1) % misollar.length; kut = 300; }
-      t = window.setTimeout(qadam, kut);
-    };
-    t = window.setTimeout(qadam, 1800);
-    return () => clearTimeout(t);
-  }, [misollar]);
-  return matn;
+function BoshSavol({ til, tr }: { til: Til; tr: Tr }) {
+  const [sohalar, setSohalar] = useState<string[]>([]);
+  const [pul, setPul] = useState<number | null>(null);
+  const [ozi, setOzi] = useState('');
+  const [ketdi, setKetdi] = useState(false);
+  const hash = useKengaytmaHashi();
+  const matn = boshXabarMatni(sohalar, pul, ozi, til);
+
+  // «Bilmayman» boshqa sohalar bilan birga tanlanmaydi (chatdagidek).
+  const sohaBos = (id: string) => setSohalar((s) => (id === BILMAYMAN
+    ? (s.includes(BILMAYMAN) ? [] : [BILMAYMAN])
+    : s.includes(id) ? s.filter((x) => x !== id) : [...s.filter((x) => x !== BILMAYMAN), id]));
+
+  function yubor(e: FormEvent) {
+    e.preventDefault();
+    if (!matn || ketdi) return;
+    setKetdi(true);
+    boshXabarniSaqla(matn);
+    birMarta('bosh_boshladi');
+    window.location.assign(hashBilan('/usta', hash));
+  }
+
+  return (
+    <form className={b.savolKarta} onSubmit={yubor} aria-label={tr('Yoʻnalish topish', 'Подбор направления')}>
+      <fieldset className={b.savolGuruh}>
+        <legend className={b.savolNom}>{tr('Qaysi soha sizga yaqin?', 'Какая сфера вам ближе?')}</legend>
+        <div className={b.tanlovlar}>
+          {SAVDO_SOHALARI.map((s) => (
+            <button key={s.id} type="button" className={b.tanlov} aria-pressed={sohalar.includes(s.id)} onClick={() => sohaBos(s.id)}>
+              {tr(...SOHA_QISQA[s.id])}
+            </button>
+          ))}
+          <button type="button" className={b.tanlov} aria-pressed={sohalar.includes(BILMAYMAN)} onClick={() => sohaBos(BILMAYMAN)}>
+            {tr('Bilmayman', 'Не знаю')}
+          </button>
+        </div>
+      </fieldset>
+      <fieldset className={b.savolGuruh}>
+        <legend className={b.savolNom}>{tr('Qancha pul bilan boshlaysiz?', 'С какой суммы начнёте?')}</legend>
+        <div className={b.tanlovlar}>
+          {BYUDJET_TUGMALARI.map((v) => {
+            const n = Number(v.qiymat);
+            return (
+              <button key={n} type="button" className={b.tanlov} aria-pressed={pul === n} onClick={() => setPul((p) => (p === n ? null : n))}>
+                {pulMatni(n, til)}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+      <div className={b.yokiQator}>{tr('yoki oʻzingiz yozing', 'или напишите сами')}</div>
+      <input
+        className={b.yozMaydon}
+        value={ozi}
+        onChange={(e) => setOzi(e.target.value)}
+        maxLength={300}
+        enterKeyHint="go"
+        aria-label={tr('Oʻzingiz yozing: soha va pul', 'Напишите сами: сфера и бюджет')}
+        placeholder={tr('Masalan: idishlar, 20 mln', 'Например: посуда, 20 млн')}
+      />
+      <button type="submit" className={`${b.tugma} ${b.tugmaOq} ${b.korishTugma}`} disabled={!matn || ketdi}>
+        {tr('Yoʻnalishlarni koʻrish', 'Показать направления')}<Strelka />
+      </button>
+      <p className={b.heroIzoh}>{tr('Roʻyxatdan oʻtish va telefon kerak emas.', 'Без регистрации и номера телефона.')}</p>
+    </form>
+  );
 }
 
-function QadamBlok({ tr, til, bosh, nom, izoh }: { tr: Tr; til: Til; bosh: number; nom: string; izoh: string }) {
+/** UZ | RU (nazoratchi, 2026-10-28): bosh sahifada ham til tanlanadi — tanlov chatga ham oʻtadi (`so_til`). */
+function TilTanlov({ til, tanla, tr, className }: { til: Til; tanla: (t: Til) => void; tr: Tr; className: string | undefined }) {
   return (
-    <div className={`${b.rv} ${b.lift} ${b.ochKarta} ${b.qadamBlok}`}>
-      <div className={b.blokNom}>{nom}</div>
-      <div className={b.blokIzoh}>{izoh}</div>
-      <ol className={b.qadamlar}>
-        {SUHBAT_QADAMLARI.slice(bosh, bosh + 6).map((q) => {
-          const [iUz, iRu] = IZOH[q.n - 1] ?? ['', ''];
-          return (
-            <li key={q.n} className={b.qadam}>
-              <span className={b.qadamRaqam}>{q.n}</span>
-              <div className={b.qadamMatn}>
-                <div className={b.qadamNom}>{til === 'ru' ? q.ru : q.nom}</div>
-                <div className={b.qadamIzoh}>{tr(iUz, iRu)}</div>
-              </div>
-              {q.qurilgan
-                ? <span className={`${b.holat} ${b.holatBor}`}>{tr('ishlaydi', 'работает')}</span>
-                : <span className={b.holat}>{tr('tez orada', 'скоро')}</span>}
-            </li>
-          );
-        })}
-      </ol>
+    <div className={`${b.tilTanlov} ${className ?? ''}`} role="group" aria-label={tr('Til', 'Язык')}>
+      {(['uz', 'ru'] as const).map((t) => (
+        <button key={t} type="button" lang={t} aria-pressed={til === t} onClick={() => tanla(t)}>
+          {t === 'uz' ? 'UZ' : 'RU'}
+        </button>
+      ))}
     </div>
   );
+}
+
+/** Bugungi namunadagi bitta yoʻnalish — chatdagi 2-qadam kartasining qisqasi. */
+function NamunaKarta({ y, i, tr }: { y: NamunaYonalish; i: number; tr: Tr }) {
+  const soha = SAVDO_SOHALARI.find((s) => s.id === y.soha);
+  // Uzum CDN rasmi yuklanmasa — oʻsha rasm yashirinadi (chatdagidek).
+  const [buzilgan, setBuzilgan] = useState<ReadonlySet<string>>(new Set());
+  const rasmlar = y.rasmlar.filter((r) => !buzilgan.has(r.url));
+  return (
+    <div
+      className={b.float}
+      style={{ maxWidth: 400, ...(i === 1 ? { alignSelf: 'flex-end' } : {}), '--d': `${-1.5 * i}s`, '--r': ['-2deg', '2deg', '-1deg'][i % 3] } as CSSProperties}
+    >
+      <div className={b.oqKarta}>
+        <div className={b.tovarQator}>
+          <div className={b.tovarMatn}>
+            <div className={b.tovarNom}>{y.name}</div>
+            <div className={b.tovarTur}>{soha ? tr(soha.nom, soha.ru) : tr('Boshqa', 'Другое')}</div>
+          </div>
+          {y.ball !== null && <BallHalqa ball={y.ball} tr={tr} />}
+        </div>
+        {rasmlar.length > 0 && (
+          <div className={b.tovarRasmlar}>
+            {rasmlar.map((r) => (
+              // Uzum CDN begona Referer bilan rasm bermaydi — `no-referrer` (chatdagidek).
+              <img
+                key={r.url} src={r.url} alt={r.nom} title={r.nom} width={48} height={48} loading="lazy" decoding="async"
+                className={b.tovarRasm} referrerPolicy="no-referrer"
+                onError={() => setBuzilgan((s) => new Set(s).add(r.url))}
+              />
+            ))}
+          </div>
+        )}
+        <div className={b.chiplar14}>
+          {y.sotuvchiSoni !== null && (
+            <span className={b.binafChip}>
+              {tr(`${son(y.sotuvchiSoni)} ta sotuvchi`, `${son(y.sotuvchiSoni)} ${ruShakl(y.sotuvchiSoni, ['продавец', 'продавца', 'продавцов'])}`)}
+            </span>
+          )}
+          {y.top3Ulush !== null && (
+            <span className={b.binafChip}>{tr(`3 ta katta doʻkon: ${y.top3Ulush} %`, `3 крупнейших магазина: ${y.top3Ulush} %`)}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Imkoniyat bahosi halqasi (0–100). */
+function BallHalqa({ ball, tr }: { ball: number; tr: Tr }) {
+  const aylana = 2 * Math.PI * 26;
+  const ulush = Math.max(0, Math.min(100, ball)) / 100;
+  return (
+    <svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={tr(`Imkoniyat bahosi: ${ball} / 100`, `Оценка возможности: ${ball} / 100`)} className={b.flexNone}>
+      <circle cx="32" cy="32" r="26" fill="none" stroke="#EFE6F4" strokeWidth="8" />
+      <circle
+        cx="32" cy="32" r="26" fill="none" stroke="#4A2A57" strokeWidth="8" strokeLinecap="round"
+        strokeDasharray={aylana.toFixed(1)} strokeDashoffset={(aylana * (1 - ulush)).toFixed(1)} transform="rotate(-90 32 32)"
+      />
+      <text x="32" y="38" textAnchor="middle" fontFamily="Manrope" fontWeight="800" fontSize="18" fill="#2A1733">{ball}</text>
+    </svg>
+  );
+}
+
+/** ISO vaqt → Toshkent sanasi `28.10.2026`. */
+function sanaMatni(iso: string): string {
+  const q = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tashkent', day: '2-digit', month: '2-digit', year: 'numeric' })
+    .formatToParts(new Date(iso));
+  const p = (nom: string) => q.find((x) => x.type === nom)?.value ?? '';
+  return `${p('day')}.${p('month')}.${p('year')}`;
 }
 
 function Sarlavha({ h, p }: { h: string; p?: string }) {

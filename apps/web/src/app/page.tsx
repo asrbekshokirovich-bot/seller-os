@@ -15,9 +15,12 @@
  */
 
 import type { Metadata, Viewport } from 'next';
+import { cookies } from 'next/headers';
 import { after } from 'next/server';
 import { holatMatni } from '@/lib/bazamiz';
 import { bazamizniKutibOl } from '@/lib/bazamizOl';
+import { boshNamuna, boshTarif } from '@/lib/boshOl';
+import { COOKIE } from '@/lib/sessiya';
 import { tarjima } from '@/lib/til';
 import { serverTili } from '@/lib/til-server';
 import BoshSahifa from './BoshSahifa';
@@ -40,23 +43,33 @@ export async function generateMetadata(): Promise<Metadata> {
       'ZumSavdo — Выберите по цифрам, что продавать на Uzum',
     ),
     description: tr(
-      'Nisha tanlash va tannarx — Uzum bazasidan, 8 ta tuzoq-filtr bilan; Xitoydan (1688) topish — rasm boʻyicha. '
-        + 'Buyurtma va yetkazish — tez orada.',
-      'Выбор ниши и себестоимость — по базе Uzum, с 8 фильтрами-ловушками; поиск в Китае (1688) — по фото. '
-        + 'Заказ и доставка — скоро.',
+      'Uzumda nima sotishni bugungi bazadagi raqamlar bilan tanlang: yoʻnalish, tovar, tannarx va Xitoydagi '
+        + 'zavod narxi — bitta suhbatda, buyurtmadan Uzumda sotuvgacha. Ikki savoldan boshlanadi.',
+      'Выберите, что продавать на Uzum, по цифрам из сегодняшней базы: направление, товар, себестоимость и цена '
+        + 'фабрики в Китае — в одном чате, от заказа до продаж на Uzum. Начинается с двух вопросов.',
     ),
   };
 }
 
 export default async function Page() {
   const hozir = Date.now();
-  // Baza sekin boʻlsa sahifa 4 s dan ortiq kutmaydi (`bazamizniKutibOl`).
-  const o = await bazamizniKutibOl(hozir, 4000, (sorov) => after(() => sorov));
+  // Baza sekin boʻlsa sahifa 4 s dan ortiq kutmaydi (`bazamizniKutibOl`, `boshOl.ts`): kech
+  // kelgan javob keshni toʻldiradi, keyingi tashrif uni oladi.
+  const kechroq = (sorov: Promise<unknown>) => after(() => sorov);
+  const [o, namuna, tarif] = await Promise.all([
+    bazamizniKutibOl(hozir, 4000, kechroq),
+    boshNamuna.kutibOl(hozir, 4000, kechroq),
+    boshTarif.kutibOl(hozir, 3000, kechroq),
+  ]);
   return (
     <BoshSahifa
       tovar={o && typeof o.qiymat.tovar === 'number' ? o.qiymat.tovar : null}
       holat={holatMatni(o, hozir)}
       holatRu={holatMatni(o, hozir, 'ru')}
+      namuna={namuna}
+      cheklov={tarif?.cheklov ?? null}
+      // Chat oldin ochilgan (sessiya cookie si bor) — «Boshlash» oʻrniga «Davom etish».
+      qaytgan={Boolean((await cookies()).get(COOKIE)?.value)}
       til={await serverTili()}
     />
   );

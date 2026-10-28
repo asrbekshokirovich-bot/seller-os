@@ -14,7 +14,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { SUHBAT_QADAMLARI, type AiXarajati, type Kpi, type Reja } from '@selleros/shared';
+import { SUHBAT_QADAMLARI, ulush, voronkaOqi, type AiXarajati, type Kpi, type Reja, type Voronka } from '@selleros/shared';
 import { olib } from '@/lib/api';
 import { son } from '@/lib/bazamiz';
 import { holat } from '@/lib/panel';
@@ -105,6 +105,13 @@ interface BaholarJavobi {
     manba: Record<string, { yaxshi: number; yomon: number }>;
     savol: { savolId: string; yomon: number }[];
   };
+}
+
+/** `GET /hisob-voronka` javobi — bosh sahifa hisoblagichi (0076), faqat sanoq. */
+interface HisobVoronkaJavobi {
+  olchov_yoq?: boolean;
+  sabab?: string;
+  voronka?: unknown;
 }
 
 /**
@@ -232,12 +239,13 @@ export default async function OlchovSahifasi(
     return <Kirish xato={q.xato === '1'} />;
   }
 
-  const [kpi, tarif, darvoza, tuzoqlar, baholar] = await Promise.all([
+  const [kpi, tarif, darvoza, tuzoqlar, baholar, hisobVoronka] = await Promise.all([
     olib<KpiJavobi>('/kpi'),
     olib<TarifJavobi>('/tarif'),
     olib<DarvozaJavobi>('/darvoza'),
     olib<TuzoqJavobi>('/tuzoqlar'),
     olib<BaholarJavobi>('/baholar'),
+    olib<HisobVoronkaJavobi>('/hisob-voronka'),
   ]);
 
   return (
@@ -282,6 +290,8 @@ export default async function OlchovSahifasi(
             />
           </>
         )}
+
+        <BoshVoronka j={hisobVoronka} />
 
         <Tuzoqlar t={tuzoqlar} />
 
@@ -725,6 +735,88 @@ function Baholar({ b }: { b: BaholarJavobi | null }) {
       <p className={u.sabab}>
         Har xabar uchun oxirgi baho sanaladi (fikrini oʻzgartirgan mijoz ikki marta
         sanalmaydi). Javob matnlari bu yerda koʻrsatilmaydi — maxfiylik uchun.
+      </p>
+    </section>
+  );
+}
+
+/** Voronka bosqichlari — `shared/hisob.ts` dagi tartibda. */
+const BOSQICHLAR: ReadonlyArray<readonly [keyof Voronka['jami'], string]> = [
+  ['ochdi', 'Sahifani ochdi'],
+  ['boshladi', 'Boshladi'],
+  ['javob', 'Birinchi javob'],
+  ['yonalish', 'Yoʻnalish koʻrdi'],
+];
+
+/** `2026-10-28` → `28.10.2026`. */
+function kunMatni(sana: string): string {
+  return `${sana.slice(8, 10)}.${sana.slice(5, 7)}.${sana.slice(0, 4)}`;
+}
+
+/**
+ * Bosh sahifa voronkasi (0076; nazoratchi, 2026-10-28: «hisoblagich qoʻy»). Ismsiz sanoq:
+ * bosh sahifa ochildi → «Boshlash» → chatda birinchi javob → yoʻnalishlar chiqdi. Har
+ * bosqich yonida — oldingisining necha foizi. Hisoblagich ishga tushmagan kunlar —
+ * chiziqcha (oʻlchanmagan), nol emas; sinov brauzerlari sanalmaydi, soni pastda.
+ */
+function BoshVoronka({ j }: { j: HisobVoronkaJavobi | null }) {
+  const v = j && !j.olchov_yoq ? voronkaOqi(j.voronka) : null;
+  if (!v) {
+    return (
+      <section className={u.blok}>
+        <header className={u.blokHead}><h2>Bosh sahifa voronkasi</h2></header>
+        <div className={u.xato}>
+          <b>Hisoblagich sanogʻi olinmadi.</b>
+          <p>
+            Nol koʻrsatilmaydi: u &laquo;hech kim kirmadi&raquo; degan daʼvo boʻlardi. Bazada{' '}
+            <code className={u.kod}>so_hisob_voronka</code> (0076) qoʻllanganini tekshiring.
+          </p>
+        </div>
+      </section>
+    );
+  }
+  const s = (n: number | null) => (n === null ? '—' : son(n));
+  return (
+    <section className={u.blok}>
+      <header className={u.blokHead}>
+        <h2>Bosh sahifa voronkasi</h2>
+        <span>GET /hisob-voronka · {v.kun} kun</span>
+      </header>
+
+      <section className={u.tally} aria-label="Bosh sahifa voronkasi — davr yigʻindisi">
+        {BOSQICHLAR.map(([b, nom], i) => {
+          const f = i === 0 ? null : ulush(v.jami[b], v.jami[BOSQICHLAR[i - 1]![0]]);
+          return (
+            <div key={b} className={v.jami[b] === null ? u.tallyYoq : undefined}>
+              <span className={u.tallyN}>{s(v.jami[b])}{f !== null && <small> · {f}%</small>}</span>
+              <span className={u.tallyK}>{nom}</span>
+            </div>
+          );
+        })}
+      </section>
+
+      <div className={u.voronkaJoy}>
+        <table className={u.voronkaJadval}>
+          <thead>
+            <tr><th scope="col">Kun</th>{BOSQICHLAR.map(([b, nom]) => <th key={b} scope="col">{nom}</th>)}</tr>
+          </thead>
+          <tbody>
+            {v.kunlar.map((k) => (
+              <tr key={k.sana} className={k.ochdi === null ? u.yoqKun : undefined}>
+                <td>{kunMatni(k.sana)}</td>
+                {BOSQICHLAR.map(([b]) => <td key={b}>{s(k[b])}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className={u.sabab}>
+        {v.boshlandi === null
+          ? 'Hisoblagich hali birorta tashrifni sanamagan.'
+          : `Hisoblagich ${kunMatni(v.boshlandi)} dan beri sanaydi; undan oldingi kunlar — chiziqcha (oʻlchanmagan).`}
+        {' '}Ismsiz: faqat bosqich nomi va vaqti yoziladi. Har bosqich bir varaqda bir marta sanaladi.
+        {v.sinov > 0 ? ` Sinov brauzerlaridan ${son(v.sinov)} ta yozuv sanalmadi.` : ''}
       </p>
     </section>
   );

@@ -49,6 +49,9 @@ import {
   joriyQadam,
   type YolHolati,
   javobniBahola,
+  hisobniYoz,
+  voronkaniOl,
+  boshNamunasi,
   kartochkaYozBer,
   turkumRasmlari,
   suhbatBoshdan,
@@ -722,6 +725,21 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     return javob({ olchov_yoq: false, baholar: b });
   }
 
+  // Bosh sahifa hisoblagichi (0076; nazoratchi, 2026-10-28: «hisoblagich qoʻy») — ismsiz:
+  // sayt faqat bosqich nomini yuboradi, sessiya kerak emas (`shared/hisob.ts`).
+  if (yol === '/hisob' && req.method === 'POST') {
+    let tana: Record<string, unknown> = {};
+    try { tana = (await req.json()) as Record<string, unknown>; } catch { /* boʻsh */ }
+    const n = await hisobniYoz(rpc, tana);
+    return javob(n.tana, n.status);
+  }
+
+  // Hisoblagich sanogʻi kunma-kun — /olchov paneli. Faqat sanoq.
+  if (yol === '/hisob-voronka') {
+    const n = await voronkaniOl(rpc, new URL(req.url).searchParams.get('kun'));
+    return javob(n.tana, n.status);
+  }
+
   // B2 darvozasi holati — nechta odam "mantiqli" dedi.
   if (yol === '/darvoza') {
     const d = await rpc<unknown>('so_darvoza_b2', {});
@@ -739,6 +757,13 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const b = await rpc<unknown>('so_bazamiz', {});
     if (b === null) return javob({ olchov_yoq: true, sabab: 'baza javob bermadi' }, 503);
     return javob({ olchov_yoq: false, bazamiz: b });
+  }
+
+  // Bosh sahifa namunasi (nazoratchi, 2026-10-28): bugungi bazadan 3 ta yoʻnalish — 30 mln soʻm
+  // bilan, chatdagi kod bilan bir xil; tavsiya jurnaliga yozilmaydi (`shared/bosh-namuna.ts`).
+  if (yol === '/bosh-namuna') {
+    const n = await boshNamunasi(rpc, hozirgiOy());
+    return javob(n.tana, n.status);
   }
 
   // Amaldagi tarif — UI qulfni BOSISHDAN OLDIN koʻrsatishi uchun.
