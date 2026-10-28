@@ -34,8 +34,24 @@ export function sinovmi(): boolean {
   }
 }
 
-/** Hisobni yuboradi. Sahifa yopilsa ham yetib boradi (`sendBeacon`), boʻlmasa — `fetch`. */
+/**
+ * Avtomat brauzer yoki robot (qidiruv tizimi, skrinshot xizmati) — odam emas: sanalsa «sahifani
+ * ochdi» oshib, voronka buzilardi (2026-10-28: joylangan zahoti noma'lum ikki «ochdi» tushdi).
+ * Avtomat brauzer buni `navigator.webdriver` bilan oʻzi aytadi; qolganlari — nomida.
+ */
+const ROBOT = /bot|crawl|spider|slurp|headless|lighthouse|vercel/iu;
+
+export function robotmi(): boolean {
+  try {
+    return navigator.webdriver === true || ROBOT.test(navigator.userAgent ?? '');
+  } catch {
+    return false;
+  }
+}
+
+/** Hisobni yuboradi. Sahifa yopilsa ham yetib boradi (`sendBeacon`), boʻlmasa — `fetch`. Robot — yuborilmaydi. */
 export function hisobla(nom: HisobNomi): void {
+  if (robotmi()) return;
   const tana = JSON.stringify(sinovmi() ? { nom, sinov: true } : { nom });
   try {
     if (navigator.sendBeacon?.('/api/hisob', new Blob([tana], { type: 'application/json' }))) return;

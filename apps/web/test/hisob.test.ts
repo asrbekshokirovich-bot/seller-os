@@ -10,7 +10,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { birMarta, hisobla, sinovmi, sinovniOqi } from '../src/lib/hisob';
+import { birMarta, hisobla, robotmi, sinovmi, sinovniOqi } from '../src/lib/hisob';
 import { POST } from '../src/app/api/hisob/route';
 
 /** Soxta brauzer xotirasi (vitest node muhitida yoʻq). */
@@ -85,6 +85,32 @@ describe('hisobla', () => {
     expect(sozlama).toMatchObject({ method: 'POST', keepalive: true, body: JSON.stringify({ nom: 'suhbat_yonalish' }) });
     vi.stubGlobal('fetch', () => { throw new Error('tarmoq'); });
     expect(() => hisobla('bosh_ochildi')).not.toThrow();
+  });
+});
+
+describe('robotlar sanalmaydi', () => {
+  const ODAM = 'Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
+
+  it('avtomat brauzer (`webdriver`), headless, qidiruv va skrinshot robotlari — yuborilmaydi', () => {
+    for (const nav of [
+      { webdriver: true, userAgent: ODAM },
+      { userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/130.0 Safari/537.36' },
+      { userAgent: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },
+      { userAgent: 'Mozilla/5.0 (compatible; YandexBot/3.0)' },
+      { userAgent: 'Mozilla/5.0 Chrome-Lighthouse' },
+    ]) {
+      vi.stubGlobal('navigator', { sendBeacon: beacon, ...nav });
+      expect(robotmi(), nav.userAgent).toBe(true);
+      hisobla('bosh_ochildi');
+    }
+    expect(beacon).not.toHaveBeenCalled();
+  });
+
+  it('oddiy telefon va kompyuter brauzeri — sanaladi', () => {
+    vi.stubGlobal('navigator', { sendBeacon: beacon, webdriver: false, userAgent: ODAM });
+    expect(robotmi()).toBe(false);
+    hisobla('bosh_ochildi');
+    expect(beacon).toHaveBeenCalledTimes(1);
   });
 });
 

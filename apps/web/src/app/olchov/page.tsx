@@ -815,7 +815,8 @@ function BoshVoronka({ j }: { j: HisobVoronkaJavobi | null }) {
         {v.boshlandi === null
           ? 'Hisoblagich hali birorta tashrifni sanamagan.'
           : `Hisoblagich ${kunMatni(v.boshlandi)} dan beri sanaydi; undan oldingi kunlar — chiziqcha (oʻlchanmagan).`}
-        {' '}Ismsiz: faqat bosqich nomi va vaqti yoziladi. Har bosqich bir varaqda bir marta sanaladi.
+        {' '}Ismsiz: faqat bosqich nomi va vaqti yoziladi. Har bosqich bir varaqda bir marta sanaladi;
+        avtomat brauzerlar va robotlar sanalmaydi.
         {v.sinov > 0 ? ` Sinov brauzerlaridan ${son(v.sinov)} ta yozuv sanalmadi.` : ''}
       </p>
     </section>
