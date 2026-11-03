@@ -1003,12 +1003,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                 tr={tr}
               />
             )}
-            <p className={u.pastIzoh}>
-              {tr(
-                'Savol tartibini va raqamlarni kod beradi — Uzum bazasidan, 8 ta tuzoq-filtr bilan. Qaror sizniki.',
-                'Порядок вопросов и цифры даёт код — из базы Uzum, через 8 фильтров-ловушек. Решение за вами.',
-              )}
-            </p>
+            {/* «Savol tartibini va raqamlarni kod beradi…» izohi olib tashlandi (nazoratchi, 2026-11-03). */}
           </div>
         </div>
       </div>
