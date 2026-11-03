@@ -10,7 +10,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { hashBilan, kengaytmaHashi, kengaytmaTokeni, tokensizHash } from '../src/lib/kengaytma';
+import { hashBilan, kengaytmadami, kengaytmaHashi, kengaytmaTokeni, tokensizHash } from '../src/lib/kengaytma';
 
 const TOKEN = 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
 const HASH = `#sessiya=${TOKEN}&kengaytma=1`;
@@ -187,5 +187,29 @@ describe('kengaytmaTokeni', () => {
   it('hech qayerda yoʻq — null (oddiy sayt: cookie ishlaydi)', () => {
     expect(kengaytmaTokeni(soxtaOyna('/usta').oyna)).toBeNull();
     expect(kengaytmaTokeni(soxtaOyna('/usta#yol', 'yopiq').oyna)).toBeNull();
+  });
+});
+
+/**
+ * Kengaytmadami (2026-11-03): kengaytma panelida «Chiqish» koʻrsatilmaydi — sessiyani
+ * kengaytma saqlaydi, sayt cookie sini oʻchirish uni unuttirmaydi. Faqat oʻqiydi: manzil
+ * ham, xotira ham oʻzgarmaydi.
+ */
+describe('kengaytmadami', () => {
+  it('token hash da yoki varaq xotirasida — kengaytma', () => {
+    const s = soxtaOyna(`/usta${HASH}`);
+    expect(kengaytmadami(s.oyna)).toBe(true);
+    expect(s.saqlov.size).toBe(0);
+    expect(s.replaceState).not.toHaveBeenCalled();
+    expect(kengaytmadami(soxtaOyna('/usta', 'bor', TOKEN).oyna)).toBe(true);
+    // Xotira yopiq — hash yagona nusxa.
+    expect(kengaytmadami(soxtaOyna(`/usta${HASH}`, 'yopiq').oyna)).toBe(true);
+  });
+
+  it('oddiy sayt — tokensiz, begona yoki buzuq hash, xotira yopiq', () => {
+    expect(kengaytmadami(soxtaOyna('/usta').oyna)).toBe(false);
+    expect(kengaytmadami(soxtaOyna('/usta#yol').oyna)).toBe(false);
+    expect(kengaytmadami(soxtaOyna('/usta#sessiya=<script>').oyna)).toBe(false);
+    expect(kengaytmadami(soxtaOyna('/usta', 'yopiq').oyna)).toBe(false);
   });
 });

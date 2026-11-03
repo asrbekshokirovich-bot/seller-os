@@ -4,7 +4,7 @@
  *
  * Panelda sayt ramkada ochiladi va cookie u yerda ishlamaydi — token kengaytmadan
  * `#sessiya=…&kengaytma=1` boʻlib keladi (`sessiya-sarlavha.ts`), /taqqos ham
- * yangi varaqda shunday ochiladi. Odam esa faqat suhbatda qolmaydi: «Chiqish»
+ * yangi varaqda shunday ochiladi. Odam esa faqat suhbatda qolmaydi: logotip
  * bosh sahifaga, «Kirish» — /kirish ga olib boradi, u yerda logotip va «Suhbatga
  * oʻtish» bor. Keyingi sahifa tokensiz qolsa, ramkada cookie saqlanmagani uchun
  * server har soʻrovga YANGI sessiya ochadi va suhbat yoʻqolgandek koʻrinadi.
@@ -81,6 +81,21 @@ export function kengaytmaTokeni(oyna: Oyna = window): string | null {
   return t;
 }
 
+/**
+ * Kengaytma rejimidami: token manzil hash'ida yoki varaq xotirasida. Faqat oʻqiydi — hech
+ * narsani koʻchirmaydi (`kengaytmaTokeni` dan farqi). Kengaytmada «Chiqish» yoʻq: sessiyani
+ * kengaytmaning oʻzi saqlaydi va panel qayta ochilganda oʻsha tokenni yana beradi — sayt
+ * cookie sini oʻchirish uni unuttirmaydi (2026-11-03).
+ */
+export function kengaytmadami(oyna: Pick<Window, 'location' | 'sessionStorage'> = window): boolean {
+  if (hashTokeni(oyna.location.hash) !== null) return true;
+  try {
+    return oyna.sessionStorage.getItem(TOKEN_KALITI) !== null;
+  } catch {
+    return false;
+  }
+}
+
 /** Soʻrovga `x-sessiya` sarlavhasi — kengaytmada; oddiy saytda boʻsh (cookie). */
 export function sessiyaSarlavhasi(): Record<string, string> {
   if (typeof window === 'undefined') return {};
@@ -103,4 +118,9 @@ function hashniKuzat(yangilandi: () => void): () => void {
  */
 export function useKengaytmaHashi(): string {
   return useSyncExternalStore(hashniKuzat, () => kengaytmaHashi(window.location.hash), () => '');
+}
+
+/** `kengaytmadami` — sahifa uchun; serverda `false`. */
+export function useKengaytmadami(): boolean {
+  return useSyncExternalStore(hashniKuzat, () => kengaytmadami(), () => false);
 }

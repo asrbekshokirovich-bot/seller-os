@@ -27,12 +27,13 @@
  */
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { flushSync } from 'react-dom';
 import { izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
-import { boshXabarniOl } from '@/lib/bosh-xabar';
+import { BOSH_XABAR_KALIT, boshXabarniOl } from '@/lib/bosh-xabar';
 import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
 import { hisobla } from '@/lib/hisob';
-import { sessiyaSarlavhasi } from '@/lib/kengaytma';
+import { sessiyaSarlavhasi, useKengaytmadami } from '@/lib/kengaytma';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { tarjima, type Til, type Tr } from '@/lib/til';
 import { useTil } from '@/lib/useTil';
@@ -113,9 +114,14 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const [mavzu, mavzuniTanla] = useMavzu();
   const [til, tilniTanla] = useTil(boshTil);
   const [menyu, setMenyu] = useState(false);
-  /** Modal oyna: «Profilim», «Boshidan boshlash» tasdigʻi yoki «Suhbatlarim» — bir vaqtda bittasi. */
-  const [oyna, setOyna] = useState<'profil' | 'tasdiq' | 'suhbatlar' | null>(null);
+  /** Modal oyna: «Profilim», «Boshidan boshlash» yoki «Chiqish» tasdigʻi, «Suhbatlarim» — bir vaqtda bittasi. */
+  const [oyna, setOyna] = useState<'profil' | 'tasdiq' | 'suhbatlar' | 'chiqish' | null>(null);
   const [obunaOchiq, setObunaOchiq] = useState(false);
+  /** Kengaytma panelida «Chiqish» yoʻq — sessiyani kengaytma saqlaydi (`lib/kengaytma.ts`). */
+  const kengaytmada = useKengaytmadami();
+  /** Chiqildi — bosh sahifaga oʻtilmoqda: chat ekrandan olinadi (`chiq`). */
+  const [chiqildi, setChiqildi] = useState(false);
+  const chiqildiRef = useRef(false);
   const tr = tarjima(til);
   const oqim = useRef<HTMLDivElement>(null);
   /** Yozish maydoni — pastda; savol pufagidagi «Boshqa javob — pastda yozing» ham shunga fokus beradi. */
@@ -534,10 +540,38 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     if (!o.yonalish && yonalishBor) hisobla('suhbat_yonalish');
   }, [yuklandi, holatKeldi, obunachiBor, yonalishBor]);
 
+  // Chiqqandan keyin «Orqaga»: brauzer sahifani xotirasidan (bfcache) qaytarsa — qayta yuklanadi, eski chat chiqmaydi.
+  useEffect(() => {
+    const qaytdi = (e: PageTransitionEvent) => { if (e.persisted && chiqildiRef.current) window.location.reload(); };
+    window.addEventListener('pageshow', qaytdi);
+    return () => window.removeEventListener('pageshow', qaytdi);
+  }, []);
+
   const menyuOch = () => { qatlamOch(); setMenyu(true); };
   const profilOch = () => { qatlamOch(); setMenyu(false); setOyna('profil'); };
   /** «Boshidan boshlash» endi faqat tasdiqdan keyin — bitta bosish butun yoʻlni oʻchirardi. */
   const boshdanSora = () => { qatlamOch(); setMenyu(false); setOyna('tasdiq'); };
+  const chiqishSora = () => { qatlamOch(); setMenyu(false); setOyna('chiqish'); };
+
+  /**
+   * Chiqish (nazoratchi, 2026-11-03: «chiqish tugmasi bosilsa chiqmayapti»): server sessiya
+   * cookie sini oʻchiradi (`/api/chiqish`) va sahifa bosh sahifaga ALMASHADI — tarixda chat
+   * qolmaydi. Ketishdan oldin chat ekrandan olinadi: brauzer sahifani xotirasidan qaytarsa ham
+   * keyingi odam uni koʻrmasin. Xato boʻlsa — matni (oynada koʻrsatiladi), hech narsa oʻzgarmaydi.
+   */
+  async function chiq(): Promise<string | null> {
+    try {
+      const r = await fetch('/api/chiqish', { method: 'POST', cache: 'no-store' });
+      if (!r.ok) return tr('Chiqib boʻlmadi — sahifani yangilab, qayta urinib koʻring.', 'Не удалось выйти — обновите страницу и попробуйте снова.');
+    } catch {
+      return tr('Chiqib boʻlmadi — internetni tekshirib, qayta urinib koʻring.', 'Не удалось выйти — проверьте интернет и попробуйте снова.');
+    }
+    try { sessionStorage.removeItem(BOSH_XABAR_KALIT); } catch { /* xotira yopiq */ }
+    chiqildiRef.current = true;
+    flushSync(() => setChiqildi(true));
+    window.location.replace('/');
+    return null;
+  }
   const suhbatlarOch = () => { qatlamOch(); setMenyu(false); setOyna('suhbatlar'); };
   const obunaOch = () => { aylanish.current = oqim.current?.scrollTop ?? 0; qatlamOch(); setOyna(null); setObunaOchiq(true); };
 
@@ -663,12 +697,13 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
   const yonPanel = (
     <>
-      <div className={u.belgi}>
+      {/* Logotip — bosh sahifaga, chiqmasdan (2026-11-03 gacha bu ishni «Chiqish» qilardi). */}
+      <Havola className={u.belgi} href="/" aria-label={tr('ZumSavdo yordamchisi — bosh sahifa', 'Помощник ZumSavdo — главная')}>
         <span className={u.nishon} aria-hidden="true">Z</span>
         <span className={u.nom}>ZumSavdo</span>
         {/* Nazoratchi (2026-10-13): yordamchining nomi — «ZumSavdo yordamchisi» («Usta» emas). */}
         <span className={u.nomUsta}>{tr('yordamchisi', 'помощник')}</span>
-      </div>
+      </Havola>
 
       {/* Holat kelmagan boʻlsa (ulanib boʻlmadi) — oʻchirib boʻlmaydi: odam yoʻlini koʻrmay turib oʻchirib qoʻymasin. */}
       <button type="button" className={u.yangiSuhbat} onClick={boshdanSora} disabled={band || !holatBor}>
@@ -712,6 +747,9 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     </>
   );
 
+  // Chiqildi — bosh sahifaga oʻtilmoqda: chat ekranda qolmaydi.
+  if (chiqildi) return <div className={`zs-mavzu ${u.ilova}`} data-til={til} />;
+
   return (
     <div className={`zs-mavzu ${u.ilova} ${menyu ? u.menyuOchiq : ''}`} data-til={til}>
       <aside className={u.yon} aria-label={tr('Yon panel', 'Боковая панель')} inert={modal}>{yonPanel}</aside>
@@ -747,11 +785,13 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
             <button type="button" className={`${u.pill} ${oyna === 'profil' ? u.pillFaol : ''}`} onClick={profilOch}>
               <Ikon nom="odam" o={16} />{tr('Profilim', 'Мой профиль')}
             </button>
-            {/* Kengaytma panelida qaytganda suhbat oʻsha: token varaq xotirasida (`lib/kengaytma.ts`),
-                xotira yopiq boʻlsa — `Havola` hash'ni bosh sahifaga olib oʻtadi. */}
-            <Havola className={u.pill} href="/">
-              <Ikon nom="chiqish" o={16} />{tr('Chiqish', 'Выйти')}
-            </Havola>
+            {/* «Chiqish» — haqiqiy chiqish, tasdiqdan keyin (2026-11-03). Kengaytmada yoʻq: sessiyani
+                kengaytma saqlaydi. Chiqmasdan bosh sahifaga — yon paneldagi logotip. */}
+            {!kengaytmada && (
+              <button type="button" className={`${u.pill} ${oyna === 'chiqish' ? u.pillFaol : ''}`} onClick={chiqishSora}>
+                <Ikon nom="chiqish" o={16} />{tr('Chiqish', 'Выйти')}
+              </button>
+            )}
           </div>
         </header>
 
@@ -857,10 +897,12 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
       {oyna === 'profil' && (
         <Profilim mavzu={mavzu} mavzuniTanla={mavzuniTanla} til={til} tilniTanla={tilniTanla} band={band || !holatBor}
-          boshdan={() => setOyna('tasdiq')} yop={() => yop('oyna')} obuna={obunaOch} />
+          boshdan={() => setOyna('tasdiq')} chiqish={kengaytmada ? undefined : () => setOyna('chiqish')}
+          yop={() => yop('oyna')} obuna={obunaOch} />
       )}
-      {oyna === 'tasdiq' && <BoshdanTasdiq tr={tr} band={band} ha={() => void boshdanBoshla()} yoq={() => yop('oyna')} />}
+      {oyna === 'tasdiq' && <BoshdanTasdiq tr={tr} band={band} chiqishBor={!kengaytmada} ha={() => void boshdanBoshla()} yoq={() => yop('oyna')} />}
       {oyna === 'suhbatlar' && <Suhbatlarim tr={tr} band={band} yop={() => yop('oyna')} qayt={suhbatgaQayt} />}
+      {oyna === 'chiqish' && <ChiqishTasdiq tr={tr} ha={chiq} yoq={() => yop('oyna')} />}
     </div>
   );
 }
@@ -2728,12 +2770,13 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
 /**
  * «Profilim» — hisob, obuna va sozlamalar (dizayn w8). Savol yoʻq
  * (nazoratchi, 2026-09-25). «Kirish» — `/kirish`, «Rejalarni
- * solishtirish» — `/obuna`.
+ * solishtirish» — `/obuna`. «Chiqish» — tasdiq oynasi; telefonda tepadagi
+ * «Chiqish» yashirin, shu yerda turadi (kengaytmada `chiqish` berilmaydi).
  */
-function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, obuna }: {
+function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, chiqish, yop, obuna }: {
   mavzu: Mavzu; mavzuniTanla: (m: Mavzu) => void;
   til: Til; tilniTanla: (t: Til) => void;
-  band: boolean; boshdan: () => void; yop: () => void; obuna: () => void;
+  band: boolean; boshdan: () => void; chiqish: (() => void) | undefined; yop: () => void; obuna: () => void;
 }) {
   const tr = tarjima(til);
   const panel = useRef<HTMLDivElement>(null);
@@ -2834,6 +2877,17 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, yop, ob
                 <Ikon nom="qaytadan" o={18} />{tr('Boshidan boshlash', 'Начать заново')}
               </button>
             </div>
+            {chiqish && (
+              <div className={u.sozlama}>
+                <div>
+                  <div className={u.sozlamaNomi}>{tr('Chiqish', 'Выход')}</div>
+                  <div className={u.hisobIzoh}>{tr('Sayt sizni bu brauzerda unutadi — keyingi safar chat yangidan boshlanadi.', 'Сайт забудет вас в этом браузере — в следующий раз чат начнётся заново.')}</div>
+                </div>
+                <button type="button" className={u.boshdanTugma} onClick={chiqish}>
+                  <Ikon nom="chiqish" o={18} />{tr('Chiqish', 'Выйти')}
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -3006,7 +3060,7 @@ function Suhbatlarim({ tr, band, yop, qayt }: {
  * oʻchirardi (audit, 2026-10-05). Endi nima yoʻqolishi aytiladi va fokus
  * «Bekor qilish» da turadi — tasodifiy Enter hech narsani oʻchirmaydi.
  */
-function BoshdanTasdiq({ tr, band, ha, yoq }: { tr: Tr; band: boolean; ha: () => void; yoq: () => void }) {
+function BoshdanTasdiq({ tr, band, chiqishBor, ha, yoq }: { tr: Tr; band: boolean; chiqishBor: boolean; ha: () => void; yoq: () => void }) {
   const oyna = useRef<HTMLDivElement>(null);
   useModalFokus(oyna);
   return (
@@ -3019,11 +3073,56 @@ function BoshdanTasdiq({ tr, band, ha, yoq }: { tr: Tr; band: boolean; ha: () =>
             'Yangi suhbat ochiladi. Hozirgisi oʻchmaydi — «Suhbatlarim»da qoladi, xohlasangiz keyin davom ettirasiz.',
             'Откроется новый чат. Текущий не удалится — он останется в «Моих чатах», его можно будет продолжить.',
           )}
+          {/* Ism va telefon eslab qolinadi (nazoratchi, 2026-10-19; 2026-11-03 tasdiqladi) — boshqa odamga yoʻl: «Chiqish». */}
+          {' '}{tr('Aytgan ismingiz va telefoningiz qayta soʻralmaydi.', 'Имя и телефон, если вы их указали, повторно не спросим.')}
+          {chiqishBor && ` ${tr('Boshqa odam boʻlsangiz, «Profilim»dagi «Chiqish» ni bosing.', 'Если вы другой человек, нажмите «Выйти» в «Моём профиле».')}`}
         </p>
         <div className={u.tasdiqTugmalar}>
           <button type="button" className={u.tugma} data-fokus onClick={yoq}>{tr('Bekor qilish', 'Отмена')}</button>
           <button type="button" className={`${u.tugma} ${u.tugmaAsosiy}`} onClick={ha} disabled={band}>
             <Ikon nom="qaytadan" o={18} />{tr('Ha, boshidan', 'Да, заново')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------ chiqish tasdigʻi */
+
+/**
+ * «Chiqish» tasdigʻi (nazoratchi, 2026-11-03: «chiqish tugmasi bosilsa chiqmayapti»). Chiqishni
+ * qaytarib boʻlmaydi — kirish (SMS, Telegram) hali yoʻq, suhbatlarga boshqa qaytilmaydi.
+ * Shuning uchun nima boʻlishi aytiladi va fokus «Bekor qilish» da turadi.
+ */
+function ChiqishTasdiq({ tr, ha, yoq }: { tr: Tr; ha: () => Promise<string | null>; yoq: () => void }) {
+  const oyna = useRef<HTMLDivElement>(null);
+  useModalFokus(oyna);
+  const [kutish, setKutish] = useState(false);
+  const [xato, setXato] = useState<string | null>(null);
+  async function chiq() {
+    setKutish(true);
+    setXato(null);
+    // Chiqilsa sahifa almashadi; xato boʻlsa — matni shu yerda, qayta urinsa boʻladi.
+    const x = await ha();
+    if (x !== null) { setXato(x); setKutish(false); }
+  }
+  return (
+    <div className={u.panelFon} role="presentation" onClick={yoq}>
+      <div ref={oyna} className={`${u.panel} ${u.tasdiq}`} role="alertdialog" aria-modal="true"
+        aria-labelledby="chiqish-sarlavha" aria-describedby="chiqish-matn" onClick={(e) => e.stopPropagation()}>
+        <h2 id="chiqish-sarlavha" className={u.tasdiqSarlavha}>{tr('Saytdan chiqasizmi?', 'Выйти с сайта?')}</h2>
+        <p id="chiqish-matn" className={u.tasdiqMatn}>
+          {tr(
+            'Sayt sizni bu brauzerda unutadi: suhbatlaringiz, ismingiz va telefoningiz bu yerda boshqa koʻrinmaydi. SMS yoki Telegram orqali kirish hali yoʻq — bu suhbatlarga qaytib boʻlmaydi. Keyingi safar chat yangidan boshlanadi.',
+            'Сайт забудет вас в этом браузере: ваши чаты, имя и телефон здесь больше не появятся. Входа по SMS или через Telegram пока нет — вернуться к этим чатам будет нельзя. В следующий раз чат начнётся заново.',
+          )}
+        </p>
+        {xato && <p className={u.sbXato} role="alert">{xato}</p>}
+        <div className={u.tasdiqTugmalar}>
+          <button type="button" className={u.tugma} data-fokus onClick={yoq}>{tr('Bekor qilish', 'Отмена')}</button>
+          <button type="button" className={`${u.tugma} ${u.tugmaAsosiy}`} onClick={() => void chiq()} disabled={kutish}>
+            <Ikon nom="chiqish" o={18} />{tr('Ha, chiqish', 'Да, выйти')}
           </button>
         </div>
       </div>

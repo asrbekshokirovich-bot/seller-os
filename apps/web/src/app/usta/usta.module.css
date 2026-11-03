@@ -79,6 +79,10 @@
   color: inherit;
 }
 
+/* Logotip — bosh sahifaga havola (2026-11-03): umumiy havola rangi (`.zs-mavzu a`) olinmaydi. */
+.ilova a.belgi,
+.ilova a.belgi:hover { color: inherit; }
+
 .nishon {
   flex: none;
   width: 36px;

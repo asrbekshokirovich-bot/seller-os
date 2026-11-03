@@ -68,8 +68,8 @@ export default function Maxfiylik() {
           </li>
         </ul>
         <p>
-          Cookie ni oʻchirsangiz sayt sizni tanimaydi va javoblaringiz
-          koʻrinmay qoladi.
+          Cookie ni oʻchirsangiz — yoki chatda «Chiqish» ni bossangiz, u shu cookie ni
+          oʻchiradi — sayt sizni tanimaydi va javoblaringiz koʻrinmay qoladi.
         </p>
         <p>Brauzerda yana ikkita sozlama turadi — ularda siz haqingizda hech narsa yoʻq:</p>
         <ul>
@@ -338,9 +338,10 @@ export default function Maxfiylik() {
 
         <h2>Oʻchirish</h2>
         <p>
-          Brauzeringizdagi <code>so_sessiya</code> cookie sini oʻchirsangiz,
-          javoblaringiz bogʻlanishi uziladi va ularni hech kim — siz ham —
-          topa olmaydi. Kengaytmadagi kalit kengaytma oʻchirilganda yoʻqoladi.
+          Chatdagi «Chiqish» tugmasi (telefonda — «Profilim» ichida) brauzeringizdagi{' '}
+          <code>so_sessiya</code> cookie sini oʻchiradi; uni brauzer sozlamalaridan oʻzingiz
+          ham oʻchirishingiz mumkin. Shundan keyin javoblaringiz bogʻlanishi uziladi va ularni
+          hech kim — siz ham — topa olmaydi. Kengaytmadagi kalit kengaytma oʻchirilganda yoʻqoladi.
         </p>
 
         <div className={u.ochiq}>
