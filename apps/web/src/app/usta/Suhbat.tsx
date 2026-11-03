@@ -1201,7 +1201,7 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
   };
   return (
     <div className={u.kartalar}>
-      {eskirgan && <p className={u.kichikIzoh}>{tr('Raqamlar kechagi — bugun hali yangilanmagan.', 'Цифры вчерашние — сегодня ещё не обновлены.')}</p>}
+      {eskirgan && <p className={u.kichikIzoh}>{tr('Raqamlar hali yangilanmagan — oxirgi oʻlchov boʻyicha.', 'Цифры ещё не обновлены — по последнему замеру.')}</p>}
       {royxat.map((y, i) => {
         const ball = y.ball.value;
         const qism = (p: string) => y.ball.breakdown?.find((b) => b.part === p && b.used)?.score ?? null;
