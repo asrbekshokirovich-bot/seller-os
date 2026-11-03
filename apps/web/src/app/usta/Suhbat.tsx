@@ -566,6 +566,9 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     } catch {
       return tr('Chiqib boʻlmadi — internetni tekshirib, qayta urinib koʻring.', 'Не удалось выйти — проверьте интернет и попробуйте снова.');
     }
+    // Cookie endi yoʻq: fon tekshiruvi (5/9-qadam) yoki effekt sahifa almashguncha soʻrov yuborsa,
+    // server YANGI sessiya ochib qoʻyardi. Ular `bandRef` ni tekshiradi — endi hech biri yubormaydi.
+    bandRef.current = true;
     try { sessionStorage.removeItem(BOSH_XABAR_KALIT); } catch { /* xotira yopiq */ }
     chiqildiRef.current = true;
     flushSync(() => setChiqildi(true));
