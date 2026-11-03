@@ -183,3 +183,62 @@ export function havolaQismlari(matn: string): Array<{ matn: string; havola: bool
     .map((q, i) => ({ matn: q, havola: i % 2 === 1 }))
     .filter((q) => q.matn !== '');
 }
+
+/* ------------------------------------------------------ aylantirish (2026-11-03) */
+
+/**
+ * Aylantirish LANGARI (nazoratchi, 2026-11-03: «variant yoki tovar tanlaganda scroll pastga
+ * tushib ketyapti»). Ilgari har yangi xabarda chat eng PASTGA aylanardi: uzun javob kelsa mijoz
+ * uning boshini emas, oxirini koʻrardi (telefonda pul tanlagach +2 600 px, ism yozgach +10 900 px).
+ *   - `men`   — mijozning oxirgi pufagi ekran tepasiga chiqadi, javob uning ostida boshlanadi;
+ *   - `xitoy` — 1688 da taklif tanlangach: shu kartadagi keyingi tovar (oxirgisidan keyin — `men`);
+ *   - `tepa`  — yangi suhbat.
+ * `qolda` — mijoz oʻzi aylantirdi: keyingi javobigacha hech narsa uni tortmaydi.
+ * `sakra` — bir martalik oʻtish (ochilganda, boshidan, «Suhbatlarim»dan qaytganda).
+ */
+export interface Langar { tur: 'men' | 'xitoy' | 'tepa'; qolda: boolean; sakra: boolean }
+
+/**
+ * Yuborilgan soʻrovdan keyingi langar: boshidan — `tepa`; 1688 tanlovi (oʻtkazib yuborish ham) —
+ * `xitoy`; chatda koʻrinadigan gap (tugma, yozilgan matn) — `men`. Boshqasi (kod qadami,
+ * tekshiruv) — `null`: langar oʻzgarmaydi, javob oldingi gap ostida davom etadi.
+ */
+export function sorovLangari(tana: Record<string, unknown>, korinish: string | null): Langar['tur'] | null {
+  if (tana.boshdan === true) return 'tepa';
+  if (typeof tana.savolId === 'string' && tana.savolId.startsWith('xitoy_tanlov:')) return 'xitoy';
+  return korinish !== null ? 'men' : null;
+}
+
+/**
+ * Qayerga aylantirish kerak — `null`: joyida qolsin.
+ *   - `sakra` — istalgan tomonga, darhol (nuqta topilmasa — eng tepa);
+ *   - mijoz oʻzi aylantirgan yoki 1688 tanlovi yoʻlda — joyida;
+ *   - javob TUGADI (`tugadi`) — langar oʻz joyiga, tepaga ham: javob kelganda tepadagi savolning
+ *     tugmalari yigʻiladi (savol pufagi qisqaradi), qoralama haqiqiy xabarlarga almashadi — langar
+ *     siljiydi (brauzerda oʻlchandi: mijoz gapi 352 px tepaga chiqib ketardi). 1688 da — silliq:
+ *     bu keyingi tovarga oʻtish;
+ *   - aks holda faqat PASTGA va faqat langar nuqtasigacha: javob ortidan quvmaydi.
+ * `nuqta` — langar elementi tepasi aylanuvchi quti koordinatasida (chegaralangan); `null` — topilmadi.
+ */
+export function langarQarori(l: Langar, band: boolean, joriy: number, nuqta: number | null, tugadi = false): { top: number; darhol: boolean } | null {
+  if (l.sakra) return { top: nuqta ?? 0, darhol: true };
+  if (l.qolda || (l.tur === 'xitoy' && band) || nuqta === null) return null;
+  if (tugadi) return Math.abs(nuqta - joriy) > 1 ? { top: nuqta, darhol: l.tur !== 'xitoy' } : null;
+  return nuqta > joriy + 1 ? { top: nuqta, darhol: false } : null;
+}
+
+/**
+ * «↓ Savolga» tugmasi: savol (1688 da — tanlanadigan tovar) ekran pastidan tashqarida — `savol`;
+ * savol yoʻq yoki javob kutilmoqda, pastda esa koʻp narsa qolgan — `past`; aks holda tugma yoʻq.
+ * `savolTepasi` — savol tepasining ekrandagi oʻrni (quti tepasidan, px), `null` — savol yoʻq.
+ */
+export function pastgaHolati(savolTepasi: number | null, qutiBoyi: number, pastQoldi: number): 'savol' | 'past' | null {
+  if (savolTepasi !== null) return savolTepasi > qutiBoyi - 60 ? 'savol' : null;
+  return pastQoldi > 160 ? 'past' : null;
+}
+
+/** Yonma-yon kartalarda hozirgisi (0 dan): surilgan masofa / bitta karta qadami, chegaralangan. */
+export function yonmaJoriy(chapdan: number, qadam: number, soni: number): number {
+  if (!(qadam > 0) || soni < 1) return 0;
+  return Math.min(soni - 1, Math.max(0, Math.round(chapdan / qadam)));
+}
