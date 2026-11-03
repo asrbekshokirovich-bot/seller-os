@@ -315,7 +315,7 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil, namuna
                       'Uzum bazasi, har kuni yangilanadi. Foyda vaʼda qilinmaydi — hisobini chatda, oʻz narxingiz bilan qilamiz.',
                       'База Uzum, обновляется каждый день. Прибыль не обещаем — считаем в чате, по вашим ценам.',
                     )}
-                    {namuna.kesh_eskirgan && tr(' Raqamlar kechagi.', ' Цифры вчерашние.')}
+                    {namuna.kesh_eskirgan && tr(' Raqamlar hali yangilanmagan — sanasi tepada.', ' Цифры ещё не обновлены — дата вверху.')}
                   </p>
                 </>
               ) : (
