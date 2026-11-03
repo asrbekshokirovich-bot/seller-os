@@ -43,12 +43,43 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO, type Keyingi, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, sorovLangari, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
 
 /** «Rejalar» ochiq: suhbat yashirinadi, lekin oʻchirilmaydi — aylanish joyi va studiya tanlovlari qoladi. */
 const YASHIRIN = { display: 'none' } as const;
+
+/** Element tepasi aylanuvchi quti koordinatasida — ustida 12 px joy bilan, [0, oxiri] oraligʻida. */
+function elNuqtasi(el: HTMLElement, x: Element): number {
+  const n = x.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - 12;
+  return Math.max(0, Math.min(n, el.scrollHeight - el.clientHeight));
+}
+
+/**
+ * Langar elementi (`suhbatYordam.ts` `Langar`): `men` — mijozning oxirgi pufagi (yuborilayotgani
+ * ham, `data-men`); `xitoy` — 1688 da hozir tanlanadigan tovar (`data-xitoy-faol`), yoʻq boʻlsa
+ * `men`; `tepa` — eng tepa. Topilmasa — `null`.
+ */
+function langarNuqtasi(el: HTMLElement, tur: Langar['tur']): number | null {
+  if (tur === 'tepa') return 0;
+  const log = el.querySelector('[role="log"]');
+  const menlar = log?.querySelectorAll('[data-men]');
+  const nishon = (tur === 'xitoy' ? log?.querySelector('[data-xitoy-faol]') : null) ?? menlar?.[menlar.length - 1] ?? null;
+  return nishon ? elNuqtasi(el, nishon) : null;
+}
+
+/** Savol (1688 da — hozir tanlanadigan tovar) elementi — «↓ Savolga» uchun. */
+function savolElementi(el: HTMLElement): Element | null {
+  const log = el.querySelector('[role="log"]');
+  return log?.querySelector('[data-xitoy-faol]') ?? log?.querySelector('[data-savol]') ?? null;
+}
+
+/** Silliq aylantirish; `darhol` yoki «harakatni kamaytirish» yoqilgan boʻlsa — sakrab. */
+function aylantir(el: HTMLElement, top: number, darhol = false): void {
+  const kam = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollTo({ top, behavior: darhol || kam ? 'auto' : 'smooth' });
+}
 
 /**
  * Modal oyna fokusi: ochilganda ichiga (`data-fokus` belgili tugmaga yoki
@@ -254,28 +285,96 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   });
 
   /*
-   * Oxirgi xabarga aylantirish (pastki 20 px chekka ham kiradi —
-   * dizayndagidek) — faqat YANGI narsa chiqqanda: xabar, boshqa savol,
-   * "Yozmoqda…", xato. 5/9-qadam kutishida har tekshiruv `keyingi` ni
-   * yangi obyekt qilib qaytaradi — ilgari shu ham har 8 s da pastga
-   * sakratardi va tepadagi kartalarni oʻqib boʻlmasdi (audit, 2026-10-05).
+   * AYLANTIRISH — LANGAR (nazoratchi, 2026-11-03: «variant yoki tovar tanlaganda scroll pastga
+   * tushib ketyapti»; qoidasi `suhbatYordam.ts` `langarQarori`). Ilgari har yangi narsada chat eng
+   * PASTGA aylanardi: uzun javob kelsa (yoʻnalish kartalari, katalog) mijoz uning boshini emas,
+   * oxirini koʻrardi, javob yozilayotganda ham pastga tortardi. Endi mijozning oxirgi pufagi ekran
+   * tepasiga chiqadi va ekran faqat shu nuqtagacha pastga yuradi. Yangi suhbatda pufak yoʻq —
+   * tepada qoladi («Assalomu alaykum…» telefonda kesilmaydi, 2026-10-12). 5/9-qadam kutishida
+   * tekshiruv har 8 s da `keyingi` ni yangilaydi — bu hech narsani siljitmaydi (audit, 2026-10-05).
    */
-  // Qoralama oʻsgani sari ham (har ~2 qator) — yozilayotgan matn koʻrinib tursin.
+  const langar = useRef<Langar>({ tur: 'men', qolda: false, sakra: true });
+  const oldingiBand = useRef(false);
   const qoralamaUzunligi = qoralama ? qoralama.oldin.length + qoralama.izoh.length + qoralama.savol.length : 0;
-  const aylantirKaliti = `${xabarlar.length}|${keyingiKaliti(keyingi)}|${band ? 1 : 0}|${xato ?? ''}|${Math.floor(qoralamaUzunligi / 120)}`;
+  const holatTayyor = yuklandi && keyingi !== null;
+  const aylantirKaliti = `${xabarlar.length}|${keyingiKaliti(keyingi)}|${band ? 1 : 0}|${yuborilgan === null ? 0 : 1}|${Math.floor(qoralamaUzunligi / 120)}`;
+  // Chizilgandan keyin, ekranga chiqishidan OLDIN: javob tugaganda langar joyiga qaytarilsa — miltillamaydi.
+  useLayoutEffect(() => {
+    const el = oqim.current;
+    const l = langar.current;
+    // Xato bilan tugasa — langarga emas: xato pastda, uni pastdagi effekt koʻrsatadi.
+    const tugadi = oldingiBand.current && !band && xato === null;
+    oldingiBand.current = band;
+    // Yashirin («Rejalar» ochiq) yoki holat hali kelmagan — oʻlchab boʻlmaydi.
+    if (!el || el.clientHeight === 0 || !holatTayyor) return;
+    const q = langarQarori(l, band, el.scrollTop, langarNuqtasi(el, l.tur), tugadi);
+    l.sakra = false;
+    if (q) aylantir(el, q.top, q.darhol);
+  }, [aylantirKaliti, holatTayyor, band, xato]);
+
+  // Xato — doim koʻrinsin: u oxirida turadi.
+  useEffect(() => {
+    const el = oqim.current;
+    if (xato === null || !el || el.clientHeight === 0) return;
+    aylantir(el, el.scrollHeight - el.clientHeight);
+  }, [xato]);
+
+  /*
+   * Mijoz oʻzi aylantirdi (gʻildirak, barmoq, tugmalar, aylantirish chizigʻi) — keyingi javobigacha
+   * ekran uni tortmaydi. Oddiy `scroll` hodisasi emas: oʻzimiz aylantirganda ham u chiqadi.
+   */
   useEffect(() => {
     const el = oqim.current;
     if (!el) return;
-    // Yangi pufak ekranga sigʻmasa (birinchi gap telefonda) — boshidan koʻrinsin:
-    // pastga aylantirilsa "Assalomu alaykum…" tepada kesilib qolardi (2026-10-12).
-    const songgi = el.querySelector('[role="log"]')?.lastElementChild;
-    if (songgi instanceof HTMLElement && songgi.offsetHeight > el.clientHeight - 40) {
-      const tepa = songgi.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - 16;
-      el.scrollTo({ top: Math.max(0, tepa), behavior: 'smooth' });
-      return;
-    }
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [aylantirKaliti]);
+    const qolda = () => { langar.current.qolda = true; };
+    const tugma = (e: KeyboardEvent) => {
+      if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End', ' '].includes(e.key)) qolda();
+    };
+    const chiziq = (e: PointerEvent) => { if (e.target === el) qolda(); };
+    el.addEventListener('wheel', qolda, { passive: true });
+    el.addEventListener('touchmove', qolda, { passive: true });
+    el.addEventListener('keydown', tugma);
+    el.addEventListener('pointerdown', chiziq);
+    return () => {
+      el.removeEventListener('wheel', qolda);
+      el.removeEventListener('touchmove', qolda);
+      el.removeEventListener('keydown', tugma);
+      el.removeEventListener('pointerdown', chiziq);
+    };
+  }, []);
+
+  /*
+   * «↓ Savolga» (2026-11-03): savol ekran pastidan tashqarida qolsa — oʻng pastda tugma; bosilsa
+   * savolga (1688 da — hozir tanlanadigan tovarga) olib boradi. Javob kutilayotganda — «Pastga».
+   */
+  const [pastga, setPastga] = useState<'savol' | 'past' | null>(null);
+  const pastgaTekshir = useCallback(() => {
+    const el = oqim.current;
+    if (!el || el.clientHeight === 0) return;
+    const s = bandRef.current ? null : savolElementi(el);
+    const savolTepasi = s ? s.getBoundingClientRect().top - el.getBoundingClientRect().top : null;
+    setPastga(pastgaHolati(savolTepasi, el.clientHeight, el.scrollHeight - el.scrollTop - el.clientHeight));
+  }, []);
+  useEffect(() => {
+    const el = oqim.current;
+    if (!el) return;
+    let kadr = 0;
+    const tekshir = () => { cancelAnimationFrame(kadr); kadr = requestAnimationFrame(pastgaTekshir); };
+    el.addEventListener('scroll', tekshir, { passive: true });
+    window.addEventListener('resize', tekshir);
+    return () => {
+      cancelAnimationFrame(kadr);
+      el.removeEventListener('scroll', tekshir);
+      window.removeEventListener('resize', tekshir);
+    };
+  }, [pastgaTekshir]);
+  useEffect(() => { pastgaTekshir(); }, [aylantirKaliti, holatTayyor, pastgaTekshir]);
+  const pastgaBos = () => {
+    const el = oqim.current;
+    if (!el) return;
+    const s = pastga === 'savol' ? savolElementi(el) : null;
+    aylantir(el, s ? elNuqtasi(el, s) : el.scrollHeight - el.clientHeight);
+  };
 
   // «Rejalar»dan qaytganda suhbat oʻsha joyida turadi (yashirilgan edi, oʻchirilmagan).
   const aylanish = useRef(0);
@@ -296,6 +395,9 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     const mening = avlod.current;
     if (!jim) { bandQil(true); setXato(null); }
     if (!jim && korinish) setYuborilgan(korinish);
+    // Javob qayerdan boshlab koʻrinadi (`sorovLangari`): mijoz gapi — u tepaga; 1688 tanlovi — keyingi tovar.
+    const tur = jim ? null : sorovLangari(tana, korinish);
+    if (tur !== null) langar.current = { tur, qolda: false, sakra: false };
     let qabulQilindi = false;
     // Kurs hali kelmagan boʻlsa — 1,5 s dan uzoq kutilmaydi (server CBU ga oʻzi urinadi).
     const cbu = kurs.current ? await Promise.race([kurs.current, new Promise<null>((ok) => { setTimeout(() => ok(null), 1_500); })]) : null;
@@ -370,6 +472,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         matnKetdi: typeof tana.matn === 'string' && !qoralamaQolsin,
       });
       qabulQilindi = true;
+      // Yangi suhbat keldi — eng tepaga (kutilayotganda eski suhbat joyida turadi).
+      if (tana.boshdan === true) langar.current = { tur: 'tepa', qolda: false, sakra: true };
     } finally {
       // Qoralama — tekshirilgan xabarlar bilan bir render da almashadi (React ularni birga chizadi).
       if (!jim) { setQoralama(null); setOqimHolati(null); }
@@ -606,6 +710,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       const d = await jsonOl(r);
       if (!r.ok || d === null || !d.keyingi) return d?.xato ?? XATO.buzuq;
       hisobAsosi.current = null;
+      // Qaytgan suhbat — ochilgandagidek: oxirgi javob boshidan.
+      langar.current = { tur: 'men', qolda: false, sakra: true };
       qabul(d, { almashtir: true, tozala: true });
       yop('oyna');
       return null;
@@ -645,6 +751,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   // Server savolni faqat POST da yozadi; birinchi tashrifda yoki
   // tarix qisqa boʻlsa savol pufagi keyingidan chiziladi.
   const savolKorsat = savol !== null && !(oxirgi?.rol === 'menejer' && oxirgi.savolId === savol.id);
+  // Savol oqimda (server yozgan) — u oxirgi xabar: «↓ Savolga» shunga olib boradi (`data-savol`).
+  const savolPufagi = savol !== null && !savolKorsat ? xabarlar.length - 1 : -1;
   const tezOrada = keyingi?.tur === 'tezOrada' ? keyingi : null;
   const kutish = keyingi?.tur === 'kutish' ? keyingi : null;
   const tezOradaKorsat = tezOrada !== null && !(oxirgi?.rol === 'menejer' && oxirgi.matn === tezOrada.matn);
@@ -839,14 +947,15 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                   }
                   : undefined}
                 ilova={i === tugmaPufagi ? ilova : undefined}
+                savolmi={i === savolPufagi}
               />
             ))}
             {savolKorsat && savol && (
-              <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`}><Havolali matn={savol.matn} />{ilova}</div>
+              <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`} data-savol="1"><Havolali matn={savol.matn} />{ilova}</div>
             )}
-            {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`}><Havolali matn={tezOrada.matn} /></div>}
-            {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status">{kutish.matn}</div>}
-            {yuborilgan !== null && <div className={`${u.pufak} ${u.men} ${u.yuborilmoqda}`}>{yuborilgan}</div>}
+            {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`} data-savol="1"><Havolali matn={tezOrada.matn} /></div>}
+            {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status" data-savol="1">{kutish.matn}</div>}
+            {yuborilgan !== null && <div className={`${u.pufak} ${u.men} ${u.yuborilmoqda}`} data-men="1">{yuborilgan}</div>}
             {/* AI yozayotgan xabar (oqim) — javob kelgach oʻrnini tekshirilgani oladi; ekran oʻquvchiga — oxirgisi. */}
             {qoralama && (['oldin', 'izoh', 'savol'] as const).map((q) => (qoralama[q]
               ? <div key={q} className={`${u.pufak} ${u.ai}`} aria-hidden="true"><Havolali matn={qoralama[q]} /></div>
@@ -867,6 +976,12 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         </div>
 
         <div className={u.past_} style={yashir}>
+          {/* «↓ Savolga» (nazoratchi, 2026-11-03, 2-taklif) — savol ekrandan pastda qolsa. */}
+          {pastga && (
+            <button type="button" className={u.pastgaTugma} onClick={pastgaBos}>
+              <Ikon nom="pastga" o={17} />{pastga === 'savol' ? tr('Savolga', 'К вопросу') : tr('Pastga', 'Вниз')}
+            </button>
+          )}
           <div className={u.pastIchi}>
             {!yuklandi ? (
               <p className={u.holat}>{tr('Yuklanmoqda…', 'Загрузка…')}</p>
@@ -981,18 +1096,21 @@ function Havolali({ matn }: { matn: string }) {
   );
 }
 
-function XabarPufagi({ x, tr, katalog, xitoy, ilova }: {
+function XabarPufagi({ x, tr, katalog, xitoy, ilova, savolmi = false }: {
   x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined;
   /** Hozirgi savolning javob tugmalari — savol bilan bitta oynada. */
   ilova?: ReactNode;
+  /** Hozirgi savolning oʻzi — «↓ Savolga» shu yerga olib boradi. */
+  savolmi?: boolean;
 }) {
-  if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`}>{x.matn}</div>;
+  // `data-men` — aylantirish langari: mijozning oxirgi pufagi javobdan keyin ekran tepasida turadi.
+  if (x.rol === 'obunachi') return <div className={`${u.pufak} ${u.men}`} data-men="1">{x.matn}</div>;
   if (batafsilmi(x)) return <BatafsilPufagi matn={x.matn} tr={tr} />;
   if (x.rol === 'menejer') {
     // Erkin javob (savolga javob, `{erkin: true, manba}`) — tagida 👍/👎.
     const erkin = (x.javob as { erkin?: unknown } | null | undefined)?.erkin === true;
     return (
-      <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`}>
+      <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`} data-savol={savolmi ? '1' : undefined}>
         <Havolali matn={x.matn} />
         {erkin && <BahoTugmalari matn={x.matn} tr={tr} />}
         {ilova}
@@ -1176,6 +1294,40 @@ function Xulosa({ tur, hukm, izoh }: { tur: 'yaxshi' | 'ogoh' | 'oddiy'; hukm: s
 }
 
 /**
+ * Telefonda kartalar YONMA-YON (nazoratchi, 2026-11-03, 4-taklif): yoʻnalishlar, tovar katalogi
+ * va 1688 takliflari barmoq bilan chapga suriladi, keyingi karta oʻngdan chiqib turadi. Ilgari
+ * telefonda katalog bitta ustunda ~11 000 px edi — savol va «Davom etish» gacha 10 ta kartani
+ * aylantirish kerak edi. Kompyuterda oʻzgarmaydi (`.yonma` faqat tor ekranda). Ostida — nechanchi
+ * karta ekani («2 / 10»).
+ */
+function Yonma({ className, soni, tr, children }: { className: string | undefined; soni: number; tr: Tr; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const kadr = useRef(0);
+  const [joriy, setJoriy] = useState(0);
+  useEffect(() => () => cancelAnimationFrame(kadr.current), []);
+  const surildi = () => {
+    cancelAnimationFrame(kadr.current);
+    kadr.current = requestAnimationFrame(() => {
+      const el = ref.current;
+      const birinchi = el?.firstElementChild;
+      if (!el || !(birinchi instanceof HTMLElement)) return;
+      const oraliq = Number.parseFloat(getComputedStyle(el).columnGap) || 0;
+      setJoriy(yonmaJoriy(el.scrollLeft, birinchi.offsetWidth + oraliq, soni));
+    });
+  };
+  return (
+    <>
+      <div ref={ref} className={`${className ?? ''} ${u.yonma ?? ''}`} onScroll={surildi}>{children}</div>
+      {soni > 1 && (
+        <div className={u.yonmaSanoq} aria-hidden="true">
+          <b>{joriy + 1} / {soni}</b> · {tr('chapga suring', 'листайте влево')}
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
  * 2-qadam: yoʻnalishlar — birinchi marta kirgan odam ham tushunadigan qilib
  * (nazoratchi, 2026-10-13: "ball, ulush, byudjet: — nima? — tushunmay chiqib
  * ketmasin"). Har kartada: oʻrin, «imkoniyat bahosi» (100 ballik, chiziq va
@@ -1247,66 +1399,68 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
   return (
     <div className={u.kartalar}>
       {eskirgan && <p className={u.kichikIzoh}>{tr('Raqamlar hali yangilanmagan — oxirgi oʻlchov boʻyicha.', 'Цифры ещё не обновлены — по последнему замеру.')}</p>}
-      {royxat.map((y, i) => {
-        const ball = y.ball.value;
-        const qism = (p: string) => y.ball.breakdown?.find((b) => b.part === p && b.used)?.score ?? null;
-        const talab = qism('talab');
-        const kirish = qism('kirish');
-        const mavsum = qism('mavsum');
-        const top3 = y.dalil.top3Ulush;
-        const sotuvchi = y.dalil.sotuvchiSoni;
-        const sotuvchiMatn = sotuvchi !== null ? tr(`${raqam(sotuvchi)} ta sotuvchi`, `${raqam(sotuvchi)} продавцов`) : null;
-        return (
-          <div key={y.categoryId} className={u.karta}>
-            <div className={u.kartaBoshi}>
-              <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{y.name}</div></div>
-              <div className={u.kartaTeglar}>
-                {i === engYuqori && <span className={`${u.teg} ${u.tegYaxshi}`}>{tr('Eng yuqori baho', 'Лучшая оценка')}</span>}
-                <span className={`${u.teg} ${u.tegNeytral}`}>{sohaTeg(y.soha)}</span>
-              </div>
-            </div>
-            <TurkumRasmlari id={y.categoryId} tr={tr} />
-            {ball !== null && (
-              <div className={u.baho}>
-                <div className={u.bahoQator}>
-                  <span>{tr('Imkoniyat bahosi', 'Оценка возможности')}</span>
-                  <b>{Math.round(ball)} / 100 · {bahoSozi(ball, tr)}</b>
+      <Yonma className={u.kartalarQator} soni={royxat.length} tr={tr}>
+        {royxat.map((y, i) => {
+          const ball = y.ball.value;
+          const qism = (p: string) => y.ball.breakdown?.find((b) => b.part === p && b.used)?.score ?? null;
+          const talab = qism('talab');
+          const kirish = qism('kirish');
+          const mavsum = qism('mavsum');
+          const top3 = y.dalil.top3Ulush;
+          const sotuvchi = y.dalil.sotuvchiSoni;
+          const sotuvchiMatn = sotuvchi !== null ? tr(`${raqam(sotuvchi)} ta sotuvchi`, `${raqam(sotuvchi)} продавцов`) : null;
+          return (
+            <div key={y.categoryId} className={u.karta}>
+              <div className={u.kartaBoshi}>
+                <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{y.name}</div></div>
+                <div className={u.kartaTeglar}>
+                  {i === engYuqori && <span className={`${u.teg} ${u.tegYaxshi}`}>{tr('Eng yuqori baho', 'Лучшая оценка')}</span>}
+                  <span className={`${u.teg} ${u.tegNeytral}`}>{sohaTeg(y.soha)}</span>
                 </div>
-                <div className={u.bahoChiziq} aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, ball))}%` }} /></div>
               </div>
-            )}
-            <ul className={u.xulosalar}>
-              {talab !== null && (talab >= 67
-                ? <Xulosa tur="yaxshi" hukm={tr('Xaridor koʻp', 'Покупателей много')} izoh={tr('boshqa yoʻnalishlarga nisbatan xarid koʻp.', 'покупают больше, чем в других направлениях.')} />
-                : talab >= 34
-                  ? <Xulosa tur="oddiy" hukm={tr('Xaridor oʻrtacha', 'Покупателей средне')} izoh={tr('xarid boshqa yoʻnalishlar oʻrtasida.', 'спрос на среднем уровне среди направлений.')} />
-                  : <Xulosa tur="ogoh" hukm={tr('Xaridor kam', 'Покупателей мало')} izoh={tr('boshqa yoʻnalishlarga nisbatan xarid kam.', 'покупают меньше, чем в других направлениях.')} />)}
-              {top3 !== null && (top3 < 30
-                ? <Xulosa tur="yaxshi" hukm={tr('Bozor ochiq', 'Рынок открыт')}
-                  izoh={tr(`${sotuvchiMatn ? `${sotuvchiMatn} bor, lekin ` : ''}bozorni hech kim egallamagan: eng katta 3 doʻkon savdoning atigi ${top3}% ini oladi. Yangi sotuvchiga joy bor.`,
-                    `${sotuvchiMatn ? `${sotuvchiMatn}, но ` : ''}рынок никто не захватил: у трёх крупнейших магазинов всего ${top3}% продаж. Новичку есть место.`)} />
-                : top3 < 60
-                  ? <Xulosa tur="oddiy" hukm={tr('Yirik doʻkonlar bor', 'Есть крупные магазины')}
-                    izoh={tr(`eng katta 3 doʻkon savdoning ${top3}% ini oladi${sotuvchiMatn ? ` (jami ${sotuvchiMatn})` : ''}.`,
-                      `у трёх крупнейших магазинов ${top3}% продаж${sotuvchiMatn ? ` (всего ${sotuvchiMatn})` : ''}.`)} />
-                  : <Xulosa tur="ogoh" hukm={tr('Bozor bir necha doʻkon qoʻlida', 'Рынок в руках нескольких магазинов')}
-                    izoh={tr(`eng katta 3 doʻkon savdoning ${top3}% ini oladi — yangi sotuvchiga qiyin.`, `у трёх крупнейших магазинов ${top3}% продаж — новичку трудно.`)} />)}
-              {kirish !== null && kirish < 90 && (
-                <Xulosa tur="ogoh" hukm={tr('Ruxsat kerak boʻlishi mumkin', 'Может понадобиться разрешение')}
-                  izoh={tr('sertifikat yoki markirovka talab qilinadi — vaqt va xarajat qoʻshiladi.', 'нужен сертификат или маркировка — добавятся время и расходы.')} />
+              <TurkumRasmlari id={y.categoryId} tr={tr} />
+              {ball !== null && (
+                <div className={u.baho}>
+                  <div className={u.bahoQator}>
+                    <span>{tr('Imkoniyat bahosi', 'Оценка возможности')}</span>
+                    <b>{Math.round(ball)} / 100 · {bahoSozi(ball, tr)}</b>
+                  </div>
+                  <div className={u.bahoChiziq} aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, ball))}%` }} /></div>
+                </div>
               )}
-              {mavsum !== null && mavsum < 70 && (
-                <Xulosa tur="ogoh" hukm={tr('Hozir mavsumi emas', 'Сейчас не сезон')} izoh={tr('bu oylarda xarid odatdagidan kam.', 'в эти месяцы покупают меньше обычного.')} />
-              )}
-              {y.yetadi !== null && (y.yetadi
-                ? <Xulosa tur="yaxshi" hukm={tr('Pulingiz yetadi', 'Денег хватит')}
-                  izoh={y.optimalKirishSom !== null ? tr(`boshlash uchun taxminan ${raqam(y.optimalKirishSom)} soʻm kerak.`, `для старта нужно примерно ${raqam(y.optimalKirishSom)} сум.`) : tr('tavsiya etilgan boshlash summasiga yetadi.', 'хватает на рекомендуемый старт.')} />
-                : <Xulosa tur="ogoh" hukm={tr('Pulingiz yetmasligi mumkin', 'Денег может не хватить')}
-                  izoh={y.optimalKirishSom !== null ? tr(`boshlash uchun taxminan ${raqam(y.optimalKirishSom)} soʻm kerak.`, `для старта нужно примерно ${raqam(y.optimalKirishSom)} сум.`) : tr('tavsiya etilgan boshlash summasidan kam.', 'меньше рекомендуемой суммы для старта.')} />)}
-            </ul>
-          </div>
-        );
-      })}
+              <ul className={u.xulosalar}>
+                {talab !== null && (talab >= 67
+                  ? <Xulosa tur="yaxshi" hukm={tr('Xaridor koʻp', 'Покупателей много')} izoh={tr('boshqa yoʻnalishlarga nisbatan xarid koʻp.', 'покупают больше, чем в других направлениях.')} />
+                  : talab >= 34
+                    ? <Xulosa tur="oddiy" hukm={tr('Xaridor oʻrtacha', 'Покупателей средне')} izoh={tr('xarid boshqa yoʻnalishlar oʻrtasida.', 'спрос на среднем уровне среди направлений.')} />
+                    : <Xulosa tur="ogoh" hukm={tr('Xaridor kam', 'Покупателей мало')} izoh={tr('boshqa yoʻnalishlarga nisbatan xarid kam.', 'покупают меньше, чем в других направлениях.')} />)}
+                {top3 !== null && (top3 < 30
+                  ? <Xulosa tur="yaxshi" hukm={tr('Bozor ochiq', 'Рынок открыт')}
+                    izoh={tr(`${sotuvchiMatn ? `${sotuvchiMatn} bor, lekin ` : ''}bozorni hech kim egallamagan: eng katta 3 doʻkon savdoning atigi ${top3}% ini oladi. Yangi sotuvchiga joy bor.`,
+                      `${sotuvchiMatn ? `${sotuvchiMatn}, но ` : ''}рынок никто не захватил: у трёх крупнейших магазинов всего ${top3}% продаж. Новичку есть место.`)} />
+                  : top3 < 60
+                    ? <Xulosa tur="oddiy" hukm={tr('Yirik doʻkonlar bor', 'Есть крупные магазины')}
+                      izoh={tr(`eng katta 3 doʻkon savdoning ${top3}% ini oladi${sotuvchiMatn ? ` (jami ${sotuvchiMatn})` : ''}.`,
+                        `у трёх крупнейших магазинов ${top3}% продаж${sotuvchiMatn ? ` (всего ${sotuvchiMatn})` : ''}.`)} />
+                    : <Xulosa tur="ogoh" hukm={tr('Bozor bir necha doʻkon qoʻlida', 'Рынок в руках нескольких магазинов')}
+                      izoh={tr(`eng katta 3 doʻkon savdoning ${top3}% ini oladi — yangi sotuvchiga qiyin.`, `у трёх крупнейших магазинов ${top3}% продаж — новичку трудно.`)} />)}
+                {kirish !== null && kirish < 90 && (
+                  <Xulosa tur="ogoh" hukm={tr('Ruxsat kerak boʻlishi mumkin', 'Может понадобиться разрешение')}
+                    izoh={tr('sertifikat yoki markirovka talab qilinadi — vaqt va xarajat qoʻshiladi.', 'нужен сертификат или маркировка — добавятся время и расходы.')} />
+                )}
+                {mavsum !== null && mavsum < 70 && (
+                  <Xulosa tur="ogoh" hukm={tr('Hozir mavsumi emas', 'Сейчас не сезон')} izoh={tr('bu oylarda xarid odatdagidan kam.', 'в эти месяцы покупают меньше обычного.')} />
+                )}
+                {y.yetadi !== null && (y.yetadi
+                  ? <Xulosa tur="yaxshi" hukm={tr('Pulingiz yetadi', 'Денег хватит')}
+                    izoh={y.optimalKirishSom !== null ? tr(`boshlash uchun taxminan ${raqam(y.optimalKirishSom)} soʻm kerak.`, `для старта нужно примерно ${raqam(y.optimalKirishSom)} сум.`) : tr('tavsiya etilgan boshlash summasiga yetadi.', 'хватает на рекомендуемый старт.')} />
+                  : <Xulosa tur="ogoh" hukm={tr('Pulingiz yetmasligi mumkin', 'Денег может не хватить')}
+                    izoh={y.optimalKirishSom !== null ? tr(`boshlash uchun taxminan ${raqam(y.optimalKirishSom)} soʻm kerak.`, `для старта нужно примерно ${raqam(y.optimalKirishSom)} сум.`) : tr('tavsiya etilgan boshlash summasidan kam.', 'меньше рекомендуемой суммы для старта.')} />)}
+              </ul>
+            </div>
+          );
+        })}
+      </Yonma>
       {bolish && <p className={u.kichikIzoh}>{bolish.sabab}</p>}
       {baholanmadi > 0 && <p className={u.kichikIzoh}>{tr(`Yana ${baholanmadi} ta yoʻnalishni baholab boʻlmadi — maʼlumot yetmadi.`, `Ещё ${baholanmadi} направлений не удалось оценить — не хватило данных.`)}</p>}
     </div>
@@ -1342,7 +1496,7 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
   const faol = rejim.onToggle !== undefined && !rejim.band;
   return (
     <>
-      <div className={u.katalog}>
+      <Yonma className={u.katalog} soni={royxat.length} tr={tr}>
         {royxat.map((t) => {
           const n = t.nomzod;
           const id = n.productId;
@@ -1422,7 +1576,7 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
             </div>
           );
         })}
-      </div>
+      </Yonma>
       {chiqarildi.length > 0 && (
         <p className={u.kichikIzoh}>
           {tr('Tuzoq sababli chiqarildi:', 'Исключены из-за ловушек:')}{' '}
@@ -1492,7 +1646,8 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
     <div className={u.kartalar}>
       {qatorlar.map((q) => (
         <Fragment key={q.productId}>
-          <div className={u.karta}>
+          {/* Hozir tanlanadigan tovar — taklif tanlangach ekran keyingisiga shu belgi orqali oʻtadi (2026-11-03). */}
+          <div className={u.karta} data-xitoy-faol={rejim?.faolPid === q.productId ? '1' : undefined}>
             <div className={u.kartaBoshi}>
               <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{q.title}</div></div>
               <span className={`${u.teg} ${holatSinfi(q.holat)}`}>{holatMatni(q.holat)}</span>
@@ -1509,7 +1664,7 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
             {(q.tashlandi ?? 0) > 0 && <p className={u.kichikIzoh}>{q.tashlandi} {tr('ta karta oʻqilmadi va koʻrsatilmadi', 'карточек не прочитано и не показано')}</p>}
           </div>
           {q.takliflar.length > 0 && (
-            <div className={u.katalog}>
+            <Yonma className={u.katalog} soni={q.takliflar.length} tr={tr}>
               {q.takliflar.map((t) => {
                 const havola = /^https?:\/\//i.test(t.manzil ?? '') ? t.manzil : null;
                 const faol = rejim !== undefined && rejim.faolPid === q.productId;
@@ -1579,7 +1734,7 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
                   </div>
                 );
               })}
-            </div>
+            </Yonma>
           )}
         </Fragment>
       ))}

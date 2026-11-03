@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, navbatBuzildimi, uzilmasSon, xatoGapi, XATO } from '../src/app/usta/suhbatYordam';
+import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, sorovLangari, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -153,5 +153,104 @@ describe('batafsilmi (3-taklif, 2026-10-27)', () => {
     expect(batafsilmi({ rol: 'menejer', matn: 'x' })).toBe(false);
     expect(batafsilmi({ rol: 'kod', matn: 'x', javob: { batafsil: true } })).toBe(false);
     expect(batafsilmi({ rol: 'menejer', matn: 'x', javob: null })).toBe(false);
+  });
+});
+
+/*
+ * Aylantirish (nazoratchi, 2026-11-03: «variant yoki tovar tanlaganda scroll pastga tushib
+ * ketyapti»). Telefonda oʻlchandi: pul tanlagach ekran 2 600 px, ism yozgach 10 900 px pastga —
+ * javobning oxiriga sakrardi; 1688 da har tanlovdan keyin pastga ketardi.
+ */
+describe('sorovLangari — soʻrovdan keyin javob qayerdan koʻrinadi', () => {
+  it('mijoz gapi (tugma, yozilgan matn) — `men`: uning pufagi ekran tepasiga', () => {
+    expect(sorovLangari({ savolId: 'byudjet', javob: 30_000_000 }, '30 mln soʻm')).toBe('men');
+    expect(sorovLangari({ savolId: 'ism', matn: 'Aziz, +998 90 123 45 67' }, 'Aziz, +998 90 123 45 67')).toBe('men');
+    expect(sorovLangari({ tahrir: 'byudjet' }, 'Pulni oʻzgartiraman')).toBe('men');
+  });
+
+  it('1688 tanlovi (oʻtkazib yuborish ham) — `xitoy`: keyingi tovarga, pastga emas', () => {
+    expect(sorovLangari({ savolId: 'xitoy_tanlov:123', javob: 'abc' }, '¥12 · zavod')).toBe('xitoy');
+    expect(sorovLangari({ savolId: 'xitoy_tanlov:123', javob: null }, null)).toBe('xitoy');
+    expect(sorovLangari({ savolId: 'xitoy_qayta', javob: 'davom' }, 'Shusiz davom etamiz')).toBe('men');
+  });
+
+  it('boshidan — `tepa`; kod qadami va tekshiruv (koʻrinadigan gapsiz) — langar oʻzgarmaydi', () => {
+    expect(sorovLangari({ boshdan: true }, null)).toBe('tepa');
+    expect(sorovLangari({}, null)).toBeNull();
+    expect(sorovLangari({ tekshir: true }, null)).toBeNull();
+  });
+});
+
+describe('langarQarori — faqat pastga, faqat langargacha, mijoz aylantirsa — joyida', () => {
+  const l = (o: Partial<Langar> = {}): Langar => ({ tur: 'men', qolda: false, sakra: false, ...o });
+
+  it('javob uzaygan sari langar tepaga chiqquncha pastga yuradi, keyin toʻxtaydi', () => {
+    // Yuborilgan zahoti: pufak pastda, tagida faqat «Yozmoqda…» — nuqta = oxiri.
+    expect(langarQarori(l(), true, 900, 1000)).toEqual({ top: 1000, darhol: false });
+    // Javob ekrandan uzun: langar tepaga chiqdi — undan pastga quvilmaydi (ilgari +10 900 px).
+    expect(langarQarori(l(), false, 1000, 1000)).toBeNull();
+    expect(langarQarori(l(), false, 1000, 1000.5)).toBeNull();
+  });
+
+  it('hech qachon oʻzi tepaga tortmaydi (sakrashdan tashqari)', () => {
+    expect(langarQarori(l(), false, 3000, 1000)).toBeNull();
+  });
+
+  it('mijoz oʻzi aylantirgan — joyida; 1688 tanlovi yoʻlda — joyida, javob kelgach keyingi tovarga', () => {
+    expect(langarQarori(l({ qolda: true }), false, 0, 5000)).toBeNull();
+    expect(langarQarori(l({ tur: 'xitoy' }), true, 100, 2000)).toBeNull();
+    expect(langarQarori(l({ tur: 'xitoy' }), false, 100, 2000)).toEqual({ top: 2000, darhol: false });
+  });
+
+  it('sakrash (ochilganda, boshidan, «Suhbatlarim») — istalgan tomonga, darhol; nuqta yoʻq — eng tepa', () => {
+    expect(langarQarori(l({ sakra: true }), false, 3000, 1000)).toEqual({ top: 1000, darhol: true });
+    expect(langarQarori(l({ sakra: true, qolda: true }), false, 3000, 1000)).toEqual({ top: 1000, darhol: true });
+    expect(langarQarori(l({ sakra: true, tur: 'tepa' }), true, 3000, null)).toEqual({ top: 0, darhol: true });
+  });
+
+  it('langar topilmadi (yangi suhbat) — joyida', () => {
+    expect(langarQarori(l(), false, 0, null)).toBeNull();
+    expect(langarQarori(l(), false, 0, null, true)).toBeNull();
+  });
+
+  it('javob tugadi — langar joyiga qaytadi, TEPAGA ham (savol tugmalari yigʻilib, mijoz gapi 352 px chiqib ketardi)', () => {
+    expect(langarQarori(l(), false, 844, 480, true)).toEqual({ top: 480, darhol: true });
+    expect(langarQarori(l(), false, 300, 480, true)).toEqual({ top: 480, darhol: true });
+    expect(langarQarori(l(), false, 480, 480.5, true)).toBeNull();
+    // Mijoz oʻzi aylantirgan — tegilmaydi; 1688 — keyingi tovarga silliq.
+    expect(langarQarori(l({ qolda: true }), false, 844, 480, true)).toBeNull();
+    expect(langarQarori(l({ tur: 'xitoy' }), false, 844, 1500, true)).toEqual({ top: 1500, darhol: false });
+  });
+});
+
+describe('pastgaHolati — «↓ Savolga» qachon chiqadi', () => {
+  it('savol ekran pastidan tashqarida — `savol`; koʻrinib tursa — yoʻq', () => {
+    expect(pastgaHolati(900, 650, 2000)).toBe('savol');
+    expect(pastgaHolati(600, 650, 2000)).toBe('savol'); // 60 px dan kam koʻrinadi
+    expect(pastgaHolati(589, 650, 2000)).toBeNull();
+    expect(pastgaHolati(-300, 650, 0)).toBeNull(); // savol tepada, mijoz undan pastda
+  });
+
+  it('savol yoʻq yoki javob kutilmoqda — pastda koʻp qolsa `past`', () => {
+    expect(pastgaHolati(null, 650, 161)).toBe('past');
+    expect(pastgaHolati(null, 650, 160)).toBeNull();
+    expect(pastgaHolati(null, 650, 0)).toBeNull();
+  });
+});
+
+describe('yonmaJoriy — telefonda yonma-yon kartalarda nechanchisi', () => {
+  it('surilgan masofa / karta qadami, yaxlitlab, chegarada', () => {
+    expect(yonmaJoriy(0, 300, 10)).toBe(0);
+    expect(yonmaJoriy(149, 300, 10)).toBe(0);
+    expect(yonmaJoriy(151, 300, 10)).toBe(1);
+    expect(yonmaJoriy(2700, 300, 10)).toBe(9);
+    expect(yonmaJoriy(99_999, 300, 10)).toBe(9);
+    expect(yonmaJoriy(-20, 300, 10)).toBe(0);
+  });
+
+  it('oʻlchab boʻlmasa (karta kengligi 0, roʻyxat boʻsh) — 0', () => {
+    expect(yonmaJoriy(500, 0, 10)).toBe(0);
+    expect(yonmaJoriy(500, Number.NaN, 10)).toBe(0);
+    expect(yonmaJoriy(500, 300, 0)).toBe(0);
   });
 });

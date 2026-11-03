@@ -626,6 +626,13 @@ button.sizBelgi:disabled { opacity: 0.6; }
 .kartalar > .kichikIzoh,
 .kartalar > .ogohlik { margin-top: 0; }
 
+/* Yoʻnalish kartalari qatori — kompyuterda ustun; telefonda yonma-yon (`.yonma`, 2026-11-03). */
+.kartalarQator {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .karta {
   background: var(--kart);
   border-radius: 22px;
@@ -1172,11 +1179,37 @@ button.sizBelgi:disabled { opacity: 0.6; }
 /* ---------------------------------------------------------- pastki panel */
 
 .past_ {
+  position: relative;
   flex: none;
   border-top: 1px solid var(--chiziq);
   padding: 18px 0 20px;
   display: flex;
   justify-content: center;
+}
+
+/*
+ * «↓ Savolga» (2026-11-03): savol ekrandan pastda qolsa — pastki panel ustida, matn ustunining
+ * oʻng chetida (keng ekranda ustun 820 px, markazda).
+ */
+.pastgaTugma {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(100% + 12px);
+  right: max(16px, calc((100% - 820px) / 2));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--matn);
+  color: var(--bg);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: var(--soya), 0 10px 24px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
 }
 
 .pastIchi {
@@ -2269,4 +2302,46 @@ button.sizBelgi:disabled { opacity: 0.6; }
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+/*
+ * Telefonda kartalar YONMA-YON (2026-11-03, 4-taklif): yoʻnalishlar, tovar katalogi va 1688
+ * takliflari barmoq bilan suriladi, keyingi karta oʻngdan chiqib turadi. Faylning oxirida —
+ * `.katalog` ning telefon qoidasidan (bitta ustun) keyin turishi kerak. Ichki chekka — kartalar
+ * soyasi va tanlov halqasi kesilmasin.
+ */
+.yonmaSanoq { display: none; }
+
+@media (max-width: 760px) {
+  .yonma {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 3px;
+    scrollbar-width: none;
+    padding: 4px 3px 14px;
+    margin: -4px -3px -14px;
+  }
+
+  .yonma::-webkit-scrollbar { display: none; }
+
+  .yonma > * {
+    flex: 0 0 86%;
+    scroll-snap-align: start;
+  }
+
+  .yonmaSanoq {
+    display: block;
+    margin-top: -4px;
+    font-size: 13px;
+    color: var(--xira);
+  }
+
+  .yonmaSanoq b {
+    color: var(--matn);
+    font-weight: 600;
+  }
 }
