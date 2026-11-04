@@ -588,7 +588,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    * yozilardi (audit, 2026-10-05). Odam soʻrovi yoʻlda boʻlsa — bu navbat
    * oʻtkaziladi.
    */
-  const kutishBormi = keyingi?.tur === 'kutish';
+  // 1688 qidiruvi paytidagi fikr savoli ham (8-taklif, 2026-11-04): savol turibdi, qidiruv orqada davom etadi.
+  const kutishBormi = keyingi?.tur === 'kutish' || (keyingi?.tur === 'savol' && keyingi.savol.fonda === true);
   useEffect(() => {
     if (!kutishBormi) return;
     let toxta = false;
@@ -1268,6 +1269,11 @@ interface TovarQatori {
 interface TannarxQatori {
   productId: number; title: string; sotuvNarxiSom: number | null; miqdor: number | null;
   marjaFoizi: number | null; chegaraSom: number | null; yetishmaydi: string[]; hisob: string | null;
+  /** «Pul qayerga ketadi» (6-taklif) — 2026-11-04 dan; eski natijada yoʻq. */
+  qismlar?: {
+    sotuv: number; foyda: number; marjaFoizi: number; komissiya: number; komissiyaFoizi: number;
+    logistika: number | null; kargo: number | null;
+  } | null;
 }
 
 /**
@@ -1663,6 +1669,29 @@ function TovarKatalogi({ royxat, chiqarildi, rejim, tr }: {
   );
 }
 
+/**
+ * «Pul qayerga ketadi» (nazoratchi, 2026-11-04, 6-taklif): formula oʻrniga roʻyxat — 1 dona sotuvdan
+ * nima kimga ketadi va Xitoyda qancha toʻlash mumkin. Eski natijada (`qismlar` yoʻq) — oldingidek.
+ */
+function PulYoli({ q, tr }: { q: TannarxQatori & { qismlar: NonNullable<TannarxQatori['qismlar']> }; tr: Tr }) {
+  const p = q.qismlar;
+  const som = (n: number) => `${raqam(n)} ${tr('soʻm', 'сум')}`;
+  const ayir = (n: number) => `− ${raqam(n)}`;
+  return (
+    <div className={u.pulYoli}>
+      <div className={u.pulQator}><span>{tr('Uzumda sotasiz', 'Продаёте на Uzum')}</span><b>{som(p.sotuv)}</b></div>
+      <div className={u.pulQator}><span>{tr(`Sizning foydangiz (${p.marjaFoizi}%)`, `Ваша прибыль (${p.marjaFoizi}%)`)}</span><span>{ayir(p.foyda)}</span></div>
+      <div className={u.pulQator}><span>{tr(`Uzum komissiyasi (${p.komissiyaFoizi}%)`, `Комиссия Uzum (${p.komissiyaFoizi}%)`)}</span><span>{ayir(p.komissiya)}</span></div>
+      {p.logistika !== null && <div className={u.pulQator}><span>{tr('Uzum yetkazishi', 'Доставка Uzum')}</span><span>{ayir(p.logistika)}</span></div>}
+      {p.kargo !== null && <div className={u.pulQator}><span>{tr('Kargo (Xitoydan)', 'Карго (из Китая)')}</span><span>{ayir(p.kargo)}</span></div>}
+      <div className={`${u.pulQator} ${u.pulJami}`}>
+        <span>{tr('Xitoyda 1 dona uchun toʻlash mumkin', 'Можно заплатить в Китае за 1 шт')}</span>
+        <b>{q.chegaraSom === null ? '—' : som(q.chegaraSom)}</b>
+      </div>
+    </div>
+  );
+}
+
 function Chegaralar({ qatorlar, izoh, tr }: { qatorlar: TannarxQatori[]; izoh: string | null; tr: Tr }) {
   return (
     <div className={u.kartalar}>
@@ -1672,12 +1701,16 @@ function Chegaralar({ qatorlar, izoh, tr }: { qatorlar: TannarxQatori[]; izoh: s
             <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{q.title}</div></div>
             {q.miqdor !== null && <span className={`${u.teg} ${u.tegNeytral}`}>{q.miqdor} {tr('dona', 'шт')}</span>}
           </div>
-          <div className={u.statlar}>
-            <Stat nom={tr('Uzumda narx', 'Цена на Uzum')} q={q.sotuvNarxiSom === null ? '—' : `${raqam(q.sotuvNarxiSom)} ${tr('soʻm', 'сум')}`} />
-            <Stat nom={tr('Marja', 'Маржа')} q={q.marjaFoizi === null ? '—' : `${q.marjaFoizi}%`} />
-            <Stat nom={tr('Xitoyda chegara', 'Потолок в Китае')} q={q.chegaraSom === null ? '—' : `${raqam(q.chegaraSom)} ${tr('soʻm', 'сум')}`} />
-          </div>
-          {q.hisob && <p className={`${u.kichikIzoh} ${u.mono}`}>{uzilmasSon(q.hisob)}</p>}
+          {q.qismlar ? <PulYoli q={{ ...q, qismlar: q.qismlar }} tr={tr} /> : (
+            <>
+              <div className={u.statlar}>
+                <Stat nom={tr('Uzumda narx', 'Цена на Uzum')} q={q.sotuvNarxiSom === null ? '—' : `${raqam(q.sotuvNarxiSom)} ${tr('soʻm', 'сум')}`} />
+                <Stat nom={tr('Marja', 'Маржа')} q={q.marjaFoizi === null ? '—' : `${q.marjaFoizi}%`} />
+                <Stat nom={tr('Xitoyda chegara', 'Потолок в Китае')} q={q.chegaraSom === null ? '—' : `${raqam(q.chegaraSom)} ${tr('soʻm', 'сум')}`} />
+              </div>
+              {q.hisob && <p className={`${u.kichikIzoh} ${u.mono}`}>{uzilmasSon(q.hisob)}</p>}
+            </>
+          )}
           {q.yetishmaydi.length > 0 && (
             <Ogohlik>{tr('Hisobga kirmadi:', 'Не учтено:')} {q.yetishmaydi.join(', ')}</Ogohlik>
           )}
@@ -1692,6 +1725,8 @@ function Chegaralar({ qatorlar, izoh, tr }: { qatorlar: TannarxQatori[]; izoh: s
 
 interface XitoyTaklifQ {
   sourceId: string; title: string; narxYuan: number; rasmUrl: string | null; moq: number | null;
+  /** Qisqa oʻzbekcha nom (7-taklif, 2026-11-04). */
+  nomUz?: string | null;
   reyting: number | null; manzil: string | null; buyurtmalar: number | null; zavod: boolean | null;
   superZavod?: boolean | null; oxshashlikOrni?: number | null; dropshipNarxYuan?: number | null;
   narxSom: number | null; chegaradaMi: boolean | null;
@@ -1730,7 +1765,7 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
             </div>
             <div className={u.statlar}>
               <Stat nom={tr('Xitoyda chegara', 'Потолок в Китае')} q={q.chegaraSom === null ? '—' : `${raqam(q.chegaraSom)} ${tr('soʻm', 'сум')}`} />
-              <Stat nom={tr('1688 topdi', '1688 нашёл')} q={q.jami === null ? '—' : raqam(q.jami)} izoh={q.keshdan ? tr('72 soatlik keshdan', 'из кэша (72 ч)') : undefined} />
+              <Stat nom={tr('1688 topdi', '1688 нашёл')} q={q.jami === null ? '—' : raqam(q.jami)} />
             </div>
             {(q.yetishmaydi?.length ?? 0) > 0 && (
               <Ogohlik>{tr('Chegaraga kirmadi:', 'В потолок не вошло:')} {q.yetishmaydi!.join(', ')} — {tr('haqiqiy chegara pastroq', 'реальный потолок ниже')}</Ogohlik>
@@ -1765,9 +1800,11 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
                         : <><Ikon nom="rasm" o={26} q={1.75} />{tr('Mahsulot rasmi', 'Фото товара')}</>}
                     </div>
                     <div className={u.katalogIchi}>
+                      {/* Oʻzbekcha nom (7-taklif) — asl xitoychasi ostida kichik. */}
                       <div className={u.katalogNomi}>
-                        {havola ? <a href={havola} target="_blank" rel="noopener noreferrer">{t.title}</a> : t.title}
+                        {havola ? <a href={havola} target="_blank" rel="noopener noreferrer">{t.nomUz ?? t.title}</a> : t.nomUz ?? t.title}
                       </div>
+                      {t.nomUz && <div className={u.aslNom} lang="zh">{t.title}</div>}
                       <div className={u.katalogNarx}>
                         <span className={u.narx}>
                           <span className={u.narxSon}>¥{t.narxYuan}</span>
@@ -1776,14 +1813,14 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
                       </div>
                       <div className={u.katalogQatorlar}>
                         <div className={u.katalogQator}>
-                          <span>MOQ {t.moq === null ? '—' : t.moq}</span>
+                          <span>{t.moq === null ? tr('Kamida: —', 'Минимум: —') : tr(`Kamida ${son(t.moq)} dona`, `Минимум ${son(t.moq)} шт`)}</span>
                           <span>{t.buyurtmalar === null ? '—' : `${son(t.buyurtmalar)} ${tr('buyurtma', 'заказов')}`}</span>
                         </div>
                         <div className={u.katalogQator}>
                           <span>{t.superZavod === true ? tr('super zavod', 'супер-завод') : t.zavod === true ? tr('zavod', 'завод') : t.zavod === false ? tr('sotuvchi', 'продавец') : '—'}</span>
                           <span className={u.reyting}>
-                            {t.reyting === null ? '—' : <><span className={u.yulduz}><Ikon nom="yulduz" o={14} /></span>{t.reyting}</>}
-                            {typeof t.oxshashlikOrni === 'number' ? ` · #${t.oxshashlikOrni}` : ''}
+                            {/* Reyting — bitta kasr bilan (7-taklif): «3.4161751 · #2» oʻrniga «3.4». */}
+                            {t.reyting === null ? '—' : <><span className={u.yulduz}><Ikon nom="yulduz" o={14} /></span>{t.reyting.toFixed(1)}</>}
                           </span>
                         </div>
                       </div>
@@ -1814,11 +1851,12 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
           )}
         </Fragment>
       ))}
+      {/* Kurs — oddiy qator; texnik izoh (provayder, kesh) mijozga koʻrsatilmaydi (7-taklif, 2026-11-04). */}
       <p className={u.kichikIzoh}>
         {kurs
           ? tr(`Kurs: ${kurs.manba}, 1 yuan = ${son(kurs.somPerYuan)} soʻm (${kurs.sana}).`, `Курс: ${kurs.manba}, 1 юань = ${son(kurs.somPerYuan)} сум (${kurs.sana}).`)
           : tr('Kurs olinmadi — soʻm koʻrsatilmadi.', 'Курс не получен — сумы не показаны.')}
-        {izoh ? ` ${izoh}` : ''}
+        {izoh && !/Apify|provayder/u.test(izoh) ? ` ${izoh}` : ''}
       </p>
       {havolaYopiq && (
         <p className={u.kichikIzoh}>{tr('1688 sotuvchi havolalari obuna olingandan keyin ochiladi.', 'Ссылки на продавцов 1688 откроются после оформления подписки.')}</p>
@@ -2825,7 +2863,7 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
             <button
               key={String(v.qiymat)}
               type="button"
-              className={[u.variant, raqamli ? u.variantRaqam : '', uzun ? u.variantUzun : '', bor ? u.variantTanlangan : ''].join(' ')}
+              className={[u.variant, raqamli ? u.variantRaqam : '', uzun ? u.variantUzun : '', v.izoh ? u.variantIzohli : '', bor ? u.variantTanlangan : ''].join(' ')}
               aria-pressed={kop ? bor : undefined}
               disabled={band}
               onClick={() => (kop
@@ -2834,7 +2872,11 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
             >
               {/* Koʻp tanlov — kvadrat ☑ (3-taklif): bir nechtasi mumkin. Bitta tanlovda belgi yoʻq — bosish = javob. */}
               {kop && <span className={u.katak} aria-hidden="true">{bor && <Ikon nom="belgi" o={13} q={3} />}</span>}
-              <span className={u.variantNomi}>{variantNomi(v, tr)}</span>
+              <span className={u.variantNomi}>
+                {variantNomi(v, tr)}
+                {/* Marja tugmasida foyda soʻmda (6-taklif, 2026-11-04): «har sotuvdan ~32 700 soʻm». */}
+                {v.izoh && <span className={u.variantIzoh}>{tr(v.izoh, v.izohRu ?? v.izoh)}</span>}
+              </span>
               {raqamli && i < 9 && <span className={u.klavish} aria-hidden="true">{i + 1}</span>}
             </button>
           );
@@ -3106,14 +3148,32 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
     // 1688 takliflari oqimdagi rasmli kartalarda tanlanadi — pastda faqat
     // yoʻriqnoma. Oddiy qator: kulrang «tabletka» boʻlsa, telefonda ostidagi
     // yozish maydoni bilan ikki maydon ustma-ust koʻrinardi (2026-10-07).
+    // «Oʻtkazib yuborish» — shu qatorda (11-taklif, 2026-11-04: panel 3 qator edi, ekranning ~uchdan biri).
     return (
       <>
-        <p className={u.tanlovIzoh}>
-          <Ikon nom="yuqori" o={16} />
-          <span>{tr('Yuqoridagi kartalardan birini tanlang — «Shuni olamiz»', 'Выберите карточку выше — «Берём это»')}</span>
+        <div className={u.tanlovIzohQator}>
+          <p className={u.tanlovIzoh}>
+            <Ikon nom="yuqori" o={16} />
+            <span>{tr('Yuqoridagi kartadan «Shuni olamiz»', 'Выберите выше — «Берём это»')}</span>
+          </p>
+          {savol.otkazishMumkin && (
+            <button type="button" className={u.otkazishIchki} onClick={() => javobBer(savol.id, null)} disabled={band}>{tr('Oʻtkazib yuborish', 'Пропустить')}</button>
+          )}
+        </div>
+        {kiritishQatori}
+      </>
+    );
+  }
+
+  if (savol.fonda) {
+    // 1688 qidiruvi paytidagi savol (8-taklif): qidiruv ketayotgani pastda ham koʻrinadi.
+    return (
+      <>
+        <p className={u.tanlovIzoh} role="status">
+          <span className={u.nuqtalar} aria-hidden="true"><i /><i /><i /></span>
+          <span>{tr('1688 da qidirilmoqda — natija shu yerda chiqadi', 'Идёт поиск на 1688 — результат появится здесь')}</span>
         </p>
         {kiritishQatori}
-        {otkaz}
       </>
     );
   }

@@ -432,7 +432,7 @@ describe('suhbatTurn', () => {
       { savolId: 'uzum_dokoni', javob: 'yoq' },
       { savolId: 'marja', javob: 30 },
       { savolId: 'xitoy_tasdiq', javob: 'ha' },
-      // B2 fikri (2026-10-06) — oʻtkazib yuboriladi.
+      // Fikr savoli — qidiruv paytida (8-taklif, 2026-11-04); oʻtkazib yuboriladi.
       { savolId: 'usta_fikri', javob: null },
     ];
     let oxirgi: Awaited<ReturnType<typeof suhbatTurn>> | null = null;
@@ -597,7 +597,7 @@ describe('suhbatTurn', () => {
   });
 
   it('tekshir: yurish hali tugamagan — xabar yoʻq, jurnal oʻzgarmaydi, holat kutishda qoladi', async () => {
-    const b = soxtaBaza({ javoblar: { ...TANISH, byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+    const b = soxtaBaza({ javoblar: { ...TANISH, byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha', usta_fikri: null },
       natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY_KUTISH } });
     const d = bogliq(b);
     d.kod.xitoy = async () => XITOY_KUTISH;
@@ -608,26 +608,33 @@ describe('suhbatTurn', () => {
     expect(b.jurnal.length).toBe(0);
   });
 
-  it('B2 fikri: «Ha» + izoh → fikr yoziladi va 1688 qidiruvi shu turnda boshlanadi', async () => {
+  it('fikr savoli qidiruv PAYTIDA (8-taklif, 2026-11-04): «Ha» → fikr yoziladi, qidiruv kutilmoqda; izoh savoli yoʻq', async () => {
     const b = soxtaBaza({ javoblar: { ...TANISH, byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
-      natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true } } });
+      natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY_KUTISH } });
     const d = bogliq(b);
     const yozilgan: YolHolati[] = [];
     d.kod.ustaFikri = async (h: YolHolati) => { yozilgan.push(h); return { olchov_yoq: false, yozildi: true }; };
-    const r1 = await suhbatTurn(d, 'tok', { savolId: 'usta_fikri', javob: 'ha' });
-    if (r1.keyingi.tur !== 'savol') throw new Error(r1.keyingi.tur);
-    expect(r1.keyingi.savol.id).toBe('usta_fikri_izoh');
-    expect(yozilgan).toHaveLength(0);
-    const r2 = await suhbatTurn(d, 'tok', { savolId: 'usta_fikri_izoh', matn: 'Chegara narx foydali' });
-    expect(r2.xato).toBeUndefined();
-    expect(r2.xabarlar.map((x) => [x.rol, x.savolId])).toEqual([
-      ['obunachi', 'usta_fikri_izoh'], ['kod', 'usta_fikri'], ['menejer', undefined],
-    ]);
-    expect(r2.xabarlar[1]!.matn).toMatch(/Fikringiz yozildi/);
-    expect(r2.keyingi.tur).toBe('kutish');
+    const r = await suhbatTurn(d, 'tok', { savolId: 'usta_fikri', javob: 'ha' });
+    expect(r.xato).toBeUndefined();
+    expect(r.xabarlar.map((x) => [x.rol, x.savolId])).toEqual([['obunachi', 'usta_fikri'], ['kod', 'usta_fikri'], ['menejer', undefined]]);
+    expect(r.xabarlar[1]!.matn).toBe('Fikringiz yozildi — rahmat. 1688 qidiruvi davom etyapti.');
+    expect(r.keyingi.tur).toBe('kutish');
     expect(yozilgan).toHaveLength(1);
     expect(yozilgan[0]!.javoblar['usta_fikri']).toBe('ha');
-    expect(yozilgan[0]!.javoblar['usta_fikri_izoh']).toBe('Chegara narx foydali');
+  });
+
+  it('fikr savoliga javob bermasa — natija kelganda savol yopiladi: 1688 kartasi va tanlov savoli', async () => {
+    const b = soxtaBaza({ javoblar: { ...TANISH, byudjet: 1, uzum_dokoni: 'yoq', yonalish: 11, tovarlar: [100], 'miqdor:100': 30, marja: 30, xitoy_tasdiq: 'ha' },
+      natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY_KUTISH } });
+    const d = bogliq(b);
+    const k0 = await suhbatOqi(d, 'tok');
+    if (!('keyingi' in k0) || k0.keyingi.tur !== 'savol') throw new Error('savol kutilgan edi');
+    expect(k0.keyingi.savol).toMatchObject({ id: 'usta_fikri', fonda: true });
+    d.kod.xitoy = async () => XITOY;
+    const t = await suhbatTurn(d, 'tok', { tekshir: true });
+    expect(t.xato).toBeUndefined();
+    expect(t.xabarlar.map((x) => [x.rol, x.savolId])).toEqual([['kod', 'xitoy'], ['menejer', 'xitoy_tanlov:100']]);
+    expect(t.keyingi.tur === 'savol' && t.keyingi.savol.id).toBe('xitoy_tanlov:100');
   });
 
   it('boshdan — YANGI suhbat (nazoratchi, 2026-10-12): holat tozalanadi, jurnal bazada qoladi, chatga faqat yangisi', async () => {

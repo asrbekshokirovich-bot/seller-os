@@ -852,6 +852,14 @@ describe('AI yozishiga faqat kerakli faktlar (4-taklif, 2026-10-27)', () => {
     await suhbatTurn(bogliq(soxtaBaza(BYUDJET), s.ai), 't', { savolId: 'byudjet', javob: null });
     expect(s.yozlar[0]!.k.qabul).toEqual(['«Qancha pul bilan savdoni boshlamoqchisiz?» → Hali bilmayman']);
   });
+  it('AI matnidagi oddiy apostrof — oʻzbekcha belgiga (11-taklif, 2026-11-04)', async () => {
+    const s = soxtaAi([], [{ oldin: "Yaxshi, yozib qo'ydim.", izoh: '', savol: "Qancha pul bilan boshlaysiz? Ma'lumot uchun.", batafsil: "G'oya: avval o'ylab ko'ring." }]);
+    const r = await suhbatTurn(bogliq(soxtaBaza(QIZIQISH), s.ai), 't', { savolId: 'qiziqish', javob: ['kiyim'] });
+    const matnlar = r.xabarlar.map((x) => x.matn);
+    expect(matnlar).toContain('Yaxshi, yozib qoʻydim.');
+    expect(matnlar).toContain('Gʻoya: avval oʻylab koʻring.');
+    expect(matnlar.at(-1)).toBe('Qancha pul bilan boshlaysiz? Maʼlumot uchun.');
+  });
   it('savol bilan javob — toʻliq faktlar', async () => {
     const s = soxtaAi([{ javoblar: [{ savol_id: 'qiziqish', qiymatlar: ['kiyim'], otkazish: false }], taklif_qiziqish: [], savol_bor: true }], [YOZUV]);
     await suhbatTurn(bogliq(soxtaBaza(QIZIQISH), s.ai), 't', { savolId: 'qiziqish', matn: 'kiyim, bu bepulmi?' });

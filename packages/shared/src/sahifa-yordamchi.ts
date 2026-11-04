@@ -21,7 +21,7 @@ import { tayyorJavob } from './erkin.js';
 import { yordamchiBilimi } from './bilim.js';
 import { bilimJavobi } from './bilim-javob.js';
 import { tekshir } from './tekshiruv.js';
-import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.js';
+import { apostrofTozala, kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.js';
 import { aiUzr, SAYT_NOMLARI } from './ai-suhbat.js';
 
 export type Sahifa = 'bosh' | 'kirish' | 'maxfiylik' | 'obuna';
@@ -178,7 +178,8 @@ export async function sahifaJavobi(
       const tk = tekshir(taklif, manba);
       const tilMos: boolean = til === 'uz' || kirillUlushi(taklif) >= 0.5;
       const qisqa: boolean = taklif.length <= SAHIFA_JAVOB_MAX;
-      if (tk.ok && tilMos && qisqa) return { matn: taklif, manba: 'ai' };
+      // Oddiy apostroflar — oʻzbekcha belgilarga (11-taklif, 2026-11-04).
+      if (tk.ok && tilMos && qisqa) return { matn: apostrofTozala(taklif), manba: 'ai' };
       tashla();
       tuzat = [
         tk.dalilsiz.length ? `bu raqamlar faktlarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,

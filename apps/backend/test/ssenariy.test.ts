@@ -15,7 +15,7 @@ import {
   boshlangichHolat, deklaratsiyaQadamlari, faktlarniOqi, hisobotFaktlari, javobniQabulQil, joriyQadam, keyingi,
   kutilayotganHarakat, natijaniYoz, oyHisobi, qabulFaktlari, rasmiyFaktlari, SHAHARLAR, sotuvTovarlari, SUHBAT_QADAMLARI,
   suratTalablari, tushuntir, yiqilganNatija, yonalishYanaNatija, type KodHarakati, type YolHolati, kelgusiTanishuvSavollari, salomsizSavol,
-  sizHaqingizda, tahrirgaOch, mijozAloqasi, telefonYashir, holatBelgilari,
+  sizHaqingizda, tahrirgaOch, mijozAloqasi, telefonYashir, holatBelgilari, marjaTugmalari, MARJA_TUGMALARI, taklifNomi,
   havolalarsiz, OBUNA_SAVOLI, suhbatTurn, type Darvoza, type Keyingi, type SuhbatBogliqliklari, type SuhbatSavoli,
 } from '@selleros/shared';
 
@@ -577,9 +577,7 @@ describe('4-qadam — Tannarx va zanjir oxiri', () => {
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     expect(savolId(h)).toBe('xitoy_tasdiq');
     h = javob(h, 'xitoy_tasdiq', 'ha');
-    // B2 fikri (2026-10-06) — oʻtkazib yuborilsa toʻgʻri qidiruvga.
-    expect(savolId(h)).toBe('usta_fikri');
-    h = javob(h, 'usta_fikri', null);
+    // Qidiruv DARHOL (8-taklif, 2026-11-04): fikr savoli endi qidiruv paytida, oldin emas.
     // Rasm bazada bor (fikstura) — savolsiz to'g'ri qidiruvga.
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
     expect(joriyQadam(h)).toBe(5);
@@ -679,75 +677,101 @@ describe('tushuntir — tannarx rostini aytadi', () => {
 function tasdiqlandi(): YolHolati {
   let h = javob(tovarlarTanlandi(), 'marja', 30);
   h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
-  h = javob(h, 'xitoy_tasdiq', 'ha');
-  // B2 fikri oʻtkazib yuborilgan — 5-qadam testlari fikrsiz yoʻlni sinaydi.
-  return javob(h, 'usta_fikri', null);
+  // Fikr savoli endi qidiruv paytida (8-taklif) — 5-qadam testlari natijadan boshlanadi.
+  return javob(h, 'xitoy_tasdiq', 'ha');
 }
 
-describe('B2 — Usta haqidagi fikr, 4-qadamdan keyin (nazoratchi qarori, 2026-10-06)', () => {
+describe('Fikr savoli — 1688 qidiruvi PAYTIDA, bitta savol (nazoratchi, 2026-11-04, 8-taklif)', () => {
+  const KUTILMOQDA = { olchov_yoq: false, kurs: XITOY.kurs, qatorlar: [], kutilmoqda: { runId: 'r1', boshlandi: '2026-11-04T10:00:00Z', rasmlar: [{ productId: 100, rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg' }] } };
   function haDeyildi(): YolHolati {
     let h = javob(tovarlarTanlandi(), 'marja', 30);
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     return javob(h, 'xitoy_tasdiq', 'ha');
   }
+  const qidiruvda = () => natijaniYoz(haDeyildi(), 'xitoy', KUTILMOQDA);
 
-  it('«Ha, Xitoydan topamiz» dan keyin — fikr savoli: «Ha» / «Yoʻq», oʻtkazish mumkin, 4-qadam', () => {
-    const k = keyingi(haDeyildi());
+  it('«Ha, Xitoydan topamiz» — qidiruv darhol: oldin fikr savoli yoʻq', () => {
+    expect(keyingi(haDeyildi())).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+  });
+
+  it('qidiruv paytida — bitta savol: «Ha» / «Yoʻq», yozsa ham, oʻtkazsa ham boʻladi; sahifa qidiruvni tekshirib turadi (fonda)', () => {
+    const k = keyingi(qidiruvda());
     if (k.tur !== 'savol') throw new Error(k.tur);
-    expect(k.savol.id).toBe('usta_fikri');
-    expect(k.savol.qadam).toBe(4);
-    expect(k.savol.turi).toBe('tanlov');
-    expect(k.savol.otkazishMumkin).toBe(true);
+    expect(k.savol).toMatchObject({ id: 'usta_fikri', qadam: 5, turi: 'tanlov', erkin: true, otkazishMumkin: true, fonda: true });
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['ha', 'yoq']);
-    expect(k.savol.matn).toMatch(/mantiqli/);
+    expect(k.savol.matn).toMatch(/^1688 da qidiryapman/);
+    expect(k.savol.matn).toMatch(/yordamchining ishi mantiqli/);
+    // «Usta» — eski nom (nazoratchi, 2026-10-13: «ZumSavdo yordamchisi»).
+    expect(k.savol.matn).not.toMatch(/Usta/);
+    expect(k.savol.ru).toMatch(/^Ищу на 1688/);
   });
 
-  it('«Ha, mantiqli» → izoh (ixtiyoriy) → fikr yoziladi (kod) → keyin 1688', () => {
-    let h = javob(haDeyildi(), 'usta_fikri', 'ha');
-    const k = keyingi(h);
-    if (k.tur !== 'savol') throw new Error(k.tur);
-    expect(k.savol.id).toBe('usta_fikri_izoh');
-    expect(k.savol.turi).toBe('matn');
-    expect(k.savol.otkazishMumkin).toBe(true);
-    expect(k.savol.qadam).toBe(4);
-    h = javob(h, 'usta_fikri_izoh', 'Hammasi tushunarli');
-    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'usta_fikri', qadam: 4 });
+  it('javob — fikr yoziladi (kod), keyin kutish; ikkinchi (izoh) savoli yoʻq', () => {
+    let h = javob(qidiruvda(), 'usta_fikri', 'ha');
+    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'usta_fikri', qadam: 5 });
     h = natijaniYoz(h, 'usta_fikri', { olchov_yoq: false, yozildi: true });
-    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+    expect(keyingi(h).tur).toBe('kutish');
+    // Oʻzi yozgan fikr ham javob (matni yoziladi).
+    expect(javob(qidiruvda(), 'usta_fikri', 'Hammasi tushunarli').javoblar['usta_fikri']).toBe('Hammasi tushunarli');
   });
 
-  it('«Yoʻq» — izoh nima notoʻgʻri ekanini soʻraydi; izohsiz ham fikr yoziladi', () => {
-    let h = javob(haDeyildi(), 'usta_fikri', 'yoq');
-    const k = keyingi(h);
-    if (k.tur !== 'savol') throw new Error(k.tur);
-    expect(k.savol.matn).toMatch(/notoʻgʻri|tushunarsiz/);
-    h = javob(h, 'usta_fikri_izoh', null);
-    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'usta_fikri', qadam: 4 });
+  it('oʻtkazilsa — yozuv yoʻq, toʻgʻri kutish', () => {
+    expect(keyingi(javob(qidiruvda(), 'usta_fikri', null)).tur).toBe('kutish');
   });
 
-  it('oʻtkazib yuborilsa — izoh ham, yozuv ham yoʻq: toʻgʻri 1688 ga', () => {
-    const h = javob(haDeyildi(), 'usta_fikri', null);
-    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+  it('natija kelsa — javobsiz fikr savoli yopiladi: 1688 tanlovi (yoʻl orqaga qaytmaydi)', () => {
+    expect(savolId(natijaniYoz(qidiruvda(), 'xitoy', XITOY))).toBe('xitoy_tanlov:100');
+    expect(savolId(natijaniYoz(haDeyildi(), 'xitoy', XITOY))).toBe('xitoy_tanlov:100');
   });
 
-  it('1688 qidiruvidan oʻtib ketgan eski sessiyaga soʻralmaydi — yoʻl orqaga qaytmaydi', () => {
-    const h = natijaniYoz(haDeyildi(), 'xitoy', XITOY);
-    expect(savolId(h)).toBe('xitoy_tanlov:100');
-  });
-
-  it('«Qayta qidirish» (1688 natijasi oʻchadi) — fikr qayta soʻralmaydi', () => {
-    let h = javob(haDeyildi(), 'usta_fikri', 'ha');
-    h = javob(h, 'usta_fikri_izoh', null);
+  it('«Qayta qidirish» — fikr qayta soʻralmaydi', () => {
+    let h = javob(qidiruvda(), 'usta_fikri', 'ha');
     h = natijaniYoz(h, 'usta_fikri', { olchov_yoq: false, yozildi: true });
     const bosh = { ...XITOY, olchov_yoq: true, qatorlar: [{ ...XITOY.qatorlar[0]!, holat: 'qidirilmadi' as const, sabab: 'provayder: balans', takliflar: [] }] };
     h = javob(natijaniYoz(h, 'xitoy', bosh), 'xitoy_qayta', 'qayta');
     expect(h.natijalar.xitoy).toBeUndefined();
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'xitoy', qadam: 5 });
+    expect(keyingi(natijaniYoz(h, 'xitoy', KUTILMOQDA)).tur).toBe('kutish');
   });
 
-  it('kod xulosasi: yozildi — rahmat; yozilmadi — sabab, yoʻl davom etadi', () => {
-    expect(tushuntir('usta_fikri', { olchov_yoq: false, yozildi: true })).toMatch(/Fikringiz yozildi/);
+  it('fikrni yozish kutilmaganda yiqilsa — «Qayta urinish» 5-qadamda (qidiruv shu qadamda)', () => {
+    const h = natijaniYoz(javob(qidiruvda(), 'usta_fikri', 'ha'), 'usta_fikri', yiqilganNatija());
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol).toMatchObject({ id: 'xato_qayta:usta_fikri', qadam: 5 });
+  });
+
+  it('kod xulosasi: yozildi — rahmat, qidiruv davom etyapti; yozilmadi — sabab, yoʻl davom etadi', () => {
+    expect(tushuntir('usta_fikri', { olchov_yoq: false, yozildi: true })).toBe('Fikringiz yozildi — rahmat. 1688 qidiruvi davom etyapti.');
     expect(tushuntir('usta_fikri', { olchov_yoq: true, sabab: 'baza javob bermadi' })).toMatch(/yoza olmadim \(baza javob bermadi\)/);
+  });
+});
+
+describe('6-taklif — marja tugmalarida foyda soʻmda; 11-taklif — 1688 tanlovi nomi bilan (2026-11-04)', () => {
+  it('bitta tovar — aniq; bir nechta — oraliq; narx yoʻq — izohsiz', () => {
+    expect(marjaTugmalari([109_000]).map((v) => [v.nom, v.izoh])).toEqual([
+      ['20%', 'har sotuvdan ~21 800 soʻm'], ['30%', 'har sotuvdan ~32 700 soʻm'], ['50%', 'har sotuvdan ~54 500 soʻm'],
+    ]);
+    expect(marjaTugmalari([60_000, 191_000])[1]).toMatchObject({ qiymat: 30, izoh: 'har sotuvdan ~18 000–57 300 soʻm', izohRu: '~18 000–57 300 сум с продажи' });
+    expect(marjaTugmalari([NaN, 0])).toEqual([...MARJA_TUGMALARI]);
+    // Yuzlikka yaxlitlanadi: 109 900 × 30% = 32 970 → ~33 000.
+    expect(marjaTugmalari([109_900])[1]!.izoh).toBe('har sotuvdan ~33 000 soʻm');
+    // Savolda — tanlangan tovar narxidan; javob — foiz (izoh emas).
+    const narxli = { ...TOVARLAR, royxat: TOVARLAR.royxat.map((x) => (x.nomzod.productId === 100 ? { ...x, nomzod: { ...x.nomzod, narxSom: 109_000 } } : x)) };
+    const h = javob(javob(javob(natijaniYoz(yonalishTanlandi(), 'tovarlar', narxli), 'tovarlar', [100]), 'miqdor:100', 30), 'uzum_dokoni', 'yoq');
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.id).toBe('marja');
+    expect(k.savol.variantlar.map((v) => v.izoh)).toEqual(['har sotuvdan ~21 800 soʻm', 'har sotuvdan ~32 700 soʻm', 'har sotuvdan ~54 500 soʻm']);
+    expect(k.savol.ru).toMatch(/^Список готов/);
+    expect(javob(h, 'marja', 30).javoblar['marja']).toBe(30);
+  });
+
+  it('1688 tanlovi tugmasi — tovar nomi (oʻzbekcha boʻlsa — u) va narx; uzun nom qisqaradi', () => {
+    expect(taklifNomi({ title: '男士运动鞋', nomUz: 'Erkaklar sport krossovkasi', narxYuan: 14.3, narxSom: 25_200 }))
+      .toBe('Erkaklar sport krossovkasi — ¥14.3 (≈ 25 200 soʻm)');
+    expect(taklifNomi({ title: '男士运动鞋', narxYuan: 14.3, narxSom: null })).toBe('男士运动鞋 — ¥14.3');
+    expect(taklifNomi({ title: 'a'.repeat(80), narxYuan: 1, narxSom: null })).toMatch(/^a{59}… — ¥1$/u);
   });
 });
 
@@ -761,7 +785,6 @@ describe('5-qadam — Xitoydan topish', () => {
     h = javob(h, 'marja', 30);
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     h = javob(h, 'xitoy_tasdiq', 'ha');
-    h = javob(h, 'usta_fikri', null);
     // 100 da rasm bor, 200 da yo'q — faqat 200 uchun so'raladi.
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
@@ -784,8 +807,11 @@ describe('5-qadam — Xitoydan topish', () => {
     expect(k.savol.otkazishMumkin).toBe(true);
     expect(k.savol.matn).toMatch(/1688 dan 680 ta topildi, 2 tasi koʻrsatildi, 1 tasi chegara narxga sigʻadi va roʻyxat boshida turibdi \(chegaraga kirmagan: kargo — haqiqiysi pastroq\)/);
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['983093623752', '969462626480']);
-    expect(k.savol.variantlar[0]!.nom).toMatch(/¥27 ≈ 47 587 soʻm · MOQ 1 · zavod · chegarada/);
-    expect(k.savol.variantlar[1]!.nom).toMatch(/chegaradan yuqori/);
+    // Tugma nomi — tovar nomi va narxi (11-taklif, 2026-11-04): chatda nima tanlangani koʻrinadi.
+    expect(k.savol.variantlar[0]!.nom).toBe('狗狗牵引绳防爆冲一体式 — ¥27 (≈ 47 587 soʻm)');
+    expect(k.savol.variantlar[1]!.nom).toMatch(/ — ¥/u);
+    // Texnik soʻz yoʻq (7-taklif).
+    expect(k.savol.matn).not.toMatch(/kesh|provayder/u);
     expect(javobniQabulQil(h, 'xitoy_tanlov:100', 'yoq-id').xato).not.toBeNull();
     h = javob(h, 'xitoy_tanlov:100', '983093623752');
     // Tanlov tugadi — 6-qadam: buyurtma varaqasi kodi.
@@ -799,7 +825,7 @@ describe('5-qadam — Xitoydan topish', () => {
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.matn).not.toMatch(/sigʻadi/);
-    expect(k.savol.variantlar[0]!.nom).toBe('¥27 · MOQ 1 · zavod');
+    expect(k.savol.variantlar[0]!.nom).toBe('狗狗牵引绳防爆冲一体式 — ¥27');
     h = javob(h, 'xitoy_tanlov:100', null);
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
   });
@@ -827,7 +853,8 @@ describe('5-qadam — Xitoydan topish', () => {
 
   it('kutilmoqda — `kutish` qaytadi (kod EMAS), savol yoʻq', () => {
     const kut = { ...XITOY, qatorlar: [], kutilmoqda: { runId: 'HG7ML7M8z78YcAPEB', boshlandi: '2026-09-25T20:00:00.000Z', rasmlar: [{ productId: 100, rasmUrl: 'https://images.uzum.uz/aaa/t_product_540_high.jpg' }] } };
-    const h = natijaniYoz(tasdiqlandi(), 'xitoy', kut);
+    // Fikr savoliga javob berilgan (yoki oʻtkazilgan) — kutish (8-taklif: aks holda — fikr savoli, `fonda`).
+    const h = javob(natijaniYoz(tasdiqlandi(), 'xitoy', kut), 'usta_fikri', null);
     const k = keyingi(h);
     expect(k.tur).toBe('kutish');
     if (k.tur === 'kutish') { expect(k.qadam).toBe(5); expect(k.matn).toMatch(/1 ta rasm/); expect(k.boshlandi).toBe('2026-09-25T20:00:00.000Z'); }
@@ -844,7 +871,6 @@ describe('5-qadam — Xitoydan topish', () => {
     h = javob(h, 'marja', 30);
     h = natijaniYoz(h, 'tannarx', { hisoblandi: true });
     h = javob(h, 'xitoy_tasdiq', 'ha');
-    h = javob(h, 'usta_fikri', null);
     expect(savolId(h)).toBe('rasm:200');
     expect(javobniQabulQil(h, 'rasm:200', 'rasm.jpg').xato).toMatch(/http\(s\)/);
     expect(javobniQabulQil(h, 'rasm:200', 'javascript:alert(1)').xato).toMatch(/http\(s\)/);
@@ -876,7 +902,8 @@ describe('5-qadam — Xitoydan topish', () => {
     ] };
     const m = tushuntir('xitoy', n);
     expect(m).toMatch(/^2 ta tovar uchun 1688 qidirildi \(1 tasi qidirilmadi: rasm yoʻq\): 1 tasida taklif bor \(2 ta koʻrsatildi, 1 tasi chegara narxga sigʻadi\), 1 tasida oʻxshash topilmadi\./);
-    expect(m).toMatch(/1 tasi 72 soatlik keshdan/);
+    // «Kesh» — mijozga texnik soʻz (7-taklif, 2026-11-04): aytilmaydi.
+    expect(m).not.toMatch(/kesh|provayder/u);
     expect(m).toMatch(/1 yuan = 1 762.49 soʻm \(25.09.2026\)/);
     expect(m).not.toMatch(/kafolat/i);
   });
@@ -1900,7 +1927,7 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
     const k = keyingi(natijaniYoz(tasdiqlandi(), 'xitoy', n));
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.matn).toMatch(/1688 dan 4 000 ta topildi/);
-    expect(k.savol.variantlar[0]!.nom).toMatch(/^¥1 250 ≈ .* · MOQ 1 000 · /);
+    expect(k.savol.variantlar[0]!.nom).toMatch(/ — ¥1 250 \(≈ [\d ]+ soʻm\)$/u);
   });
 
   it('F21: chegara izohi — "…siz" qoʻshimchasi roʻyxatga yopishmaydi; kursiz — "eng oʻxshash" tartib', () => {

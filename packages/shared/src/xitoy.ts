@@ -65,6 +65,8 @@ export interface XitoyTovar {
   sourceId: string;
   /** Xitoycha nom (`title`) — manba shu, tarjima emas. */
   title: string;
+  /** Qisqa oʻzbekcha nom (7-taklif, 2026-11-04; `xitoy-nom.ts`) — boʻlmasa kartada xitoychasi. */
+  nomUz?: string | null;
   /** Ulgurji narx, yuan (`priceYuan`). */
   narxYuan: number;
   /** Tovar rasmi (`imageUrl`). `null` — provayder bermadi; oʻrniga harf turadi. */

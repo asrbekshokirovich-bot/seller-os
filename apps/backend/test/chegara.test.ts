@@ -16,6 +16,10 @@ describe('chegaraNarxi', () => {
     expect(n.chegaraSom).toBe(50_750);
     expect(n.yetishmaydi).toEqual([]);
     expect(n.hisob).toMatch(/= 50 750 soʻm/);
+    // «Pul qayerga ketadi» (6-taklif, 2026-11-04): qismlar yigʻindisi — chegara.
+    expect(n.qismlar).toEqual({ sotuv: 100_000, foyda: 30_000, marjaFoizi: 30, komissiya: 10_000, komissiyaFoizi: 10, logistika: 5_250, kargo: 4_000 });
+    const q = n.qismlar!;
+    expect(q.sotuv - q.foyda - q.komissiya - (q.logistika ?? 0) - (q.kargo ?? 0)).toBe(n.chegaraSom);
   });
 
   it('kargo yo\'q — hisoblanadi, lekin YETISHMAYDI da turadi', () => {
@@ -23,12 +27,16 @@ describe('chegaraNarxi', () => {
     expect(n.chegaraSom).toBe(54_750);
     expect(n.yetishmaydi).toEqual(['kargo']);
     expect(n.hisob).not.toMatch(/kargo/);
+    // Kirmagan qism — null (roʻyxatda koʻrinmaydi), nol emas.
+    expect(n.qismlar?.kargo).toBeNull();
+    expect(n.qismlar?.logistika).toBe(5_250);
   });
 
   it('komissiya yo\'q — hisob YO\'Q', () => {
     const n = chegaraNarxi({ sotuvNarxiSom: 100_000, marjaFoizi: 30, komissiyaFoizi: null, uzumLogistikaSom: null, kargoSom: null });
     expect(n.chegaraSom).toBeNull();
     expect(n.yetishmaydi).toContain('komissiya');
+    expect(n.qismlar).toBeNull();
   });
 
   it('manfiy chiqsa nol — "Xitoyda tekin bo\'lsa ham foyda yo\'q"', () => {

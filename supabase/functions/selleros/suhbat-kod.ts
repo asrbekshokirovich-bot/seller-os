@@ -164,6 +164,11 @@ export interface XitoyBogliqligi {
    * valyuta `null` boʻlsa — CBU ga oʻzimiz urinamiz (`kursniOl`).
    */
   kurs?: { qiymat: BrauzerKurslari | null };
+  /**
+   * 1688 nomlarini oʻzbekchaga oʻgiruvchi (7-taklif, 2026-11-04; `xitoyNomlariBer`, Haiku). Yoʻq yoki
+   * ishlamasa — nom xitoycha qoladi; qidiruv natijasi baribir chiqadi.
+   */
+  xitoyNomlari?: (sarlavhalar: string[]) => Promise<Array<string | null> | null>;
 }
 
 /**
@@ -203,8 +208,11 @@ function muddatSana(hozir: () => Date, kun: number | null): string | null {
 }
 
 /** Provayder sababi — "provayder: provayderga ulanib…" kabi takrorsiz. */
+/** Qidiruv xatosi mijozga — «provayder», «Apify» kabi texnik soʻzsiz (7-taklif, 2026-11-04). */
 function provayderSababi(xato: string): string {
-  return /^provayder/u.test(xato) ? xato : `provayder: ${xato}`;
+  // «provayderga» → «1688 qidiruviga» ham shu bilan (qoʻshimcha oʻzicha qoladi).
+  const t = xato.replace(/^provayder:\s*/u, '').replace(/\bApify\b/gu, '1688 qidiruvi').replace(/provayder/gu, '1688 qidiruvi');
+  return /^1688/u.test(t) ? t : `1688 qidiruvi: ${t}`;
 }
 
 /** Limit sababi — "limit oʻlchanmadi: … limit oʻlchanmadi" kabi takrorsiz. */
@@ -433,7 +441,16 @@ export function suhbatKodHarakatlari(
         return httpsManzilmi(yuborgan) ? yuborgan.trim() : null;
       };
       const nom = (id: number) => tovar(id)?.title ?? `#${id}`;
-      const IZOH = 'Takliflar 1688 dan, rasm boʻyicha (Apify). Narx yuanda provayderdan; soʻm — CBU kursi bilan. "Chegarada" — soʻmdagi narx 4-qadam chegarasidan oshmaydi; chegaraga kirmagan qism (kargo) har qatorda yozilgan. Buyurtmalar soni jami, davri yozilmagan.';
+      // Mijozga koʻrinadi — «Apify», «provayder», «kesh» yoʻq (7-taklif, 2026-11-04).
+      const IZOH = 'Takliflar 1688 dan, rasm boʻyicha. Narx yuanda; soʻm — Markaziy bank kursi bilan. «Chegarada» — soʻmdagi narx 4-qadam chegarasidan oshmaydi; chegaraga kirmagan qism (kargo) har qatorda yozilgan. Buyurtmalar soni — jami, davri yozilmagan.';
+      // Nomlar oʻzbekchaga (7-taklif): bitta chaqiruvda 10 tagacha; boʻlmasa — xitoychasi qoladi.
+      const ogir = async (t: XitoyTaklif[]): Promise<XitoyTaklif[]> => {
+        const tarjimon = xitoy?.xitoyNomlari;
+        if (!tarjimon || t.length === 0) return t;
+        const n = await tarjimon(t.map((x) => x.title)).catch(() => null);
+        if (!n) return t;
+        return t.map((x, i) => (n[i] ? { ...x, nomUz: n[i] } : x));
+      };
       const eski = holat.natijalar.xitoy as XitoyNatijasi | undefined;
 
       const qidirilmadi = (id: number, sabab: string, rasmUrl: string | null = rasm(id)) =>
@@ -476,7 +493,7 @@ export function suhbatKodHarakatlari(
           if (!(otdi > XITOY_KUTISH_MAX_MS)) return eski;
           for (const r of k.rasmlar) {
             await qaytar();
-            qatorlar.push(qidirilmadi(r.productId, 'provayder 10 daqiqada natija bermadi', r.rasmUrl));
+            qatorlar.push(qidirilmadi(r.productId, '1688 qidiruvi 10 daqiqada natija bermadi', r.rasmUrl));
           }
           return yakun(eski.kurs, qatorlar, null);
         }
@@ -504,7 +521,7 @@ export function suhbatKodHarakatlari(
           }
           // Qidiruv BO'LDI: kesh (bo'sh natija ham — u javob).
           await rpc('so_xitoy_kesh_yoz', { p_rasm_hash: r.rasmUrl, p_natijalar: natija.natijalar, p_manba: '1688' });
-          const takliflar = takliflarniYasa(natija.natijalar, chegara(r.productId), eski.kurs);
+          const takliflar = await ogir(takliflarniYasa(natija.natijalar, chegara(r.productId), eski.kurs));
           qatorlar.push(xitoyQatori(r.productId, nom(r.productId), r.rasmUrl, chegara(r.productId), yetishmaydi(r.productId),
             takliflar.length ? 'topildi' : 'topilmadi', null, natija.jami, takliflar, false, natija.tashlandi, tashxisMatni(natija.tashxis)));
         }
@@ -536,7 +553,7 @@ export function suhbatKodHarakatlari(
         }
         const kesh = await rpc<{ topildi: boolean; natijalar?: XitoyTovar[] }>('so_xitoy_kesh_ol', { p_rasm_hash: rasmUrl });
         if (kesh?.topildi && Array.isArray(kesh.natijalar)) {
-          const takliflar = takliflarniYasa(kesh.natijalar, chegara(id), kurs);
+          const takliflar = await ogir(takliflarniYasa(kesh.natijalar, chegara(id), kurs));
           qatorlar.push(xitoyQatori(id, nom(id), rasmUrl, chegara(id), yetishmaydi(id),
             takliflar.length ? 'topildi' : 'topilmadi', null, kesh.natijalar.length, takliflar, true, 0));
           continue;
@@ -684,7 +701,8 @@ export function suhbatKodHarakatlari(
     async ustaFikri(holat: YolHolati) {
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq' };
       const j = holat.javoblar['usta_fikri'];
-      const izoh = holat.javoblar['usta_fikri_izoh'];
+      // Izoh — eski ikkinchi savoldan; 2026-11-04 dan bitta savol: oʻzi yozgan javob (tugma emas) — izoh.
+      const izoh = holat.javoblar['usta_fikri_izoh'] ?? (typeof j === 'string' && j !== 'ha' && j !== 'yoq' ? j : null);
       const yonalish = Number(holat.javoblar['yonalish']);
       const r = await rpc<{ xato?: string; saqlandi?: boolean }>('so_fikr_yoz', {
         p_token: xitoy.token,

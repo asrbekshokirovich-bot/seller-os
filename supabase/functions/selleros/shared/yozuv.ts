@@ -86,6 +86,18 @@ export function lotinga(matn: string): string {
 }
 
 /** Tushunish uchun matn: oʻzbek kirill boʻlsa — lotinda, boʻlmasa oʻzi. */
+/**
+ * Oʻzbekcha apostroflar (nazoratchi, 2026-11-04, 11-taklif): yordamchi matnida baʼzan oddiy apostrof
+ * («qo'yishim») chiqardi — endi oʻ/gʻ da ʻ (U+02BB), qolganida tutuq belgisi ʼ (U+02BC, «maʼlumot»).
+ * Faqat lotin matnda: kirill (rus, oʻzbek kirill) va manzillar (http…) oʻzgarmaydi.
+ */
+export function apostrofTozala(matn: string): string {
+  if (!matn || kirillUlushi(matn) >= 0.5) return matn;
+  return matn.split(/(https?:\/\/\S+)/u).map((q, i) => (i % 2 === 1
+    ? q
+    : q.replace(/([oOgG])['’‘`ʼ](?=\p{L})/gu, '$1ʻ').replace(/(\p{L})['’`](?=\p{L})/gu, '$1ʼ'))).join('');
+}
+
 export function tushunishUchun(matn: string): string {
   return ozbekKirilmi(matn) ? lotinga(matn) : String(matn ?? '');
 }

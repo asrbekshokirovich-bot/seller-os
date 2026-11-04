@@ -180,6 +180,23 @@ describe('xitoy — boshlash', () => {
     expect(qator(n, 200).takliflar[0]).toMatchObject({ narxSom: 3_525, chegaradaMi: null });
   });
 
+  it('1688 nomlari oʻzbekcha (7-taklif, 2026-11-04): tarjimon bor — nomUz; yiqilsa — xitoychasi qoladi; izohda texnik soʻz yoʻq', async () => {
+    const keshdagi = [{ sourceId: '1', title: '男士运动鞋', narxYuan: 2, rasmUrl: null, moq: 2, reyting: 3.4161751, manba: '1688', manzil: null, oxshashlikOrni: 1, dropshipNarxYuan: null, buyurtmalar: 5, zavod: null, superZavod: null, sotuvchi: null, joy: null, dokonYili: null }];
+    const b = soxtaBaza({ kesh: { [RASM_A]: keshdagi } }); const s = soxtaFetch();
+    const sorovlar: string[][] = [];
+    const yasa = (xitoyNomlari: (t: string[]) => Promise<Array<string | null> | null>) => suhbatKodHarakatlari(b.rpc, () => ({ bayroqlar: [], baholanmadi: [] }), () => 9,
+      { kalit: 'KALIT', fetch: s.fetch, token: 'tok', tarifCheklovi: false, xitoyNomlari });
+    const n = await yasa(async (t) => { sorovlar.push(t); return ['Erkaklar sport krossovkasi']; }).xitoy(holatYasa({ tovarlar: [100] })) as XitoyNatijasi;
+    expect(sorovlar).toEqual([['男士运动鞋']]);
+    expect(qator(n, 100).takliflar[0]).toMatchObject({ title: '男士运动鞋', nomUz: 'Erkaklar sport krossovkasi' });
+    expect(n.izoh).not.toMatch(/Apify|provayder|kesh/u);
+    const n2 = await yasa(async () => { throw new Error('tarmoq'); }).xitoy(holatYasa({ tovarlar: [100] })) as XitoyNatijasi;
+    expect(qator(n2, 100).holat).toBe('topildi');
+    expect(qator(n2, 100).takliflar[0]!.nomUz).toBeUndefined();
+    const n3 = await yasa(async () => [null]).xitoy(holatYasa({ tovarlar: [100] })) as XitoyNatijasi;
+    expect(qator(n3, 100).takliflar[0]!.nomUz).toBeUndefined();
+  });
+
   it('shaxsiy limit tugagan (bepul: 3) — qidirilmadi "limit", yurish yoʻq', async () => {
     const b = soxtaBaza({ soni: 3 }); const s = soxtaFetch();
     const n = await kod(b, s.fetch).xitoy(holatYasa()) as XitoyNatijasi;
@@ -202,7 +219,9 @@ describe('xitoy — boshlash', () => {
     const b = soxtaBaza(); const s = soxtaFetch({ boshlash: F.balans });
     const n = await kod(b, s.fetch).xitoy(holatYasa()) as XitoyNatijasi;
     expect(n.kutilmoqda).toBeNull();
-    expect(qator(n, 100).sabab).toMatch(/provayder.*balans/);
+    // Mijozga — «provayder», «Apify» soʻzlarisiz (7-taklif, 2026-11-04).
+    expect(qator(n, 100).sabab).toMatch(/^1688 qidiruvi.*balans/u);
+    expect(qator(n, 100).sabab).not.toMatch(/provayder|Apify/u);
     expect(b.soni()).toBe(0);
     expect(b.chaqiruvlar.filter((c) => c === 'so_xitoy_limit:qaytar').length).toBe(2);
   });
@@ -238,7 +257,7 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
     const b = soxtaBaza({ soni: 2 }); const s = soxtaFetch({ holat: F.ishlayapti });
     const n = await kod(b, s.fetch, { hozir: () => new Date('2026-09-25T20:11:00.000Z') }).xitoy(holatYasa({}, { xitoy: KUTILMOQDA })) as XitoyNatijasi;
     expect(n.kutilmoqda).toBeNull();
-    expect(qator(n, 100)).toMatchObject({ holat: 'qidirilmadi', sabab: 'provayder 10 daqiqada natija bermadi' });
+    expect(qator(n, 100)).toMatchObject({ holat: 'qidirilmadi', sabab: '1688 qidiruvi 10 daqiqada natija bermadi' });
     expect(qator(n, 200).holat).toBe('qidirilmadi');
     expect(b.soni()).toBe(0);
   });
@@ -258,6 +277,9 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
     const bq = qator(n, 200);
     expect(bq.holat).toBe('qidirilmadi');
     expect(bq.sabab).toMatch(/RISK_CONTROL/);
+    // Sabab — «1688 …» bilan, texnik «provayder» soʻzisiz (7-taklif, 2026-11-04).
+    expect(bq.sabab).toMatch(/^1688 /u);
+    expect(bq.sabab).not.toMatch(/provayder|Apify/u);
     expect(b.yozilgan.map((y) => y.hash)).toEqual([RASM_A]);
     expect(b.soni()).toBe(1);
     expect(n.olchov_yoq).toBe(false);
@@ -277,6 +299,8 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
     const n = await kod(b, s.fetch).xitoy(holatYasa({}, { xitoy: KUTILMOQDA })) as XitoyNatijasi;
     expect(n.kutilmoqda).toBeNull();
     expect(qator(n, 100).sabab).toMatch(/FAILED/);
+    // «yurish tugamadi (FAILED)» — mijoz nima haqida ekanini bilsin: «1688 qidiruvi: …».
+    expect(qator(n, 100).sabab).toMatch(/^1688 qidiruvi: /u);
     expect(b.soni()).toBe(0);
   });
 
@@ -291,8 +315,8 @@ describe('xitoy — tekshirish (kutilmoqda)', () => {
     const n = await kod(b, s.fetch).xitoy(h) as XitoyNatijasi;
     expect(n.kutilmoqda).toBeNull();
     expect(qator(n, 100).sabab).toMatch(/ulanib boʻlmadi/);
-    // Xom (inglizcha) xato matni obunachiga chiqmaydi, "provayder: provayderga …" takrori yoʻq.
-    expect(qator(n, 100).sabab).toBe('provayderga ulanib boʻlmadi (javob kechikdi)');
+    // Xom (inglizcha) xato matni obunachiga chiqmaydi, takror yoʻq; «provayder» oʻrniga — «1688 qidiruvi».
+    expect(qator(n, 100).sabab).toBe('1688 qidiruviga ulanib boʻlmadi (javob kechikdi)');
     expect(b.soni()).toBe(0);
   });
 

@@ -43,6 +43,7 @@ export * from './kpi.js';
 export * from './tannarx.js';
 export * from './xatolik.js';
 export * from './xitoy.js';
+export * from './xitoy-nom.js';
 export * from './kurs.js';
 export * from './fakt.js';
 export * from './rasmiy.js';
