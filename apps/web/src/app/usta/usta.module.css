@@ -1188,27 +1188,25 @@ button.sizBelgi:disabled { opacity: 0.6; }
 }
 
 /*
- * «↓ Savolga» (2026-11-03): savol ekrandan pastda qolsa — pastki panel ustida, matn ustunining
- * oʻng chetida (keng ekranda ustun 820 px, markazda).
+ * «↓» (2026-11-03; 2026-11-04, 9-taklif — kichik yumaloq): savol ekrandan pastda qolsa — pastki
+ * panel ustida, matn ustunining oʻng chetida (keng ekranda ustun 820 px, markazda). Ilgari
+ * «↓ Savolga» yozuvli keng tugma edi va kartadagi «Tanlash» ni yopib qoʻyardi. Nomi — `aria-label`.
  */
 .pastgaTugma {
   position: absolute;
   z-index: 3;
-  bottom: calc(100% + 12px);
-  right: max(16px, calc((100% - 820px) / 2));
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  bottom: calc(100% + 10px);
+  right: max(10px, calc((100% - 820px) / 2 - 56px));
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
   height: 44px;
-  padding: 0 18px;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 50%;
   background: var(--matn);
   color: var(--bg);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  box-shadow: var(--soya), 0 10px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--soya), 0 8px 20px rgba(0, 0, 0, 0.2);
   cursor: pointer;
 }
 
@@ -1277,17 +1275,160 @@ button.sizBelgi:disabled { opacity: 0.6; }
   padding-bottom: 10px;
 }
 
-.radio {
+/*
+ * Koʻp tanlov — kvadrat ☑ (nazoratchi, 2026-11-04, 3-taklif): «bir nechtasi mumkin». Ilgari
+ * hamma joyda yumaloq belgi turardi — u «faqat bittasi» degani. Bitta tanlovda belgi yoʻq.
+ */
+.katak {
   flex: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   box-shadow: inset 0 0 0 2px var(--xira);
+  color: #fff;
 }
 
-.variantTanlangan .radio {
-  box-shadow: inset 0 0 0 5px var(--acc);
+.variantTanlangan .katak {
+  background: var(--acc);
+  box-shadow: none;
 }
+
+/* Soʻzli javob raqamlar qatorida («Hali bilmayman», 1-taklif) — oddiy shriftda. */
+.variantRaqam.variantSoz .variantNomi {
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+/* Kichik havolalar savol ostida: «Dollarda yozaman», «Yana yoʻnalishlar koʻrsatish» (2026-11-04). */
+.havolalar {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+}
+
+.havolaTugma {
+  min-height: 36px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--acc);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.havolaTugma:disabled { opacity: 0.55; }
+
+/* 2-qadam: yoʻnalish nomlari — ixcham (tanlov kartaning oʻzida, 2-taklif). */
+.nomlar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nomTugma {
+  max-width: 100%;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kart2);
+  box-shadow: inset 0 0 0 1.5px var(--chiziq);
+  color: var(--matn);
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nomTugma:not(:disabled):hover { box-shadow: inset 0 0 0 2px var(--acc); }
+.nomTugma:disabled { opacity: 0.55; }
+
+/* Yoʻnalish kartasidagi tanlash tugmasi — butun kenglikda, uzun nom oʻraladi. */
+.kartaTanla {
+  width: 100%;
+  margin-top: 16px;
+  height: auto;
+  min-height: 46px;
+  padding: 10px 18px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.kartaTanla svg { flex: none; }
+
+/*
+ * Ism va telefon — ikki maydon (5-taklif, 2026-11-04): savol pufagi ichida. Telefon maydoni
+ * oldida «+998» turadi; 16 px — iPhone maydonga bosilganda sahifani kattalashtirmaydi.
+ */
+.aloqa {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  white-space: normal;
+}
+
+.aloqaMaydon {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aloqaYorliq {
+  font-size: 13px;
+  color: var(--xira);
+}
+
+.aloqaMaydon input {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--kart);
+  box-shadow: inset 0 0 0 1.5px var(--chiziq);
+  font-size: 16px;
+  color: var(--matn);
+}
+
+.aloqaMaydon input::placeholder { color: var(--xira); opacity: 1; }
+.aloqaMaydon input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--acc); }
+.aloqaMaydon input[aria-invalid='true'] { box-shadow: inset 0 0 0 2px var(--ogoh); }
+
+.aloqaTel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aloqaKod {
+  flex: none;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.aloqaXato {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ogoh);
+}
+
+.aloqaIzoh {
+  font-size: 12.5px;
+  color: var(--xira);
+}
+
+.aloqa .davom { align-self: flex-start; }
 
 /* Dizaynda matn kesilmaydi (`nowrap`, `overflow` yoʻq): qisqa matn ustunga sigʻadi, uzuni 1–2 ustunda oʻraladi. */
 .variantNomi {
@@ -1575,7 +1716,7 @@ button.sizBelgi:disabled { opacity: 0.6; }
 
 .yuborMatn { display: inline; }
 
-/* Tovar tanlovi yakuni (w5): «Yuqoridagi kartalardan tanlang» + davom. */
+/* Koʻp tanlov yakuni (w5; 3-taklif — soha savolida ham): tanlanganlar yoki yoʻriqnoma + davom. */
 .tanlovQator {
   display: flex;
   align-items: center;
@@ -1587,6 +1728,14 @@ button.sizBelgi:disabled { opacity: 0.6; }
   background: var(--chip);
   font-size: 15px;
   color: var(--xira);
+}
+
+/* Tanlanganlar nomi — bitta qatorda, sigʻmasa «…». */
+.tanlovNomlar {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 1688 tanlovi: pastda faqat yoʻriqnoma — maydonga oʻxshamaydigan oddiy qator. */
@@ -2337,4 +2486,21 @@ button.sizBelgi:disabled { opacity: 0.6; }
     color: var(--matn);
     font-weight: 600;
   }
+}
+
+/*
+ * Telefonda katalog kartasi ixchamroq (nazoratchi, 2026-11-04, 9-taklif): karta ekrandan baland edi
+ * (616 px) — «Tanlash» ekrandan chiqib turardi. Rasm pastroq, nom 3 qatorgacha.
+ */
+@media (max-width: 760px) {
+  .katalogRasm { height: 150px; }
+  .katalogIchi { padding: 10px 4px 2px; }
+  .katalogNomi {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .katalogXulosa { margin-top: 10px; gap: 6px; }
+  .katalogTugma { margin-top: 10px; }
 }

@@ -538,7 +538,7 @@ export async function suhbatTurn(
               ? ismTelefonMatni(oldin, holat)
               : qiziqishGapi && yozilganJavob
                 ? yozilganJavob.matn
-                : javobMatni(k0.savol.variantlar, yozilgan);
+                : javobMatni(k0.savol.variantlar, yozilgan, k0.savol.otkazishNomi);
       yangi.push({
         rol: 'obunachi',
         matn: obunachiMatn,
@@ -1099,7 +1099,7 @@ function javobQiymati(h: YolHolati, savolId: string, q: unknown): unknown {
 function qabulGapi(s: SuhbatSavoli, q: unknown, h: YolHolati): string {
   if (SHAXSIY_SAVOLLAR.has(s.id)) return 'Mijoz ism va telefonini berdi (shaxsiy maʼlumot — senga koʻrsatilmaydi).';
   const usd = h.javoblar['byudjet_usd'];
-  const javob = s.id === 'byudjet' && typeof q === 'number' ? byudjetMatni(q, typeof usd === 'number' ? usd : null) : javobMatni(s.variantlar, q);
+  const javob = s.id === 'byudjet' && typeof q === 'number' ? byudjetMatni(q, typeof usd === 'number' ? usd : null) : javobMatni(s.variantlar, q, s.otkazishNomi);
   return `«${qisqaSavol(s.matn, s.id)}» → ${javob}`;
 }
 
@@ -1330,8 +1330,9 @@ function ismTelefonMatni(oldin: YolHolati, h: YolHolati): string {
   ].filter(Boolean).join(', ');
 }
 
-function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, q: unknown): string {
-  if (q === null || q === undefined) return 'Oʻtkazib yuborildi';
+/** `otkazishNomi` — oʻtkazish tugmasining oʻz nomi boʻlsa (pul savolida «Hali bilmayman», 2026-11-04). */
+function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, q: unknown, otkazishNomi?: string): string {
+  if (q === null || q === undefined) return otkazishNomi ?? 'Oʻtkazib yuborildi';
   // Oʻzi yozgan son ("7 mln" → 7000000) chatda guruhlangan: "7 000 000".
   const nom = (x: unknown) => variantlar.find((v) => String(v.qiymat) === String(x))?.nom
     ?? (typeof x === 'number' ? minglik(x) : String(x));

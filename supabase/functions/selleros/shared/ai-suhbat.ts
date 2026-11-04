@@ -259,7 +259,7 @@ export function savolTavsifi(s: SuhbatSavoli, n: number | null = null): string {
   const bosh = `${n !== null ? `${n}) ` : ''}id: ${s.id} (${s.qadam}-qadam), turi: ${s.turi}`
     // Oʻtkazib boʻlmasligi bu yerda YOZILMAYDI: jonli sinovda (2026-10-21) AI uni har savol
     // oxiriga «Bu savolga javob berish shart» deb qoʻsha boshladi — robotdek. Qoida koʻrsatmada.
-    + `${s.erkin ? ', oʻzi yozsa ham boʻladi' : ''}${s.otkazishMumkin ? ', oʻtkazib yuborsa boʻladi' : ''}`;
+    + `${s.erkin ? ', oʻzi yozsa ham boʻladi' : ''}${s.otkazishMumkin ? `, oʻtkazib yuborsa boʻladi${s.otkazishNomi ? ` («${s.otkazishNomi}» tugmasi)` : ''}` : ''}`;
   const variantlar = s.variantlar.length
     ? `\n   Variantlar: ${s.variantlar.slice(0, 40).map((v) => `${v.qiymat} = «${v.nom}»`).join('; ')}`
     : '';

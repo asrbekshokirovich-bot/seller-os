@@ -103,6 +103,9 @@ describe('soʻrov matni', () => {
     // Majburiy savol tavsifida oʻtkazish haqida hech narsa yoʻq — AI uni mijozga takrorlamasin.
     expect(savolTavsifi(majburiy)).not.toContain('oʻtkazib');
     expect(savolTavsifi(SAVOL)).toContain('oʻtkazib yuborsa boʻladi');
+    // Oʻtkazishning oʻz nomi bor boʻlsa (pul: «Hali bilmayman», 2026-11-04) — AI shu tugmani aytadi.
+    expect(savolTavsifi({ ...SAVOL, otkazishNomi: 'Hali bilmayman' })).toContain('oʻtkazib yuborsa boʻladi («Hali bilmayman» tugmasi)');
+    expect(savolTavsifi(SAVOL)).not.toContain('tugmasi)');
     expect(AI_YOZ_KORSATMA).toContain('Savolni oʻtkazib yuborish haqida FAQAT uning tavsifida');
     expect(AI_YOZ_KORSATMA).toContain('oʻtkazish haqida umuman gapirma');
     expect(AI_YOZ_KORSATMA).toContain('Ichki boʻlim nomlari (FAKTLAR, MIJOZ HOLATI');

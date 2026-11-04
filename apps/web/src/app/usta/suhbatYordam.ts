@@ -20,6 +20,10 @@ export interface Savol {
   otkazishMumkin: boolean;
   /** Koʻp tanlovda oldindan belgilanganlar — mijoz oldingi javobida aytgani (2026-10-15). */
   tanlangan?: Array<string | number>;
+  /** «Oʻtkazib yuborish» oʻrniga oddiy tugma shu nom bilan (pul savolida «Hali bilmayman», 2026-11-04). */
+  otkazishNomi?: string;
+  /** Ism va telefon — alohida maydonlar (5-taklif, 2026-11-04). */
+  forma?: 'ism_telefon' | 'ism' | 'telefon';
 }
 
 /**
@@ -241,4 +245,67 @@ export function pastgaHolati(savolTepasi: number | null, qutiBoyi: number, pastQ
 export function yonmaJoriy(chapdan: number, qadam: number, soni: number): number {
   if (!(qadam > 0) || soni < 1) return 0;
   return Math.min(soni - 1, Math.max(0, Math.round(chapdan / qadam)));
+}
+
+/* ------------------------------------------------------ javob berish qulayligi (2026-11-04) */
+
+/**
+ * Formadagi telefon → 9 xonali milliy raqam («901234567»), boʻlmasa `null`. Maydon oldida «+998»
+ * turadi; brauzer toʻldirsa yoki mijoz koʻchirib qoʻysa — «+998 90 123-45-67», «998901234567»,
+ * «8 90 123 45 67» ham boʻladi. Serverdagi `telefonniOqi` bilan bir xil qoida (birinchi raqam 2–9).
+ */
+export function formaTelefoni(xom: string): string | null {
+  let r = xom.replace(/\D/gu, '');
+  if (r.length === 12 && r.startsWith('998')) r = r.slice(3);
+  else if (r.length === 10 && r.startsWith('8')) r = r.slice(1);
+  return /^[2-9]\d{8}$/u.test(r) ? r : null;
+}
+
+/** «901234567» → «90 123 45 67». */
+export function telefonGuruhla(r: string): string {
+  return r.replace(/^(\d{2})(\d{3})(\d{2})(\d{2})$/u, '$1 $2 $3 $4');
+}
+
+/**
+ * Aloqa formasi (5-taklif): maydonlardan bitta javob — server uni bitta gapdek oʻqiydi
+ * (`ismVaTelefonniOqi`). `korinish` — chatda darhol koʻrinadigan gap. Xato — qaysi maydon.
+ * Ism kamida ikki soʻz (ism va familiya), raqamsiz — serverdagi kabi.
+ */
+export function aloqaJavobi(forma: NonNullable<Savol['forma']>, ism: string, telefon: string):
+  { javob: string; korinish: string } | { xato: 'ism' | 'telefon' } {
+  const i = ism.normalize('NFC').trim().replace(/\s+/gu, ' ');
+  const ismKerak = forma !== 'telefon';
+  const telKerak = forma !== 'ism';
+  if (ismKerak && (/\d/u.test(i) || i.split(' ').filter((s) => /\p{L}{2,}/u.test(s)).length < 2)) return { xato: 'ism' };
+  const t = telKerak ? formaTelefoni(telefon) : null;
+  if (telKerak && t === null) return { xato: 'telefon' };
+  const tel = t === null ? null : `+998${t}`;
+  const telKor = t === null ? null : `+998 ${telefonGuruhla(t)}`;
+  return {
+    javob: [ismKerak ? i : null, tel].filter(Boolean).join(', '),
+    korinish: [ismKerak ? i : null, telKor].filter(Boolean).join(', '),
+  };
+}
+
+/**
+ * Raqam klaviaturasi (11-taklif): faqat son soʻraladigan savollarda — marja (%) va dona. Pul
+ * savolida emas: u yerda «70 mln», «5000 $» deb yozishadi va savol ham berishadi.
+ */
+export function raqamSavolimi(savolId: string): boolean {
+  return savolId === 'marja' || savolId.startsWith('miqdor:') || savolId.startsWith('partiya_miqdor:');
+}
+
+/**
+ * «Dollarda yozaman» (1-taklif): pul savolida faqat son yozilsa — oxiriga «$» qoʻshiladi
+ * («5000» → «5000 $»); birlik yozilgan boʻlsa (soʻm, mln, $) — oʻzicha.
+ */
+export function dollarMatni(matn: string): string {
+  const t = matn.trim();
+  return /^\d[\d\s.,]*$/u.test(t) ? `${t} $` : t;
+}
+
+/** Koʻp tanlov paneli (3-taklif): tanlanganlar nomi — variantlar tartibida. */
+export function tanlanganNomlar(variantlar: readonly Variant[], tanlangan: ReadonlyArray<string | number>): string[] {
+  const bor = new Set(tanlangan.map(String));
+  return variantlar.filter((v) => bor.has(String(v.qiymat))).map((v) => v.nom);
 }

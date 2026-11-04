@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, sorovLangari, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, sorovLangari, tanlanganNomlar, telefonGuruhla, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -252,5 +252,57 @@ describe('yonmaJoriy — telefonda yonma-yon kartalarda nechanchisi', () => {
     expect(yonmaJoriy(500, 0, 10)).toBe(0);
     expect(yonmaJoriy(500, Number.NaN, 10)).toBe(0);
     expect(yonmaJoriy(500, 300, 0)).toBe(0);
+  });
+});
+
+describe('javob berish qulayligi (nazoratchi, 2026-11-04: «hammasi yoqdi»)', () => {
+  it('formaTelefoni: +998 bilan, 998 bilan, 8 bilan va 9 xona — bitta milliy raqam; boshqasi null', () => {
+    expect(formaTelefoni('90 123 45 67')).toBe('901234567');
+    expect(formaTelefoni('+998 90 123-45-67')).toBe('901234567');
+    expect(formaTelefoni('998901234567')).toBe('901234567');
+    expect(formaTelefoni('8 90 123 45 67')).toBe('901234567');
+    expect(formaTelefoni('(93) 123 45 67')).toBe('931234567');
+    expect(formaTelefoni('90 123 45 6')).toBeNull();
+    expect(formaTelefoni('012345678')).toBeNull();
+    expect(formaTelefoni('90 123 45 678')).toBeNull();
+    expect(formaTelefoni('')).toBeNull();
+    expect(telefonGuruhla('901234567')).toBe('90 123 45 67');
+  });
+
+  it('aloqaJavobi: ikki maydon → bitta javob (server oʻqiydi) va chatdagi koʻrinishi; xato — qaysi maydon', () => {
+    expect(aloqaJavobi('ism_telefon', '  Aziz   Karimov ', '90 123 45 67')).toEqual({ javob: 'Aziz Karimov, +998901234567', korinish: 'Aziz Karimov, +998 90 123 45 67' });
+    expect(aloqaJavobi('ism_telefon', 'Aziz', '90 123 45 67')).toEqual({ xato: 'ism' });
+    expect(aloqaJavobi('ism_telefon', 'Aziz 2Karimov', '90 123 45 67')).toEqual({ xato: 'ism' });
+    expect(aloqaJavobi('ism_telefon', 'Aziz Karimov', '90 123')).toEqual({ xato: 'telefon' });
+    // Faqat ism (telefon oldin berilgan) — telefon maydoni yoʻq, tekshirilmaydi.
+    expect(aloqaJavobi('ism', 'Aziz Karimov', '')).toEqual({ javob: 'Aziz Karimov', korinish: 'Aziz Karimov' });
+    // Faqat telefon — ism tekshirilmaydi.
+    expect(aloqaJavobi('telefon', '', '+998901234567')).toEqual({ javob: '+998901234567', korinish: '+998 90 123 45 67' });
+    expect(aloqaJavobi('telefon', '', '12')).toEqual({ xato: 'telefon' });
+  });
+
+  it('raqamSavolimi: marja va dona — raqam klaviaturasi; pul, ism, telefon — yoʻq', () => {
+    expect(raqamSavolimi('marja')).toBe(true);
+    expect(raqamSavolimi('miqdor:123')).toBe(true);
+    expect(raqamSavolimi('partiya_miqdor:9')).toBe(true);
+    expect(raqamSavolimi('byudjet')).toBe(false);
+    expect(raqamSavolimi('telefon')).toBe(false);
+    expect(raqamSavolimi('marja_eski')).toBe(false);
+  });
+
+  it('dollarMatni: «Dollarda yozaman» dan keyin faqat son — oxiriga $; birlik bilan — oʻzicha', () => {
+    expect(dollarMatni('5000')).toBe('5000 $');
+    expect(dollarMatni(' 5 000 ')).toBe('5 000 $');
+    expect(dollarMatni('5000 $')).toBe('5000 $');
+    expect(dollarMatni('70 mln')).toBe('70 mln');
+    expect(dollarMatni('qancha kerak?')).toBe('qancha kerak?');
+  });
+
+  it('tanlanganNomlar: variantlar tartibida, son va matn qiymatlari bir xil', () => {
+    const v = [{ qiymat: 'kiyim', nom: 'Kiyim' }, { qiymat: 'sport', nom: 'Sport' }, { qiymat: 7, nom: 'Yetti' }];
+    expect(tanlanganNomlar(v, ['sport', 'kiyim'])).toEqual(['Kiyim', 'Sport']);
+    expect(tanlanganNomlar(v, ['7'])).toEqual(['Yetti']);
+    expect(tanlanganNomlar(v, [])).toEqual([]);
+    expect(tanlanganNomlar(v, ['yoq'])).toEqual([]);
   });
 });

@@ -59,7 +59,7 @@ import type { KartochkaMatniNatijasi } from './kartochka-matn.js';
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.js';
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.js';
 import { matndanSon, valyutami } from './tekshiruv.js';
-import { BYUDJET_DOLLAR, byudjetMatni, byudjetniOqi, mlnMatni, ISM_TELEFON_MISOL, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.js';
+import { BYUDJET_DOLLAR, byudjetMatni, byudjetniOqi, mlnMatni, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.js';
 import { REJA_QADAMI, type Darvoza } from './tarif.js';
 
 // ==================================================================== turlar
@@ -90,6 +90,17 @@ export interface SuhbatSavoli {
    * oʻzi aytgani (tajriba matnidan soha). Sahifa tanlovni shu bilan boshlaydi.
    */
   tanlangan?: readonly (string | number)[];
+  /**
+   * «Oʻtkazib yuborish» oʻrniga — oddiy javob tugmasi shu nom bilan (nazoratchi, 2026-11-04,
+   * 1-taklif): pul savolida «Hali bilmayman». Bosilsa — `null` (oʻtkazildi), chatda shu nom.
+   */
+  otkazishNomi?: string;
+  /**
+   * Aloqa formasi (nazoratchi, 2026-11-04, 5-taklif): ism va telefon — alohida maydonlar
+   * (telefonda raqam klaviaturasi, brauzer bir bosishda toʻldiradi). Sahifa ikkalasini bitta
+   * javobga yigʻib yuboradi («Aziz Karimov, +998901234567») — qabul qilish oʻsha (`ismVaTelefonniOqi`).
+   */
+  forma?: 'ism_telefon' | 'ism' | 'telefon';
 }
 
 /**
@@ -175,23 +186,20 @@ export const BYUDJET_TUGMALARI: readonly SuhbatVarianti[] = [
 ];
 
 /**
- * Byudjet tugmalari: soʻmda va dollarda (nazoratchi, 2026-10-12). Dollar
- * tugmasi soʻmdagi qiymatni yozadi — suhbat paytidagi CBU kursi bilan.
- * Yorliq qisqa ("$1 000"): soʻmdagisi bilan uzun yorliq telefonda bitta
- * ustunga tushib, dollar tugmalarini pastga — koʻrinmas joyga — surardi;
- * kurs savol matnida, soʻmdagisi tanlangandan keyin chatda aytiladi.
- * Kurs olinmagan boʻlsa — faqat soʻm.
+ * Chatdagi byudjet tugmalari — FAQAT SOʻMDA (nazoratchi, 2026-11-04, 1-taklif: «hammasi yoqdi»).
+ * Ilgari soʻm va dollar tugmalari birga edi (8 ta, bir xil summa ikki marta) va savolda kurs
+ * turardi — hozirgi yoʻlda javob bergan 7 mijozning 4 tasi shu savolda chiqib ketgan. Endi:
+ * soʻmdagi 4 ta, «100 mln dan koʻp» (kamida 100 mln — pastki chegara, boshqa tugmalar kabi) va
+ * «Hali bilmayman» (`otkazishNomi`). Dollarda — oʻzi yozadi (sahifada «Dollarda yozaman»):
+ * kurs (`kurs` harakati) dollarni soʻmga oʻgirish uchun qoladi.
  */
-export function byudjetTugmalari(usdKurs: number | null): SuhbatVarianti[] {
-  const tugmalar: SuhbatVarianti[] = [...BYUDJET_TUGMALARI];
-  if (usdKurs === null || !(usdKurs > 0)) return tugmalar;
-  for (const d of BYUDJET_DOLLAR) {
-    const q = Math.round(d * usdKurs);
-    if (tugmalar.some((t) => t.qiymat === q)) continue;
-    tugmalar.push({ qiymat: q, nom: `$${minglik(d)}` });
-  }
-  return tugmalar;
+export const BYUDJET_KOP: SuhbatVarianti = { qiymat: 100_000_000, nom: '100 mln dan koʻp' };
+export function byudjetTugmalari(): SuhbatVarianti[] {
+  return [...BYUDJET_TUGMALARI, BYUDJET_KOP];
 }
+
+/** Pul savolida «Oʻtkazib yuborish» oʻrniga (1-taklif): yoʻnalishlar pulga qaramay koʻrsatiladi. */
+export const BYUDJET_BILMAYMAN = 'Hali bilmayman';
 
 /**
  * Suhbatning birinchi gapi (nazoratchi, 2026-10-12): "menejer" emas —
@@ -231,7 +239,7 @@ export function salomsizSavol<T extends { matn: string }>(s: T): T {
  * mijoz natijani koʻrgan, endi uni saqlash uchun soʻraladi. Faqat ism yozilsa — telefon alohida.
  */
 const ISM_SAQLASH = 'Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz '
-  + `va telefon raqamingizni yozing — masalan: ${ISM_TELEFON_MISOL}. Raqam boshqa hech kimga berilmaydi.`;
+  + 'va telefon raqamingizni yozing. Raqam boshqa hech kimga berilmaydi.';
 
 /** Faqat telefon yozilgan boʻlsa — ism qayta soʻraladi. */
 const ISM_QAYTA = 'Rahmat, raqamingizni yozib oldim. Endi ismingiz va familiyangizni yozing — masalan: Aziz Karimov.';
@@ -1331,6 +1339,8 @@ function savol(
     otkazishMumkin: q.otkazishMumkin ?? false,
     profilMaydoni: q.profilMaydoni ?? null,
     ...(q.tanlangan?.length ? { tanlangan: q.tanlangan } : {}),
+    ...(q.otkazishNomi ? { otkazishNomi: q.otkazishNomi } : {}),
+    ...(q.forma ? { forma: q.forma } : {}),
   };
 }
 
@@ -1515,18 +1525,24 @@ function qiziqishSavoli(h: YolHolati, salom = false): SuhbatSavoli {
     'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true, tanlangan: oldindan });
 }
 
-/** Ism va telefon — yoʻnalish tanlangach (2-qadam oxiri). Faqat telefon berilgan boʻlsa — ism qayta. */
+/**
+ * Ism va telefon — yoʻnalish tanlangach (2-qadam oxiri). Faqat telefon berilgan boʻlsa — ism qayta.
+ * Sahifada alohida maydonlar (`forma`, 5-taklif); pastdagi qatorga bitta gap bilan yozsa ham boʻladi.
+ */
 function ismSavoli(h: YolHolati): SuhbatSavoli {
-  return savol('ism', 2, berilgan(h, 'telefon') ? ISM_QAYTA : ISM_SAQLASH, 'matn', { erkin: true, profilMaydoni: 'fullName' });
+  const telefonBor = berilgan(h, 'telefon');
+  return savol('ism', 2, telefonBor ? ISM_QAYTA : ISM_SAQLASH, 'matn',
+    { erkin: true, profilMaydoni: 'fullName', forma: telefonBor ? 'ism' : 'ism_telefon' });
 }
 
-function byudjetSavoli(h: YolHolati): SuhbatSavoli {
-  const kurs = usdKursi(h);
+/**
+ * Pul savoli (nazoratchi, 2026-11-04, 1-taklif): bitta savol va nega soʻralayotgani. Kurs, dollar
+ * misoli va «tugmani bosing yoki yozing» endi matnda yoʻq — mijozlar shu savolda chiqib ketardi.
+ */
+function byudjetSavoli(): SuhbatSavoli {
   return savol('byudjet', 1,
-    kurs !== null
-      ? `Qancha pul bilan savdoni boshlamoqchisiz? Soʻmda yoki dollarda (1 $ = ${minglik(Math.round(kurs))} soʻm, Markaziy bank kursi) — tugmani bosing yoki oʻzingiz yozing (masalan: 70 mln yoki 5000 $).`
-      : 'Qancha pul bilan savdoni boshlamoqchisiz? Tugmani bosing yoki soʻmda yozing (masalan: 70 mln) — dollar kursini hozir ololmadim.',
-    'son', { variantlar: byudjetTugmalari(kurs), erkin: true, otkazishMumkin: true, profilMaydoni: 'budgetUzs' });
+    'Qancha pul bilan savdoni boshlamoqchisiz? Shunga mos yoʻnalishlarni koʻrsataman — aniq boʻlishi shart emas.',
+    'son', { variantlar: byudjetTugmalari(), erkin: true, otkazishMumkin: true, otkazishNomi: BYUDJET_BILMAYMAN, profilMaydoni: 'budgetUzs' });
 }
 
 /**
@@ -1581,7 +1597,7 @@ export function sizHaqingizda(h: YolHolati): SizHaqingizda[] {
     const b = j['byudjet'];
     const usd = typeof j['byudjet_usd'] === 'number' ? (j['byudjet_usd'] as number) : null;
     // Belgida qisqa: «70 mln soʻm»; dollarda aytgan boʻlsa — «$5 000 (≈ 59,3 mln soʻm)».
-    const matn = typeof b !== 'number' ? 'Aytilmagan' : usd !== null ? byudjetMatni(b, usd) : mlnMatni(b);
+    const matn = typeof b !== 'number' ? BYUDJET_BILMAYMAN : usd !== null ? byudjetMatni(b, usd) : mlnMatni(b);
     r.push({ id: 'byudjet', matn, tahrir: tahrirMumkin(h, 'byudjet') });
   }
   const t = j['uzum_dokoni'];
@@ -1634,7 +1650,7 @@ export function tahrirgaOch(h: YolHolati, id: string): { holat: YolHolati; xato:
 export function kelgusiTanishuvSavollari(h: YolHolati): SuhbatSavoli[] {
   const r: SuhbatSavoli[] = [];
   if (!berilgan(h, 'qiziqish') && !berilgan(h, 'yonalish')) r.push(qiziqishSavoli(h));
-  if (!berilgan(h, 'byudjet')) r.push(byudjetSavoli(h));
+  if (!berilgan(h, 'byudjet')) r.push(byudjetSavoli());
   if (!berilgan(h, 'ism')) r.push(ismSavoli(h));
   if (!berilgan(h, 'uzum_dokoni')) r.push(uzumDokoniSavoli());
   return r;
@@ -1672,7 +1688,7 @@ function keyingiAsl(h: YolHolati): Keyingi {
   if (!berilgan(h, 'byudjet')) {
     // Dollar tugmalari va dollarni soʻmga oʻgirish uchun — CBU kursi (jim harakat).
     if (h.natijalar.kurs === undefined) return { tur: 'kod', harakat: 'kurs', qadam: 1 };
-    return { tur: 'savol', savol: byudjetSavoli(h) };
+    return { tur: 'savol', savol: byudjetSavoli() };
   }
 
   // ---------------------------------------------------------- 2. Yo'nalish
@@ -1698,9 +1714,11 @@ function keyingiAsl(h: YolHolati): Keyingi {
     // koʻrsatish» sahifalari, qidiruv topganlari); yana boʻlsa — «Yana koʻrsatish».
     const korsatilgan = korsatilganYonalishlar(h);
     const yanaBor = (yn.keyingilar?.length ?? 0) > sahifa * YONALISH_SAHIFASI;
+    // Tanlov — kartaning oʻzida (nazoratchi, 2026-11-04, 2-taklif: «…ni tanlayman» tugmasi):
+    // ilgari «kartalardan birini tanlang» deyilardi, lekin kartada tugma yoʻq edi.
     return { tur: 'savol', savol: savol('yonalish', 2,
       yonalishlar.length
-        ? 'Qaysi yoʻnalishda boshlaymiz? Kartalardan birini tanlang. Boshqasi kerak boʻlsa — '
+        ? 'Qaysi yoʻnalishda boshlaymiz? Yoqqan kartaning pastidagi tugmani bosing. Boshqasi kerak boʻlsa — '
           + (yanaBor ? '«Yana koʻrsatish» ni bosing yoki ' : '')
           + 'pastga tovar nomini yozing (masalan: ruchka, atir, oʻyinchoq).'
         : `Yoʻnalishlarni hozir koʻrsata olmayman: ${yn.sabab ?? 'oʻlchov yoʻq'}. «Qayta urinish» ni bosing.`,
@@ -1719,7 +1737,7 @@ function keyingiAsl(h: YolHolati): Keyingi {
     const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;
     return { tur: 'savol', savol: savol('telefon', 2,
       `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.`,
-      'matn', { erkin: true, profilMaydoni: 'phone' }) };
+      'matn', { erkin: true, profilMaydoni: 'phone', forma: 'telefon' }) };
   }
 
   // ---------------------------------------------------------- 3. Tovar va miqdor
