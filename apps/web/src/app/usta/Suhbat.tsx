@@ -26,7 +26,7 @@
  * oyma-oy aylanadi; qurilmagan qadam paydo boʻlsa "tez orada" deb chiqadi.
  */
 
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
 import { izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
@@ -43,7 +43,7 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { batafsilmi, boshlangichTanlov, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, sorovLangari, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, sorovLangari, tanlanganNomlar, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
 
@@ -128,6 +128,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
   const [matn, setMatn] = useState('');
   const [tanlangan, setTanlangan] = useState<Array<string | number>>([]);
+  /** Pul savolida «Dollarda yozaman» bosildi (1-taklif, 2026-11-04): yozilgan son dollar deb ketadi. */
+  const [dollarda, setDollarda] = useState(false);
   /**
    * Yuborilgan gap — darhol chatda (2026-10-19): AI javobi 10–20 s kelishi mumkin, shu orada
    * mijoz oʻz xabarini koʻrib tursin. Javob kelgach oʻrnini serverdagi xabar oladi; xato boʻlsa —
@@ -201,6 +203,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     const kalit = keyingiKaliti(r.keyingi);
     const almashdi = kalit !== savolKaliti.current;
     savolKaliti.current = kalit;
+    if (almashdi) setDollarda(false);
     if (almashdi || o.tozala || (o.javobKetdi && !r.xato)) {
       // Yangi savol — server oldindan belgilaganlari bilan (tajriba matnidan soha, 2026-10-15).
       setTanlangan(boshlangichTanlov(r.keyingi));
@@ -531,6 +534,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   /** Bosilgan tugma nomi — darhol chatda koʻrinadi (`yuborilgan`); topilmasa — koʻrsatilmaydi. */
   const tugmaNomi = (javob: unknown): string | null => {
     const v = keyingi?.tur === 'savol' ? keyingi.savol.variantlar : [];
+    // Oʻz nomli oʻtkazish («Hali bilmayman») — shu nom bilan.
+    if (javob === null) return keyingi?.tur === 'savol' ? keyingi.savol.otkazishNomi ?? null : null;
     const nom = (x: unknown) => v.find((y) => String(y.qiymat) === String(x))?.nom ?? null;
     if (!Array.isArray(javob)) return nom(javob);
     const n = javob.map(nom).filter((x): x is string => x !== null);
@@ -543,6 +548,10 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   // deb menejer javob beradi ("salom", "bu nima?") — chatda ikkalasi ham qoladi.
   // Maydon darhol boʻshaydi, gap chatda turadi; xato boʻlsa matn maydonga qaytadi.
   const matnYubor = (savolId: string, t: string) => { setMatn(''); void yubor({ savolId, matn: t }, false, false, t); };
+  // Aloqa formasi (5-taklif): ism va telefon — tugma kabi javob (AI tushunishsiz), chatda chiroyli koʻrinishi.
+  const formaYubor = (savolId: string, javob: string, korinish: string) => void yubor({ savolId, javob }, false, false, korinish);
+  // «Dollarda yozaman» (1-taklif): pastdagi maydonga — yozilgan son dollar deb ketadi.
+  const dollarga = () => { setDollarda(true); kiritishRef.current?.focus(); };
   // Tayyor savol (bosiladi): yozilgan savol kabi ketadi, lekin pastdagi qoralama oʻchmaydi.
   const tezSoroq = (savolId: string, t: string) => void yubor({ savolId, matn: t }, false, true, t);
   // «Siz haqingizda» belgisi: savol qayta ochiladi (server darhol qaytaradi, AI siz) — javobni oʻzgartirish.
@@ -782,8 +791,27 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const tugmalar = tugmaliSavol && (
     <SavolTugmalari savol={tugmaliSavol} band={band} klaviatura={!modal && !menyu && !obunaOchiq}
       tanlangan={tanlangan} setTanlangan={setTanlangan} javobBer={javobBer}
-      yozishga={() => kiritishRef.current?.focus()} tr={tr} />
+      yozishga={() => kiritishRef.current?.focus()} dollarga={dollarga} tr={tr} />
   );
+  // Ism va telefon — savol pufagida ikki maydon (5-taklif, 2026-11-04). Kalit — savol: qayta soʻralsa yangidan.
+  const formaJsx = savol?.forma && (
+    <AloqaFormasi key={savol.id} forma={savol.forma} band={band} tr={tr}
+      yubor={(javob, korinish) => formaYubor(savol.id, javob, korinish)} />
+  );
+  /*
+   * Yoʻnalish kartasining oʻzida tanlash (2-taklif, 2026-11-04): savol «yonalish» boʻlsa — chatda
+   * koʻrsatilgan har kartada «…ni tanlayman» (variantlari — koʻrsatilgan kartalar). Javob berilgach —
+   * tanlangan karta belgilanadi («Tanlandi»).
+   */
+  const yonalishIdlari = savol?.id === 'yonalish' ? new Set(savol.variantlar.map((v) => String(v.qiymat))) : null;
+  let tanlanganYonalish: number | null = null;
+  for (let i = xabarlar.length - 1; i >= 0; i--) {
+    const x = xabarlar[i]!;
+    if (x.rol === 'obunachi' && x.savolId === 'yonalish' && typeof x.javob === 'number') { tanlanganYonalish = x.javob; break; }
+  }
+  const yonalishRejimi: YonalishRejimi | undefined = yonalishIdlari
+    ? { idlar: yonalishIdlari, tanla: (id) => javobBer('yonalish', id), band, tanlangan: null }
+    : tanlanganYonalish !== null ? { idlar: new Set(), tanla: () => {}, band: true, tanlangan: tanlanganYonalish } : undefined;
   /*
    * Tayyor savollar (nazoratchi, 2026-10-13: «Nima soʻrashni oʻzi taklif
    * qiladi») — savol pufagining ichida, javob tugmalaridan keyin. Bosilgani
@@ -802,7 +830,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       ))}
     </div>
   );
-  const ilova = tugmalar || tezJsx ? <>{tugmalar}{tezJsx}</> : null;
+  const ilova = tugmalar || formaJsx || tezJsx ? <>{tugmalar}{formaJsx}{tezJsx}</> : null;
   // Savol oqimda turgan boʻlsa (server yozgan) — tugmalar oʻsha pufakka; boʻlmasa — pastdagi savol pufagiga.
   const tugmaPufagi = ilova && !savolKorsat ? xabarlar.length - 1 : -1;
 
@@ -938,6 +966,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                     ? { tanlangan, onToggle: tovarToggle, band }
                     : { tanlangan: tarixdagiTanlov(xabarlar, i), band: true })
                   : undefined}
+                yonalish={x.rol === 'kod' && YONALISH_KODLARI.has(x.savolId ?? '') ? yonalishRejimi : undefined}
                 xitoy={x.rol === 'kod' && x.savolId === 'xitoy'
                   ? {
                     faolPid: i === oxirgiXitoyKod ? xitoyPid : null,
@@ -978,8 +1007,10 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
         <div className={u.past_} style={yashir}>
           {/* «↓ Savolga» (nazoratchi, 2026-11-03, 2-taklif) — savol ekrandan pastda qolsa. */}
           {pastga && (
-            <button type="button" className={u.pastgaTugma} onClick={pastgaBos}>
-              <Ikon nom="pastga" o={17} />{pastga === 'savol' ? tr('Savolga', 'К вопросу') : tr('Pastga', 'Вниз')}
+            <button type="button" className={u.pastgaTugma} onClick={pastgaBos}
+              aria-label={pastga === 'savol' ? tr('Savolga', 'К вопросу') : tr('Pastga', 'Вниз')}
+              title={pastga === 'savol' ? tr('Savolga', 'К вопросу') : tr('Pastga', 'Вниз')}>
+              <Ikon nom="pastga" o={20} />
             </button>
           )}
           <div className={u.pastIchi}>
@@ -1000,6 +1031,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                 matnYubor={matnYubor}
                 boshdan={boshdanSora}
                 qaytaUrin={qaytaUrin}
+                dollarda={dollarda}
                 tr={tr}
               />
             )}
@@ -1077,6 +1109,19 @@ interface KatalogRejimi {
   band: boolean;
 }
 
+/** Yoʻnalish kartasidagi tanlash (2-taklif, 2026-11-04). */
+interface YonalishRejimi {
+  /** Hozir tanlasa boʻladigan kartalar (savol variantlari); boʻsh — tanlov tugagan. */
+  idlar: Set<string>;
+  tanla: (id: number) => void;
+  band: boolean;
+  /** Allaqachon tanlangani — kartada «Tanlandi». */
+  tanlangan: number | null;
+}
+
+/** Yoʻnalish kartalari chiqadigan kod xabarlari: birinchi sahifa, «Yana koʻrsatish», qidiruv. */
+const YONALISH_KODLARI = new Set(['yonalishlar', 'yonalish_yana', 'yonalish_qidiruv']);
+
 /**
  * Menejer gapi: ichidagi `https://` manzillar bosiladi (yangi oynada), son
  * qatorga boʻlinmaydi («Sotuv 1 / 500 000 soʻm» boʻlib qolardi).
@@ -1091,8 +1136,8 @@ function Havolali({ matn }: { matn: string }) {
   );
 }
 
-function XabarPufagi({ x, tr, katalog, xitoy, ilova, savolmi = false }: {
-  x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined;
+function XabarPufagi({ x, tr, katalog, xitoy, yonalish, ilova, savolmi = false }: {
+  x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined; yonalish?: YonalishRejimi | undefined;
   /** Hozirgi savolning javob tugmalari — savol bilan bitta oynada. */
   ilova?: ReactNode;
   /** Hozirgi savolning oʻzi — «↓ Savolga» shu yerga olib boradi. */
@@ -1113,7 +1158,7 @@ function XabarPufagi({ x, tr, katalog, xitoy, ilova, savolmi = false }: {
     );
   }
   // «Boshidan boshlash» belgisi bu yerga yetmaydi (`songgiSuhbat`): yangi suhbat — chiziqsiz.
-  return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} />;
+  return <KodKartasi x={x} tr={tr} katalog={katalog} xitoy={xitoy} yonalish={yonalish} />;
 }
 
 /**
@@ -1211,7 +1256,9 @@ interface TannarxQatori {
  */
 const XULOSA_HARAKATLARI = new Set(['ochiq_ish', 'rasmiy_yakun', 'qabul_yakun', 'studiya_yakun', 'yuklash_yakun', 'usta_fikri']);
 
-function KodKartasi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined }) {
+function KodKartasi({ x, tr, katalog, xitoy, yonalish }: {
+  x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined; yonalish?: YonalishRejimi | undefined;
+}) {
   const n = (x.javob ?? {}) as Record<string, unknown>;
   const olchovYoq = n.olchov_yoq === true;
   const izoh = typeof n.izoh === 'string' ? n.izoh : null;
@@ -1233,7 +1280,7 @@ function KodKartasi({ x, tr, katalog, xitoy }: { x: Xabar; tr: Tr; katalog?: Kat
   const karta = olchovYoq ? null
     // «Yana koʻrsatish» sahifasi va qidiruv natijasi ham — oʻsha yoʻnalish kartalari (2026-10-13).
     : x.savolId === 'yonalishlar' || x.savolId === 'yonalish_yana' || x.savolId === 'yonalish_qidiruv'
-      ? <Yonalishlar royxat={(n.royxat as YonalishQatori[] | undefined) ?? []} eskirgan={n.kesh_eskirgan === true} baholanmadi={Number(n.baholanmadi ?? 0)} bolish={(n.bolishTaklifi as { sabab: string } | null | undefined) ?? null} tr={tr} />
+      ? <Yonalishlar royxat={(n.royxat as YonalishQatori[] | undefined) ?? []} eskirgan={n.kesh_eskirgan === true} baholanmadi={Number(n.baholanmadi ?? 0)} bolish={(n.bolishTaklifi as { sabab: string } | null | undefined) ?? null} rejim={yonalish} tr={tr} />
       : x.savolId === 'tovarlar'
         ? <TovarKatalogi royxat={(n.royxat as TovarQatori[] | undefined) ?? []} chiqarildi={(n.chiqarildi as Array<{ title: string; sabab: string }> | undefined) ?? []} rejim={katalog ?? { tanlangan: [], band: true }} tr={tr} />
         : x.savolId === 'tannarx'
@@ -1378,9 +1425,9 @@ function TurkumRasmlari({ id, tr }: { id: number; tr: Tr }) {
   );
 }
 
-function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
+function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, rejim, tr }: {
   royxat: YonalishQatori[]; eskirgan: boolean; baholanmadi: number;
-  bolish: { sabab: string } | null; tr: Tr;
+  bolish: { sabab: string } | null; rejim?: YonalishRejimi | undefined; tr: Tr;
 }) {
   // Aralash roʻyxatda (qiziqish + boshqa sohalar) tartib — oʻrin emas: belgi
   // eng yuqori baholi kartada, har kartada — sohasi (2026-10-13).
@@ -1452,6 +1499,19 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, tr }: {
                   : <Xulosa tur="ogoh" hukm={tr('Pulingiz yetmasligi mumkin', 'Денег может не хватить')}
                     izoh={y.optimalKirishSom !== null ? tr(`boshlash uchun taxminan ${raqam(y.optimalKirishSom)} soʻm kerak.`, `для старта нужно примерно ${raqam(y.optimalKirishSom)} сум.`) : tr('tavsiya etilgan boshlash summasidan kam.', 'меньше рекомендуемой суммы для старта.')} />)}
               </ul>
+              {/* Tanlov — kartaning oʻzida (2-taklif, 2026-11-04): oʻqidi, yoqdi — shu yerda bosadi. */}
+              {rejim && (rejim.tanlangan === y.categoryId
+                ? (
+                  <button type="button" className={`${u.tugma} ${u.tugmaAsosiy} ${u.kartaTanla}`} aria-pressed="true" disabled>
+                    {tr('Tanlandi', 'Выбрано')}<Ikon nom="belgi" o={18} />
+                  </button>
+                )
+                : rejim.idlar.has(String(y.categoryId)) && (
+                  <button type="button" className={`${u.tugma} ${u.tugmaAsosiy} ${u.kartaTanla}`} disabled={rejim.band}
+                    onClick={() => rejim.tanla(y.categoryId)}>
+                    {tr(`«${y.name}»ni tanlayman`, `Выбираю «${y.name}»`)}
+                  </button>
+                ))}
             </div>
           );
         })}
@@ -2662,7 +2722,7 @@ function useUstun(ref: RefObject<HTMLDivElement | null>, eng: number, kalit: str
  * 2026-10-12: "savol javob oynasi bitta boʻlsin"). Variantlar, «Boshqa javob
  * — pastda yozing», koʻp tanlovda «Davom etish», «Oʻtkazib yuborish».
  */
-function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javobBer, yozishga, tr }: {
+function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javobBer, yozishga, dollarga, tr }: {
   savol: Savol;
   band: boolean;
   /** 1–9 tugmalari ishlaydimi (modal, menyu, «Rejalar» ochiq boʻlsa — yoʻq). */
@@ -2672,6 +2732,8 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
   javobBer: (savolId: string, javob: unknown) => void;
   /** Pastdagi yozish maydoniga fokus. */
   yozishga: () => void;
+  /** Pul savoli: «Dollarda yozaman» — pastdagi maydon dollarga oʻtadi (1-taklif). */
+  dollarga: () => void;
   tr: Tr;
 }) {
   const variantlarRef = useRef<HTMLDivElement>(null);
@@ -2703,10 +2765,38 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
   const kop = savol.turi === 'kopTanlov';
   const raqamli = savol.turi === 'son';
   const uzun = ustunlar(savol) <= 2 && !raqamli;
-  const otkaz = savol.otkazishMumkin && !(kop && tanlangan.length > 0);
+  // «Oʻtkazib yuborish» — alohida kichik tugma; oʻz nomi boʻlsa (pul: «Hali bilmayman») — javoblar qatorida.
+  const otkaz = savol.otkazishMumkin && !savol.otkazishNomi && !(kop && tanlangan.length > 0);
+
+  // Yoʻnalish (2-taklif): tanlov kartalarning oʻzida — bu yerda nomlar ixcham, «Yana koʻrsatish» alohida.
+  if (savol.id === 'yonalish' && savol.erkin) {
+    const yana = savol.variantlar.find((v) => v.qiymat === 'yana');
+    return (
+      <div className={u.savolJavob} role="group" aria-label={tr('Javob variantlari', 'Варианты ответа')}>
+        <div className={u.nomlar}>
+          {savol.variantlar.filter((v) => v !== yana).map((v) => (
+            <button key={String(v.qiymat)} type="button" className={u.nomTugma} disabled={band} onClick={() => javobBer(savol.id, v.qiymat)}>
+              {v.nom}
+            </button>
+          ))}
+        </div>
+        <div className={u.havolalar}>
+          {yana && (
+            <button type="button" className={u.havolaTugma} disabled={band} onClick={() => javobBer(savol.id, yana.qiymat)}>
+              {tr('Yana yoʻnalishlar koʻrsatish', 'Показать ещё направления')}
+            </button>
+          )}
+          <button type="button" className={u.havolaTugma} onClick={yozishga}>
+            {tr('Boshqa tovar qidirish — pastda yozing', 'Найти другой товар — напишите ниже')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={u.savolJavob} role="group" aria-label={tr('Javob variantlari', 'Варианты ответа')}>
-      {kop && <p className={u.savolJavobIzoh}>{tr('Bir nechtasini belgilang', 'Отметьте несколько')}</p>}
+      {kop && <p className={u.savolJavobIzoh}>{tr('Bir nechtasini belgilang — keyin pastdagi «Davom etish»', 'Отметьте несколько — затем «Продолжить» внизу')}</p>}
       <div ref={variantlarRef} className={u.variantlar} data-ustun={ustun} style={{ gridTemplateColumns: `repeat(${ustun}, minmax(0, 1fr))` }}>
         {savol.variantlar.map((v, i) => {
           const bor = kop && tanlangan.some((x) => String(x) === String(v.qiymat));
@@ -2721,41 +2811,115 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
                 ? setTanlangan(bor ? tanlangan.filter((x) => String(x) !== String(v.qiymat)) : [...tanlangan, v.qiymat])
                 : javobBer(savol.id, v.qiymat))}
             >
-              <span className={u.radio} aria-hidden="true" />
+              {/* Koʻp tanlov — kvadrat ☑ (3-taklif): bir nechtasi mumkin. Bitta tanlovda belgi yoʻq — bosish = javob. */}
+              {kop && <span className={u.katak} aria-hidden="true">{bor && <Ikon nom="belgi" o={13} q={3} />}</span>}
               <span className={u.variantNomi}>{v.nom}</span>
               {raqamli && i < 9 && <span className={u.klavish} aria-hidden="true">{i + 1}</span>}
             </button>
           );
         })}
+        {savol.otkazishMumkin && savol.otkazishNomi && (
+          <button type="button" className={[u.variant, raqamli ? u.variantRaqam : '', u.variantSoz].join(' ')} disabled={band}
+            onClick={() => javobBer(savol.id, null)}>
+            <span className={u.variantNomi}>{savol.otkazishNomi}</span>
+          </button>
+        )}
         {savol.erkin && !kop && !raqamli && (
           <button type="button" className={u.variantBoshqa} onClick={yozishga}>
             <span><Ikon nom="plyus" o={16} /></span>
             {savol.id === 'shahar' ? tr('Boshqa shahar — pastda yozing', 'Другой город — напишите ниже')
-              : savol.id === 'yonalish' ? tr('Boshqa yoʻnalish qidirish — pastda yozing', 'Найти другое направление — напишите ниже')
-                : tr('Boshqa javob — pastda yozing', 'Другой ответ — напишите ниже')}
+              : tr('Boshqa javob — pastda yozing', 'Другой ответ — напишите ниже')}
           </button>
         )}
       </div>
-      {(otkaz || kop) && (
+      {savol.id === 'byudjet' && savol.erkin && (
+        <div className={u.havolalar}>
+          <button type="button" className={u.havolaTugma} onClick={dollarga}>{tr('Dollarda yozaman ($)', 'Напишу в долларах ($)')}</button>
+          <button type="button" className={u.havolaTugma} onClick={yozishga}>{tr('Boshqa summa — pastda yozing', 'Другая сумма — напишите ниже')}</button>
+        </div>
+      )}
+      {otkaz && (
         <div className={u.variantYakun}>
-          {otkaz && (
-            <button type="button" className={u.otkazishIchki} onClick={() => javobBer(savol.id, null)} disabled={band}>
-              {tr('Oʻtkazib yuborish', 'Пропустить')}
-            </button>
-          )}
-          {kop && (
-            <button type="button" className={u.davom} onClick={() => javobBer(savol.id, tanlangan)} disabled={band || tanlangan.length === 0}>
-              {tanlangan.length > 0 ? tr(`Davom etish · ${tanlangan.length} ta`, `Продолжить · ${tanlangan.length}`) : tr('Davom etish', 'Продолжить')}
-              <Ikon nom="ong" o={18} />
-            </button>
-          )}
+          <button type="button" className={u.otkazishIchki} onClick={() => javobBer(savol.id, null)} disabled={band}>
+            {tr('Oʻtkazib yuborish', 'Пропустить')}
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlangan, matn, setMatn, javobBer, matnYubor, boshdan, qaytaUrin, tr }: {
+/**
+ * Ism va telefon — ikki maydon (nazoratchi, 2026-11-04, 5-taklif). Ilgari bitta qatorga «Aziz
+ * Karimov, +998…» deb yozilardi: maydon yozuvi telefonda kesilardi, klaviatura harfli edi. Endi
+ * «Ism va familiya» (brauzer toʻldiradi) va «Telefon» (+998 tayyor, raqam klaviaturasi). Javob —
+ * bitta gap (`aloqaJavobi`): server uni oldingidek oʻqiydi. Notoʻgʻri boʻlsa — sababi forma ostida.
+ */
+function AloqaFormasi({ forma, band, yubor, tr }: {
+  forma: NonNullable<Savol['forma']>; band: boolean; yubor: (javob: string, korinish: string) => void; tr: Tr;
+}) {
+  const [ism, setIsm] = useState('');
+  const [tel, setTel] = useState('');
+  const [xato, setXato] = useState<'ism' | 'telefon' | null>(null);
+  const ismRef = useRef<HTMLInputElement>(null);
+  const telRef = useRef<HTMLInputElement>(null);
+  const saqla = (e: FormEvent) => {
+    e.preventDefault();
+    if (band) return;
+    const r = aloqaJavobi(forma, ism, tel);
+    if ('xato' in r) {
+      setXato(r.xato);
+      (r.xato === 'ism' ? ismRef : telRef).current?.focus();
+      return;
+    }
+    setXato(null);
+    yubor(r.javob, r.korinish);
+  };
+  return (
+    <form className={u.aloqa} onSubmit={saqla} noValidate>
+      {forma !== 'telefon' && (
+        <label className={u.aloqaMaydon}>
+          <span className={u.aloqaYorliq}>{tr('Ism va familiya', 'Имя и фамилия')}</span>
+          <input
+            ref={ismRef} name="name" type="text" autoComplete="name" autoCapitalize="words" maxLength={60}
+            enterKeyHint={forma === 'ism' ? 'send' : 'next'}
+            placeholder={tr('Masalan: Aziz Karimov', 'Например: Азиз Каримов')}
+            value={ism} readOnly={band} aria-invalid={xato === 'ism'}
+            onChange={(e) => { setIsm(e.target.value); if (xato === 'ism') setXato(null); }}
+            onKeyDown={(e) => {
+              // Ismdan keyin Enter — telefonga oʻtadi (raqam hali yozilmagan boʻlsa), xato chiqarmaydi.
+              if (e.key === 'Enter' && forma === 'ism_telefon' && formaTelefoni(tel) === null) { e.preventDefault(); telRef.current?.focus(); }
+            }}
+          />
+        </label>
+      )}
+      {forma !== 'ism' && (
+        <label className={u.aloqaMaydon}>
+          <span className={u.aloqaYorliq}>{tr('Telefon', 'Телефон')}</span>
+          <span className={u.aloqaTel}>
+            <span className={u.aloqaKod} aria-hidden="true">+998</span>
+            <input
+              ref={telRef} name="tel" type="tel" inputMode="tel" autoComplete="tel" maxLength={20} enterKeyHint="send"
+              placeholder="90 123 45 67" value={tel} readOnly={band} aria-invalid={xato === 'telefon'}
+              onChange={(e) => { setTel(e.target.value); if (xato === 'telefon') setXato(null); }}
+            />
+          </span>
+          <span className={u.aloqaIzoh}>{tr('Raqam boshqa hech kimga berilmaydi.', 'Номер никому не передаётся.')}</span>
+        </label>
+      )}
+      {xato && (
+        <p className={u.aloqaXato} role="alert">
+          {xato === 'ism'
+            ? tr('Ism va familiyangizni yozing — masalan: Aziz Karimov.', 'Напишите имя и фамилию — например: Азиз Каримов.')
+            : tr('Telefon raqamni toʻliq yozing — masalan: 90 123 45 67.', 'Напишите номер полностью — например: 90 123 45 67.')}
+        </p>
+      )}
+      <button type="submit" className={u.davom} disabled={band}>{tr('Saqlash', 'Сохранить')}<Ikon nom="ong" o={18} /></button>
+    </form>
+  );
+}
+
+function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlangan, matn, setMatn, javobBer, matnYubor, boshdan, qaytaUrin, dollarda, tr }: {
   savol: Savol | null;
   tezOrada: boolean;
   kutish: boolean;
@@ -2771,6 +2935,8 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
   matnYubor: (savolId: string, matn: string) => void;
   boshdan: () => void;
   qaytaUrin: () => void;
+  /** Pul savolida «Dollarda yozaman» bosilgan: son dollar deb ketadi (1-taklif). */
+  dollarda: boolean;
   tr: Tr;
 }) {
   /*
@@ -2833,7 +2999,7 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
     const t = matn.trim();
     if (t === '' || band) return;
     fokusKerak.current = true;
-    matnYubor(savol.id, t);
+    matnYubor(savol.id, savol.id === 'byudjet' && dollarda ? dollarMatni(t) : t);
   };
   // Javob yoziladigan savol (son, matn, erkin) — oʻz yozuvi; faqat tugmali
   // savolda maydon savol yoki izoh uchun ("bu nima?").
@@ -2849,18 +3015,21 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
       */}
       <input
         ref={kiritish}
-        // Telefon — raqamli klaviatura va brauzer toʻldirishi; ism — ism toʻldirishi.
-        type={savol.id === 'telefon' ? 'tel' : 'text'}
-        inputMode={savol.id === 'telefon' ? 'tel' : undefined}
+        // Ism va telefon — savol pufagidagi formada (5-taklif); bu qator savol uchun. Formasiz
+        // (eski server) — telefonga raqamli klaviatura. Marja va dona — raqam klaviaturasi (11-taklif).
+        type={savol.id === 'telefon' && !savol.forma ? 'tel' : 'text'}
+        inputMode={savol.id === 'telefon' && !savol.forma ? 'tel' : raqamSavolimi(savol.id) ? 'numeric' : undefined}
         enterKeyHint="send"
         // Server erkin matnni 500 belgida kesadi (`ERKIN_MAX`) — oxiri jimgina
         // yoʻqolmasin, yozayotganda chegara koʻrinsin.
         maxLength={500}
-        autoComplete={savol.id === 'ism' ? 'name' : savol.id === 'telefon' ? 'tel' : 'off'}
+        autoComplete={savol.forma ? 'off' : savol.id === 'ism' ? 'name' : savol.id === 'telefon' ? 'tel' : 'off'}
         aria-label={savol.matn}
-        placeholder={savol.id === 'ism' ? tr('Ism, familiya va telefon — masalan: Aziz Karimov, +998 90 123 45 67', 'Имя, фамилия и телефон — например: Азиз Каримов, +998 90 123 45 67')
+        placeholder={savol.forma ? tr('Savolingiz boʻlsa — yozing', 'Есть вопрос — напишите')
+          : savol.id === 'ism' ? tr('Ism, familiya va telefon — masalan: Aziz Karimov, +998 90 123 45 67', 'Имя, фамилия и телефон — например: Азиз Каримов, +998 90 123 45 67')
           : savol.id === 'telefon' ? '+998 90 123 45 67'
-            : savol.id === 'byudjet' ? tr('Oʻzim yozaman: masalan, 70 mln yoki 5000 $', 'Своя сумма: например, 70 млн или 5000 $')
+            : savol.id === 'byudjet' && dollarda ? tr('Dollarda yozing — masalan: 5000', 'В долларах — например: 5000')
+            : savol.id === 'byudjet' ? tr('Oʻzim yozaman: masalan, 70 mln', 'Своя сумма: например, 70 млн')
               // 2-qadam: pastga yozilgan tovar nomi — qidiruv (2026-10-13).
               : savol.id === 'yonalish' && savol.erkin ? tr('Tovar nomini yozing — masalan: ruchka', 'Напишите товар — например: ручка')
               : savol.id === 'qiziqish' ? tr('Yoki sohani yozing — masalan: kanstovar', 'Или напишите сферу — например: канцтовары')
@@ -2895,16 +3064,23 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
     );
   }
 
-  if (savol.turi === 'kopTanlov' && savol.id === 'tovarlar') {
-    // Tanlov oqimdagi kartalarda (w5). Bu yerda faqat yakun.
+  if (savol.turi === 'kopTanlov') {
+    // Koʻp tanlov (soha, tovarlar) — tanlanganlar va «Davom etish · N ta» pastda DOIM koʻrinadi
+    // (3-taklif, 2026-11-04): ilgari soha savolida tugma 10 ta variantdan pastda qolardi.
+    // Tovarlar — oqimdagi kartalarda (w5), soha — savol pufagida.
+    const nomlar = tanlanganNomlar(savol.variantlar, tanlangan);
     return (
       <>
         <div className={u.tanlovQator}>
-          <span>{tr('Yuqoridagi kartalardan tanlang', 'Выберите карточки выше')}</span>
+          <span className={u.tanlovNomlar}>
+            {nomlar.length > 0 ? nomlar.join(', ')
+              : savol.id === 'tovarlar' ? tr('Yuqoridagi kartalardan tanlang', 'Выберите карточки выше')
+                : tr('Yuqorida bir nechtasini belgilang', 'Отметьте несколько выше')}
+          </span>
           {davom}
         </div>
         {kiritishQatori}
-        {tanlangan.length === 0 && otkaz}
+        {savol.variantlar.length === 0 && otkaz}
       </>
     );
   }

@@ -257,7 +257,7 @@ describe('AI tushunadi — javobni kod qabul qiladi', () => {
     const b = soxtaBaza(BYUDJET);
     const s = soxtaAi(
       [{ javoblar: [{ savol_id: 'byudjet', qiymatlar: ['70'], otkazish: false }], taklif_qiziqish: [], savol_bor: false }],
-      [{ oldin: '70 deganingiz soʻmmi yoki dollarmi?', izoh: '', savol: 'Qancha pul bilan boshlaysiz — masalan, 70 mln yoki 5000 $?' }],
+      [{ oldin: '70 deganingiz soʻmmi yoki dollarmi?', izoh: '', savol: 'Qancha pul bilan boshlaysiz — masalan, 70 mln?' }],
     );
     const r = await suhbatTurn(bogliq(b, s.ai), 't', { savolId: 'byudjet', matn: '70 ga boshlayman' });
     expect(b.holat().javoblar['byudjet']).toBeUndefined();
@@ -266,7 +266,7 @@ describe('AI tushunadi — javobni kod qabul qiladi', () => {
     expect(r.xabarlar).toEqual([
       { rol: 'obunachi', matn: '70 ga boshlayman' },
       { rol: 'menejer', matn: '70 deganingiz soʻmmi yoki dollarmi?', savolId: 'byudjet', javob: { erkin: true, manba: 'ai' } },
-      { rol: 'menejer', matn: 'Qancha pul bilan boshlaysiz — masalan, 70 mln yoki 5000 $?', savolId: 'byudjet' },
+      { rol: 'menejer', matn: 'Qancha pul bilan boshlaysiz — masalan, 70 mln?', savolId: 'byudjet' },
     ]);
   });
 
@@ -846,6 +846,11 @@ describe('AI yozishiga faqat kerakli faktlar (4-taklif, 2026-10-27)', () => {
     await suhbatTurn(bogliq(soxtaBaza(BYUDJET), s.ai), 't', { savolId: 'byudjet', javob: 70_000_000 });
     expect(s.yozlar[0]!.k.bilim).toMatch(/^Soʻzlar lugʻati/);
     expect(s.yozlar[0]!.k.bilim).not.toMatch(/ZumSavdo haqida faktlar/);
+  });
+  it('«Hali bilmayman» (2026-11-04) — AI ga ham shu nom bilan: «…» → Hali bilmayman', async () => {
+    const s = soxtaAi([], [{ oldin: '', izoh: 'Potinka mos.', savol: 'Qaysi biri?' }]);
+    await suhbatTurn(bogliq(soxtaBaza(BYUDJET), s.ai), 't', { savolId: 'byudjet', javob: null });
+    expect(s.yozlar[0]!.k.qabul).toEqual(['«Qancha pul bilan savdoni boshlamoqchisiz?» → Hali bilmayman']);
   });
   it('savol bilan javob — toʻliq faktlar', async () => {
     const s = soxtaAi([{ javoblar: [{ savol_id: 'qiziqish', qiymatlar: ['kiyim'], otkazish: false }], taklif_qiziqish: [], savol_bor: true }], [YOZUV]);

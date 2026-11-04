@@ -232,11 +232,12 @@ describe('suhbatTurn', () => {
     expect(b.holat()!.natijalar.kurs).toEqual(KURS_N);
     if (r1.keyingi.tur !== 'savol') throw new Error();
     expect(r1.keyingi.savol.id).toBe('byudjet');
+    // Faqat soʻmda (1-taklif, 2026-11-04): dollar tugmalari va kurs matnda yoʻq; «Hali bilmayman» — oʻtkazish.
     expect(r1.keyingi.savol.variantlar.map((v) => v.nom)).toEqual([
-      '5 mln soʻm', '10 mln soʻm', '30 mln soʻm', '70 mln soʻm', '$500', '$1 000', '$3 000', '$5 000',
+      '5 mln soʻm', '10 mln soʻm', '30 mln soʻm', '70 mln soʻm', '100 mln dan koʻp',
     ]);
-    // Kurs savol matnida — dollar tugmasi yorligʻi qisqa (telefonda ikki ustun).
-    expect(r1.keyingi.savol.matn).toMatch(/1 \$ = 12 650 soʻm, Markaziy bank kursi/);
+    expect(r1.keyingi.savol.otkazishNomi).toBe('Hali bilmayman');
+    expect(r1.keyingi.savol.matn).not.toMatch(/\$|kurs/);
 
     // Ikkinchi javob — darhol yoʻnalishlar (kod) va yoʻnalish savoli.
     const r2 = await suhbatTurn(d, 'tok', { savolId: 'byudjet', javob: 10_000_000 });
@@ -319,11 +320,34 @@ describe('suhbatTurn', () => {
     d.kod.kurs = async () => ({ olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
     const r = await suhbatTurn(d, 'tok', { savolId: 'qiziqish', javob: null });
     if (r.keyingi.tur !== 'savol') throw new Error();
-    expect(r.keyingi.savol.variantlar).toHaveLength(4);
-    expect(r.keyingi.savol.matn).toMatch(/dollar kursini hozir ololmadim/);
+    expect(r.keyingi.savol.variantlar).toHaveLength(5);
     const r2 = await suhbatTurn(d, 'tok', { savolId: 'byudjet', matn: '5000$' });
     expect(r2.xabarlar[1]!.matn).toMatch(/Dollar kursini hozir ololmadim/);
     expect(b.holat()!.javoblar['byudjet']).toBeUndefined();
+  });
+
+  it('«Hali bilmayman» (1-taklif, 2026-11-04): oʻtkazildi — chatda shu nom, yoʻnalishlar pulga qaramay', async () => {
+    const b = soxtaBaza(BYUDJETGACHA);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: null });
+    expect(r.xato).toBeUndefined();
+    expect(r.xabarlar[0]).toMatchObject({ rol: 'obunachi', matn: 'Hali bilmayman', savolId: 'byudjet', javob: null });
+    expect(b.holat()!.javoblar['byudjet']).toBeNull();
+    expect(r.xabarlar.some((x) => x.rol === 'kod' && x.savolId === 'yonalishlar')).toBe(true);
+    expect(r.sizHaqingizda?.find((x) => x.id === 'byudjet')?.matn).toBe('Hali bilmayman');
+    // «100 mln dan koʻp» — tugma nomi bilan.
+    const b2 = soxtaBaza(BYUDJETGACHA);
+    const r2 = await suhbatTurn(bogliq(b2), 'tok', { savolId: 'byudjet', javob: 100_000_000 });
+    expect(r2.xabarlar[0]).toMatchObject({ rol: 'obunachi', matn: '100 mln dan koʻp', javob: 100_000_000 });
+  });
+
+  it('ism formasi (5-taklif): ikki maydon bitta javob boʻlib keladi — tugma kabi, AI tushunishsiz', async () => {
+    const b = soxtaBaza(ISMGACHA);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'ism', javob: 'aziz karimov, +998901234567' });
+    expect(r.xato).toBeUndefined();
+    expect(r.xabarlar[0]).toMatchObject({ rol: 'obunachi', matn: 'Aziz Karimov, +998 90 123 45 67', savolId: 'ism' });
+    expect(b.profil()).toEqual({ fullName: 'Aziz Karimov', phone: '+998901234567' });
+    if (r.keyingi.tur !== 'savol') throw new Error();
+    expect(r.keyingi.savol.id).toBe('tovarlar');
   });
 
   it('erkin matn ham kutilayotgan savolga javob sifatida olinadi', async () => {

@@ -263,12 +263,13 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     // Yoʻnalish tanlangach — ism va telefon: natijani saqlash uchun, 2-qadamda, oʻtkazib boʻlmaydi.
     const ki = keyingi(h);
     if (ki.tur !== 'savol') throw new Error(ki.tur);
-    expect(ki.savol).toMatchObject({ id: 'ism', qadam: 2, turi: 'matn', otkazishMumkin: false });
-    expect(ki.savol.matn).toMatch(/^Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz va telefon raqamingizni yozing — masalan: Aziz Karimov, \+998 90 123 45 67\. Raqam boshqa hech kimga berilmaydi\.$/);
+    // Sahifada ikki maydon (5-taklif, 2026-11-04): ism va telefon — `forma`.
+    expect(ki.savol).toMatchObject({ id: 'ism', qadam: 2, turi: 'matn', otkazishMumkin: false, forma: 'ism_telefon' });
+    expect(ki.savol.matn).toBe('Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz va telefon raqamingizni yozing. Raqam boshqa hech kimga berilmaydi.');
     h = javob(h, 'ism', 'aziz karimov');
     const kt = keyingi(h);
     if (kt.tur !== 'savol') throw new Error(kt.tur);
-    expect(kt.savol).toMatchObject({ id: 'telefon', qadam: 2, turi: 'matn', otkazishMumkin: false });
+    expect(kt.savol).toMatchObject({ id: 'telefon', qadam: 2, turi: 'matn', otkazishMumkin: false, forma: 'telefon' });
     expect(kt.savol.matn).toMatch(/^Aziz, telefon raqamingizni yozing/);
     h = javob(h, 'telefon', '93 123 45 67');
     expect(h.javoblar['telefon']).toBe('+998931234567');
@@ -376,17 +377,26 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     expect(javob(h, 'qiziqish', 'bilmayman').javoblar['qiziqish']).toEqual(['bilmayman']);
   });
 
-  it('byudjet tugmalari ANIQ son: soʻmda va dollarda (kurs bilan); kurs boʻlmasa — faqat soʻm', () => {
+  it('byudjet (1-taklif, 2026-11-04): faqat soʻmdagi ANIQ son tugmalari, «100 mln dan koʻp», «Hali bilmayman»; qisqa savol', () => {
     const k = keyingi(byudjetgacha());
     if (k.tur !== 'savol') throw new Error(k.tur);
-    expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([5_000_000, 10_000_000, 30_000_000, 70_000_000, 6_325_000, 12_650_000, 37_950_000, 63_250_000]);
-    expect(k.savol.matn).toMatch(/Soʻmda yoki dollarda/);
+    // Dollar tugmalari yoʻq — kurs bilan ham, kurssiz ham bir xil.
+    expect(k.savol.variantlar.map((v) => [v.qiymat, v.nom])).toEqual([
+      [5_000_000, '5 mln soʻm'], [10_000_000, '10 mln soʻm'], [30_000_000, '30 mln soʻm'], [70_000_000, '70 mln soʻm'],
+      [100_000_000, '100 mln dan koʻp'],
+    ]);
+    expect(k.savol).toMatchObject({ otkazishMumkin: true, otkazishNomi: 'Hali bilmayman', erkin: true });
+    expect(k.savol.matn).toBe('Qancha pul bilan savdoni boshlamoqchisiz? Shunga mos yoʻnalishlarni koʻrsataman — aniq boʻlishi shart emas.');
     const kursSiz = natijaniYoz(javob(boshlangichHolat(), 'qiziqish', null), 'kurs', { olchov_yoq: true, sabab: 'CBU kursi olinmadi', usd: null });
     const k2 = keyingi(kursSiz);
     if (k2.tur !== 'savol') throw new Error(k2.tur);
-    expect(k2.savol.variantlar).toHaveLength(4);
-    expect(k2.savol.matn).toMatch(/dollar kursini hozir ololmadim/);
+    expect(k2.savol).toEqual(k.savol);
+    // Dollarda oʻzi yozadi: kurs boʻlsa — soʻmga, boʻlmasa — sababi aytiladi.
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', '5000 $').holat.javoblar['byudjet_usd']).toBe(5000);
     expect(javobniQabulQil(kursSiz, 'byudjet', '5000$').xato).toMatch(/Dollar kursini hozir ololmadim/);
+    // «100 mln dan koʻp» — kamida 100 mln (pastki chegara); «Hali bilmayman» — oʻtkazildi (null).
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', 100_000_000).holat.javoblar['byudjet']).toBe(100_000_000);
+    expect(javobniQabulQil(byudjetgacha(), 'byudjet', null).holat.javoblar['byudjet']).toBeNull();
   });
 
   it("BO'SH byudjet null, NOL esa javob", () => {
@@ -414,6 +424,16 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     expect(javobniQabulQil(byudjetgacha(), 'byudjet', -5).xato).not.toBeNull();
     expect(javobniQabulQil(byudjetgacha(), 'byudjet', true).xato).not.toBeNull();
     expect(javobniQabulQil(byudjetgacha(), 'byudjet', '50 yoki 70 mln').xato).toMatch(/Bir nechta summa/);
+  });
+
+  it('aloqa formasi (5-taklif, 2026-11-04): faqat telefon berilgan boʻlsa — ism savolida faqat ism maydoni', () => {
+    const k0 = keyingi(ismgacha());
+    if (k0.tur !== 'savol') throw new Error(k0.tur);
+    expect(k0.savol).toMatchObject({ id: 'ism', forma: 'ism_telefon' });
+    const k = keyingi(javob(ismgacha(), 'ism', '+998 90 123 45 67'));
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol).toMatchObject({ id: 'ism', forma: 'ism' });
+    expect(k.savol.matn).toMatch(/^Rahmat, raqamingizni yozib oldim/);
   });
 
   it('eski suhbat: byudjet va tajriba bor, ism yoʻq — avval ism va telefon, keyin yoʻl oʻsha joyidan', () => {
@@ -446,6 +466,8 @@ describe("2-qadam — Yo'nalish", () => {
     expect(k.savol.id).toBe('yonalish');
     expect(k.savol.variantlar.map((v) => v.nom)).toEqual(['Quloqchinlar', 'Soatlar']);
     expect(k.savol.otkazishMumkin).toBe(false);
+    // Tanlov kartaning oʻzida (2-taklif, 2026-11-04) — savol shuni aytadi («kartalardan birini» emas).
+    expect(k.savol.matn).toMatch(/^Qaysi yoʻnalishda boshlaymiz\? Yoqqan kartaning pastidagi tugmani bosing\./u);
   });
 
   it("ro'yxatda yo'q yo'nalish rad etiladi", () => {
@@ -2222,7 +2244,7 @@ describe('«Siz haqingizda» va javobni qayta ochish (5-taklif, 2026-10-28)', ()
     ]);
     expect(sizHaqingizda({ javoblar: { qiziqish: ['bilmayman'], byudjet: null, uzum_dokoni: 'yoq' }, natijalar: {} })).toEqual([
       { id: 'qiziqish', matn: 'Hamma sohadan', tahrir: true },
-      { id: 'byudjet', matn: 'Aytilmagan', tahrir: true },
+      { id: 'byudjet', matn: 'Hali bilmayman', tahrir: true },
       { id: 'uzum_dokoni', matn: 'Yoʻq, birinchi marta', tahrir: true },
     ]);
   });
