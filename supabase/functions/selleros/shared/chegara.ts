@@ -37,6 +37,21 @@ export interface ChegaraNatijasi {
   yetishmaydi: string[];
   /** Ochiq hisob — odam o'qiydigan qator. */
   hisob: string | null;
+  /**
+   * «Pul qayerga ketadi» (nazoratchi, 2026-11-04, 6-taklif): formula oʻrniga roʻyxat — 1 dona
+   * sotuvdan, soʻmda. Hisob boʻlmasa `null`. Kirmagan qism (`logistika`, `kargo`) — `null`.
+   */
+  qismlar: ChegaraQismlari | null;
+}
+
+export interface ChegaraQismlari {
+  sotuv: number;
+  foyda: number;
+  marjaFoizi: number;
+  komissiya: number;
+  komissiyaFoizi: number;
+  logistika: number | null;
+  kargo: number | null;
 }
 
 export function chegaraNarxi(k: ChegaraKirishi): ChegaraNatijasi {
@@ -44,7 +59,7 @@ export function chegaraNarxi(k: ChegaraKirishi): ChegaraNatijasi {
   if (k.sotuvNarxiSom === null || k.sotuvNarxiSom <= 0) yetishmaydi.push('sotuv narxi');
   if (k.marjaFoizi === null || k.marjaFoizi < 0 || k.marjaFoizi >= 100) yetishmaydi.push('marja');
   if (k.komissiyaFoizi === null) yetishmaydi.push('komissiya');
-  if (yetishmaydi.length) return { chegaraSom: null, yetishmaydi, hisob: null };
+  if (yetishmaydi.length) return { chegaraSom: null, yetishmaydi, hisob: null, qismlar: null };
 
   const sotuv = k.sotuvNarxiSom as number;
   const marja = k.marjaFoizi as number;
@@ -60,5 +75,10 @@ export function chegaraNarxi(k: ChegaraKirishi): ChegaraNatijasi {
     (k.uzumLogistikaSom !== null ? ` − logistika ${minglik(logistika)}` : '') +
     (k.kargoSom !== null ? ` − kargo ${minglik(kargo)}` : '') +
     ` = ${minglik(chegara)} soʻm`;
-  return { chegaraSom: chegara, yetishmaydi, hisob };
+  const qismlar: ChegaraQismlari = {
+    sotuv, foyda: Math.round((sotuv * marja) / 100), marjaFoizi: marja,
+    komissiya, komissiyaFoizi: k.komissiyaFoizi as number,
+    logistika: k.uzumLogistikaSom, kargo: k.kargoSom,
+  };
+  return { chegaraSom: chegara, yetishmaydi, hisob, qismlar };
 }

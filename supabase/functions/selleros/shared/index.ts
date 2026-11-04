@@ -43,6 +43,7 @@ export * from './kpi.ts';
 export * from './tannarx.ts';
 export * from './xatolik.ts';
 export * from './xitoy.ts';
+export * from './xitoy-nom.ts';
 export * from './kurs.ts';
 export * from './fakt.ts';
 export * from './rasmiy.ts';

@@ -38,6 +38,12 @@ describe('sahifa yordamchisi', () => {
     expect(s.sorovlar[0]!.til).toBe('uz');
   });
 
+  it('AI matnidagi oddiy apostrof — oʻzbekcha belgiga (11-taklif, 2026-11-04)', async () => {
+    const s = soxta(["Ro'yxatdan o'tish oson: ma'lumotlaringizni yozing."]);
+    const r = await sahifaJavobi({ ai: s.ai }, { ...K, savol: 'Qanday boshlayman?' });
+    expect(r).toEqual({ matn: 'Roʻyxatdan oʻtish oson: maʼlumotlaringizni yozing.', manba: 'ai' });
+  });
+
   it('AI raqam toʻqisa — sababi bilan qayta (uch martagacha); baribir toʻqisa — uzr, bazadagi tayyor javob emas', async () => {
     const s = soxta(['Obuna atigi 7 777 soʻm.']);
     const r = await sahifaJavobi({ ai: s.ai }, { ...K, sahifa: 'obuna', savol: 'Bu bepulmi?' });

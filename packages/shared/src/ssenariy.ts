@@ -72,6 +72,12 @@ export interface SuhbatVarianti {
   nom: string;
   /** Ruscha nom (4-taklif, 2026-11-04) — `ru.ts` lugʻatidan, `savol()` qoʻshadi; rus sahifasida shu. */
   ru?: string;
+  /**
+   * Tugma ostidagi izoh (6-taklif, 2026-11-04): marja tugmasida foyda soʻmda — «har sotuvdan
+   * ~32 700 soʻm». Javob — `qiymat`; chatda — faqat `nom`.
+   */
+  izoh?: string;
+  izohRu?: string;
 }
 
 export interface SuhbatSavoli {
@@ -117,6 +123,11 @@ export interface SuhbatSavoli {
    */
   batafsil?: string;
   batafsilRu?: string;
+  /**
+   * Orqada ish ketyapti (8-taklif, 2026-11-04): 1688 qidiruvi paytidagi fikr savoli. Sahifa
+   * savolni koʻrsatadi va qidiruvni tekshirib turadi — natija kelsa, savol oʻzi yopiladi.
+   */
+  fonda?: boolean;
 }
 
 /**
@@ -963,6 +974,10 @@ export const STUDIYA_TAYYOR: readonly SuhbatVarianti[] = [
  * Endi 4-qadamdan keyin (tovar, miqdor va chegara narx koʻrilgach) BIR
  * MARTA soʻraladi; oʻtkazib yuborish mumkin — yoʻlni toʻxtatmaydi.
  */
+/**
+ * 2026-11-04 (8-taklif): savol 1688 qidiruvi PAYTIDA, bitta savol (ilgari — qidiruvdan oldin, ketma-ket
+ * ikkita: mijoz kutishga majbur edi). Javob bermasa ham qidiruv natijasi chiqadi.
+ */
 export const USTA_FIKRI: readonly SuhbatVarianti[] = [
   { qiymat: 'ha', nom: 'Ha, mantiqli' },
   { qiymat: 'yoq', nom: 'Yoʻq, nimadir notoʻgʻri' },
@@ -1338,13 +1353,15 @@ function tovarNomi(h: YolHolati, id: number): string {
   return tovarlarNatija(h)?.royxat?.find((x) => x.nomzod.productId === id)?.nomzod.title ?? `#${id}`;
 }
 
-/** Tanlov tugmasi matni — hamma raqam taklifning oʻzidan. */
-function taklifNomi(t: XitoyTaklif): string {
-  return `¥${minglik(t.narxYuan)}`
-    + (t.narxSom !== null ? ` ≈ ${minglik(t.narxSom)} soʻm` : '')
-    + ` · MOQ ${t.moq !== null && t.moq !== undefined ? minglik(t.moq) : '—'}`
-    + (t.superZavod === true ? ' · super zavod' : t.zavod === true ? ' · zavod' : '')
-    + (t.chegaradaMi === true ? ' · chegarada' : t.chegaradaMi === false ? ' · chegaradan yuqori' : '');
+/**
+ * Tanlov tugmasi matni — chatda mijoz bosgani shu boʻlib koʻrinadi (11-taklif, 2026-11-04): tovar
+ * NOMI (oʻzbekcha tarjima boʻlsa — u) va narxi. Ilgari «¥14.3 · MOQ 1 · zavod» edi — nima tanlangani
+ * chatdan bilinmasdi. Raqamlar taklifning oʻzidan.
+ */
+export function taklifNomi(t: Pick<XitoyTaklif, 'title' | 'narxYuan' | 'narxSom'> & { nomUz?: string | null }): string {
+  const nom = (t.nomUz ?? t.title).trim();
+  const qisqa = nom.length > 60 ? `${nom.slice(0, 59).trimEnd()}…` : nom;
+  return `${qisqa} — ¥${minglik(t.narxYuan)}${t.narxSom !== null ? ` (≈ ${minglik(t.narxSom)} soʻm)` : ''}`;
 }
 
 /**
@@ -1378,7 +1395,26 @@ function savol(
     ...(q.ru ? { ru: q.ru } : {}),
     ...(otkazishRu !== undefined ? { otkazishNomiRu: otkazishRu } : {}),
     ...(q.batafsil ? { batafsil: q.batafsil, ...(q.batafsilRu ? { batafsilRu: q.batafsilRu } : {}) } : {}),
+    ...(q.fonda ? { fonda: true } : {}),
   };
+}
+
+/**
+ * Marja tugmalari — foyda SOʻMDA (nazoratchi, 2026-11-04, 6-taklif): «30% — har sotuvdan ~32 700
+ * soʻm». Foyda — sotuv narxining marja ulushi (`chegara.ts`: chegara = narx × (1 − marja) − …).
+ * Bir nechta tovar — oraliq («~18 000–57 300»). Narx maʼlum boʻlmasa — izohsiz.
+ */
+export function marjaTugmalari(narxlar: readonly number[]): SuhbatVarianti[] {
+  const n = narxlar.filter((x) => Number.isFinite(x) && x > 0);
+  if (n.length === 0) return [...MARJA_TUGMALARI];
+  const yuzlik = (x: number) => Math.round(x / 100) * 100;
+  return MARJA_TUGMALARI.map((v) => {
+    const f = n.map((x) => yuzlik((x * Number(v.qiymat)) / 100));
+    const kam = Math.min(...f);
+    const kop = Math.max(...f);
+    const som = kam === kop ? minglik(kam) : `${minglik(kam)}–${minglik(kop)}`;
+    return { ...v, izoh: `har sotuvdan ~${som} soʻm`, izohRu: `~${som} сум с продажи` };
+  });
 }
 
 export function boshlangichHolat(): YolHolati {
@@ -1438,7 +1474,7 @@ const HARAKAT_QADAMI: Readonly<Record<KodHarakati, number>> = {
   yonalishlar: 2, tovarlar: 3, tannarx: 4, xitoy: 5, buyurtma: 6, ochiq_ish: 6, rasmiy: 7, rasmiy_yakun: 7,
   qabul: 8, qabul_yakun: 8, studiya: 9, studiya_yakun: 9, yuklash: 10, yuklash_yakun: 10,
   sotuv: 11, hisobot: 12, hisobot_hisob: 12, hisobot_yakun: 12,
-  usta_fikri: 4, kurs: 1, yonalish_yana: 2, yonalish_qidiruv: 2, kartochka_matni: 10,
+  usta_fikri: 5, kurs: 1, yonalish_yana: 2, yonalish_qidiruv: 2, kartochka_matni: 10,
 };
 
 /**
@@ -1883,11 +1919,18 @@ function keyingiAsl(h: YolHolati): Keyingi {
 
   // ---------------------------------------------------------- 4. Tannarx
   if (!berilgan(h, 'marja')) {
+    const tanlangan = tanlanganTovarlar(h);
+    const narxlar = tanlangan.map((id) => tovarlar.find((x) => x.nomzod.productId === id)?.nomzod.narxSom ?? NaN);
     return { tur: 'savol', savol: savol('marja', 4,
-      tanlanganTovarlar(h).length
+      tanlangan.length
         ? 'Roʻyxat tayyor. Endi har tovarga Xitoyda maksimum qancha toʻlash mumkinligini hisoblaymiz. Qancha marja bilan sotmoqchisiz?'
         : 'Tovar tanlanmadi, shuning uchun chegara narx hisoblanmaydi. Qancha marja bilan sotmoqchisiz?',
-      'son', { variantlar: MARJA_TUGMALARI, erkin: true }) };
+      'son', {
+        variantlar: marjaTugmalari(narxlar), erkin: true,
+        ru: tanlangan.length
+          ? 'Список готов. Теперь посчитаем, сколько максимум можно заплатить в Китае за каждый товар. С какой маржой хотите продавать?'
+          : 'Товар не выбран, поэтому потолок цены не считается. С какой маржой хотите продавать?',
+      }) };
   }
   if (h.natijalar.tannarx === undefined) return { tur: 'kod', harakat: 'tannarx', qadam: 4 };
   if (!berilgan(h, 'xitoy_tasdiq')) {
@@ -1902,35 +1945,17 @@ function keyingiAsl(h: YolHolati): Keyingi {
         : bor > 0
           ? `Chegara narx ${bor} ta tovarda tayyor, ${jami - bor} tasida hisoblanmadi. Xitoydan qidiramizmi?`
           : 'Chegara narxni hisoblab boʻlmadi — 1688 takliflari chegarasiz, faqat narxi bilan koʻrsatiladi. Xitoydan qidiramizmi?',
-      'tanlov', { variantlar: [
+      'tanlov', {
+        ru: bor > 0 && bor === jami
+          ? 'Потолки цен готовы. Ищем в Китае с этими потолками?'
+          : bor > 0
+            ? `Потолок готов для ${bor} товаров, для ${jami - bor} не посчитан. Ищем в Китае?`
+            : 'Потолок цены посчитать не удалось — предложения 1688 покажу без потолка, только с ценой. Ищем в Китае?',
+        variantlar: [
         { qiymat: 'ha', nom: 'Ha, Xitoydan topamiz' },
         { qiymat: 'miqdor', nom: 'Miqdorni oʻzgartiraman' },
         { qiymat: 'marja', nom: 'Marjani oʻzgartiraman' },
       ] }) };
-  }
-
-  // ---------------------------------------------------------- B2: Usta haqidagi fikr
-  //
-  // «Ha, Xitoydan topamiz» dan keyin, 1688 qidiruvidan OLDIN — faqat
-  // qidiruv natijasi hali yoʻq boʻlsa. Qidiruvdan oʻtib ketgan eski
-  // sessiyalarga soʻralmaydi (yoʻl orqaga qaytmasin); «Qayta qidirish»
-  // natijani oʻchirganda ham qayta soʻralmaydi — javob holatda turadi.
-  if (h.natijalar.xitoy === undefined) {
-    if (!berilgan(h, 'usta_fikri')) {
-      return { tur: 'savol', savol: savol('usta_fikri', 4,
-        'Xitoydan qidirishdan oldin bitta savol: shu paytgacha — yoʻnalish, tovar, miqdor va chegara narx — Usta mantiqli tuyuldimi? Javobingiz Ustani yaxshilashga yordam beradi; xohlamasangiz — oʻtkazib yuboring.',
-        'tanlov', { variantlar: USTA_FIKRI, otkazishMumkin: true }) };
-    }
-    if (h.javoblar['usta_fikri'] !== null) {
-      if (!berilgan(h, 'usta_fikri_izoh')) {
-        return { tur: 'savol', savol: savol('usta_fikri_izoh', 4,
-          h.javoblar['usta_fikri'] === 'yoq'
-            ? 'Rahmat. Nima notoʻgʻri yoki tushunarsiz boʻldi? Bir-ikki soʻz bilan yozing — tuzatamiz. Xohlamasangiz — oʻtkazib yuboring.'
-            : 'Rahmat! Nima yoqdi yoki nima yetishmadi? Bir-ikki soʻz bilan yozib qoldiring — yoki oʻtkazib yuboring.',
-          'matn', { erkin: true, otkazishMumkin: true }) };
-      }
-      if (h.natijalar.usta_fikri === undefined) return { tur: 'kod', harakat: 'usta_fikri', qadam: 4 };
-    }
   }
 
   // ---------------------------------------------------------- 5. Xitoydan topish
@@ -1955,6 +1980,21 @@ function keyingiAsl(h: YolHolati): Keyingi {
   // Yurish boshlangan — natijani kutamiz. Bu kod harakati EMAS: kod
   // qayta-qayta chaqirilsa aylanib qolardi; chat `tekshir` bilan keladi.
   if (xn.kutilmoqda) {
+    // FIKR SAVOLI — qidiruv PAYTIDA, bitta savol (nazoratchi, 2026-11-04, 8-taklif). Ilgari «Ha, Xitoydan
+    // topamiz» dan keyin qidiruvdan oldin ketma-ket ikkita fikr savoli chiqardi — mijoz kutardi. Endi
+    // qidiruv darhol boshlanadi; savolga kutish paytida javob beradi yoki eʼtibor bermaydi — natija
+    // kelsa, savol oʻzi yopiladi (pastdagi natijadan keyingi yoʻlda u yoʻq). Bir marta: javob holatda qoladi.
+    if (!berilgan(h, 'usta_fikri')) {
+      return { tur: 'savol', savol: savol('usta_fikri', 5,
+        '1688 da qidiryapman — odatda 1–2 daqiqa, natija shu yerda chiqadi. Shu orada bitta savol: hozirgacha yordamchining '
+          + 'ishi mantiqli tuyuldimi? Javob bermasangiz ham boʻladi — qidiruv baribir davom etadi.',
+        'tanlov', {
+          variantlar: USTA_FIKRI, erkin: true, otkazishMumkin: true, fonda: true,
+          ru: 'Ищу на 1688 — обычно 1–2 минуты, результат появится здесь. А пока один вопрос: пока всё было логично? '
+            + 'Можно не отвечать — поиск всё равно идёт.',
+        }) };
+    }
+    if (h.javoblar['usta_fikri'] !== null && h.natijalar.usta_fikri === undefined) return { tur: 'kod', harakat: 'usta_fikri', qadam: 5 };
     return { tur: 'kutish', qadam: 5, boshlandi: xn.kutilmoqda.boshlandi,
       matn: `1688 da qidirilmoqda (${xn.kutilmoqda.rasmlar.length} ta rasm) — odatda 1–2 daqiqa. Natija tayyor boʻlgach shu yerda koʻrinadi.` };
   }
@@ -1971,8 +2011,8 @@ function keyingiAsl(h: YolHolati): Keyingi {
         + (tartiblangan
           ? `${q.takliflar.length} tasi koʻrsatildi, ${sigadi} tasi chegara narxga sigʻadi${sigadi ? ' va roʻyxat boshida turibdi' : ''}${chegaraIzohi(q)}`
           : `eng oʻxshash ${q.takliflar.length} tasi koʻrsatildi`)
-        + (q.keshdan ? ' (72 soatlik keshdan)' : '')
-        + '. Qaysi birini olamiz? Raqamlar provayderdan, tanlov sizniki.',
+        // «Kesh», «provayder» — mijozga texnik soʻz (7-taklif, 2026-11-04): aytilmaydi.
+        + '. Qaysi birini olamiz? Tanlov sizniki.',
       'tanlov', {
         variantlar: q.takliflar.map((t) => ({ qiymat: t.sourceId, nom: taklifNomi(t) })),
         otkazishMumkin: true,
@@ -2596,7 +2636,7 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     const n = natija as { olchov_yoq?: boolean; sabab?: string } | null;
     return n?.olchov_yoq
       ? `Fikringizni yoza olmadim (${n.sabab ?? 'baza javob bermadi'}) — lekin yoʻl davom etadi.`
-      : 'Fikringiz yozildi — rahmat. Endi Xitoydan qidiramiz.';
+      : 'Fikringiz yozildi — rahmat. 1688 qidiruvi davom etyapti.';
   }
   if (harakat === 'yonalishlar') {
     const n = natija as YonalishlarNatijasi;
@@ -2873,7 +2913,6 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     const topilmadi = qidirilgan.length - topildi.length;
     const takliflar = topildi.reduce((s, x) => s + x.takliflar.length, 0);
     const sigadi = topildi.reduce((s, x) => s + x.takliflar.filter((t) => t.chegaradaMi === true).length, 0);
-    const keshdan = qidirilgan.filter((x) => x.keshdan).length;
     const tashlandi = qidirilgan.reduce((s, x) => s + x.tashlandi, 0);
     const kurs = n.kurs
       ? ` Kurs: ${n.kurs.manba}, 1 yuan = ${minglik(n.kurs.somPerYuan)} soʻm (${n.kurs.sana}).`
@@ -2884,9 +2923,8 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
       + (topildi.length ? ` (${takliflar} ta koʻrsatildi${n.kurs ? `, ${sigadi} tasi chegara narxga sigʻadi` : ''})` : '')
       + (topilmadi ? `, ${topilmadi} tasida oʻxshash topilmadi` : '')
       + '.'
-      + (keshdan ? ` ${keshdan} tasi 72 soatlik keshdan.` : '')
       + (tashlandi ? ` ${tashlandi} ta karta oʻqilmadi va koʻrsatilmadi.` : '')
-      + kurs + ' Raqamlar provayderdan; buyurtmalar soni jami, davri yozilmagan.';
+      + kurs + ' Buyurtmalar soni — jami (davri yozilmagan).';
   }
   // tannarx — HISOBLANGANMI, rostini aytamiz. Jonli o'lchov (2026-09-25):
   // komissiya kelmagan tovarda chegara `null` edi, xabar esa "hisoblandi"

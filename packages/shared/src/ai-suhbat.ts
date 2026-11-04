@@ -262,7 +262,7 @@ export function savolTavsifi(s: SuhbatSavoli, n: number | null = null): string {
     // oxiriga «Bu savolga javob berish shart» deb qoʻsha boshladi — robotdek. Qoida koʻrsatmada.
     + `${s.erkin ? ', oʻzi yozsa ham boʻladi' : ''}${s.otkazishMumkin ? `, oʻtkazib yuborsa boʻladi${s.otkazishNomi ? ` («${s.otkazishNomi}» tugmasi)` : ''}` : ''}`;
   const variantlar = s.variantlar.length
-    ? `\n   Variantlar: ${s.variantlar.slice(0, 40).map((v) => `${v.qiymat} = «${v.nom}»${v.ru && v.ru !== v.nom ? ` («${v.ru}»)` : ''}`).join('; ')}`
+    ? `\n   Variantlar: ${s.variantlar.slice(0, 40).map((v) => `${v.qiymat} = «${v.nom}»${v.ru && v.ru !== v.nom ? ` («${v.ru}»)` : ''}${v.izoh ? ` [${v.izoh}]` : ''}`).join('; ')}`
     : '';
   const tanlangan = s.tanlangan?.length ? `\n   Oldindan belgilangan: ${s.tanlangan.join(', ')}` : '';
   return `${bosh}\n   Savol: ${s.matn}${variantlar}${tanlangan}`;

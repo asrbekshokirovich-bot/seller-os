@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { kirillUlushi, kirilmi, lotinga, ozbekKirilmi, ruschami, tushunishUchun, yozuvi } from '../src/yozuv';
+import { apostrofTozala, kirillUlushi, kirilmi, lotinga, ozbekKirilmi, ruschami, tushunishUchun, yozuvi } from '../src/yozuv';
 
 describe('yozuv — oʻzbek kirill', () => {
   it('oʻzbek kirill, rus va lotin farqlanadi', () => {
@@ -39,6 +39,20 @@ describe('yozuv — oʻzbek kirill', () => {
     expect(kirillUlushi('Для продажи на Uzum нужен паспорт')).toBeGreaterThan(0.5);
     expect(kirillUlushi('Uzumda savdo qilish uchun YATT guvohnomasi kerak')).toBe(0);
     expect(kirillUlushi('123 — 5 250')).toBe(0);
+  });
+
+  it('apostrofTozala (11-taklif, 2026-11-04): oʻ/gʻ — ʻ, qolgani — tutuq ʼ; kirill va manzil — oʻzicha', () => {
+    expect(apostrofTozala("Natijalaringizni saqlab qo'yishim uchun ma'lumot kerak")).toBe('Natijalaringizni saqlab qoʻyishim uchun maʼlumot kerak');
+    expect(apostrofTozala('G‘alaba, o’zbek, Toshkent`da')).toBe('Gʻalaba, oʻzbek, Toshkentʼda');
+    // Allaqachon toʻgʻri — oʻzgarmaydi; tutuq belgisi oʻ/gʻ da boʻlsa — ʻ ga.
+    expect(apostrofTozala('oʻzbek maʼlumot')).toBe('oʻzbek maʼlumot');
+    expect(apostrofTozala('boʼlsa')).toBe('boʻlsa');
+    // Soʻz oxiri va qoʻshtirnoq oʻrnidagi apostrof — tegilmaydi.
+    expect(apostrofTozala("'Ha' deb yozing")).toBe("'Ha' deb yozing");
+    // Manzil ichida — tegilmaydi; kirill matn — tegilmaydi.
+    expect(apostrofTozala("Bu yerda: https://uzum.uz/o'z?x=1 — o'qing")).toBe("Bu yerda: https://uzum.uz/o'z?x=1 — oʻqing");
+    expect(apostrofTozala("Это д'Артаньян")).toBe("Это д'Артаньян");
+    expect(apostrofTozala('')).toBe('');
   });
 
   it('tushunish uchun: faqat oʻzbek kirill oʻgiriladi, ruscha va lotin — oʻzicha', () => {

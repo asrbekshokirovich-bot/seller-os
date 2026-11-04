@@ -30,6 +30,15 @@ function kod(rpc: ReturnType<typeof soxtaRpc>['rpc'], sessiya = true) {
 const holat = (javoblar: Record<string, unknown>): YolHolati => ({ javoblar: { yonalish: 11770, ...javoblar }, natijalar: {} });
 
 describe('ustaFikri', () => {
+  it('bitta savol (8-taklif, 2026-11-04): oʻzi yozgan fikr — izoh boʻlib yoziladi, mantiqli — nomaʼlum', async () => {
+    const r = soxtaRpc({ saqlandi: true });
+    await kod(r.rpc).ustaFikri(holat({ usta_fikri: 'Chegara narx foydali, lekin uzoq' }));
+    expect(r.chaqiruvlar[0]!.arg).toMatchObject({ p_mantiqli: null, p_matn: 'Chegara narx foydali, lekin uzoq' });
+    const r2 = soxtaRpc({ saqlandi: true });
+    await kod(r2.rpc).ustaFikri(holat({ usta_fikri: 'ha' }));
+    expect(r2.chaqiruvlar[0]!.arg).toMatchObject({ p_mantiqli: true, p_matn: null });
+  });
+
   it('«Ha, mantiqli» + izoh — so_fikr_yoz(mantiqli=true, matn, qadam 4, turkum = yoʻnalish)', async () => {
     const b = soxtaRpc({ saqlandi: true });
     const n = await kod(b.rpc).ustaFikri(holat({ usta_fikri: 'ha', usta_fikri_izoh: '  Chegara narx foydali  ' }));

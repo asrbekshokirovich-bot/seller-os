@@ -1305,6 +1305,68 @@ button.sizBelgi:disabled { opacity: 0.6; }
   box-shadow: none;
 }
 
+/* Marja tugmasi ostidagi foyda soʻmda (6-taklif, 2026-11-04): ikki qator — nom va izoh. */
+.variant.variantIzohli { height: auto; min-height: 52px; padding-top: 8px; padding-bottom: 8px; }
+.variantIzohli .variantNomi { white-space: normal; }
+
+.variantIzoh {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--onest);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--xira);
+}
+
+/* «Pul qayerga ketadi» (6-taklif): tannarx kartasi — formula oʻrniga roʻyxat. */
+.pulYoli {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.pulQator {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--xira);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulQator b { color: var(--matn); font-weight: 700; white-space: nowrap; }
+.pulQator > span:last-child { white-space: nowrap; }
+
+.pulJami {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1.5px solid var(--chiziq);
+  color: var(--matn);
+  font-weight: 600;
+}
+
+/* 1688 kartasi: asl (xitoycha) nom — oʻzbekcha nom ostida, kichik (7-taklif). */
+.aslNom {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--xira);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 1688 tanlovi: yoʻriqnoma va «Oʻtkazib yuborish» — bitta qatorda (11-taklif). */
+.tanlovIzohQator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tanlovIzohQator .tanlovIzoh { min-width: 0; }
+
 /* Soʻzli javob raqamlar qatorida («Hali bilmayman», 1-taklif) — oddiy shriftda. */
 .variantRaqam.variantSoz .variantNomi {
   font-family: inherit;

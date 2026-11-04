@@ -53,6 +53,7 @@ import {
   voronkaniOl,
   boshNamunasi,
   kartochkaYozBer,
+  xitoyNomlariBer,
   turkumRasmlari,
   suhbatBoshdan,
   suhbatTahrir,
@@ -542,7 +543,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           studiya: { url: Deno.env.get('STUDIYA_URL') ?? null, kalit: Deno.env.get('STUDIYA_KALIT') ?? null },
           kurs: brauzerKurs,
           // 10-qadam kartochka matni — AI (kalit boʻlmasa qolip). Faqat tovar nomlari ketadi.
-          ...(claude ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}) }),
+          ...(claude ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}),
+          // 1688 nomlari — oʻzbekcha (7-taklif): tez model (tushunish bilan bir xil, Haiku).
+          ...(claudeTushun ? { xitoyNomlari: (s: string[]) => xitoyNomlariBer({ ...llmSozlama, provayder: claudeTushun }, s) } : {}) }),
       // AI SUHBAT (nazoratchi, 2026-10-19: "hamma xabarni AI yozsin, javobni AI tushunsin, natijani AI
       // tushuntirsin; 12 qadam qolsin"). Faqat Claude bilan; `AI_SUHBAT=0` — oʻchiradi (eski yoʻl).
       ...(claude !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {

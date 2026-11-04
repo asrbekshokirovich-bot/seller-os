@@ -13,6 +13,9 @@ export interface Variant {
   nom: string;
   /** Ruscha nomi (4-taklif, 2026-11-04) — rus sahifasida shu koʻrinadi. */
   ru?: string;
+  /** Tugma ostidagi izoh (6-taklif): marjada foyda soʻmda. */
+  izoh?: string;
+  izohRu?: string;
 }
 
 export interface Savol {
@@ -35,6 +38,8 @@ export interface Savol {
   /** Salomning davomi — yopiq «Batafsil» (11-taklif); faqat birinchi kirishda. */
   batafsil?: string;
   batafsilRu?: string;
+  /** Orqada ish ketyapti (8-taklif): 1688 qidiruvi paytidagi savol — sahifa qidiruvni tekshirib turadi. */
+  fonda?: boolean;
 }
 
 /**

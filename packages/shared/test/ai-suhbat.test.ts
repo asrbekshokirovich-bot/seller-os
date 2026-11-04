@@ -111,6 +111,9 @@ describe('soʻrov matni', () => {
     expect(ruscha).toContain('kiyim = «Kiyim va poyabzal» («Одежда и обувь»)');
     expect(ruscha).toContain('30 = «30%»');
     expect(ruscha).not.toContain('«30%» («30%»)');
+    // Tugma izohi (marjada foyda soʻmda, 6-taklif) — AI raqamni shundan oladi.
+    expect(savolTavsifi({ ...SAVOL, variantlar: [{ qiymat: 30, nom: '30%', izoh: 'har sotuvdan ~32 700 soʻm' }] }))
+      .toContain('30 = «30%» [har sotuvdan ~32 700 soʻm]');
     expect(AI_YOZ_KORSATMA).toContain('Savolni oʻtkazib yuborish haqida FAQAT uning tavsifida');
     expect(AI_YOZ_KORSATMA).toContain('oʻtkazish haqida umuman gapirma');
     expect(AI_YOZ_KORSATMA).toContain('Ichki boʻlim nomlari (FAKTLAR, MIJOZ HOLATI');

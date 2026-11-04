@@ -55,7 +55,7 @@ import { bilimJavobi, PUL_GAPI } from './bilim-javob.ts';
 import { mijozHolati, SHAXSIY_SAVOLLAR, shaxsiyniYashir, suhbatTarixi } from './yordamchi.ts';
 import type { ProfilJavoblari } from './profil.ts';
 import { byudjetMatni, byudjetSummalari, mlnMatni, telefonKorinishi } from './tanishuv.ts';
-import { kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.ts';
+import { apostrofTozala, kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.ts';
 import { malumotNiyati, type MalumotNiyati } from './erkin-malumot.ts';
 import { javobgaMunosabat, javobHamBormi } from './munosabat.ts';
 import {
@@ -1172,6 +1172,14 @@ function qiziqishTaklifi(h: YolHolati, taklif: readonly string[]): YolHolati {
  * qolmasa — `null` (kod qoliplari). Mijoz soʻragan-u, «oldin» boʻsh — birinchi
  * urinishda qayta soʻraladi, ikkinchisida qabul qilinadi (xavfsizlik emas, sifat).
  */
+/** AI matnidagi oddiy apostroflar — oʻzbekcha belgilarga (11-taklif, 2026-11-04). */
+function apostrofliYozuv(y: AiYozuv): AiYozuv {
+  return {
+    ...y, oldin: apostrofTozala(y.oldin), izoh: apostrofTozala(y.izoh), savol: apostrofTozala(y.savol),
+    ...(y.batafsil ? { batafsil: apostrofTozala(y.batafsil) } : {}),
+  };
+}
+
 async function aiYozTekshirib(
   ai: NonNullable<SuhbatBogliqliklari['ai']>, s: AiYozSorovi, sonlar: number[], qoldi: () => number,
   oqim?: SuhbatOqimi | null,
@@ -1203,7 +1211,7 @@ async function aiYozTekshirib(
     // Koʻrinadigani uzun — birinchi urinishda qaytariladi: tushuntirish «Batafsil» ga (3-taklif).
     const ixcham: boolean = korinadigan.length <= AI_KORINADIGAN_MAX || urinish > 0;
     // Oʻtdi — qoralama ekranda qoladi: uning oʻrnini shu xabar oladi (sahifa — turn oxirida).
-    if (tk.ok && tilMos && savolBerdi && javobBerdi && qisqa && ixcham && korinadigan) return y;
+    if (tk.ok && tilMos && savolBerdi && javobBerdi && qisqa && ixcham && korinadigan) return apostrofliYozuv(y);
     tashla();
     tuzat = [
       tk.dalilsiz.length ? `bu raqamlar manbalarda yoʻq: ${tk.dalilsiz.join(', ')}.` : null,

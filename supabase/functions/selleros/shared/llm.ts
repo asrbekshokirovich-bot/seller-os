@@ -16,6 +16,7 @@
  */
 
 import type { KartochkaMatni } from './kartochka-matn.ts';
+import { XITOY_NOM_KORSATMA, XITOY_NOM_SXEMA, xitoyNomlariniOqi, xitoyNomMatni } from './xitoy-nom.ts';
 import {
   AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA, AI_YOZ_SXEMA, aiTushunchaniOqi, aiTushunMatni, aiYozMatni, aiYozuvniOqi,
   aiYozuvQismi, type AiTushuncha, type AiTushunSorovi, type AiYozSorovi, type AiYozuv, type AiYozuvQismi,
@@ -205,6 +206,20 @@ export async function aiYozBer(s: LlmSozlama, k: AiYozSorovi, qism?: (y: AiYozuv
   const y = aiYozuvniOqi(javob);
   if (!y) console.warn('llm ai-yoz: JSON shakli buzuq');
   return y;
+}
+
+/**
+ * 1688 nomlari — oʻzbekcha (nazoratchi, 2026-11-04, 7-taklif; `xitoy-nom.ts`). Tez model, bitta
+ * chaqiruvda hammasi. `null` — ishlamadi: kartalarda xitoychasi qoladi.
+ */
+export async function xitoyNomlariBer(s: LlmSozlama, sarlavhalar: readonly string[]): Promise<Array<string | null> | null> {
+  if (sarlavhalar.length === 0) return [];
+  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 12_000 }, XITOY_NOM_KORSATMA, xitoyNomMatni(sarlavhalar), 'xitoy-nom',
+    XITOY_NOM_SXEMA as unknown as Record<string, unknown>);
+  if (!javob) return null;
+  const n = xitoyNomlariniOqi(javob, sarlavhalar);
+  if (!n) console.warn('llm xitoy-nom: JSON shakli buzuq');
+  return n;
 }
 
 /**
