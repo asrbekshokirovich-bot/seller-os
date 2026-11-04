@@ -438,6 +438,16 @@
   color: var(--xira);
 }
 
+/*
+ * Telefonda (11-taklif, 2026-11-04): belgilar ekrandan oshsa — oʻng chetida xiralashadi, «surib
+ * koʻriladi» degani (ilgari uchinchi belgi chetida «Yoʻq,…» boʻlib kesilib turardi). Yorliq — qisqa.
+ */
+.sizToshdi {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+  padding-right: 40px;
+}
+
 .sizBelgi {
   flex: none;
   display: inline-flex;
@@ -1582,6 +1592,25 @@ button.sizBelgi:disabled { opacity: 0.6; }
   box-shadow: none;
 }
 
+/* Salom ichidagi «Batafsil» (11-taklif, 2026-11-04): salomdan keyin, savoldan oldin — alohida qator. */
+.ichkiBatafsil {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 12px;
+  white-space: normal;
+}
+
+.ichkiBatafsilMatn {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--acc10);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
 /*
  * 👍/👎 — yordamchining erkin javobi tagida. Bosilmaguncha xira (kulrang).
  * Nomi «javobBaho»: «.baho» — 2-qadam kartasidagi «Imkoniyat bahosi» bloki;
@@ -1950,20 +1979,12 @@ button.sizBelgi:disabled { opacity: 0.6; }
   color: var(--xira);
 }
 
-.kirishTugma {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 42px;
-  padding: 0 18px;
-  border-radius: 999px;
-  background: var(--matn);
+/* Yashirilgan telefon («+998 90 ••• •• 67», 10-taklif) — ism ostida. */
+.hisobTel {
+  margin-top: 2px;
   font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-
-.ilova .kirishTugma { color: var(--bg); }
 
 .rejalar {
   margin-top: 12px;

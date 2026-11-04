@@ -35,6 +35,7 @@ export const FAYLLAR = [
   ['packages/shared/src/soha.ts', 'shared/soha.ts'],
   ['packages/shared/src/savollar.ts', 'shared/savollar.ts'],
   ['packages/shared/src/ssenariy.ts', 'shared/ssenariy.ts'],
+  ['packages/shared/src/ru.ts', 'shared/ru.ts'],
   ['packages/shared/src/suhbat.ts', 'shared/suhbat.ts'],
   ['packages/shared/src/chegara.ts', 'shared/chegara.ts'],
   ['packages/shared/src/llm.ts', 'shared/llm.ts'],

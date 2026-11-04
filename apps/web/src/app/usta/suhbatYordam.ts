@@ -8,7 +8,12 @@ import type { Tr } from '../../lib/til';
 
 /* ------------------------------------------------------ turlar (API shakli) */
 
-export interface Variant { qiymat: string | number; nom: string }
+export interface Variant {
+  qiymat: string | number;
+  nom: string;
+  /** Ruscha nomi (4-taklif, 2026-11-04) — rus sahifasida shu koʻrinadi. */
+  ru?: string;
+}
 
 export interface Savol {
   id: string;
@@ -24,6 +29,12 @@ export interface Savol {
   otkazishNomi?: string;
   /** Ism va telefon — alohida maydonlar (5-taklif, 2026-11-04). */
   forma?: 'ism_telefon' | 'ism' | 'telefon';
+  /** Ruscha matn (4-taklif) — salom va asosiy savollar; boʻlmasa — `matn`. */
+  ru?: string;
+  otkazishNomiRu?: string;
+  /** Salomning davomi — yopiq «Batafsil» (11-taklif); faqat birinchi kirishda. */
+  batafsil?: string;
+  batafsilRu?: string;
 }
 
 /**
@@ -63,7 +74,10 @@ export function batafsilmi(x: Xabar): boolean {
  * «Siz haqingizda» belgisi (5-taklif, 2026-10-28): yozib olingan javob — soha, pul, tajriba.
  * `tahrir` — hozir oʻzgartirsa boʻladi (bosilsa savol qayta ochiladi).
  */
-export interface SizBelgi { id: string; matn: string; tahrir: boolean }
+export interface SizBelgi { id: string; matn: string; ru?: string; tahrir: boolean }
+
+/** «Profilim» uchun (10-taklif, 2026-11-04): chatda aytilgan ism va yashirilgan telefon. */
+export interface Aloqa { ism: string | null; telefon: string | null }
 
 export interface SuhbatJavobi {
   xato?: string;
@@ -74,6 +88,7 @@ export interface SuhbatJavobi {
   tarix?: Xabar[];
   /** Holat oʻzgargan javoblarda; yoʻq boʻlsa — oldingisi qoladi. */
   sizHaqingizda?: SizBelgi[];
+  aloqa?: Aloqa;
 }
 
 /* ------------------------------------------------------ holat */
@@ -308,4 +323,14 @@ export function dollarMatni(matn: string): string {
 export function tanlanganNomlar(variantlar: readonly Variant[], tanlangan: ReadonlyArray<string | number>): string[] {
   const bor = new Set(tanlangan.map(String));
   return variantlar.filter((v) => bor.has(String(v.qiymat))).map((v) => v.nom);
+}
+
+/**
+ * Salom va savol (11-taklif): «Batafsil» salomdan (birinchi xatboshidan) keyin turadi. Xatboshi
+ * boʻlmasa — hammasi bitta boʻlak, «Batafsil» oxirida.
+ */
+export function salomBolagi(matn: string): [string, string | null] {
+  const i = matn.indexOf('\n\n');
+  if (i < 0) return [matn, null];
+  return [matn.slice(0, i).trim(), matn.slice(i + 2).trim() || null];
 }

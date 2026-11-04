@@ -701,7 +701,7 @@ describe('«Siz haqingizda» — suhbatTahrir (5-taklif, 2026-10-28)', () => {
     ]);
     expect(b.holat()!.javoblar['byudjet']).toBeUndefined();
     expect(b.holat()!.natijalar['yonalishlar']).toBeUndefined();
-    expect(r.sizHaqingizda).toEqual([{ id: 'qiziqish', matn: 'Kiyim va poyabzal', tahrir: true }]);
+    expect(r.sizHaqingizda).toEqual([{ id: 'qiziqish', matn: 'Kiyim va poyabzal', ru: 'Одежда и обувь', tahrir: true }]);
   });
 
   it('yangi pul — oddiy turn: yoʻnalishlar qayta hisoblanadi, belgida yangi summa', async () => {
@@ -717,7 +717,33 @@ describe('«Siz haqingizda» — suhbatTahrir (5-taklif, 2026-10-28)', () => {
     const b = soxtaBaza({ javoblar: { qiziqish: ['kiyim'] }, natijalar: { kurs: KURS_N } });
     const r = await suhbatTahrir(bogliq(b), 'tok', 'qiziqish', 'ru');
     expect(r.xabarlar[0]).toEqual({ rol: 'obunachi', matn: 'Изменю сферу' });
-    expect(r.xabarlar[1]!.matn).toMatch(/^Qaysi sohadagi tovarlar sizga yaqin\?/);
+    // Savol ham ruscha (4-taklif, 2026-11-04) va salomsiz.
+    expect(r.xabarlar[1]!.matn).toMatch(/^Какие товары вам ближе\?/);
+    const b2 = soxtaBaza({ javoblar: { qiziqish: ['kiyim'] }, natijalar: { kurs: KURS_N } });
+    const r2 = await suhbatTahrir(bogliq(b2), 'tok', 'qiziqish');
+    expect(r2.xabarlar[1]!.matn).toMatch(/^Qaysi sohadagi tovarlar sizga yaqin\?/);
+  });
+
+  it('rus sahifasi (4-taklif): bosilgan tugma — ruscha nom bilan; «Hali bilmayman» — «Пока не знаю»; birinchi salom ruscha', async () => {
+    const b = soxtaBaza(null);
+    const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'qiziqish', javob: ['kiyim', 'sport'], til: 'ru' });
+    expect(r.xabarlar[0]).toMatchObject({ rol: 'menejer', savolId: 'qiziqish' });
+    expect(r.xabarlar[0]!.matn).toMatch(/^Здравствуйте! Я помощник ZumSavdo/);
+    expect(r.xabarlar[1]).toMatchObject({ rol: 'obunachi', matn: 'Одежда и обувь, Спорт', javob: ['kiyim', 'sport'] });
+    const r2 = await suhbatTurn(bogliq(b), 'tok', { savolId: 'byudjet', javob: null, til: 'ru' });
+    expect(r2.xabarlar[0]).toMatchObject({ rol: 'obunachi', matn: 'Пока не знаю', javob: null });
+    // Oʻzbek sahifasida — oʻzbekcha (oʻzgarmagan).
+    const b3 = soxtaBaza(null);
+    const r3 = await suhbatTurn(bogliq(b3), 'tok', { savolId: 'qiziqish', javob: ['kiyim'] });
+    expect(r3.xabarlar[0]!.matn).toMatch(/^Assalomu alaykum!/);
+    expect(r3.xabarlar[1]!.matn).toBe('Kiyim va poyabzal');
+  });
+
+  it('«Boshidan boshlash» rus sahifasida — tanish mijozga ruscha salom va ruscha savol', async () => {
+    const b = soxtaBaza({ javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567', qiziqish: ['kiyim'] }, natijalar: {} });
+    const r = await suhbatBoshdan(bogliq(b), 'tok', 'ru');
+    expect(r.xabarlar[0]!.matn).toMatch(/^Aziz, добро пожаловать! Начали новый чат — имя и телефон сохранены\.\n\nКакие товары вам ближе\?/);
+    expect(r.aloqa).toEqual({ ism: 'Aziz Karimov', telefon: '+998 90 ••• •• 67' });
   });
 
   it('mumkin emas (tovar tanlangan) — sababi qaytadi, hech narsa yozilmaydi, holat oʻsha', async () => {

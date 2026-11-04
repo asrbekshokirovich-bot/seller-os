@@ -43,7 +43,7 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, sorovLangari, tanlanganNomlar, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, tanlanganNomlar, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Aloqa, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
 
@@ -175,6 +175,20 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const savolKaliti = useRef('');
   /** «Siz haqingizda» belgilari (5-taklif, 2026-10-28) — server har holat oʻzgarishida yuboradi. */
   const [siz, setSiz] = useState<SizBelgi[]>([]);
+  /** «Profilim» uchun ism va yashirilgan telefon (10-taklif, 2026-11-04) — server holat bilan yuboradi. */
+  const [aloqa, setAloqa] = useState<Aloqa | null>(null);
+  /** «Siz haqingizda» qatori ekrandan oshdimi (11-taklif): oʻng chetida xiralashadi — «suriladi» degani. */
+  const sizRef = useRef<HTMLDivElement>(null);
+  const [sizToshdi, setSizToshdi] = useState(false);
+  useLayoutEffect(() => {
+    const el = sizRef.current;
+    if (!el) return;
+    const olcha = () => setSizToshdi(el.scrollWidth > el.clientWidth + 1);
+    olcha();
+    const ro = new ResizeObserver(olcha);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [siz, til]);
   /**
    * CBU kursi — brauzerning oʻzidan (2026-10-27: cbu.uz serverlarimizga javob bermaydi). Sahifa
    * ochilishi bilan olinadi va har soʻrovga qoʻshiladi; server uni tekshiradi (`brauzerKursi`).
@@ -199,6 +213,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     setKeyingi(r.keyingi);
     setQadam(r.qadam);
     if (r.sizHaqingizda) setSiz(r.sizHaqingizda);
+    if (r.aloqa) setAloqa(r.aloqa);
     setXato(r.xato && r.xabarlar.length === 0 && r.tarix === undefined ? r.xato : null);
     const kalit = keyingiKaliti(r.keyingi);
     const almashdi = kalit !== savolKaliti.current;
@@ -534,9 +549,12 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   /** Bosilgan tugma nomi — darhol chatda koʻrinadi (`yuborilgan`); topilmasa — koʻrsatilmaydi. */
   const tugmaNomi = (javob: unknown): string | null => {
     const v = keyingi?.tur === 'savol' ? keyingi.savol.variantlar : [];
-    // Oʻz nomli oʻtkazish («Hali bilmayman») — shu nom bilan.
-    if (javob === null) return keyingi?.tur === 'savol' ? keyingi.savol.otkazishNomi ?? null : null;
-    const nom = (x: unknown) => v.find((y) => String(y.qiymat) === String(x))?.nom ?? null;
+    // Oʻz nomli oʻtkazish («Hali bilmayman») — shu nom bilan; sahifa tilida (4-taklif).
+    if (javob === null) return keyingi?.tur === 'savol' ? otkazishNomi(keyingi.savol, tr) : null;
+    const nom = (x: unknown) => {
+      const y = v.find((z) => String(z.qiymat) === String(x));
+      return y ? variantNomi(y, tr) : null;
+    };
     if (!Array.isArray(javob)) return nom(javob);
     const n = javob.map(nom).filter((x): x is string => x !== null);
     return n.length ? n.join(', ') : null;
@@ -936,19 +954,19 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
         {/* «Siz haqingizda» (nazoratchi, 2026-10-26, 5-taklif): nima yozib olingani; bosilsa — oʻzgartirish. */}
         {siz.length > 0 && (
-          <div className={u.siz} style={yashir} role="group" aria-label={tr('Siz haqingizda', 'О вас')}>
+          <div ref={sizRef} className={`${u.siz} ${sizToshdi ? u.sizToshdi : ''}`} style={yashir} role="group" aria-label={tr('Siz haqingizda', 'О вас')}>
             <span className={u.sizYorliq}>{tr('Siz haqingizda:', 'О вас:')}</span>
             {siz.map((b) => (b.tahrir
               ? (
                 <button key={b.id} type="button" className={u.sizBelgi} disabled={band} onClick={() => tahrirla(b.id)}
-                  title={tr('Oʻzgartirish', 'Изменить')} aria-label={`${sizNomi(b.id, tr)}: ${b.matn}. ${tr('Oʻzgartirish', 'Изменить')}`}>
-                  <span className={u.sizMatn}>{b.matn}</span>
+                  title={tr('Oʻzgartirish', 'Изменить')} aria-label={`${sizNomi(b.id, tr)}: ${tr(b.matn, b.ru ?? b.matn)}. ${tr('Oʻzgartirish', 'Изменить')}`}>
+                  <span className={u.sizMatn}>{tr(b.matn, b.ru ?? b.matn)}</span>
                   <span className={u.sizQalam} aria-hidden="true">✎</span>
                 </button>
               )
               : (
                 <span key={b.id} className={`${u.sizBelgi} ${u.sizQotgan}`} title={sizNomi(b.id, tr)}>
-                  <span className={u.sizMatn}>{b.matn}</span>
+                  <span className={u.sizMatn}>{tr(b.matn, b.ru ?? b.matn)}</span>
                 </span>
               )))}
           </div>
@@ -980,7 +998,10 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
               />
             ))}
             {savolKorsat && savol && (
-              <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`} data-savol="1"><Havolali matn={savol.matn} />{ilova}</div>
+              <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`} data-savol="1">
+                <SavolMatni matn={tr(savol.matn, savol.ru ?? savol.matn)} batafsil={savol.batafsil ? tr(savol.batafsil, savol.batafsilRu ?? savol.batafsil) : null} tr={tr} />
+                {ilova}
+              </div>
             )}
             {tezOradaKorsat && tezOrada && <div className={`${u.pufak} ${u.ai}`} data-savol="1"><Havolali matn={tezOrada.matn} /></div>}
             {kutishKorsat && kutish && <div className={`${u.pufak} ${u.ai}`} role="status" data-savol="1">{kutish.matn}</div>}
@@ -1043,7 +1064,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       {oyna === 'profil' && (
         <Profilim mavzu={mavzu} mavzuniTanla={mavzuniTanla} til={til} tilniTanla={tilniTanla} band={band || !holatBor}
           boshdan={() => setOyna('tasdiq')} chiqish={kengaytmada ? undefined : () => setOyna('chiqish')}
-          yop={() => yop('oyna')} obuna={obunaOch} />
+          yop={() => yop('oyna')} obuna={obunaOch} aloqa={aloqa} />
       )}
       {oyna === 'tasdiq' && <BoshdanTasdiq tr={tr} band={band} chiqishBor={!kengaytmada} ha={() => void boshdanBoshla()} yoq={() => yop('oyna')} />}
       {oyna === 'suhbatlar' && <Suhbatlarim tr={tr} band={band} yop={() => yop('oyna')} qayt={suhbatgaQayt} />}
@@ -2813,7 +2834,7 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
             >
               {/* Koʻp tanlov — kvadrat ☑ (3-taklif): bir nechtasi mumkin. Bitta tanlovda belgi yoʻq — bosish = javob. */}
               {kop && <span className={u.katak} aria-hidden="true">{bor && <Ikon nom="belgi" o={13} q={3} />}</span>}
-              <span className={u.variantNomi}>{v.nom}</span>
+              <span className={u.variantNomi}>{variantNomi(v, tr)}</span>
               {raqamli && i < 9 && <span className={u.klavish} aria-hidden="true">{i + 1}</span>}
             </button>
           );
@@ -2821,7 +2842,7 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
         {savol.otkazishMumkin && savol.otkazishNomi && (
           <button type="button" className={[u.variant, raqamli ? u.variantRaqam : '', u.variantSoz].join(' ')} disabled={band}
             onClick={() => javobBer(savol.id, null)}>
-            <span className={u.variantNomi}>{savol.otkazishNomi}</span>
+            <span className={u.variantNomi}>{otkazishNomi(savol, tr)}</span>
           </button>
         )}
         {savol.erkin && !kop && !raqamli && (
@@ -2846,6 +2867,39 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
         </div>
       )}
     </div>
+  );
+}
+
+/** Tugma nomi sahifa tilida (4-taklif, 2026-11-04): rus sahifasida — ruschasi (boʻlsa). */
+function variantNomi(v: { nom: string; ru?: string | undefined }, tr: Tr): string {
+  return tr(v.nom, v.ru ?? v.nom);
+}
+
+/** Oʻz nomli oʻtkazish («Hali bilmayman» / «Пока не знаю»). */
+function otkazishNomi(s: Savol, tr: Tr): string | null {
+  return s.otkazishNomi ? tr(s.otkazishNomi, s.otkazishNomiRu ?? s.otkazishNomi) : null;
+}
+
+/**
+ * Savol matni va yopiq «Batafsil» (11-taklif, 2026-11-04): salom qisqa — davomi kim xohlasa ochadi.
+ * «Batafsil» birinchi xatboshidan (salomdan) keyin turadi, savol esa — oxirida, tugmalar ustida.
+ */
+function SavolMatni({ matn, batafsil, tr }: { matn: string; batafsil: string | null; tr: Tr }) {
+  const [ochiq, setOchiq] = useState(false);
+  if (!batafsil) return <Havolali matn={matn} />;
+  const [bosh, qolgan] = salomBolagi(matn);
+  return (
+    <>
+      <Havolali matn={bosh} />
+      <span className={u.ichkiBatafsil}>
+        <button type="button" className={u.batafsilTugma} aria-expanded={ochiq} onClick={() => setOchiq(!ochiq)}>
+          {ochiq ? tr('Yopish', 'Свернуть') : tr('Batafsil', 'Подробнее')}
+          <span aria-hidden="true">{ochiq ? ' ▴' : ' ▾'}</span>
+        </button>
+        {ochiq && <span className={u.ichkiBatafsilMatn}><Havolali matn={batafsil} /></span>}
+      </span>
+      {qolgan !== null && <Havolali matn={qolgan} />}
+    </>
   );
 }
 
@@ -3024,7 +3078,7 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
         // yoʻqolmasin, yozayotganda chegara koʻrinsin.
         maxLength={500}
         autoComplete={savol.forma ? 'off' : savol.id === 'ism' ? 'name' : savol.id === 'telefon' ? 'tel' : 'off'}
-        aria-label={savol.matn}
+        aria-label={tr(savol.matn, savol.ru ?? savol.matn)}
         placeholder={savol.forma ? tr('Savolingiz boʻlsa — yozing', 'Есть вопрос — напишите')
           : savol.id === 'ism' ? tr('Ism, familiya va telefon — masalan: Aziz Karimov, +998 90 123 45 67', 'Имя, фамилия и телефон — например: Азиз Каримов, +998 90 123 45 67')
           : savol.id === 'telefon' ? '+998 90 123 45 67'
@@ -3068,7 +3122,7 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
     // Koʻp tanlov (soha, tovarlar) — tanlanganlar va «Davom etish · N ta» pastda DOIM koʻrinadi
     // (3-taklif, 2026-11-04): ilgari soha savolida tugma 10 ta variantdan pastda qolardi.
     // Tovarlar — oqimdagi kartalarda (w5), soha — savol pufagida.
-    const nomlar = tanlanganNomlar(savol.variantlar, tanlangan);
+    const nomlar = tanlanganNomlar(savol.variantlar.map((v) => ({ ...v, nom: variantNomi(v, tr) })), tanlangan);
     return (
       <>
         <div className={u.tanlovQator}>
@@ -3102,10 +3156,12 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
  * solishtirish» — `/obuna`. «Chiqish» — tasdiq oynasi; telefonda tepadagi
  * «Chiqish» yashirin, shu yerda turadi (kengaytmada `chiqish` berilmaydi).
  */
-function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, chiqish, yop, obuna }: {
+function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, chiqish, yop, obuna, aloqa }: {
   mavzu: Mavzu; mavzuniTanla: (m: Mavzu) => void;
   til: Til; tilniTanla: (t: Til) => void;
   band: boolean; boshdan: () => void; chiqish: (() => void) | undefined; yop: () => void; obuna: () => void;
+  /** Chatda aytilgan ism va yashirilgan telefon (10-taklif); hali aytilmagan boʻlsa — «Mehmon». */
+  aloqa: Aloqa | null;
 }) {
   const tr = tarjima(til);
   const panel = useRef<HTMLDivElement>(null);
@@ -3134,11 +3190,12 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, chiqish
             <div className={u.hisob}>
               <span className={u.hisobAvatar}><Ikon nom="odam" o={22} /></span>
               <div className={u.hisobMatn}>
-                <div className={u.hisobNom}>{tr('Mehmon', 'Гость')}</div>
+                {/* Ism — chatda aytilgani (10-taklif, 2026-11-04): ilgari chat ismi bilan chaqirardi, profil esa «Mehmon» derdi. */}
+                <div className={u.hisobNom}>{aloqa?.ism ?? tr('Mehmon', 'Гость')}</div>
+                {aloqa?.telefon && <div className={u.hisobTel}>{aloqa.telefon}</div>}
                 <div className={u.hisobIzoh}>{tr('Suhbat shu brauzerga bogʻlangan — boshqa qurilmada koʻrinmaydi.', 'Чат привязан к этому браузеру — на другом устройстве его не видно.')}</div>
               </div>
-              {/* Kengaytma rejimida sessiya Kirishga ham, qaytishda ham oʻtadi (xuddi «Chiqish» kabi). */}
-              <Havola className={u.kirishTugma} href="/kirish">{tr('Kirish', 'Войти')}</Havola>
+              {/* «Kirish» yashirildi (10-taklif): SMS va Telegram orqali kirish hali ulanmagan — tugma ishlamas edi. */}
             </div>
           </section>
           <div className={u.panelChiziq} />
@@ -3164,7 +3221,12 @@ function Profilim({ mavzu, mavzuniTanla, til, tilniTanla, band, boshdan, chiqish
                       <span className={u.rejaSon}>{narx === null ? '0' : son(narx)}</span>
                       <span className={u.rejaBirlik}>{tr('soʻm / oy', 'сум / мес')}</span>
                     </div>
-                    <div className={u.rejaQadam}>{tr(`1–${qadam}-qadam`, `Шаги 1–${qadam}`)}</div>
+                    {/* Cheklov oʻchiq — hozir hamma qadam bepul (10-taklif): «1–5-qadam» yozuvi 6-qadamdagi mijozni chalgʻitardi. */}
+                    <div className={u.rejaQadam}>
+                      {r.reja === 'bepul' && obunaHolati.cheklov === false
+                        ? tr(`Hozir 1–${SUHBAT_QADAMLARI.length}-qadam bepul`, `Сейчас шаги 1–${SUHBAT_QADAMLARI.length} бесплатно`)
+                        : tr(`1–${qadam}-qadam`, `Шаги 1–${qadam}`)}
+                    </div>
                   </div>
                 );
               })}
