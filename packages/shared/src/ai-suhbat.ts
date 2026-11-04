@@ -199,13 +199,14 @@ export const AI_TUSHUN_KORSATMA = [
 /**
  * Sayt tugma va boʻlim nomlari — AI ularni oʻzidan tarjima qilmasin (jonli sinov, 2026-10-20: rus
  * javobida «Профилим» → «Рејаларни солиштириш» chiqdi; sahifada esa «Мой профиль» → «Сравнить тарифы»).
- * Javob variantlari (tugmalar) serverdan — rus sahifasida ham oʻzbekcha.
+ * Javob variantlari (tugmalar) serverdan; 2026-11-04 dan rus sahifasida ruscha (4-taklif) — AI ham shunisini yozadi.
  */
 export const SAYT_NOMLARI = [
   '- Sayt tugma va boʻlim nomlarini aynan shunday yoz (rus tilida javob bersang — qavs ichidagisini): «Davom etish»',
   '(«Продолжить»), «Oʻtkazib yuborish» («Пропустить»), «Profilim» («Мой профиль»), «Rejalarni solishtirish»',
   '(«Сравнить тарифы»), «Boshidan boshlash» («Начать заново»), «Suhbatlarim» («Мои чаты»), «Suhbatni boshlash»',
-  '(«Начать чат»). Javob variantlari (tugmalar) nomi ikkala tilda ham oʻzbekcha koʻrinadi — ularni aynan, tarjima qilmay yoz.',
+  '(«Начать чат»). Javob variantlari (tugmalar) nomini aynan yoz: rus tilida javob bersang — qavs ichidagi ruschasini',
+  '(rus sahifasida tugmalar ruscha koʻrinadi), aks holda oʻzbekchasini; oʻzingdan tarjima qilma.',
 ].join('\n');
 
 export const AI_YOZ_KORSATMA = [
@@ -261,7 +262,7 @@ export function savolTavsifi(s: SuhbatSavoli, n: number | null = null): string {
     // oxiriga «Bu savolga javob berish shart» deb qoʻsha boshladi — robotdek. Qoida koʻrsatmada.
     + `${s.erkin ? ', oʻzi yozsa ham boʻladi' : ''}${s.otkazishMumkin ? `, oʻtkazib yuborsa boʻladi${s.otkazishNomi ? ` («${s.otkazishNomi}» tugmasi)` : ''}` : ''}`;
   const variantlar = s.variantlar.length
-    ? `\n   Variantlar: ${s.variantlar.slice(0, 40).map((v) => `${v.qiymat} = «${v.nom}»`).join('; ')}`
+    ? `\n   Variantlar: ${s.variantlar.slice(0, 40).map((v) => `${v.qiymat} = «${v.nom}»${v.ru && v.ru !== v.nom ? ` («${v.ru}»)` : ''}`).join('; ')}`
     : '';
   const tanlangan = s.tanlangan?.length ? `\n   Oldindan belgilangan: ${s.tanlangan.join(', ')}` : '';
   return `${bosh}\n   Savol: ${s.matn}${variantlar}${tanlangan}`;

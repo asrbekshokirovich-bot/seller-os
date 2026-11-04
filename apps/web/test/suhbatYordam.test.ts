@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, sorovLangari, tanlanganNomlar, telefonGuruhla, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, tanlanganNomlar, telefonGuruhla, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -304,5 +304,16 @@ describe('javob berish qulayligi (nazoratchi, 2026-11-04: «hammasi yoqdi»)', (
     expect(tanlanganNomlar(v, ['7'])).toEqual(['Yetti']);
     expect(tanlanganNomlar(v, [])).toEqual([]);
     expect(tanlanganNomlar(v, ['yoq'])).toEqual([]);
+  });
+});
+
+describe('salomBolagi (11-taklif: «Batafsil» salomdan keyin)', () => {
+  it('birinchi xatboshi — salom, qolgani — savol; xatboshisiz — bitta boʻlak', () => {
+    expect(salomBolagi('Salom!\n\nQaysi soha?')).toEqual(['Salom!', 'Qaysi soha?']);
+    expect(salomBolagi('Salom!\n\nBir.\n\nIkki?')).toEqual(['Salom!', 'Bir.\n\nIkki?']);
+    expect(salomBolagi('Faqat savol?')).toEqual(['Faqat savol?', null]);
+    // Salom ichida oddiy qator uzilishi boʻlsa — boʻlinmaydi (faqat boʻsh qator — xatoboshi).
+    expect(salomBolagi('Salom!\nMen yordamchiman.\n\nQaysi soha?')).toEqual(['Salom!\nMen yordamchiman.', 'Qaysi soha?']);
+    expect(salomBolagi('Salom!\n\n')).toEqual(['Salom!', null]);
   });
 });

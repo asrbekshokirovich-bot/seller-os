@@ -563,7 +563,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       brauzerKurs.qiymat = brauzerKursi(tana.kurs);
       if (tana.boshdan === true) {
         // Boshidan boshlanmasa — 200 EMAS: sahifa ekranni 1-qadamga oʻtkazib qoʻymasin.
-        const b = await suhbatBoshdan(d, token);
+        const b = await suhbatBoshdan(d, token, tana.til === 'ru' ? 'ru' : 'uz');
         if (b.xato) return javob(b, /sessiya topilmadi/.test(b.xato) ? 401 : 503);
         return javob(b);
       }

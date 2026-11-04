@@ -297,7 +297,7 @@ describe('birinchi tashrif — salomlashish yoʻqolmaydi (tayyor savollar sinovi
     const r = await suhbatTurn(bogliq(b), 'tok', { savolId: 'qiziqish', matn: 'Bu bepulmi?' });
     expect(r.xabarlar.map((x) => x.rol)).toEqual(['menejer', 'obunachi', 'menejer']);
     expect(r.xabarlar[0]).toMatchObject({ savolId: 'qiziqish' });
-    expect(r.xabarlar[0]!.matn).toMatch(/^Assalomu alaykum! Men ZumSavdo yordamchingizman/);
+    expect(r.xabarlar[0]!.matn).toMatch(/^Assalomu alaykum! Men ZumSavdo yordamchisiman/);
     expect(r.xabarlar[0]!.javob).toBeUndefined();
     // Qayta soʻraladigan savol — salomsiz (butun salom «Hozirgi savol: «…»» boʻlib qaytmaydi).
     expect(r.xabarlar[2]!.matn).not.toMatch(/Assalomu alaykum/);

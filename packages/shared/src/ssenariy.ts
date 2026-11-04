@@ -61,6 +61,7 @@ import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from
 import { matndanSon, valyutami } from './tekshiruv.js';
 import { BYUDJET_DOLLAR, byudjetMatni, byudjetniOqi, mlnMatni, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.js';
 import { REJA_QADAMI, type Darvoza } from './tarif.js';
+import { ruschaVariantlar, variantRu } from './ru.js';
 
 // ==================================================================== turlar
 
@@ -69,6 +70,8 @@ export type SuhbatSavolTuri = 'tanlov' | 'kopTanlov' | 'son' | 'matn';
 export interface SuhbatVarianti {
   qiymat: string | number;
   nom: string;
+  /** Ruscha nom (4-taklif, 2026-11-04) — `ru.ts` lugʻatidan, `savol()` qoʻshadi; rus sahifasida shu. */
+  ru?: string;
 }
 
 export interface SuhbatSavoli {
@@ -101,6 +104,19 @@ export interface SuhbatSavoli {
    * javobga yigʻib yuboradi («Aziz Karimov, +998901234567») — qabul qilish oʻsha (`ismVaTelefonniOqi`).
    */
   forma?: 'ism_telefon' | 'ism' | 'telefon';
+  /**
+   * Ruscha matn (nazoratchi, 2026-11-04, 4-taklif: «sahifa ruscha boʻlsa — hammasi ruscha»): salom
+   * va asosiy savollar. Qolganini AI mijoz tilida yozadi (tugma bosilsa — sahifa tilida).
+   */
+  ru?: string;
+  /** `otkazishNomi` ning ruschasi. */
+  otkazishNomiRu?: string;
+  /**
+   * Yopiq «Batafsil» (11-taklif): salomning davomi — kim xohlasa ochadi. Jurnalga yozilmaydi:
+   * faqat birinchi kirishda, savol sahifada `keyingi` dan chizilganda koʻrinadi.
+   */
+  batafsil?: string;
+  batafsilRu?: string;
 }
 
 /**
@@ -216,22 +232,35 @@ export const BYUDJET_BILMAYMAN = 'Hali bilmayman';
  * yoʻnalish tanlangach («natijani saqlash»), savdo tajribasi — 4-qadam oldidan. Chatda yozgan
  * 141 kishidan 78 tasi birinchi natijani koʻrmasdan, oldingi 5 ta tanishuv savolida toʻxtagan edi.
  */
-const SALOM = [
-  'Assalomu alaykum! Men ZumSavdo yordamchingizman.',
-  '',
-  'Uzumda savdo qilishning butun yoʻlida yoningizdaman: nima sotishni tanlashdan tortib, tovarni Xitoydan topish, '
-    + 'olib kelish va Uzumda sotishgacha. Har bir qadamda nima qilishni oddiy tilda tushuntiraman — savol tugʻilsa, bemalol soʻrang.',
-  '',
-  'Boshlash bepul. Ikkita savoldan keyin sizga mos yoʻnalishlarni koʻrsataman.',
-].join('\n');
+// QISQA SALOM (nazoratchi, 2026-11-04, 11-taklif): telefonda 4 xatboshi edi va savolgacha uzoq edi.
+// Endi bitta xatboshi; qolgani — yopiq «Batafsil» da (`batafsil`). Rus sahifasida — ruschasi (4-taklif).
+const SALOM = 'Assalomu alaykum! Men ZumSavdo yordamchisiman: Uzumda nima sotishni tanlashdan tortib, tovarni '
+  + 'Xitoydan olib kelib sotishgacha yordam beraman. Boshlash bepul — ikkita savoldan keyin sizga mos yoʻnalishlarni koʻrsataman.';
+const SALOM_RU = 'Здравствуйте! Я помощник ZumSavdo: помогаю продавать на Uzum — от выбора товара до закупки в Китае '
+  + 'и продажи. Начать можно бесплатно — после двух вопросов покажу подходящие вам направления.';
+const SALOM_BATAFSIL = 'Har bir qadamda nima qilishni oddiy tilda tushuntiraman: qaysi tovar yaxshi sotiladi, qancha olish '
+  + 'kerak, Xitoyda qancha toʻlash mumkin, qanday rasmiylashtirish va Uzumga qanday yuklash. Savol tugʻilsa — pastga yozing, bemalol soʻrang.';
+const SALOM_BATAFSIL_RU = 'На каждом шаге объясняю простыми словами: какой товар хорошо продаётся, сколько закупать, сколько '
+  + 'можно заплатить в Китае, как оформиться и как загрузить товар на Uzum. Появится вопрос — пишите ниже, не стесняйтесь.';
 
 /**
  * Salom bilan boshlangan savol (birinchi savol) — salomsiz, faqat savolning oʻzi (oxirgi xatboshi).
  * AI ga va qayta soʻrashga shu beriladi: salom chatda allaqachon turibdi (jonli sinov, 2026-10-21:
  * «Assalomu alaykum!» ikki marta chiqdi; kod qolipi butun salomni «Hozirgi savol: «…»» deb qaytardi).
+ * Ruschasi ham, «Batafsil» ham — salom bilan birga ketadi.
  */
-export function salomsizSavol<T extends { matn: string }>(s: T): T {
-  return s.matn.startsWith(SALOM) ? { ...s, matn: s.matn.slice(SALOM.length).trim() } : s;
+export function salomsizSavol<T extends { matn: string; ru?: string; batafsil?: string; batafsilRu?: string }>(s: T): T {
+  if (!s.matn.startsWith(SALOM)) return s;
+  const q: T = { ...s, matn: s.matn.slice(SALOM.length).trim() };
+  if (q.ru?.startsWith(SALOM_RU)) q.ru = q.ru.slice(SALOM_RU.length).trim();
+  delete q.batafsil;
+  delete q.batafsilRu;
+  return q;
+}
+
+/** Savol matni sahifa (mijoz) tilida — ruschasi boʻlmasa oʻzbekchasi. */
+export function savolMatni(s: Pick<SuhbatSavoli, 'matn' | 'ru'>, til: 'uz' | 'ru' | string): string {
+  return til === 'ru' && s.ru ? s.ru : s.matn;
 }
 
 /**
@@ -240,9 +269,12 @@ export function salomsizSavol<T extends { matn: string }>(s: T): T {
  */
 const ISM_SAQLASH = 'Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz '
   + 'va telefon raqamingizni yozing. Raqam boshqa hech kimga berilmaydi.';
+const ISM_SAQLASH_RU = 'Чтобы сохранить ваши результаты и при необходимости связаться с вами, напишите имя, фамилию и номер '
+  + 'телефона. Номер никому не передаётся.';
 
 /** Faqat telefon yozilgan boʻlsa — ism qayta soʻraladi. */
 const ISM_QAYTA = 'Rahmat, raqamingizni yozib oldim. Endi ismingiz va familiyangizni yozing — masalan: Aziz Karimov.';
+const ISM_QAYTA_RU = 'Спасибо, номер записал. Теперь напишите имя и фамилию — например: Азиз Каримов.';
 
 /** Dollar tugmasining dollar summasi (soʻmdagi qiymatidan), boʻlmasa `null`. */
 function tugmaDollari(som: number, usdKurs: number | null): number | null {
@@ -1332,15 +1364,20 @@ function savol(
   turi: SuhbatSavolTuri,
   q: Partial<Omit<SuhbatSavoli, 'id' | 'qadam' | 'matn' | 'turi'>> = {},
 ): SuhbatSavoli {
+  const otkazishRu = q.otkazishNomi ? variantRu(q.otkazishNomi) : undefined;
   return {
     id, qadam, matn, turi,
-    variantlar: q.variantlar ?? [],
+    // Ruscha nomlar (4-taklif) — `ru.ts` lugʻatidan; maʼlumot nomlari (turkum, tovar) oʻzicha.
+    variantlar: ruschaVariantlar(q.variantlar ?? []),
     erkin: q.erkin ?? false,
     otkazishMumkin: q.otkazishMumkin ?? false,
     profilMaydoni: q.profilMaydoni ?? null,
     ...(q.tanlangan?.length ? { tanlangan: q.tanlangan } : {}),
     ...(q.otkazishNomi ? { otkazishNomi: q.otkazishNomi } : {}),
     ...(q.forma ? { forma: q.forma } : {}),
+    ...(q.ru ? { ru: q.ru } : {}),
+    ...(otkazishRu !== undefined ? { otkazishNomiRu: otkazishRu } : {}),
+    ...(q.batafsil ? { batafsil: q.batafsil, ...(q.batafsilRu ? { batafsilRu: q.batafsilRu } : {}) } : {}),
   };
 }
 
@@ -1510,7 +1547,13 @@ function xitoyHavolasiz(n: unknown): unknown {
 function uzumDokoniSavoli(): SuhbatSavoli {
   return savol('uzum_dokoni', 3,
     'Oldin savdo qilganmisiz? Bittasini tanlang yoki oʻzingiz yozing — nima sotgansiz yoki nima sotmoqchisiz.',
-    'tanlov', { variantlar: UZUM_DOKONI, erkin: true, profilMaydoni: 'hasUzumShop' });
+    'tanlov', { variantlar: UZUM_DOKONI, erkin: true, profilMaydoni: 'hasUzumShop',
+      ru: 'Вы уже торговали? Выберите вариант или напишите сами — что продавали или что хотите продавать.' });
+}
+
+/** Soha nomi ruscha (`SAVDO_SOHALARI`). */
+function sohaRu(id: string): string {
+  return SAVDO_SOHALARI.find((s) => s.id === id)?.ru ?? sohaNomi(id);
 }
 
 /** Qiziqish — suhbatning birinchi savoli (2026-10-26); yangi mijozga salom bilan (`salom`). */
@@ -1521,8 +1564,17 @@ function qiziqishSavoli(h: YolHolati, salom = false): SuhbatSavoli {
       + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
     : 'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
       + 'Bilmasangiz «Bilmayman» ni bosing: hamma sohadan eng yaxshilarini koʻrsataman.';
+  const ru = oldindan.length
+    ? `Какие товары вам ближе? По вашему ответу я отметил ${oldindan.map((x) => `«${sohaRu(x)}»`).join(', ')} — если верно, `
+      + 'нажмите «Продолжить». Можно отметить и другие или снять отметку.'
+    : 'Какие товары вам ближе? Можно выбрать несколько — затем «Продолжить». Если не знаете, нажмите «Не знаю»: '
+      + 'покажу лучшие из всех сфер.';
   return savol('qiziqish', 1, salom ? `${SALOM}\n\n${matn}` : matn,
-    'kopTanlov', { variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true, tanlangan: oldindan });
+    'kopTanlov', {
+      variantlar: QIZIQISH_TUGMALARI, erkin: true, otkazishMumkin: true, tanlangan: oldindan,
+      ru: salom ? `${SALOM_RU}\n\n${ru}` : ru,
+      ...(salom ? { batafsil: SALOM_BATAFSIL, batafsilRu: SALOM_BATAFSIL_RU } : {}),
+    });
 }
 
 /**
@@ -1532,7 +1584,7 @@ function qiziqishSavoli(h: YolHolati, salom = false): SuhbatSavoli {
 function ismSavoli(h: YolHolati): SuhbatSavoli {
   const telefonBor = berilgan(h, 'telefon');
   return savol('ism', 2, telefonBor ? ISM_QAYTA : ISM_SAQLASH, 'matn',
-    { erkin: true, profilMaydoni: 'fullName', forma: telefonBor ? 'ism' : 'ism_telefon' });
+    { erkin: true, profilMaydoni: 'fullName', forma: telefonBor ? 'ism' : 'ism_telefon', ru: telefonBor ? ISM_QAYTA_RU : ISM_SAQLASH_RU });
 }
 
 /**
@@ -1542,7 +1594,8 @@ function ismSavoli(h: YolHolati): SuhbatSavoli {
 function byudjetSavoli(): SuhbatSavoli {
   return savol('byudjet', 1,
     'Qancha pul bilan savdoni boshlamoqchisiz? Shunga mos yoʻnalishlarni koʻrsataman — aniq boʻlishi shart emas.',
-    'son', { variantlar: byudjetTugmalari(), erkin: true, otkazishMumkin: true, otkazishNomi: BYUDJET_BILMAYMAN, profilMaydoni: 'budgetUzs' });
+    'son', { variantlar: byudjetTugmalari(), erkin: true, otkazishMumkin: true, otkazishNomi: BYUDJET_BILMAYMAN, profilMaydoni: 'budgetUzs',
+      ru: 'С какой суммой планируете начать? Покажу подходящие направления — точная сумма не обязательна.' });
 }
 
 /**
@@ -1572,6 +1625,8 @@ export interface SizHaqingizda {
   id: TahrirSavoli;
   /** Javob — chatdagi kabi («Kiyim va poyabzal», «30 mln soʻm», «Yoʻq, birinchi marta»). */
   matn: string;
+  /** Ruschasi (4-taklif) — boʻlmasa (oʻzi yozgan tajriba) sahifa `matn` ni koʻrsatadi. */
+  ru?: string;
   /** Hozir oʻzgartirsa boʻladimi (`tahrirgaOch` bilan bir xil qoida). */
   tahrir: boolean;
 }
@@ -1591,20 +1646,51 @@ export function sizHaqingizda(h: YolHolati): SizHaqingizda[] {
   const r: SizHaqingizda[] = [];
   if (Array.isArray(j['qiziqish'])) {
     const q = (j['qiziqish'] as unknown[]).map(String);
-    r.push({ id: 'qiziqish', matn: q.includes(BILMAYMAN) ? 'Hamma sohadan' : q.map(sohaNomi).join(', '), tahrir: tahrirMumkin(h, 'qiziqish') });
+    r.push({
+      id: 'qiziqish', matn: q.includes(BILMAYMAN) ? 'Hamma sohadan' : q.map(sohaNomi).join(', '),
+      ru: q.includes(BILMAYMAN) ? 'Все сферы' : q.map(sohaRu).join(', '), tahrir: tahrirMumkin(h, 'qiziqish'),
+    });
   }
   if (berilgan(h, 'byudjet')) {
     const b = j['byudjet'];
     const usd = typeof j['byudjet_usd'] === 'number' ? (j['byudjet_usd'] as number) : null;
     // Belgida qisqa: «70 mln soʻm»; dollarda aytgan boʻlsa — «$5 000 (≈ 59,3 mln soʻm)».
     const matn = typeof b !== 'number' ? BYUDJET_BILMAYMAN : usd !== null ? byudjetMatni(b, usd) : mlnMatni(b);
-    r.push({ id: 'byudjet', matn, tahrir: tahrirMumkin(h, 'byudjet') });
+    r.push({ id: 'byudjet', matn, ru: somRu(variantRu(matn) ?? matn), tahrir: tahrirMumkin(h, 'byudjet') });
   }
   const t = j['uzum_dokoni'];
   if (typeof t === 'string') {
-    r.push({ id: 'uzum_dokoni', matn: UZUM_DOKONI.find((v) => v.qiymat === t)?.nom ?? t, tahrir: tahrirMumkin(h, 'uzum_dokoni') });
+    const v = UZUM_DOKONI.find((x) => x.qiymat === t);
+    r.push({ id: 'uzum_dokoni', matn: v?.nom ?? t, ...(v ? { ru: variantRu(v.nom) ?? v.nom } : {}), tahrir: tahrirMumkin(h, 'uzum_dokoni') });
   }
   return r;
+}
+
+/** «70 mln soʻm», «$5 000 (≈ 63,3 mln soʻm)» → ruscha birlik. */
+function somRu(matn: string): string {
+  return matn.replace(/mln soʻm/gu, 'млн сум').replace(/soʻm/gu, 'сум');
+}
+
+/**
+ * «Profilim» uchun (nazoratchi, 2026-11-04, 10-taklif: chat ismi bilan chaqiradi, profil esa
+ * «Mehmon» der edi): ism va YASHIRILGAN telefon («+998 90 ••• •• 67»). Toʻliq raqam sahifaga ketmaydi.
+ */
+export interface MijozAloqasi { ism: string | null; telefon: string | null }
+export function mijozAloqasi(h: YolHolati): MijozAloqasi {
+  const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string) : null;
+  const t = typeof h.javoblar['telefon'] === 'string' ? (h.javoblar['telefon'] as string) : null;
+  return { ism, telefon: t === null ? null : telefonYashir(t) };
+}
+export function telefonYashir(t: string): string {
+  const m = /^\+998(\d{2})\d{5}(\d{2})$/u.exec(t);
+  if (m) return `+998 ${m[1]} ••• •• ${m[2]}`;
+  const r = t.replace(/\D/gu, '');
+  return r.length >= 6 ? `+${r.slice(0, 3)} ••• ${r.slice(-2)}` : '•••';
+}
+
+/** Har holat oʻzgargan javobga: «Siz haqingizda» belgilari va «Profilim» uchun aloqa. */
+export function holatBelgilari(h: YolHolati): { sizHaqingizda: SizHaqingizda[]; aloqa: MijozAloqasi } {
+  return { sizHaqingizda: sizHaqingizda(h), aloqa: mijozAloqasi(h) };
 }
 
 /**
@@ -1723,6 +1809,11 @@ function keyingiAsl(h: YolHolati): Keyingi {
           + 'pastga tovar nomini yozing (masalan: ruchka, atir, oʻyinchoq).'
         : `Yoʻnalishlarni hozir koʻrsata olmayman: ${yn.sabab ?? 'oʻlchov yoʻq'}. «Qayta urinish» ni bosing.`,
       'tanlov', {
+        ...(yonalishlar.length ? {
+          ru: 'Какое направление выберем? Нажмите кнопку внизу понравившейся карточки. Нужно другое — '
+            + (yanaBor ? 'нажмите «Показать ещё» или ' : '')
+            + 'напишите название товара ниже (например: ручка, духи, игрушка).',
+        } : {}),
         variantlar: yonalishlar.length
           ? [...korsatilgan.map((y) => ({ qiymat: y.categoryId, nom: y.name })), ...(yanaBor ? [YANA_YONALISH] : [])]
           : [QAYTA_URINISH],
@@ -1737,7 +1828,8 @@ function keyingiAsl(h: YolHolati): Keyingi {
     const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;
     return { tur: 'savol', savol: savol('telefon', 2,
       `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.`,
-      'matn', { erkin: true, profilMaydoni: 'phone', forma: 'telefon' }) };
+      'matn', { erkin: true, profilMaydoni: 'phone', forma: 'telefon',
+        ru: `${ism ? `${ism}, н` : 'Н'}апишите номер телефона — при необходимости свяжемся по нему. Номер никому не передаётся.` }) };
   }
 
   // ---------------------------------------------------------- 3. Tovar va miqdor
@@ -1755,6 +1847,7 @@ function keyingiAsl(h: YolHolati): Keyingi {
     return { tur: 'savol', savol: savol('tovarlar', 3,
       'Qaysi tovarlarni sotmoqchisiz? Yoqqanlarini kartadagi «Tanlash» bilan belgilang (bir nechta boʻlishi mumkin), keyin «Davom etish».',
       'kopTanlov', {
+        ru: 'Какие товары хотите продавать? Отметьте понравившиеся кнопкой «Выбрать» на карточке (можно несколько), затем «Продолжить».',
         variantlar: tovarlar.map((t) => ({ qiymat: t.nomzod.productId, nom: t.nomzod.title })),
       }) };
   }

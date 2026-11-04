@@ -489,7 +489,7 @@ export function build(): FastifyInstance {
     }
     const tana = (request.body ?? {}) as Record<string, unknown>;
     const d = await suhbatBogliq(token, brauzerKursi(tana.kurs));
-    if (tana.boshdan === true) return suhbatBoshdan(d, token);
+    if (tana.boshdan === true) return suhbatBoshdan(d, token, tana.til === 'ru' ? 'ru' : 'uz');
     // «Siz haqingizda» belgisi (5-taklif, 2026-10-28) — Edge bilan bir xil.
     if (typeof tana.tahrir === 'string') {
       const t = await suhbatTahrir(d, token, tana.tahrir, tana.til === 'ru' ? 'ru' : 'uz');

@@ -43,7 +43,7 @@
 
 import { type AloqaJavoblari, type Keyingi, type KodHarakati, type SuhbatSavoli, type YolHolati, boshlangichHolat, havolalarsiz,
   JIM_HARAKATLAR, javobniQabulQil, joriyQadam, kelgusiTanishuvSavollari, keyingi, kutilayotganHarakat, natijaniYoz, salomsizSavol,
-  sizHaqingizda, tahrirgaOch, type SizHaqingizda,
+  holatBelgilari, savolMatni, tahrirgaOch, type MijozAloqasi, type SizHaqingizda,
   tushuntir, usdKursi, uzumDokoniBormi, yiqilganNatija, yonalishQidiruvi, yonalishYanaNatija } from './ssenariy.js';
 import type { Darvoza } from './tarif.js';
 import { natijaSonlari, tekshir } from './tekshiruv.js';
@@ -230,6 +230,8 @@ export interface SuhbatJavobi {
    * (xato, eski server) — sahifa oldingisini koʻrsatib turadi.
    */
   sizHaqingizda?: SizHaqingizda[];
+  /** «Profilim» uchun ism va yashirilgan telefon (10-taklif, 2026-11-04) — `sizHaqingizda` bilan birga. */
+  aloqa?: MijozAloqasi;
 }
 
 interface OqishJavobi {
@@ -284,7 +286,7 @@ export async function suhbatOqi(d: Pick<SuhbatBogliqliklari, 'rpc' | 'darvoza'>,
   return {
     xabarlar: [],
     tarix: havolalarsiz(eskiSavolsiz(songgiSuhbat(o.xabarlar ?? []), k.tur === 'savol' ? k.savol.id : null), d.darvoza),
-    keyingi: k, qadam: joriyQadam(holat), yozildi: true, sizHaqingizda: sizHaqingizda(holat),
+    keyingi: k, qadam: joriyQadam(holat), yozildi: true, ...holatBelgilari(holat),
   };
 }
 
@@ -318,7 +320,7 @@ export async function suhbatTahrir(
   const yangi: SuhbatXabari[] = [
     { rol: 'obunachi', matn: til === 'ru' ? gap.ru : gap.uz },
     // Salomli birinchi savol (qiziqish) — salomsiz: salom chat boshida bor.
-    ...(k.tur === 'savol' ? [{ rol: 'menejer' as const, matn: salomsizSavol(k.savol).matn, savolId: k.savol.id }] : []),
+    ...(k.tur === 'savol' ? [{ rol: 'menejer' as const, matn: savolMatni(salomsizSavol(k.savol), til), savolId: k.savol.id }] : []),
   ];
   const qadam = joriyQadam(r.holat);
   const y = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {
@@ -334,7 +336,7 @@ export async function suhbatTahrir(
     const t = await suhbatTurn({ ...d, ai: null }, token, {});
     return { ...t, xabarlar: [...yangi, ...t.xabarlar] };
   }
-  return { xabarlar: yangi, keyingi: k, qadam, yozildi: true, sizHaqingizda: sizHaqingizda(r.holat) };
+  return { xabarlar: yangi, keyingi: k, qadam, yozildi: true, ...holatBelgilari(r.holat) };
 }
 
 /**
@@ -417,7 +419,8 @@ export async function suhbatTurn(
     // Joriy savol jurnalda yoʻq boʻlsa (birinchi tashrif: salomlashish `keyingi` dan chiziladi) —
     // avval uning oʻzi yoziladi: aks holda birinchi javobdan keyin salomlashish chatdan yoʻqolardi.
     if (!songgiSuhbat(o.xabarlar ?? []).some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id)) {
-      yangi.push({ rol: 'menejer', matn: k0.savol.matn, savolId: k0.savol.id });
+      // Sahifa tilida (4-taklif): rus sahifasida salom ruscha koʻrsatilgan edi — jurnalga ham shunisi.
+      yangi.push({ rol: 'menejer', matn: savolMatni(k0.savol, kirish.til ?? 'uz'), savolId: k0.savol.id });
     }
     let aiOldi = false;
     // ---- 2a. AI SUHBAT: yozilgan gapni AI tushunadi — ism/telefon savolida ham (2026-10-21:
@@ -538,7 +541,9 @@ export async function suhbatTurn(
               ? ismTelefonMatni(oldin, holat)
               : qiziqishGapi && yozilganJavob
                 ? yozilganJavob.matn
-                : javobMatni(k0.savol.variantlar, yozilgan, k0.savol.otkazishNomi);
+                // Tugma nomi sahifa tilida (4-taklif): rus sahifasida «Одежда и обувь».
+                : javobMatni(k0.savol.variantlar, yozilgan, kirish.til === 'ru' ? k0.savol.otkazishNomiRu ?? k0.savol.otkazishNomi : k0.savol.otkazishNomi,
+                  kirish.til === 'ru' && tanlanganVariant === undefined && yozgan === null);
       yangi.push({
         rol: 'obunachi',
         matn: obunachiMatn,
@@ -636,7 +641,7 @@ export async function suhbatTurn(
     // savolning oʻzi (tugmalari shu pufakda). Ilgari: kod munosabati, «Oldin yozganingizdan oldim»,
     // eski LLM lar.
     if (ak.savolBor) yangi.splice(ak.boshi, 0, { rol: 'menejer', matn: aiUzr(ak.til, true) });
-    yangi.push({ rol: 'menejer', matn: k.tur === 'savol' ? k.savol.matn : k.matn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
+    yangi.push({ rol: 'menejer', matn: k.tur === 'savol' ? savolMatni(k.savol, ak.til) : k.matn, ...(k.tur === 'savol' ? { savolId: k.savol.id } : {}) });
   } else if (!aiYozdi) {
     // Navbatdan olingan javob (oldingi gapida aytgan) — kod aytadi: savol soʻralmay oʻtib ketdi.
     if (navbatdan.length) yangi.splice(ak.boshi, 0, { rol: 'menejer', matn: `Oldin yozganingizdan oldim: ${navbatdan.join('; ')}.` });
@@ -662,7 +667,7 @@ export async function suhbatTurn(
   // Jurnalga toʻliq yozildi; brauzerga — obunasiz boʻlsa 1688 havolasiz (`havolalarsiz`).
   return {
     xabarlar: havolalarsiz(yangi, dz), keyingi: k, qadam, yozildi,
-    ...(yozildi ? { sizHaqingizda: sizHaqingizda(holat) } : { xato: y?.xato ?? 'jurnalga yozilmadi' }),
+    ...(yozildi ? holatBelgilari(holat) : { xato: y?.xato ?? 'jurnalga yozilmadi' }),
   };
 }
 
@@ -676,7 +681,7 @@ export async function suhbatTurn(
  * Hammasi BITTA `so_suhbat_yoz` bilan: holat, qadam va ikki xabar bitta
  * tranzaksiyada — yarmi yozilib qolmaydi.
  */
-export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Promise<SuhbatJavobi> {
+export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string, til: 'uz' | 'ru' = 'uz'): Promise<SuhbatJavobi> {
   // Eski suhbat «Suhbatlarim»da qoladi (2026-10-14): belgida uning holati — keyin davom ettirish uchun (0066).
   const o = await d.rpc<OqishJavobi>('so_suhbat_oqi', { p_token: token });
   if (o === null || o.xato) {
@@ -690,8 +695,11 @@ export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Prom
     ? { ...boshlangichHolat(), javoblar: { ism: ej['ism'], telefon: ej['telefon'] } }
     : boshlangichHolat();
   const k = keyingi(h);
-  const salom = tanish ? `${String(ej['ism']).split(' ')[0]}, xush kelibsiz! Yangi suhbatni boshladik — ism va telefoningiz saqlangan.\n\n` : '';
-  const savol: SuhbatXabari[] = k.tur === 'savol' ? [{ rol: 'menejer', matn: `${salom}${k.savol.matn}`, savolId: k.savol.id }] : [];
+  const ism = String(ej['ism']).split(' ')[0];
+  const salom = !tanish ? ''
+    : til === 'ru' ? `${ism}, добро пожаловать! Начали новый чат — имя и телефон сохранены.\n\n`
+      : `${ism}, xush kelibsiz! Yangi suhbatni boshladik — ism va telefoningiz saqlangan.\n\n`;
+  const savol: SuhbatXabari[] = k.tur === 'savol' ? [{ rol: 'menejer', matn: `${salom}${savolMatni(k.savol, til)}`, savolId: k.savol.id }] : [];
   const eski = o.holat ? { holat: o.holat, qadam: o.qadam ?? joriyQadam(o.holat) } : null;
   const y = await d.rpc<{ xato?: string }>('so_suhbat_yoz', {
     p_token: token,
@@ -701,7 +709,7 @@ export async function suhbatBoshdan(d: SuhbatBogliqliklari, token: string): Prom
   if (y === null || y.xato) {
     return { xato: y?.xato ?? 'baza javob bermadi', xabarlar: [], keyingi: k, qadam: 1, yozildi: false };
   }
-  return { xabarlar: savol, keyingi: k, qadam: joriyQadam(h), yozildi: true, sizHaqingizda: sizHaqingizda(h) };
+  return { xabarlar: savol, keyingi: k, qadam: joriyQadam(h), yozildi: true, ...holatBelgilari(h) };
 }
 
 /** 1-qadam qiziqishi (sohalar) — `null`: soʻralmagan yoki oʻtkazib yuborilgan. */
@@ -1075,7 +1083,7 @@ async function erkinXabar(
     p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
   });
   const yozildi = y !== null && !y.xato;
-  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? { sizHaqingizda: sizHaqingizda(holat) } : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
+  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? holatBelgilari(holat) : { xato: y?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 // ------------------------------------------------------------ AI suhbat
@@ -1270,7 +1278,7 @@ async function aiErkinXabar(
   const savolBor = songgi.some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);
   const til = yozuvi(matn);
   const yangi: SuhbatXabari[] = [
-    ...(savolBor ? [] : [{ rol: 'menejer' as const, matn: k0.savol.matn, savolId: k0.savol.id }]),
+    ...(savolBor ? [] : [{ rol: 'menejer' as const, matn: savolMatni(k0.savol, til), savolId: k0.savol.id }]),
     { rol: 'obunachi', matn },
     ...(y
       ? [
@@ -1289,7 +1297,7 @@ async function aiErkinXabar(
     p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
   });
   const yozildi = w !== null && !w.xato;
-  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? { sizHaqingizda: sizHaqingizda(holat) } : { xato: w?.xato ?? 'jurnalga yozilmadi' }) };
+  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? holatBelgilari(holat) : { xato: w?.xato ?? 'jurnalga yozilmadi' }) };
 }
 
 /**
@@ -1330,11 +1338,16 @@ function ismTelefonMatni(oldin: YolHolati, h: YolHolati): string {
   ].filter(Boolean).join(', ');
 }
 
-/** `otkazishNomi` — oʻtkazish tugmasining oʻz nomi boʻlsa (pul savolida «Hali bilmayman», 2026-11-04). */
-function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string }>, q: unknown, otkazishNomi?: string): string {
-  if (q === null || q === undefined) return otkazishNomi ?? 'Oʻtkazib yuborildi';
+/**
+ * `otkazishNomi` — oʻtkazish tugmasining oʻz nomi boʻlsa (pul savolida «Hali bilmayman», 2026-11-04).
+ * `ru` — rus sahifasida bosilgan tugma: ruscha nomi (4-taklif); oddiy oʻtkazish — «Пропущено».
+ */
+function javobMatni(variantlar: ReadonlyArray<{ qiymat: string | number; nom: string; ru?: string }>, q: unknown, otkazishNomi?: string, ru = false): string {
+  if (q === null || q === undefined) return otkazishNomi ?? (ru ? 'Пропущено' : 'Oʻtkazib yuborildi');
   // Oʻzi yozgan son ("7 mln" → 7000000) chatda guruhlangan: "7 000 000".
-  const nom = (x: unknown) => variantlar.find((v) => String(v.qiymat) === String(x))?.nom
-    ?? (typeof x === 'number' ? minglik(x) : String(x));
+  const nom = (x: unknown) => {
+    const v = variantlar.find((y) => String(y.qiymat) === String(x));
+    return (ru ? v?.ru : undefined) ?? v?.nom ?? (typeof x === 'number' ? minglik(x) : String(x));
+  };
   return Array.isArray(q) ? q.map(nom).join(', ') : nom(q);
 }

@@ -317,7 +317,7 @@ describe('/suhbat — «Siz haqingizda» belgisi (tahrir)', () => {
     const j = res.json() as { xabarlar: Array<{ rol: string; matn: string }>; keyingi: { tur: string; savol?: { id: string } }; sizHaqingizda: unknown[] };
     expect(j.xabarlar[0]).toEqual({ rol: 'obunachi', matn: 'Pulni oʻzgartiraman' });
     expect(j.keyingi.savol?.id).toBe('byudjet');
-    expect(j.sizHaqingizda).toEqual([{ id: 'qiziqish', matn: 'Kiyim va poyabzal', tahrir: true }]);
+    expect(j.sizHaqingizda).toEqual([{ id: 'qiziqish', matn: 'Kiyim va poyabzal', ru: 'Одежда и обувь', tahrir: true }]);
     expect(s.claude).toHaveLength(0);
     expect(s.yozildi).toHaveLength(1);
   });

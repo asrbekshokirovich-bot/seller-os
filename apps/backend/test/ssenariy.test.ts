@@ -15,7 +15,7 @@ import {
   boshlangichHolat, deklaratsiyaQadamlari, faktlarniOqi, hisobotFaktlari, javobniQabulQil, joriyQadam, keyingi,
   kutilayotganHarakat, natijaniYoz, oyHisobi, qabulFaktlari, rasmiyFaktlari, SHAHARLAR, sotuvTovarlari, SUHBAT_QADAMLARI,
   suratTalablari, tushuntir, yiqilganNatija, yonalishYanaNatija, type KodHarakati, type YolHolati, kelgusiTanishuvSavollari, salomsizSavol,
-  sizHaqingizda, tahrirgaOch,
+  sizHaqingizda, tahrirgaOch, mijozAloqasi, telefonYashir, holatBelgilari,
   havolalarsiz, OBUNA_SAVOLI, suhbatTurn, type Darvoza, type Keyingi, type SuhbatBogliqliklari, type SuhbatSavoli,
 } from '@selleros/shared';
 
@@ -209,8 +209,16 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     expect(k.savol).toMatchObject({ id: 'qiziqish', qadam: 1, turi: 'kopTanlov', otkazishMumkin: true });
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(
       ['kiyim', 'gozallik', 'uy', 'bolalar', 'elektronika', 'kanstovar', 'aksessuar', 'sport', 'avto', 'bilmayman']);
-    expect(k.savol.matn).toMatch(/^Assalomu alaykum! Men ZumSavdo yordamchingizman\./);
-    expect(k.savol.matn).toMatch(/Ikkita savoldan keyin sizga mos yoʻnalishlarni koʻrsataman\.\n\nQaysi sohadagi tovarlar sizga yaqin\?/);
+    // Qisqa salom (11-taklif, 2026-11-04): bitta xatboshi, keyin savol; qolgani — «Batafsil».
+    expect(k.savol.matn).toMatch(/^Assalomu alaykum! Men ZumSavdo yordamchisiman: /);
+    expect(k.savol.matn).toMatch(/ikkita savoldan keyin sizga mos yoʻnalishlarni koʻrsataman\.\n\nQaysi sohadagi tovarlar sizga yaqin\?/);
+    expect(k.savol.matn.split('\n\n')).toHaveLength(2);
+    expect(k.savol.batafsil).toMatch(/Savol tugʻilsa — pastga yozing, bemalol soʻrang\.$/);
+    // Rus sahifasi uchun (4-taklif): salom, savol, «Batafsil» va tugmalar ruscha.
+    expect(k.savol.ru).toMatch(/^Здравствуйте! Я помощник ZumSavdo: .+\n\nКакие товары вам ближе\?/su);
+    expect(k.savol.batafsilRu).toMatch(/^На каждом шаге/);
+    expect(k.savol.variantlar[0]).toEqual({ qiymat: 'kiyim', nom: 'Kiyim va poyabzal', ru: 'Одежда и обувь' });
+    expect(k.savol.variantlar.at(-1)?.ru).toBe('Не знаю — покажите лучшие');
     // Salom endi telefon soʻramaydi: ism va telefon — natijadan keyin.
     expect(k.savol.matn).not.toMatch(/telefon|familiya/);
   });
@@ -220,8 +228,8 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     if (k.tur !== 'savol') throw new Error(k.tur);
     const m = k.savol.matn;
     expect(m).not.toMatch(/menejer|birinchi partiyangizni birga sotamiz/);
-    expect(m).toMatch(/nima sotishni tanlashdan tortib, tovarni Xitoydan topish, olib kelish va Uzumda sotishgacha/);
-    expect(m).toMatch(/savol tugʻilsa, bemalol soʻrang/);
+    expect(m).toMatch(/nima sotishni tanlashdan tortib, tovarni Xitoydan olib kelib sotishgacha yordam beraman/);
+    expect(k.savol.batafsil).toMatch(/savol tugʻilsa — pastga yozing, bemalol soʻrang/i);
     // Sodda: platformadan foydalanmagan odamga notanish soʻzlar birinchi gapda yoʻq.
     expect(m).not.toMatch(/tuzoq-filtr|1688|platforma/);
     // QOIDALAR §4: kafolat va foyda vaʼdasi yoʻq.
@@ -233,6 +241,10 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(salomsizSavol(k.savol).matn).toMatch(/^Qaysi sohadagi tovarlar sizga yaqin\?/);
     expect(salomsizSavol(k.savol).id).toBe('qiziqish');
+    // Ruschasi ham salomsiz, «Batafsil» — salom bilan ketadi.
+    expect(salomsizSavol(k.savol).ru).toMatch(/^Какие товары вам ближе\?/);
+    expect(salomsizSavol(k.savol).batafsil).toBeUndefined();
+    expect(k.savol.batafsil).toBeDefined();
     const b = keyingi(byudjetgacha());
     if (b.tur !== 'savol') throw new Error(b.tur);
     expect(salomsizSavol(b.savol)).toBe(b.savol);
@@ -2239,14 +2251,28 @@ describe('«Siz haqingizda» va javobni qayta ochish (5-taklif, 2026-10-28)', ()
   it('belgilar: soha nomlari, pul (soʻm), tajriba — berilganlari, tartibi bilan; ism va telefon yoʻq', () => {
     expect(sizHaqingizda(boshlangichHolat())).toEqual([]);
     expect(sizHaqingizda({ ...YON, javoblar: { ...YON.javoblar, ism: 'Aziz', telefon: '+998901234567' } })).toEqual([
-      { id: 'qiziqish', matn: 'Kiyim va poyabzal, Sport', tahrir: true },
-      { id: 'byudjet', matn: '30 mln soʻm', tahrir: true },
+      { id: 'qiziqish', matn: 'Kiyim va poyabzal, Sport', ru: 'Одежда и обувь, Спорт', tahrir: true },
+      { id: 'byudjet', matn: '30 mln soʻm', ru: '30 млн сум', tahrir: true },
     ]);
     expect(sizHaqingizda({ javoblar: { qiziqish: ['bilmayman'], byudjet: null, uzum_dokoni: 'yoq' }, natijalar: {} })).toEqual([
-      { id: 'qiziqish', matn: 'Hamma sohadan', tahrir: true },
-      { id: 'byudjet', matn: 'Hali bilmayman', tahrir: true },
-      { id: 'uzum_dokoni', matn: 'Yoʻq, birinchi marta', tahrir: true },
+      { id: 'qiziqish', matn: 'Hamma sohadan', ru: 'Все сферы', tahrir: true },
+      { id: 'byudjet', matn: 'Hali bilmayman', ru: 'Пока не знаю', tahrir: true },
+      { id: 'uzum_dokoni', matn: 'Yoʻq, birinchi marta', ru: 'Нет, впервые', tahrir: true },
     ]);
+    // Oʻzi yozgan tajriba — ruschasi yoʻq (sahifa yozilganini koʻrsatadi); dollarda — birlik ruscha.
+    expect(sizHaqingizda({ javoblar: { uzum_dokoni: 'Instagramda potinka sotganman', byudjet: 63_250_000, byudjet_usd: 5000 }, natijalar: {} })).toEqual([
+      { id: 'byudjet', matn: '$5 000 (≈ 63,3 mln soʻm)', ru: '$5 000 (≈ 63,3 млн сум)', tahrir: true },
+      { id: 'uzum_dokoni', matn: 'Instagramda potinka sotganman', tahrir: true },
+    ]);
+  });
+
+  it('«Profilim» uchun aloqa (10-taklif): ism va YASHIRILGAN telefon; aytilmagan boʻlsa — null', () => {
+    expect(mijozAloqasi({ javoblar: { ism: 'Aziz Karimov', telefon: '+998901234567' }, natijalar: {} }))
+      .toEqual({ ism: 'Aziz Karimov', telefon: '+998 90 ••• •• 67' });
+    expect(mijozAloqasi(boshlangichHolat())).toEqual({ ism: null, telefon: null });
+    expect(telefonYashir('+447911123456')).toBe('+447 ••• 56');
+    expect(telefonYashir('12')).toBe('•••');
+    expect(holatBelgilari({ javoblar: { ism: 'Aziz Karimov' }, natijalar: {} })).toEqual({ sizHaqingizda: [], aloqa: { ism: 'Aziz Karimov', telefon: null } });
   });
 
   it('soha va pul — tovar tanlanguncha; tajriba — 7-qadamgacha', () => {

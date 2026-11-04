@@ -16,22 +16,25 @@ export interface ObunaHolati {
   joriy: Reja;
   /** Qaysi provayder sozlangan (`/api/tolov/holat`). Bilinmaguncha — `null`: toʻlov tugmasi oʻchiq. */
   ulangan: Record<Provayder, boolean> | null;
+  /** Tarif cheklovi yoqilganmi (`/api/tarif`); `false` — hozir hamma qadam bepul. Bilinmaguncha — `null`. */
+  cheklov: boolean | null;
 }
 
 /** `sarlavha` — kengaytma rejimida sessiya tokeni (`x-sessiya`), saytda — boʻsh. */
 export function useObunaHolati(sarlavha: () => Record<string, string>): ObunaHolati {
-  const [holat, setHolat] = useState<ObunaHolati>({ joriy: 'bepul', ulangan: null });
+  const [holat, setHolat] = useState<ObunaHolati>({ joriy: 'bepul', ulangan: null, cheklov: null });
   useEffect(() => {
     let tirik = true;
     void (async () => {
       const [tarif, tolov] = await Promise.all([
         fetch('/api/tarif', { cache: 'no-store', headers: sarlavha() }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch('/api/tolov/holat', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ]) as [{ reja?: unknown } | null, { tolov?: { payme?: unknown; click?: unknown } } | null];
+      ]) as [{ reja?: unknown; cheklov_yoqilgan?: unknown } | null, { tolov?: { payme?: unknown; click?: unknown } } | null];
       if (!tirik) return;
       setHolat({
         joriy: tarif?.reja === 'pro' || tarif?.reja === 'biznes' ? tarif.reja : 'bepul',
         ulangan: tolov?.tolov ? { payme: tolov.tolov.payme === true, click: tolov.tolov.click === true } : null,
+        cheklov: typeof tarif?.cheklov_yoqilgan === 'boolean' ? tarif.cheklov_yoqilgan : null,
       });
     })();
     return () => { tirik = false; };
