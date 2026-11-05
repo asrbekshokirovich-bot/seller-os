@@ -28,7 +28,7 @@
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
+import { izohRu, izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { BOSH_XABAR_KALIT, boshXabarniOl } from '@/lib/bosh-xabar';
 import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
@@ -43,7 +43,7 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, tanlanganNomlar, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Aloqa, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, manbaKorinishi, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, tanlanganNomlar, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Aloqa, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
 
@@ -1288,7 +1288,9 @@ function KodKartasi({ x, tr, katalog, xitoy, yonalish }: {
 }) {
   const n = (x.javob ?? {}) as Record<string, unknown>;
   const olchovYoq = n.olchov_yoq === true;
-  const izoh = typeof n.izoh === 'string' ? n.izoh : null;
+  // Izoh sahifa tilida (ikkinchi koʻrik, 1-taklif): ruschasi umumiy lugʻatdan; eski jurnaldagisi — oʻzbekcha.
+  const izohXom = typeof n.izoh === 'string' ? n.izoh : null;
+  const izoh = izohXom === null ? null : tr(izohXom, izohRu(izohXom) ?? izohXom);
   if (x.savolId !== undefined && XULOSA_HARAKATLARI.has(x.savolId)) {
     return (
       <div className={`${u.pufak} ${u.ai}`}>
@@ -1753,6 +1755,8 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
     h === 'topildi' ? tr('topildi', 'найдено') : h === 'topilmadi' ? tr('1688 da oʻxshash yoʻq', 'на 1688 нет похожих') : tr('qidirilmadi', 'не искалось');
   const holatSinfi = (h: XitoyQatorQ['holat']) =>
     h === 'topildi' ? u.tegYaxshi : h === 'topilmadi' ? u.tegNeytral : u.tegOgoh;
+  /** Hech bir taklif chegaraga sigʻmadi (kurs va chegara bor) — yashil «topildi» emas (ikkinchi koʻrik, 6-taklif). */
+  const sigmadi = (q: XitoyQatorQ) => q.holat === 'topildi' && q.takliflar.length > 0 && q.takliflar.every((t) => t.chegaradaMi === false);
   return (
     <div className={u.kartalar}>
       {qatorlar.map((q) => (
@@ -1761,7 +1765,9 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
           <div className={u.karta} data-xitoy-faol={rejim?.faolPid === q.productId ? '1' : undefined}>
             <div className={u.kartaBoshi}>
               <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{q.title}</div></div>
-              <span className={`${u.teg} ${holatSinfi(q.holat)}`}>{holatMatni(q.holat)}</span>
+              {sigmadi(q)
+                ? <span className={`${u.teg} ${u.tegOgoh}`}>{tr('chegaraga sigʻmadi', 'дороже потолка')}</span>
+                : <span className={`${u.teg} ${holatSinfi(q.holat)}`}>{holatMatni(q.holat)}</span>}
             </div>
             <div className={u.statlar}>
               <Stat nom={tr('Xitoyda chegara', 'Потолок в Китае')} q={q.chegaraSom === null ? '—' : `${raqam(q.chegaraSom)} ${tr('soʻm', 'сум')}`} />
@@ -1972,18 +1978,36 @@ function ruYil(n: number): string {
   return b >= 2 && b <= 4 ? 'года' : 'лет';
 }
 
+/**
+ * Manba qatori (ikkinchi koʻrik, 1-taklif): ichki fayl nomlari koʻrinmaydi, saytlar bosiladigan
+ * «lex.uz ↗», sana «28.09.2026 da tekshirilgan» (`manbaKorinishi`).
+ */
 function Manba({ manba, olchandi, tr }: { manba: string | null; olchandi: string | null; tr: Tr }) {
-  if (!manba && !olchandi) return null;
-  return <p className={u.manba}>{tr('Manba', 'Источник')}: {manba ?? '—'}{olchandi ? ` · ${olchandi}` : ''}</p>;
+  const m = manbaKorinishi(manba, olchandi);
+  if (m.havolalar.length === 0 && m.matn === null && m.sana === null) return null;
+  const bosh = m.havolalar.length > 0 || m.matn !== null;
+  return (
+    <p className={u.manba}>
+      {bosh && <>{tr('Manba', 'Источник')}: </>}
+      {m.havolalar.map((h, i) => (
+        <Fragment key={h.url}>
+          {i > 0 && ', '}
+          <a href={h.url} target="_blank" rel="noopener noreferrer" className={u.manbaHavola}>{h.nom} ↗</a>
+        </Fragment>
+      ))}
+      {m.matn}
+      {m.sana !== null && <>{bosh ? ' · ' : ''}{tr(`${m.sana} da tekshirilgan`, `проверено ${m.sana}`)}</>}
+    </p>
+  );
 }
 
-/** Faktlar kartasi: har raqam yonida manba va sana; fakt yoʻq — "faktda yoʻq", nol emas. */
+/** Faktlar kartasi: har raqam yonida manba va sana; fakt yoʻq — "hali kiritilmagan", nol emas. */
 function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
   const [nusxalandi, setNusxalandi] = useState(false);
   const f = n.faktlar;
   if (!f) return <p className={u.kichikIzoh}>{n.sabab ?? tr('faktlar yoʻq', 'нет данных')}</p>;
   const s = n.soliq;
-  const yoq = tr('faktda yoʻq', 'нет в фактах');
+  const yoq = tr('hali kiritilmagan', 'ещё не внесено');
   const somB = tr('soʻm', 'сум');
   const som = (x: number | null | undefined) => (x === null || x === undefined ? yoq : `${raqam(x)} ${somB}`);
   const bepulYoki = (x: number | null) => (x === null ? '—' : x === 0 ? tr('bepul', 'бесплатно') : som(x));
@@ -2002,7 +2026,7 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
   const tekshirilgan = f.soliq.manba !== null && f.soliq.olchandi !== null;
   return (
     <div className={u.kartalar}>
-      {f.yetishmaydi.length > 0 && <Ogohlik>{tr('Faktda yoʻq:', 'Нет в фактах:')} {f.yetishmaydi.join(', ')}</Ogohlik>}
+      {f.yetishmaydi.length > 0 && <Ogohlik>{tr('Hali kiritilmagan:', 'Ещё не внесено:')} {f.yetishmaydi.join(', ')}</Ogohlik>}
       <div className={u.karta}>
         <div className={`${u.kartaBoshi} ${u.kartaBoshiMarkaz}`}>
           <div className={u.kartaSarlavha}>{tr('Soliq 2026', 'Налоги 2026')}</div>
@@ -2036,7 +2060,7 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
           </div>
           <div className={u.karta}>
             <div className={u.kartaSarlavha}>{tr('2. Biznes hisob raqami', '2. Расчётный счёт')}</div>
-            {f.banklar.length === 0 ? <p className={u.kichikIzoh}>{tr('Bank roʻyxati faktda yoʻq.', 'Список банков не заполнен.')}</p> : f.banklar.map((b) => (
+            {f.banklar.length === 0 ? <p className={u.kichikIzoh}>{tr('Bank roʻyxati hali kiritilmagan.', 'Список банков не заполнен.')}</p> : f.banklar.map((b) => (
               <div key={b.nom} className={u.statlar}>
                 {/* Eski saqlangan natijada izoh «[TASDIQ]» bilan qolgan boʻlishi mumkin — mijozga belgisiz. */}
                 <Stat nom={b.nom} q={b.onlayn === true ? tr('onlayn', 'онлайн') : b.onlayn === false ? tr('ofisda', 'в офисе') : '—'} izoh={izohTozala(b.izoh) ?? undefined} />
@@ -2049,7 +2073,7 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
           <div className={u.karta}>
             <div className={u.kartaSarlavha}>{tr('3. Uzum kabineti', '3. Кабинет Uzum')}</div>
             <ol className={u.royxat}>
-              <li>{f.uzum.kabinetUrl ? <a href={f.uzum.kabinetUrl} target="_blank" rel="noopener noreferrer">{f.uzum.kabinetUrl}</a> : tr('manzil faktda yoʻq', 'нет адреса')} — {tr('telefon + email, oferta', 'телефон + email, оферта')}</li>
+              <li>{f.uzum.kabinetUrl ? <a href={f.uzum.kabinetUrl} target="_blank" rel="noopener noreferrer">{f.uzum.kabinetUrl}</a> : tr('manzil hali kiritilmagan', 'нет адреса')} — {tr('telefon + email, oferta', 'телефон + email, оферта')}</li>
               <li>{tr('Hujjatlar: YATT guvohnomasi + pasport', 'Документы: свидетельство ИП + паспорт')}</li>
               <li>{tr('my3.soliq.uz → komissionerlar roʻyxati → Uzum:', 'my3.soliq.uz → список комиссионеров → Uzum:')}<pre className={u.mono}>{rekvizit}</pre></li>
               <li>{f.uzum.qollabQuvvatlashUrl ? <a href={f.uzum.qollabQuvvatlashUrl} target="_blank" rel="noopener noreferrer">{tr('biznes-qoʻllab-quvvatlash', 'бизнес-поддержка')}</a> : tr('qoʻllab-quvvatlash', 'поддержка')} — {tr('3 ta skrinshot', '3 скриншота')}{f.uzum.faollashtirishKun !== null ? tr(`; tekshiruv ~${f.uzum.faollashtirishKun} kun`, `; проверка ~${f.uzum.faollashtirishKun} дн`) : ''}</li>
@@ -2108,7 +2132,7 @@ function QabulKartasi({ n, tr }: { n: QabulQ; tr: Tr }) {
         ))}
         <p className={u.kichikIzoh}>{tr('Qutilarni oching, sanang, har donani koʻzdan kechiring. Kam, nuqsonli yoki qadogʻi buzilgan boʻlsa — suratga oling va agentga yozing.', 'Откройте коробки, пересчитайте, осмотрите каждую единицу. Недостача, брак или повреждённая упаковка — сфотографируйте и напишите агенту.')}</p>
         <div className={u.statlar}>
-          <Stat nom={tr('Uzum omborida har muammo', 'Каждая проблема на складе Uzum')} q={f.tafovutSom === null ? tr('faktda yoʻq', 'нет в фактах') : `${raqam(f.tafovutSom)} ${tr('soʻm / birlik', 'сум / ед')}`} izoh={tr('brak, kam, ortiqcha, yorliqsiz, aralash', 'брак, недостача, излишек, без этикетки, пересорт')} />
+          <Stat nom={tr('Uzum omborida har muammo', 'Каждая проблема на складе Uzum')} q={f.tafovutSom === null ? tr('hali kiritilmagan', 'ещё не внесено') : `${raqam(f.tafovutSom)} ${tr('soʻm / birlik', 'сум / ед')}`} izoh={tr('brak, kam, ortiqcha, yorliqsiz, aralash', 'брак, недостача, излишек, без этикетки, пересорт')} />
         </div>
         <Manba manba={f.manba} olchandi={f.olchandi} tr={tr} />
       </div>
@@ -2152,9 +2176,9 @@ function saqla(blob: Blob, nom: string): void {
 }
 
 function talabQatori(t: SuratTalablariQ | null | undefined, tr: Tr): string {
-  if (!t || t.minEni === null || t.minBoyi === null) return tr('Uzum surat talablari faktda yoʻq.', 'Требования Uzum к фото не заполнены.');
+  if (!t || t.minEni === null || t.minBoyi === null) return tr('Uzum surat talablari hali kiritilmagan.', 'Требования Uzum к фото не заполнены.');
   return tr(
-    `Uzum talabi: kamida ${t.minEni}×${t.minBoyi}, ${t.nisbat ?? 'nisbat faktda yoʻq'}${t.maxMb !== null ? `, ${t.maxMb} MB gacha` : ''}${t.format ? `; ${t.format}` : ''}.`,
+    `Uzum talabi: kamida ${t.minEni}×${t.minBoyi}, ${t.nisbat ?? 'nisbat hali kiritilmagan'}${t.maxMb !== null ? `, ${t.maxMb} MB gacha` : ''}${t.format ? `; ${t.format}` : ''}.`,
     `Требование Uzum: минимум ${t.minEni}×${t.minBoyi}, ${t.nisbat ?? 'пропорция не заполнена'}${t.maxMb !== null ? `, до ${t.maxMb} МБ` : ''}${t.format ? `; ${t.format}` : ''}.`,
   );
 }
@@ -2224,7 +2248,7 @@ function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
         <Ogohlik>{tr('Studiya xizmati hali ulanmagan — suratlar asl holida (fon oqlanmagan). Suratni bosib asl nusxasini oching.', 'Сервис студии ещё не подключён — фото в исходном виде (фон не белый). Нажмите на фото, чтобы открыть оригинал.')}</Ogohlik>
       )}
       {n.chiqishMos === false && (
-        <Ogohlik>{tr(`Diqqat: studiya chiqishi (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) Uzumning hozirgi talabiga mos emas — nazoratchiga yozildi.`, `Внимание: размер студии (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) не соответствует текущему требованию Uzum — передано контролёру.`)} {talabQatori(n.talablar, tr)}</Ogohlik>
+        <Ogohlik>{tr(`Diqqat: studiya chiqishi (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) Uzumning hozirgi talabiga mos emas — belgilab oldik.`, `Внимание: размер студии (${STUDIYA_CHIQISH.eni}×${STUDIYA_CHIQISH.boyi}) не соответствует текущему требованию Uzum — передано контролёру.`)} {talabQatori(n.talablar, tr)}</Ogohlik>
       )}
       {q.map((x) => {
         const teg = galereyaTegi(x);
@@ -2317,7 +2341,7 @@ interface YuklashQ {
 /**
  * 10-qadam kartasi, Uzum jarayoni tartibida: 1) kartochka (surat talablari
  * va qoidalar, 0059), 2) qadoq va yorliq, 3) yetkazma va ombor (0058).
- * Fakt yoʻq — "faktda yoʻq", nol emas.
+ * Fakt yoʻq — "hali kiritilmagan", nol emas.
  */
 /** 10-qadam: kartochka matni (`kartochka-matn.ts`) — sahifaga keladigan qismi. */
 interface KartochkaMatniQ {
@@ -2418,13 +2442,13 @@ function YuklashKartasi({ n, tr }: { n: YuklashQ; tr: Tr }) {
   const f = n.faktlar;
   const t = n.talablar;
   if (!f || !t) return <p className={u.kichikIzoh}>{n.sabab ?? tr('faktlar yoʻq', 'нет данных')}</p>;
-  const yoq = tr('faktda yoʻq', 'нет в фактах');
+  const yoq = tr('hali kiritilmagan', 'ещё не внесено');
   const son = (x: number | null, birlik: string) => (x === null ? yoq : `${raqam(x)} ${birlik}`);
   const q = n.qatorlar ?? [];
   const yetishmaydi = [...f.yetishmaydi, ...t.yetishmaydi];
   return (
     <div className={u.kartalar}>
-      {yetishmaydi.length > 0 && <Ogohlik>{tr('Faktda yoʻq:', 'Нет в фактах:')} {yetishmaydi.join(', ')}</Ogohlik>}
+      {yetishmaydi.length > 0 && <Ogohlik>{tr('Hali kiritilmagan:', 'Ещё не внесено:')} {yetishmaydi.join(', ')}</Ogohlik>}
       <div className={u.karta}>
         <div className={u.kartaSarlavha}>{tr('1. Kartochka', '1. Карточка')}</div>
         <div className={u.statlar}>
@@ -2588,7 +2612,7 @@ function HisobotKartasi({ n, tr }: { n: HisobotQ; tr: Tr }) {
   const f = n.faktlar;
   return (
     <div className={u.kartalar}>
-      {f && f.yetishmaydi.length > 0 && <Ogohlik>{tr('Faktda yoʻq:', 'Нет в фактах:')} {f.yetishmaydi.join(', ')}</Ogohlik>}
+      {f && f.yetishmaydi.length > 0 && <Ogohlik>{tr('Hali kiritilmagan:', 'Ещё не внесено:')} {f.yetishmaydi.join(', ')}</Ogohlik>}
       <div className={u.karta}>
         <div className={`${u.kartaBoshi} ${u.kartaBoshiMarkaz}`}>
           <div className={u.kartaSarlavha}>{tr('Oy hisoboti', 'Отчёт за месяц')} · {n.oy ? oyMatni(n.oy, tr) : '—'}</div>
@@ -2882,7 +2906,8 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
           );
         })}
         {savol.otkazishMumkin && savol.otkazishNomi && (
-          <button type="button" className={[u.variant, raqamli ? u.variantRaqam : '', u.variantSoz].join(' ')} disabled={band}
+          // Koʻp tanlovda («Bilmayman», 7-taklif) — butun qator, belgi qutisiz: bosilsa darhol javob.
+          <button type="button" className={[u.variant, raqamli ? u.variantRaqam : '', u.variantSoz, kop ? u.variantKeng : ''].join(' ')} disabled={band}
             onClick={() => javobBer(savol.id, null)}>
             <span className={u.variantNomi}>{otkazishNomi(savol, tr)}</span>
           </button>
@@ -3156,8 +3181,11 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
             <Ikon nom="yuqori" o={16} />
             <span>{tr('Yuqoridagi kartadan «Shuni olamiz»', 'Выберите выше — «Берём это»')}</span>
           </p>
+          {/* Hech biri chegaraga sigʻmasa — «Bu tovarni oʻtkazib yuborish», koʻzga tashlanadi (ikkinchi koʻrik, 6-taklif). */}
           {savol.otkazishMumkin && (
-            <button type="button" className={u.otkazishIchki} onClick={() => javobBer(savol.id, null)} disabled={band}>{tr('Oʻtkazib yuborish', 'Пропустить')}</button>
+            <button type="button" className={`${u.otkazishIchki} ${savol.otkazishNomi ? u.otkazishAsosiy : ''}`} onClick={() => javobBer(savol.id, null)} disabled={band}>
+              {otkazishNomi(savol, tr) ?? tr('Oʻtkazib yuborish', 'Пропустить')}
+            </button>
           )}
         </div>
         {kiritishQatori}

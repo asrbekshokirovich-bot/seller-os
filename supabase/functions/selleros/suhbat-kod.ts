@@ -32,7 +32,10 @@ import {
   kartochkaManbalari,
   kartochkaManbaMatnlari,
   kartochkaTekshir,
+  IZOHLAR,
+  type KartochkaMosligi,
   type KartochkaMatni,
+  yattOchilmagan,
   type KartochkaMatniNatijasi,
   type KartochkaQatori,
   faktlarniOqi,
@@ -159,6 +162,11 @@ export interface XitoyBogliqligi {
    */
   kartochkaLlm?: (k: { namuna: string; turkum: string | null; xitoy: string | null; tuzat?: string | null }) => Promise<KartochkaMatni | null>;
   /**
+   * Kartochka matnining oʻzbekcha va ruscha qismi bir xil maʼnodami (ikkinchi koʻrik, 4-taklif: «qalin
+   * tagliksiz» ↔ «на толстой подошве»). Tez model (`kartochkaMosBer`). Yoʻq yoki `null` — tekshirilmadi: matn oʻtadi.
+   */
+  kartochkaMos?: (m: KartochkaMatni) => Promise<KartochkaMosligi | null>;
+  /**
    * Brauzer CBU dan olgan kurslar (2026-10-27: cbu.uz serverlarimizga javob bermaydi) —
    * tekshirilgan (`brauzerKursi`). `qiymat` soʻrov tanasi oʻqilgach qoʻyiladi; boʻlmasa yoki
    * valyuta `null` boʻlsa — CBU ga oʻzimiz urinamiz (`kursniOl`).
@@ -182,7 +190,7 @@ async function kargoFaktlari(rpc: Rpc, usdOl: () => Promise<Kurs | null>) {
   const stavka = kargoStavkasi(faktlarniOqi(xom), usd?.somPerYuan ?? null);
   // Baza javob bermadi (masalan 0056 hali qoʻllanmagan) — bu "fakt boʻsh"
   // emas, "oʻqilmadi": izoh shuni aytadi (QOIDALAR §4, jim oʻlim yoʻq).
-  if (xom === null) return { stavka: { ...stavka, izoh: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' }, usd };
+  if (xom === null) return { stavka: { ...stavka, izoh: 'maʼlumotlar oʻqilmadi (baza javob bermadi)' }, usd };
   return { stavka, usd };
 }
 
@@ -419,7 +427,7 @@ export function suhbatKodHarakatlari(
       return {
         olchov_yoq: qatorlar.every((q) => q.chegaraSom === null),
         qatorlar,
-        izoh: 'Chegara — Xitoyda 1 dona uchun maksimal narx, soʻmda. Yetishmagan qism roʻyxatda; u hisobga kirmagan, demak haqiqiy chegara PASTROQ.',
+        izoh: IZOHLAR.tannarx,
       };
     },
 
@@ -442,7 +450,7 @@ export function suhbatKodHarakatlari(
       };
       const nom = (id: number) => tovar(id)?.title ?? `#${id}`;
       // Mijozga koʻrinadi — «Apify», «provayder», «kesh» yoʻq (7-taklif, 2026-11-04).
-      const IZOH = 'Takliflar 1688 dan, rasm boʻyicha. Narx yuanda; soʻm — Markaziy bank kursi bilan. «Chegarada» — soʻmdagi narx 4-qadam chegarasidan oshmaydi; chegaraga kirmagan qism (kargo) har qatorda yozilgan. Buyurtmalar soni — jami, davri yozilmagan.';
+      const IZOH = IZOHLAR.xitoy;
       // Nomlar oʻzbekchaga (7-taklif): bitta chaqiruvda 10 tagacha; boʻlmasa — xitoychasi qoladi.
       const ogir = async (t: XitoyTaklif[]): Promise<XitoyTaklif[]> => {
         const tarjimon = xitoy?.xitoyNomlari;
@@ -610,7 +618,7 @@ export function suhbatKodHarakatlari(
         | { royxat?: Array<{ nomzod: TovarNomzodi & { weightG?: number | null; volumeMl?: number | null } }> } | undefined;
       const xn = holat.natijalar.xitoy as XitoyNatijasi | undefined;
       const tovar = (id: number) => tn?.royxat?.find((x) => x.nomzod.productId === id)?.nomzod;
-      const IZOH = 'Varaqa: 5-qadamda tanlangan 1688 takliflari. Yuan narxlar provayderdan, soʻm — CBU kursi bilan. Kargo — fakt stavkasi (hamkor kiritganda); boʻlmasa hisobga kirmaydi va shunday yoziladi. Tizim buyurtma bermaydi va toʻlov qilmaydi.';
+      const IZOH = IZOHLAR.buyurtma;
 
       const kf = await kargoFaktlari(rpc, () => kursOl('USD'));
       const cny: Kurs | null = xn?.kurs
@@ -749,7 +757,7 @@ export function suhbatKodHarakatlari(
     },
 
     async ochiqIsh(holat: YolHolati): Promise<OchiqIshNatijasi> {
-      const IZOH = 'Ochiq ish: yuk kelishini kutish. Eslatma mexanizmi hali yoʻq (BACKLOG) — kelganda oʻzingiz aytasiz.';
+      const IZOH = IZOHLAR.yukKutish;
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', id: null, yangi: false, tur: 'kutyapman', muddat: null, izoh: IZOH };
       const bn = holat.natijalar.buyurtma as BuyurtmaNatijasi | undefined;
       const yolTanlovi = holat.javoblar['kargo_yol'] as KargoYol | undefined;
@@ -775,7 +783,7 @@ export function suhbatKodHarakatlari(
      * manba va sanasi bilan. Partiya sotuvi — 4-qadam qatorlaridan.
      */
     async rasmiy(holat: YolHolati): Promise<RasmiyNatijasi> {
-      const IZOH = 'Rasmiylashtirish: raqamlar fakt jadvalidan, har biri manba va sana bilan (docs/RASMIYLASHTIRISH-FAKTLAR.md). Soliq bazasi — xaridor toʻlagan toʻliq narx, Uzum komissiyasi chegirilmaydi. Bu soliq yoki yuridik maslahat emas.';
+      const IZOH = IZOHLAR.rasmiy;
       const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...RASMIY_KALITLARI] });
       const faktlar = rasmiyFaktlari(faktlarniOqi(xom));
       const kabinetBor = kabinetBormi(holat);
@@ -788,9 +796,9 @@ export function suhbatKodHarakatlari(
       }
       const soliq = oylikSoliq(faktlar.soliq, partiya);
       const asos = { faktlar, kabinetBor, partiyaSotuvSom: partiya, soliq, izoh: IZOH };
-      if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...asos };
+      if (xom === null) return { olchov_yoq: true, sabab: 'maʼlumotlar oʻqilmadi (baza javob bermadi)', ...asos };
       if (faktlar.bhmSom === null && faktlar.yatt.royxatUrl === null && faktlar.uzum.kabinetUrl === null) {
-        return { olchov_yoq: true, sabab: 'rasmiylashtirish faktlari kiritilmagan (0057 qoʻllanmagan)', ...asos };
+        return { olchov_yoq: true, sabab: 'rasmiylashtirish maʼlumotlari hali kiritilmagan', ...asos };
       }
       return { olchov_yoq: false, ...asos };
     },
@@ -801,7 +809,7 @@ export function suhbatKodHarakatlari(
      * tekshirish (fakt eskirgan boʻlishi mumkin, nazoratchi koʻradi).
      */
     async rasmiyYakun(holat: YolHolati): Promise<RasmiyYakunNatijasi> {
-      const IZOH = 'Ochiq ishlar: "keyin" — kutyapman (muddatsiz); Uzum "kutyapman" — fakt muddati bilan; "sayt boshqacha" — nazoratchi tekshiradi. Eslatma mexanizmi hali yoʻq (BACKLOG).';
+      const IZOH = IZOHLAR.rasmiyYakun;
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], izoh: IZOH };
       const rn = holat.natijalar.rasmiy as { faktlar?: { uzum?: { faollashtirishKun?: number | null } } } | undefined;
       const kun = rn?.faktlar?.uzum?.faollashtirishKun ?? null;
@@ -818,6 +826,12 @@ export function suhbatKodHarakatlari(
       qosh('yatt_ochish', 'rasmiy: YATT roʻyxat sayti boshqacha', 'YATT ochilishi');
       qosh('bank_hisobi', 'rasmiy: bank shartlari boshqacha', 'bank hisobi ochilishi');
       qosh('uzum_kabinet', 'rasmiy: Uzum kabinet sayti boshqacha', 'Uzum kabineti ochilishi');
+      // YATT hali yoʻq — bank va kabinet soʻralmadi (ikkinchi koʻrik, 5-taklif): ikkalasi ham YATTdan keyingi ish.
+      const yattYoq = yattOchilmagan(holat);
+      if (yattYoq) {
+        if (!bor('bank_hisobi')) ishlar.push({ savolId: 'bank_hisobi', tur: 'kutyapman', sabab: 'bank hisobi ochilishi (YATTdan keyin)', muddat: null });
+        if (!bor('uzum_kabinet')) ishlar.push({ savolId: 'uzum_kabinet', tur: 'kutyapman', sabab: 'Uzum kabineti ochilishi (YATTdan keyin)', muddat: null });
+      }
       if (bor('uzum_kabinet') && j['uzum_kabinet'] === 'kutyapman') {
         ishlar.push({ savolId: 'uzum_kabinet', tur: 'kutyapman', sabab: 'Uzum kabinet faollashuvi', muddat: muddatSana(xitoy.hozir ?? (() => new Date()), kun) });
       }
@@ -835,7 +849,7 @@ export function suhbatKodHarakatlari(
           yozildi.push({ tur: ish.tur, sabab: ish.sabab, muddat: ish.muddat, id: r.id, yangi: r.yangi === true });
         }
       }
-      return xato === null ? { olchov_yoq: false, yozildi, izoh: IZOH } : { olchov_yoq: true, sabab: xato, yozildi, izoh: IZOH };
+      return xato === null ? { olchov_yoq: false, yozildi, izoh: IZOH, yattYoq } : { olchov_yoq: true, sabab: xato, yozildi, izoh: IZOH, yattYoq };
     },
 
     /**
@@ -844,21 +858,21 @@ export function suhbatKodHarakatlari(
      * umumiy qoida, "kerak emas" emas). Varaqa boʻlmasa — tovarlar javobi.
      */
     async qabul(holat: YolHolati): Promise<QabulQadamNatijasi> {
-      const IZOH = 'Qabul: Xitoydan kelgan yukni sanash va koʻzdan kechirish. Kam yoki nuqsonli boʻlsa — agentga daʼvo uchun ochiq ish. Faktlar Uzum qoʻllanmasidan (6-bob, 0058); qadoq tavsiyasi tovar nomi boʻyicha taxminiy.';
+      const IZOH = IZOHLAR.qabul;
       const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...QABUL_KALITLARI] });
       const faktlar = qabulFaktlari(faktlarniOqi(xom));
       const { qatorlar, jamiDona, varaqadan } = varaqaQatorlari(holat, faktlar.qadoq);
       const natija = { faktlar, qatorlar, jamiDona, varaqadan, izoh: IZOH };
-      if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...natija };
+      if (xom === null) return { olchov_yoq: true, sabab: 'maʼlumotlar oʻqilmadi (baza javob bermadi)', ...natija };
       if (faktlar.ombor.manzil === null && faktlar.qollanmaUrl === null) {
-        return { olchov_yoq: true, sabab: 'qabul faktlari kiritilmagan (0058 qoʻllanmagan)', ...natija };
+        return { olchov_yoq: true, sabab: 'qabul maʼlumotlari hali kiritilmagan', ...natija };
       }
       return { olchov_yoq: false, ...natija };
     },
 
     /** 8-qadam — kam/nuqsonli yuk: tekshirish ishi (agentga daʼvo, izoh bilan). */
     async qabulYakun(holat: YolHolati): Promise<QabulYakunNatijasi> {
-      const IZOH = 'Ochiq ishlar: kam yoki nuqsonli yuk — tekshirish (agentga daʼvo). Eslatma mexanizmi hali yoʻq (BACKLOG).';
+      const IZOH = IZOHLAR.qabulYakun;
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], izoh: IZOH };
       const j = holat.javoblar;
       const ishlar: OchiqIsh[] = [];
@@ -880,7 +894,7 @@ export function suhbatKodHarakatlari(
      * ASINXRON: bitta yurish (hamma taklif) 20–60 s; `kutilmoqda` + `tekshir`.
      */
     async studiya(holat: YolHolati): Promise<StudiyaNatijasi> {
-      const IZOH = 'Studiya: suratlar siz tanlagan 1688 taklifining oʻz galereyasidan (aynan shu tovar), yetmasa oʻxshash 1688 takliflaridan. Internetdagi "oʻxshash" suratlar olinmaydi — ular boshqa tovar yoki brend boʻlib chiqdi. Har biri Cloudflare da oq fonga oʻtkaziladi: foni oq boʻlsa faqat 3:4 ga moslanadi, boʻlmasa fon olib tashlanadi; tovarning oʻzi oʻzgartirilmaydi. Tizim suratni Uzumga yuklamaydi.';
+      const IZOH = IZOHLAR.studiya;
       const eski = holat.natijalar.studiya as StudiyaNatijasi | undefined;
       const bn = holat.natijalar.buyurtma as BuyurtmaNatijasi | undefined;
       const xn = holat.natijalar.xitoy as XitoyNatijasi | undefined;
@@ -1008,7 +1022,7 @@ export function suhbatKodHarakatlari(
      * oshiradi: `STUDIYA_CHIQISH` va Worker `CHIQISH`).
      */
     async studiyaYakun(holat: YolHolati): Promise<QabulYakunNatijasi> {
-      const IZOH = 'Ochiq ishlar: "yetmadi" — oʻz suratlari; "keyin" — suratlar tanlovi; chiqish oʻlchami talabga mos emas — tekshirish. Eslatma mexanizmi hali yoʻq (BACKLOG).';
+      const IZOH = IZOHLAR.studiyaYakun;
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], izoh: IZOH };
       const j = holat.javoblar;
       const ishlar: OchiqIsh[] = [];
@@ -1030,7 +1044,7 @@ export function suhbatKodHarakatlari(
      * qayta soʻraladi. Baribir oʻtmasa yoki LLM ulanmagan boʻlsa — matn yoʻq (qolip).
      */
     async kartochkaMatni(holat: YolHolati): Promise<KartochkaMatniNatijasi> {
-      const IZOH = 'Matnni sunʼiy intellekt yozdi, kod uni Uzum qoidalari (qoʻllanma 5.1) va raqamlar (faqat tovar nomlaridan) boʻyicha tekshirdi. Kabinetga qoʻyishdan oldin oʻqib chiqing: tovaringizga mos kelmagan gapni tuzating.';
+      const IZOH = IZOHLAR.kartochka;
       const sorov = Number(holat.javoblar['kartochka_matni'] ?? 0) || 0;
       const manbalar = kartochkaManbalari(holat);
       if (manbalar.length === 0) return { olchov_yoq: true, sabab: 'tanlangan tovar topilmadi', qatorlar: [], sorov, izoh: IZOH };
@@ -1043,6 +1057,11 @@ export function suhbatKodHarakatlari(
             const t = await llm({ namuna: m.namuna, turkum: m.turkum, xitoy: m.xitoy, tuzat }).catch(() => null);
             if (!t) break;
             muammolar = kartochkaTekshir(t, kartochkaManbaMatnlari(m));
+            // Oʻzbekcha va ruscha bir xil maʼnodami (ikkinchi koʻrik, 4-taklif) — tez model; ishlamasa oʻtadi.
+            if (muammolar.length === 0 && xitoy?.kartochkaMos) {
+              const mos = await xitoy.kartochkaMos(t).catch(() => null);
+              if (mos !== null && !mos.mos) muammolar = [`oʻzbekcha va ruscha matn maʼnosi farq qiladi: ${mos.farq}`];
+            }
             if (muammolar.length === 0) return { productId: m.productId, title: m.namuna, matn: t, muammolar: [] };
             tuzat = muammolar.join('; ');
           }
@@ -1054,16 +1073,16 @@ export function suhbatKodHarakatlari(
 
     /** 10-qadam — YUKLASH faktlari: kartochka qoidalari (0059) + omborga topshirish (0058). */
     async yuklash(holat: YolHolati): Promise<YuklashNatijasi> {
-      const IZOH = 'Yuklash: kartochka qoidalari va surat talablari Uzum qoʻllanmasi 5-bobidan, omborga topshirish — 6/14-bobdan (fakt jadvali). Kartochkani tizim yaratmaydi — kabinetda siz yaratasiz; qadoq tavsiyasi tovar nomi boʻyicha taxminiy.';
+      const IZOH = IZOHLAR.yuklash;
       const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...QABUL_KALITLARI, ...SURAT_KALITLARI] });
       const f = faktlarniOqi(xom);
       const faktlar = qabulFaktlari(f);
       const talablar = suratTalablari(f);
       const { qatorlar, jamiDona, varaqadan } = varaqaQatorlari(holat, faktlar.qadoq);
       const natija = { faktlar, talablar, qatorlar, jamiDona, varaqadan, izoh: IZOH };
-      if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...natija };
+      if (xom === null) return { olchov_yoq: true, sabab: 'maʼlumotlar oʻqilmadi (baza javob bermadi)', ...natija };
       if (faktlar.ombor.manzil === null && talablar.kartochkaQoidalari.length === 0) {
-        return { olchov_yoq: true, sabab: 'yuklash faktlari kiritilmagan (0058/0059 qoʻllanmagan)', ...natija };
+        return { olchov_yoq: true, sabab: 'yuklash maʼlumotlari hali kiritilmagan', ...natija };
       }
       return { olchov_yoq: false, ...natija };
     },
@@ -1074,7 +1093,7 @@ export function suhbatKodHarakatlari(
      * nazoratchi tekshiradi (qoʻllanma yoki kabinet oʻzgargan boʻlishi mumkin).
      */
     async yuklashYakun(holat: YolHolati): Promise<QabulYakunNatijasi> {
-      const IZOH = 'Ochiq ishlar: "keyin" — kutyapman; topshirilgan yuk — Uzum qabulini kutish (muddat faktdan); "boshqacha" — nazoratchi tekshiradi. Eslatma mexanizmi hali yoʻq (BACKLOG).';
+      const IZOH = IZOHLAR.yuklashYakun;
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], izoh: IZOH };
       const yk = holat.natijalar.yuklash as { faktlar?: { muddatKunMax?: number | null } } | undefined;
       const qb = holat.natijalar.qabul as { faktlar?: { muddatKunMax?: number | null } } | undefined;
@@ -1111,7 +1130,7 @@ export function suhbatKodHarakatlari(
      * `sotuv.ts` da; bu yerda faqat maʼlumot yigʻiladi.
      */
     async sotuv(holat: YolHolati): Promise<SotuvNatijasi> {
-      const IZOH = 'Sotuv: oʻz kartochkangiz narxi, zaxirasi va sharhlari kuniga 3 marta oʻlchanadi; sotilgan dona — zaxira kamayishidan taxmin (Uzum buyurtma sonini bermaydi). Raqobatchi — 3-qadamda tanlangan Uzum tovari.';
+      const IZOH = IZOHLAR.sotuv;
       const hozir = xitoy?.hozir ?? (() => new Date());
       // Toshkent sanasi: "bugun" va oy UTC boʻyicha olinmaydi (1-kuni 00:00–05:00 da oy oʻtgan oy boʻlib chiqardi).
       const sana = toshkentSanasi(hozir());
@@ -1160,7 +1179,7 @@ export function suhbatKodHarakatlari(
 
     /** 12-qadam — oy hisoboti uchun faktlar (0057, 0060) va 11-qadam oʻlchovidan taxmin. */
     async hisobot(holat: YolHolati): Promise<HisobotNatijasi> {
-      const IZOH = 'Oy hisoboti: aniq summa — Uzum kabinetidagi komissioner hisobotidan (soliq hisobotining asos hujjati, qoʻllanma 3.3); oʻlchovimiz — zaxira kamayishidan taxmin. Soliq foizi va muddatlar fakt jadvalidan (0057, 0060). Bu soliq maslahati emas.';
+      const IZOH = IZOHLAR.hisobot;
       const xom = await rpc<unknown>('so_fakt_oqi', { p_kalitlar: [...HISOBOT_KALITLARI] });
       const faktlar = hisobotFaktlari(faktlarniOqi(xom));
       const sn = holat.natijalar.sotuv as SotuvNatijasi | undefined;
@@ -1188,13 +1207,13 @@ export function suhbatKodHarakatlari(
       const natija = {
         oy, tugagan: oy < joriy, faktlar, olchovSotuv: tushumNomalum ? null : yig((q) => q.oySom), olchovDona: yig((q) => q.oyDona), olchovKun, oyKunlari, qatorlar, izoh: IZOH,
       };
-      if (xom === null) return { olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)', ...natija };
+      if (xom === null) return { olchov_yoq: true, sabab: 'maʼlumotlar oʻqilmadi (baza javob bermadi)', ...natija };
       return { olchov_yoq: false, ...natija };
     },
 
     /** 12-qadam — sotuv (sotuvchi yozgan yoki taxmin), komissiya, sof, soliq, muddat, qadam kartalari. */
     async hisobotHisob(holat: YolHolati): Promise<HisobotHisobNatijasi> {
-      const IZOH = 'Hisob: soliq bazasi — xaridor toʻlagan toʻliq narx (komissiya chegirilmaydi); foiz, ijtimoiy soliq va muddatlar fakt jadvalidan. Bu soliq maslahati emas — aniq qoidani soliq organi yoki buxgalter tasdiqlaydi.';
+      const IZOH = IZOHLAR.hisobotHisob;
       const hn = holat.natijalar.hisobot as HisobotNatijasi | undefined;
       const faktlar = hn?.faktlar ?? hisobotFaktlari({});
       const oy = hn?.oy ?? oyKaliti((xitoy?.hozir ?? (() => new Date()))());
@@ -1212,7 +1231,7 @@ export function suhbatKodHarakatlari(
      * "sayt boshqacha" — tekshirish. Keyingi oy rejasi — hozirgi tezlikdan.
      */
     async hisobotYakun(holat: YolHolati): Promise<HisobotYakunNatijasi> {
-      const IZOH = 'Ochiq ishlar: ijtimoiy soliq toʻlovi (muddat faktdan), deklaratsiya keyinga qoldirilsa — kutyapman, sayt boshqacha — tekshirish. Keyingi oy rejasi — hozirgi sotuv tezligi va zaxiradan, bashorat emas.';
+      const IZOH = IZOHLAR.hisobotYakun;
       const hh = holat.natijalar.hisobot_hisob as HisobotHisobNatijasi | undefined;
       const sn = holat.natijalar.sotuv as SotuvNatijasi | undefined;
       const reja = keyingiOyRejasi(sn?.qatorlar ?? []);

@@ -99,10 +99,10 @@ describe('rasmiy', () => {
   it('fakt oʻqilmadi (baza null) — olchov_yoq "oʻqilmadi"; boʻsh roʻyxat — "kiritilmagan"', async () => {
     const n1 = await kod(soxtaBaza({ fakt: null })).rasmiy(holatYasa());
     expect(n1.olchov_yoq).toBe(true);
-    expect(n1.sabab).toBe('fakt roʻyxati oʻqilmadi (baza javob bermadi)');
+    expect(n1.sabab).toBe('maʼlumotlar oʻqilmadi (baza javob bermadi)');
     const n2 = await kod(soxtaBaza({ fakt: {} })).rasmiy(holatYasa());
     expect(n2.olchov_yoq).toBe(true);
-    expect(n2.sabab).toMatch(/kiritilmagan \(0057/);
+    expect(n2.sabab).toMatch(/rasmiylashtirish maʼlumotlari hali kiritilmagan/);
     expect(n2.faktlar.yetishmaydi.length).toBeGreaterThan(5);
   });
 
@@ -131,6 +131,18 @@ describe('rasmiyYakun', () => {
     expect(b.ochiq()).toHaveLength(3);
     expect(b.ochiq()[0]).toMatchObject({ p_token: 'tok', p_tur: 'tekshirish', p_sabab: 'rasmiy: YATT roʻyxat sayti boshqacha', p_muddat: null, p_props: { savolId: 'yatt_ochish', javob: 'boshqacha' } });
     expect(b.ochiq()[2]).toMatchObject({ p_tur: 'kutyapman', p_muddat: '2026-09-30', p_props: { savolId: 'uzum_kabinet', javob: 'kutyapman' } });
+  });
+
+  it('YATT «keyin» (ikkinchi koʻrik, 5-taklif): bank va kabinet soʻralmagan — ikkalasi ham YATTdan keyingi ish', async () => {
+    const n = await kod(soxtaBaza()).rasmiyYakun(holatYasa({ huquqiy_shakl: 'yoq', yatt_ochish: 'keyin' }, { rasmiy: RASMIY }));
+    expect(n.yattYoq).toBe(true);
+    expect(n.yozildi.map((y) => [y.tur, y.sabab])).toEqual([
+      ['kutyapman', 'YATT ochilishi'],
+      ['kutyapman', 'bank hisobi ochilishi (YATTdan keyin)'],
+      ['kutyapman', 'Uzum kabineti ochilishi (YATTdan keyin)'],
+    ]);
+    const bor = await kod(soxtaBaza()).rasmiyYakun(holatYasa({ huquqiy_shakl: 'yatt', bank_hisobi: 'bor', uzum_kabinet: 'faol' }, { rasmiy: RASMIY }));
+    expect(bor.yattYoq).toBe(false);
   });
 
   it('oʻtkazilgan (null) javob — "keyin" kabi kutyapman; hammasi tayyor — hech narsa yozilmaydi', async () => {

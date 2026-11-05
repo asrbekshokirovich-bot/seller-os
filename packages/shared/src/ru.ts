@@ -25,6 +25,9 @@ export const VARIANT_RU: Readonly<Record<string, string>> = {
   'Boshqa joyda sotganman (bozor, Instagram…)': 'Продавал(а) в другом месте (рынок, Instagram…)',
   'Yoʻq, birinchi marta': 'Нет, впервые',
   'Bilmayman — eng yaxshilarini koʻrsating': 'Не знаю — покажите лучшие',
+  'Bu tovarni oʻtkazib yuborish': 'Пропустить этот товар',
+  'Ha, YATT ochdim': 'Да, ИП открыт',
+  'Hali ochmadim': 'Ещё не открыт',
   ...Object.fromEntries(SAVDO_SOHALARI.map((s) => [s.nom, s.ru])),
   // 2–5-qadam
   'Qayta urinish': 'Повторить',

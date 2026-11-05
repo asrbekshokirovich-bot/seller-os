@@ -77,10 +77,10 @@ describe('qabul', () => {
     const n0 = await kod(soxtaBaza()).qabul(holatYasa({}, { buyurtma: { ...BUYURTMA, qatorlar: [{ productId: 100, title: 'A', miqdor: null, holat: 'tayyor' }] } }));
     expect(n0.jamiDona).toBeNull();
     const n1 = await kod(soxtaBaza({ fakt: null })).qabul(holatYasa());
-    expect(n1).toMatchObject({ olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' });
+    expect(n1).toMatchObject({ olchov_yoq: true, sabab: 'maʼlumotlar oʻqilmadi (baza javob bermadi)' });
     const n2 = await kod(soxtaBaza({ fakt: {} })).qabul(holatYasa());
     expect(n2.olchov_yoq).toBe(true);
-    expect(n2.sabab).toMatch(/kiritilmagan \(0058/);
+    expect(n2.sabab).toMatch(/qabul maʼlumotlari hali kiritilmagan/);
   });
 });
 
