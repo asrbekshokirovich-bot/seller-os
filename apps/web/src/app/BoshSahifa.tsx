@@ -173,8 +173,8 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil, namuna
                 </div>
                 <h1 className={b.h1}>
                   {til === 'ru'
-                    ? <>Не знаете, что продавать? <span className={b.urgu}>2 вопроса</span> — и направления готовы.</>
-                    : <>Nima sotishni bilmaysizmi? <span className={b.urgu}>2 ta savol</span> — yoʻnalishlar tayyor.</>}
+                    ? <>Не знаете, что продавать? <span className={b.urgu}>2&nbsp;вопроса</span> — и направления готовы.</>
+                    : <>Nima sotishni bilmaysizmi? <span className={b.urgu}>2&nbsp;ta&nbsp;savol</span> — yoʻnalishlar tayyor.</>}
                 </h1>
                 <p className={b.lead}>
                   {tr(

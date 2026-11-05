@@ -120,10 +120,10 @@ describe('AI tushunadi — javobni kod qabul qiladi', () => {
     expect(r.keyingi.tur === 'savol' && r.keyingi.savol.id).toBe('marja');
     // Tushunishga: joriy savol; tanishuvning qolganiga javob berilgan.
     expect(s.tushunlar[0]!.k.savollar.map((x) => x.id)).toEqual(['uzum_dokoni']);
-    // Chat: mijoz gapi (javobi bilan) → AI munosabati (👍/👎) → AI yozgan savol (tugmalar shunga).
+    // Chat: mijoz gapi (javobi bilan) → AI munosabati (savol yoʻq — 👍/👎 siz, 13-taklif) → AI yozgan savol.
     expect(r.xabarlar).toEqual([
       { rol: 'obunachi', matn: 'Instagramda potinka sotganman', savolId: 'uzum_dokoni', javob: 'boshqa' },
-      { rol: 'menejer', matn: YOZUV.oldin, savolId: 'uzum_dokoni', javob: { erkin: true, manba: 'ai', munosabat: true } },
+      { rol: 'menejer', matn: YOZUV.oldin, savolId: 'uzum_dokoni' },
       { rol: 'menejer', matn: YOZUV.savol, savolId: 'marja' },
     ]);
     const y = s.yozlar[0]!.k;
@@ -265,7 +265,7 @@ describe('AI tushunadi — javobni kod qabul qiladi', () => {
     expect(s.yozlar[0]!.k.rad).toHaveLength(1);
     expect(r.xabarlar).toEqual([
       { rol: 'obunachi', matn: '70 ga boshlayman' },
-      { rol: 'menejer', matn: '70 deganingiz soʻmmi yoki dollarmi?', savolId: 'byudjet', javob: { erkin: true, manba: 'ai' } },
+      { rol: 'menejer', matn: '70 deganingiz soʻmmi yoki dollarmi?', savolId: 'byudjet' },
       { rol: 'menejer', matn: 'Qancha pul bilan boshlaysiz — masalan, 70 mln?', savolId: 'byudjet' },
     ]);
   });

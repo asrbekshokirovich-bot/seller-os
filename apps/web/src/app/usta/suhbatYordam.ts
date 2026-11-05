@@ -6,6 +6,20 @@
 
 import type { Tr } from '../../lib/til';
 
+/** Suhbati bor mijoz belgisi (ikkinchi koʻrik, 9-taklif): bor boʻlsa — tayyor salom koʻrsatilmaydi. */
+const SUHBAT_BOR = 'zs-suhbat-bor';
+
+/** Bu brauzerda mijoz oldin javob berganmi (`suhbatBorDeb`). Saqlab boʻlmasa — yoʻq. */
+export function suhbatBormi(): boolean {
+  try { return window.localStorage.getItem(SUHBAT_BOR) === '1'; } catch { return false; }
+}
+
+/** Xabarlar orasida mijozniki boʻlsa — belgi qoʻyiladi (keyingi ochilishda server kutiladi). */
+export function suhbatBorDeb(xabarlar: ReadonlyArray<{ rol: string }>): void {
+  if (!xabarlar.some((x) => x.rol === 'obunachi')) return;
+  try { window.localStorage.setItem(SUHBAT_BOR, '1'); } catch { /* saqlab boʻlmadi — keyingi safar ham salom darhol */ }
+}
+
 /** Fakt manbasi — mijozga koʻrinishi (`manbaKorinishi`). */
 export interface ManbaKorinish {
   /** Bosiladigan saytlar (koʻpi bilan 3, sayt boʻyicha bittadan). */

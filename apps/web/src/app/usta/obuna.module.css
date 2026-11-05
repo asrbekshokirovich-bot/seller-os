@@ -492,7 +492,7 @@
 
 @media (max-width: 760px) {
   .tepa { height: 64px; padding: 0 14px; }
-  .ichi { padding: 18px 14px; }
+  .ichi { padding: 18px 14px 84px; }
   /* Telefonda toʻlov bloki yana bitta ustun va kartalardan keyin (oddiy tartib). */
   .tolov { order: 0; grid-template-columns: minmax(0, 1fr); row-gap: 0; }
   .usulYorliq { margin-top: 22px; }
