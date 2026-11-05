@@ -337,10 +337,48 @@ sotilgan 111 (64 %), eng katta 3 doʻkon 46 % («oʻrtacha»), talabning 53 % i
 80–150 ming soʻmlik tovarlarda, 26-avgustdan keyin qoʻyilgan 84 tovardan 29 tasi
 oyiga 10 dan koʻp.
 
+## AI tahlilchi — butun bozor boʻyicha (`tahlil-v1`, 2026-11-05)
+
+Nazoratchi soʻrovi (05.11): «nechta sotuvchi kiyim-poyabzal sotgan, nechtasi yaxshi
+sota olgan, nechtasi yoʻq va nimaga» — AI aniq statistika, taqqoslash va xulosa bilan
+javob bersin. **Yangi sotuv formulasi yoʻq:** har tovar — `tovar-sotuvi-v1` (yuqorida).
+Butun bozorni bir vaqtda hisoblash uchun uning SQL nusxasi bor (`zumsavdo.tovar_baho`,
+0078); TS va SQL bir xilligini 1 200 ta haqiqiy qatorli paritet testi ushlaydi
+(`supabase/test/tovar-baho.test.ts`) — formulani oʻzgartirgan odam ikkalasini oʻzgartiradi.
+
+**Sotuvchi pogʻonalari** (nazoratchi qarori, 2026-11-05 — «Nisbiy: eng yaxshi 20 %»):
+qamrovdagi (turkum yoki uning hamma barglari, filtr bilan) sotuvchilar oxirgi 30 kunlik
+**tushum** (Σ oyiga × narx, ziddiyatsiz) boʻyicha tartiblanadi:
+
+| Pogʻona | Shart |
+|---|---|
+| `eng_yaxshi_20` — «yaxshi sotayotgan» | oʻrni ≤ ⌈0,2 × n⌉ va tushum > 0 |
+| `orta_30` | oʻrni ≤ ⌈0,5 × n⌉ va tushum > 0 |
+| `past` | qolgan, tushum > 0 |
+| `sotmagan` | tushum 0 (30 kunda sotuv oʻlchanmagan) |
+
+Tushumi 0 sotuvchi hech qachon «yaxshi» emas. Har pogʻona uchun kod hisoblaydi: soni,
+tushum ulushi, tovar soni (mediana), narx (mediana va qamrov medianasiga nisbat),
+reyting, sharh/tovar, chegirma, tugagan tovar ulushi, yangi tovar ulushi, doʻkon yoshi,
+jami buyurtma. AI «nimaga» savoliga shu farqlar bilan javob beradi va bu **bogʻliqlik,
+sabab emas** ekanini aytadi.
+
+**Shu paytgacha** — oxirgi toʻliq perepis oʻtishi: qamrovga hech qachon tovar qoʻygan
+sotuvchilar (olib tashlangan tovar ham); «sotgan» — kamida bitta tovari sharh olgan
+(sotuvi isbotlangan; sharh yozilmagan sotuv sanalmaydi — pastki chegara).
+
+**Trend** — `osish_marta` = oxirgi 7 kunning kunlik sanalgan sotuvi / oldingi 23 kunniki;
+faqat ≥ 4 + ≥ 10 maʼlum kun va oxirgi 7 kunda ≥ 3 dona boʻlgan tovarda.
+
+**Tovar yoshi** — tovar raqamidan (Uzum ketma-ket beradi), chiziqli kalibrovka; «yangi» —
+≤ 60 kun. Doʻkon yoshi — uning eng eski tovarining yoshi (roʻyxatdan oʻtgan sanasi
+Uzumda ochiq emas).
+
 ## Versiya tarixi
 
 | Versiya | Sana | O'zgarish | Tasdiqladi |
 |---|---|---|---|
 | v0 | 2026-08-19 | Birinchi taklif | **kutilmoqda** |
 | tovar-sotuvi-v1 | 2026-10-21 | Kengaytma uchun tovar sotuvi (yuqoridagi boʻlim) | nazoratchi, 2026-10-26 |
+| tahlil-v1 | 2026-11-05 | AI tahlilchi: formula SQL nusxasi, nisbiy sotuvchi pogʻonalari (eng yaxshi 20 %), shu paytgacha, trend | nazoratchi, 2026-11-05 (pogʻona — «eng yaxshi 20 %») |
 | bozor-paneli-v1 | 2026-10-26 | Kengaytma bozor paneli: guruhlash qoidalari (yuqoridagi boʻlim) | **kutilmoqda** |

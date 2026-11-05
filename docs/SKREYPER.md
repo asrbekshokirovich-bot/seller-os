@@ -57,7 +57,7 @@ ikki ish bir vaqtda yurmaydi, navbatga turadi. Ish chegarasi 180 daqiqa.
 | 10 | Tuzoq bayroqlarini hisoblash | Edge `bayroqlarni-hisobla` | `if: always()` |
 
 ### Boshqalar
-- `turkum.yml` — kuniga bir marta (06:30 UTC): 300 turkumning Uzumdagi tovar soni (`selleros_scraper.turkum`). Perepisdagi son Uzumdagidan 2–5 barobar farq qiladi (`manbalar/turkum_hajmi.py` izohi).
+- `turkum.yml` — kuniga bir marta (06:30 UTC): avval **turkum daraxti** (`selleros_scraper.daraxt`, 2026-11-05: `category(id:1)` 12 daraja ichma-ich — BITTA soʻrov, qidiruv emas; yarim daraxt yozilmaydi → `so_turkum_daraxti_yoz`, 0077), keyin 300 turkumning Uzumdagi tovar soni (`selleros_scraper.turkum`). Perepisdagi son Uzumdagidan 2–5 barobar farq qiladi (`manbalar/turkum_hajmi.py` izohi). Daraxt yiqilsa ham hajm yigʻiladi, lekin ish qizil.
 - `skreyper-sinov.yml` — qoʻlda: berilgan id oraligʻini quruq yurish, keyin yozish (jonli sinov).
 - `qorovul.yml` — har soat: maʼlumot yoshi chegarada (`scripts/malumot-yoshi.mjs`) — oʻlchov toʻxtasa qizaradi.
 
@@ -74,6 +74,7 @@ ikki ish bir vaqtda yurmaydi, navbatga turadi. Ish chegarasi 180 daqiqa.
 | `manbalar/uzum.py` | GraphQL soʻrovlari: yengil `PRODUCT_QUERY` va ogʻir `PRODUCT_QUERY_STOK` (`skuList`, oʻlcham, rasm); `parse`; qoldiq = `availableAmount` yigʻindisi |
 | `manbalar/uzum_client.py` | javobni turkumlaydi: `TOPILDI`, `YOQ` (mahsulot yoʻq — xato EMAS, id fazosining ~70 % i boʻsh), `TEZ` (429), `TOKEN` (401), `XATO` |
 | `frontier.py`, `turkum.py`, `manbalar/turkum_hajmi.py` | frontier zondi, turkum hajmi |
+| `daraxt.py` | turkum daraxti (0077): soʻrov yasash, tekislash, «yarim daraxt yozilmaydi» tekshiruvi |
 
 ## 5. Jadvallar va RPC lar (`SXEMA.md` — toʻliq)
 
