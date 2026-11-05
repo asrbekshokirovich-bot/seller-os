@@ -11,6 +11,8 @@
 // (`#sessiya=…&kengaytma=1`): hash serverga ketmaydi, sahifa uni
 // `x-sessiya` sarlavhasida yuboradi.
 
+import { uzumOchishManzillari } from './uzum-och';
+
 /**
  * ZumSavdo sayt manzili (Vercel). Nazoratchi beradi; boʻsh boʻlsa panel
  * rostini aytadi va hech qayerga ulanmaydi — kodda taxminiy manzil yoʻq.
@@ -50,3 +52,17 @@ async function boshla(): Promise<void> {
 }
 
 void boshla();
+
+// «Uzumda ochish» (0.5.0): chatdagi AI tahlilchi tugmasi → Uzum sahifalari yangi tablarda (`uzum-och.ts`).
+// Faqat sayt ramkasidan; bir bosishda koʻpi bilan 3 ta; tez-tez bosilsa — 1,5 s da bir marta.
+let oxirgiOchish = 0;
+window.addEventListener('message', (e: MessageEvent) => {
+  const ramka = document.getElementById('chat');
+  if (e.origin !== SAYT || !(ramka instanceof HTMLIFrameElement) || e.source !== ramka.contentWindow) return;
+  const urllar = uzumOchishManzillari(e.data);
+  if (!urllar) return;
+  const hozir = Date.now();
+  if (hozir - oxirgiOchish < 1_500) return;
+  oxirgiOchish = hozir;
+  urllar.forEach((url, i) => { void chrome.tabs.create({ url, active: i === 0 }); });
+});

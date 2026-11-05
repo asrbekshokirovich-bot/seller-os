@@ -10,11 +10,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { oqimmi, sseOqi } from '@selleros/shared';
+import { useKengaytmadami } from '@/lib/kengaytma';
 import { Ikon } from './Ikon';
+import { TahlilIlovasi, tahlilJavobimi, type TahlilJavobi } from './usta/TahlilIlovasi';
 import y from './yordamchi.module.css';
 
 export type YordamchiSahifasi = 'bosh' | 'kirish' | 'maxfiylik' | 'obuna';
-interface Xabar { rol: 'mijoz' | 'yordamchi'; matn: string }
+interface Xabar {
+  rol: 'mijoz' | 'yordamchi';
+  matn: string;
+  /** AI tahlilchi javobi (2026-11-05): «Batafsil», havolalar, «Uzumda ochish», keyingi savollar. */
+  tahlil?: TahlilJavobi & { batafsil?: string | null };
+}
 
 /** Sahifaga mos tayyor savollar — oyna boʻsh boʻlsa koʻrinadi. */
 const TEZ: Record<YordamchiSahifasi, Array<[string, string]>> = {
@@ -41,6 +48,9 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
   const [xato, setXato] = useState<string | null>(null);
   /** Oqim (2026-10-20): yozilayotgan javob — qoralama; tekshirilgani kelgach oʻrnini u oladi. */
   const [qoralama, setQoralama] = useState<string | null>(null);
+  /** AI tahlilchi nima hisoblayapti (oqim `holat` hodisasi). */
+  const [holatIzoh, setHolatIzoh] = useState<string | null>(null);
+  const kengaytmada = useKengaytmadami();
   const oqim = useRef<HTMLDivElement>(null);
   const maydon = useRef<HTMLTextAreaElement>(null);
   const tugma = useRef<HTMLButtonElement>(null);
@@ -80,7 +90,7 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
         body: JSON.stringify({ savol: s, sahifa, tarix, til, oqim: true }),
       });
       let ok = r.ok;
-      let d: { matn?: unknown } | null = null;
+      let d: Record<string, unknown> | null = null;
       if (oqimmi(r) && r.body) {
         // Qoralama — darhol; oxiri — tekshirilgan javob (`tayyor`) yoki server xatosi (`xato`).
         ok = false;
@@ -88,14 +98,18 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
           const m = (q as { matn?: unknown } | null)?.matn;
           if (h === 'qism') setQoralama(typeof m === 'string' && m ? m : null);
           else if (h === 'qayta') setQoralama(null);
-          else if (h === 'tayyor') { ok = true; d = q as { matn?: unknown }; }
+          else if (h === 'holat') {
+            const iz = (q as { izoh?: unknown } | null)?.izoh;
+            setHolatIzoh(typeof iz === 'string' && iz ? iz.slice(0, 120) : null);
+          } else if (h === 'tayyor') { ok = true; d = q as Record<string, unknown>; }
         });
       } else {
-        d = (await r.json().catch(() => null)) as { matn?: unknown } | null;
+        d = (await r.json().catch(() => null)) as Record<string, unknown> | null;
       }
-      const javob = (d as { matn?: unknown } | null)?.matn;
+      const javob = (d as Record<string, unknown> | null)?.matn;
       if (!ok || typeof javob !== 'string' || !javob) throw new Error(String(r.status));
-      setXabarlar((x) => [...x, { rol: 'yordamchi', matn: javob }]);
+      const tahlil = tahlilJavobimi(d) ? (d as unknown as Xabar['tahlil']) : undefined;
+      setXabarlar((x) => [...x, { rol: 'yordamchi', matn: javob, ...(tahlil ? { tahlil } : {}) }]);
     } catch {
       // Javob kelmadi — savol oʻchmaydi: maydonga qaytadi, qayta yuborish mumkin.
       setXabarlar((x) => x.slice(0, -1));
@@ -103,6 +117,7 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
       setXato(tr('Javob kelmadi — birozdan keyin qayta yuboring.', 'Ответ не пришёл — отправьте ещё раз чуть позже.'));
     } finally {
       setQoralama(null);
+      setHolatIzoh(null);
       setBand(false);
     }
   }
@@ -134,10 +149,24 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
                 ))}
               </div>
             )}
-            {xabarlar.map((x, i) => <div key={i} className={`${y.pufak} ${x.rol === 'mijoz' ? y.men : y.ai}`}>{x.matn}</div>)}
+            {xabarlar.map((x, i) => (
+              <div key={i} className={`${y.pufak} ${x.rol === 'mijoz' ? y.men : y.ai}`}>
+                {x.matn}
+                {x.tahlil?.batafsil && (
+                  <details className={y.batafsil}>
+                    <summary>{tr('Batafsil', 'Подробнее')}</summary>
+                    <div>{x.tahlil.batafsil}</div>
+                  </details>
+                )}
+                {x.tahlil && (
+                  <TahlilIlovasi j={x.tahlil} tr={tr} kengaytmada={kengaytmada}
+                    soroq={i === xabarlar.length - 1 && !band ? (t: string) => void sora(t) : undefined} />
+                )}
+              </div>
+            ))}
             {/* Yozilayotgan javob — ekran oʻquvchiga emas (u tekshirilganini oʻqiydi). */}
             {qoralama !== null && <div className={`${y.pufak} ${y.ai}`} aria-hidden="true">{qoralama}</div>}
-            {band && <div className={y.yozmoqda} role="status">{tr('Yozmoqda…', 'Пишет…')}</div>}
+            {band && <div className={y.yozmoqda} role="status">{holatIzoh ?? tr('Yozmoqda…', 'Пишет…')}</div>}
             {xato !== null && <div className={y.xato} role="alert">{xato}</div>}
           </div>
 

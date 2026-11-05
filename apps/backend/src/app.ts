@@ -93,9 +93,14 @@ import {
   type BrauzerKurslari,
   brauzerKursi,
   kursniOl,
+  tahlilQil,
+  tahlilRejimi,
+  tahlilYoqilganmi,
+  type TahlilOqimi,
+  type TahlilSavoli,
 } from '@selleros/shared';
 // Claude SDK faqat serverda (2026-10-19) — paketning asosiy eksportida yoʻq (sayt brauzerga oladi).
-import { CLAUDE_TUSHUN_MODELI, claudeProvayderi, kalitniAjrat } from '@selleros/shared/llm-claude';
+import { CLAUDE_TUSHUN_MODELI, claudeProvayderi, claudeTahlilProvayderi, kalitniAjrat } from '@selleros/shared/llm-claude';
 
 // ── Javob vaqtini oʻlchash (KPI: qadam_tezligi) ──────────────
 const TEZLIK_HAJMI = 200;
@@ -444,6 +449,11 @@ export function build(): FastifyInstance {
   });
   // Sarf (0072, Edge bilan bir xil) — har Claude javobi `ai_usage` ga, shu sessiya nomiga.
   const llmSozlama = (token: string | null) => ({ provayder: claude, sarf: aiSarfYozuvchi(rpc, token) });
+  // AI tahlilchi (2026-11-05) — Edge bilan bir xil: `AI_TAHLIL` off | sinov | on.
+  const tahlilRejim = tahlilRejimi(process.env.AI_TAHLIL);
+  const claudeTahlil = tahlilRejim === 'off' ? null : claudeTahlilProvayderi({
+    kalit: process.env.ANTHROPIC_API_KEY, model: process.env.CLAUDE_TAHLIL_MODEL?.trim() || process.env.CLAUDE_MODEL,
+  });
   // Brauzer CBU dan olgan kurs (2026-10-27) — POST tanasidan, tekshirilgan (`brauzerKursi`); Edge bilan bir xil.
   const suhbatBogliq = async (token: string, kurs: BrauzerKurslari | null = null) => ({
     rpc,
@@ -466,6 +476,13 @@ export function build(): FastifyInstance {
           tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama(token), provayder: claudeTushun, vaqtMs: ms }, k),
           yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama(token), vaqtMs: ms }, k, qism),
         },
+      }
+      : {}),
+    ...(claudeTahlil !== null && process.env.AI_SUHBAT !== '0'
+      ? {
+        tahlil: (s: TahlilSavoli, ms: number, o?: TahlilOqimi) =>
+          tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama(token).sarf, ...(o ?? {}) }, s, ms),
+        tahlilRuxsat: (h: YolHolati) => tahlilYoqilganmi(tahlilRejim, h.javoblar['telefon']),
       }
       : {}),
   });
@@ -519,7 +536,7 @@ export function build(): FastifyInstance {
         return suhbatTurn({
           ...d,
           oqim: {
-            holat: (h) => yubor('holat', { holat: h }),
+            holat: (h, izoh) => yubor('holat', { holat: h, ...(izoh ? { izoh } : {}) }),
             qism,
             qayta: () => { qism.bekor(); yubor('qayta', {}); },
           },
@@ -548,9 +565,16 @@ export function build(): FastifyInstance {
       ? await rpc<{ xato?: string; holat?: YolHolati | null }>('so_suhbat_oqi', { p_token: token })
       : null;
     const holat = o && !o.xato && o.holat ? mijozHolati(o.holat, joriyQadam(o.holat)) : null;
+    const tahlilBu = claudeTahlil && tahlilYoqilganmi(tahlilRejim, o && !o.xato && o.holat ? o.holat.javoblar['telefon'] : null)
+      ? claudeTahlil : null;
     const sd = {
       ai: claude
         ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama(typeof token === 'string' && token ? token : null), vaqtMs: ms }, k, qism)
+        : null,
+      tahlil: tahlilBu
+        ? (s: TahlilSavoli, ms: number, oq?: TahlilOqimi) => tahlilQil({
+          provayder: tahlilBu, rpc, sarf: llmSozlama(typeof token === 'string' && token ? token : null).sarf, ...(oq ?? {}),
+        }, s, ms)
         : null,
       tarifCheklovi: tarifCheklovi(),
     };
@@ -559,8 +583,10 @@ export function build(): FastifyInstance {
     if (tana.oqim === true) {
       const g = await oqimYokiNatija((yubor) => {
         const qism = siyrak((m: string) => yubor('qism', { matn: m }), 120);
-        return sahifaJavobi({ ...sd, oqim: { qism, qayta: () => { qism.bekor(); yubor('qayta', {}); } } }, sk)
-          .finally(() => qism.bekor());
+        return sahifaJavobi({
+          ...sd,
+          oqim: { qism, qayta: () => { qism.bekor(); yubor('qayta', {}); }, holat: (izoh) => yubor('holat', { izoh }) },
+        }, sk).finally(() => qism.bekor());
       });
       if ('oqim' in g) return javob.headers(OQIM_SARLAVHALARI).send(Readable.fromWeb(g.oqim as WebOqim));
       return g.natija;

@@ -42,6 +42,7 @@ export const FAYLLAR = [
   ['packages/shared/src/llm-claude.ts', 'shared/llm-claude.ts'],
   ['packages/shared/src/ai-suhbat.ts', 'shared/ai-suhbat.ts'],
   ['packages/shared/src/sahifa-yordamchi.ts', 'shared/sahifa-yordamchi.ts'],
+  ['packages/shared/src/tahlilchi.ts', 'shared/tahlilchi.ts'],
   ['packages/shared/src/oqim.ts', 'shared/oqim.ts'],
   ['packages/shared/src/tekshiruv.ts', 'shared/tekshiruv.ts'],
   ['packages/shared/src/tanishuv.ts', 'shared/tanishuv.ts'],
