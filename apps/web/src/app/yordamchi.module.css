@@ -170,3 +170,21 @@
 @media (prefers-reduced-motion: reduce) {
   .yozmoqda { animation: none; }
 }
+
+/* AI tahlilchi (2026-11-05): toʻliq tahlil — yopiq, bosilsa ochiladi. */
+.batafsil {
+  margin-top: 8px;
+  font-size: 13.5px;
+}
+
+.batafsil summary {
+  cursor: pointer;
+  color: var(--acc);
+  font-weight: 600;
+}
+
+.batafsil > div {
+  margin-top: 6px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}

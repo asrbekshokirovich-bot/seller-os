@@ -24,7 +24,7 @@ import {
 } from './tahlil.ts';
 import { suhbatKodHarakatlari } from './suhbat-kod.ts';
 // Claude SDK faqat serverda (2026-10-19) — `shared/index.ts` dan eksport qilinmaydi.
-import { CLAUDE_MODELI, CLAUDE_TUSHUN_MODELI, claudeProvayderi, kalitniAjrat } from './shared/llm-claude.ts';
+import { CLAUDE_MODELI, CLAUDE_TUSHUN_MODELI, claudeProvayderi, claudeTahlilProvayderi, kalitniAjrat } from './shared/llm-claude.ts';
 import {
   aiSarfYozuvchi,
   aiXarajati,
@@ -120,6 +120,11 @@ import {
   bozorPaneli,
   turkumniOqi,
   type BozorPaneli,
+  tahlilQil,
+  tahlilRejimi,
+  tahlilYoqilganmi,
+  type TahlilOqimi,
+  type TahlilSavoli,
 } from './shared/index.ts';
 
 /** `so_tovar_royxati()` javobi. */
@@ -270,6 +275,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         claudeTushunModel: Deno.env.get('ANTHROPIC_API_KEY') ? (Deno.env.get('CLAUDE_TUSHUN_MODEL')?.trim() || CLAUDE_TUSHUN_MODELI) : null,
         // AI suhbat (2026-10-19): Claude bilan, `AI_SUHBAT=0` boʻlmasa — hamma xabarni AI yozadi.
         aiSuhbat: Boolean(Deno.env.get('ANTHROPIC_API_KEY')) && Deno.env.get('AI_SUHBAT') !== '0',
+        // AI tahlilchi (2026-11-05): `AI_TAHLIL` — off | sinov (faqat sinov raqamlari, standart) | on.
+        aiTahlil: Deno.env.get('ANTHROPIC_API_KEY') ? tahlilRejimi(Deno.env.get('AI_TAHLIL')) : 'off',
         // Payme/Click sozlanganmi (kalitlar emas, faqat bor-yoʻqligi) — 0067.
         tolov: tolovHolati(),
       },
@@ -523,6 +530,12 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       // Har Claude javobining sarfi — `ai_usage` ga, shu mijoz nomiga (0072).
       sarf: aiSarfYozuvchi(rpc, token, fonda),
     };
+    // AI tahlilchi (2026-11-05): Uzum bozori savoliga bazadan, asboblar bilan (`tahlilchi.ts`, 0080).
+    // `AI_TAHLIL`: off | sinov (standart — faqat sinov raqamlari) | on. Model — `CLAUDE_TAHLIL_MODEL` yoki `CLAUDE_MODEL`.
+    const tahlilRejim = tahlilRejimi(Deno.env.get('AI_TAHLIL'));
+    const claudeTahlil = tahlilRejim === 'off' ? null : claudeTahlilProvayderi({
+      kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_TAHLIL_MODEL')?.trim() || Deno.env.get('CLAUDE_MODEL'),
+    });
     // Brauzer CBU dan olgan kurs (2026-10-27: cbu.uz Edge ga javob bermaydi) — POST tanasidan,
     // tekshirib (`brauzerKursi`); kod harakatlari avval shuni oladi.
     const brauzerKurs: { qiymat: BrauzerKurslari | null } = { qiymat: null };
@@ -553,6 +566,11 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           tushun: (k: AiTushunSorovi, ms: number) => aiTushunBer({ ...llmSozlama, provayder: claudeTushun, vaqtMs: ms }, k),
           yoz: (k: AiYozSorovi, ms: number, qism?: (y: AiYozuvQismi) => void) => aiYozBer({ ...llmSozlama, vaqtMs: ms }, k, qism),
         },
+      } : {}),
+      ...(claudeTahlil !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {
+        tahlil: (s: TahlilSavoli, ms: number, o?: TahlilOqimi) =>
+          tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama.sarf, ...(o ?? {}) }, s, ms),
+        tahlilRuxsat: (h: YolHolati) => tahlilYoqilganmi(tahlilRejim, h.javoblar['telefon']),
       } : {}),
     };
     if (req.method === 'GET') {
@@ -602,7 +620,7 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           return suhbatTurn({
             ...d,
             oqim: {
-              holat: (h) => yubor('holat', { holat: h }),
+              holat: (h, izoh) => yubor('holat', { holat: h, ...(izoh ? { izoh } : {}) }),
               qism,
               qayta: () => { qism.bekor(); yubor('qayta', {}); },
             },
@@ -640,9 +658,19 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       // Sarf — `ai_usage` ga (0072); sessiyasiz savol — mijozsiz.
       sarf: aiSarfYozuvchi(rpc, token || null, fonda),
     };
+    // AI tahlilchi (2026-11-05) — `/suhbat` dagidek; `sinov` rejimida faqat sinov raqamli sessiya.
+    const tahlilRejim = tahlilRejimi(Deno.env.get('AI_TAHLIL'));
+    const claudeTahlil = tahlilYoqilganmi(tahlilRejim, o && !o.xato && o.holat ? o.holat.javoblar['telefon'] : null)
+      ? claudeTahlilProvayderi({
+        kalit: Deno.env.get('ANTHROPIC_API_KEY'), model: Deno.env.get('CLAUDE_TAHLIL_MODEL')?.trim() || Deno.env.get('CLAUDE_MODEL'),
+      })
+      : null;
     const sd = {
       ai: claude
         ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama, vaqtMs: ms }, k, qism)
+        : null,
+      tahlil: claudeTahlil
+        ? (s: TahlilSavoli, ms: number, oq?: TahlilOqimi) => tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama.sarf, ...(oq ?? {}) }, s, ms)
         : null,
       tarifCheklovi: tarifCheklovi(),
     };
@@ -651,8 +679,10 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     if (tana.oqim === true) {
       const g = await oqimYokiNatija((yubor) => {
         const qism = siyrak((m: string) => yubor('qism', { matn: m }), 120);
-        return sahifaJavobi({ ...sd, oqim: { qism, qayta: () => { qism.bekor(); yubor('qayta', {}); } } }, sk)
-          .finally(() => qism.bekor());
+        return sahifaJavobi({
+          ...sd,
+          oqim: { qism, qayta: () => { qism.bekor(); yubor('qayta', {}); }, holat: (izoh) => yubor('holat', { izoh }) },
+        }, sk).finally(() => qism.bekor());
       }, { xatoQiymati: (e) => oqimXatosi(e, yol) });
       if ('oqim' in g) return new Response(g.oqim, { headers: OQIM_SARLAVHALARI });
       return javob(g.natija);

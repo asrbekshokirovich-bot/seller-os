@@ -107,9 +107,10 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
   it.each([
     ['Uzum omboriga qanday topshiraman?', /Fulfilment markazi: Toshkent/],
     ['Kartochkaga qanday rasm kerak?', /750×1000.*9-qadamda \(Studiya\)/su],
-    ['Bojxona toʻlovi qancha?', /raqam bilan ayta olmayman.*customs\.uz/su],
-    ['Xitoydan tovar necha kunda keladi?', /Aniq kunini ayta olmayman.*kargo kompaniyasidan soʻrang/su],
-    ['Xitoydan tovar qancha vaqtda keladi?', /Aniq kunini ayta olmayman/],
+    // 2026-11-05: «ayta olmayman» oʻrniga — eʼlon qilingan narx va muddat, manba va sana bilan.
+    ['Bojxona toʻlovi qancha?', /200 \$ gacha bojsiz.*30%.*gazeta\.uz.*customs\.uz/su],
+    ['Xitoydan tovar necha kunda keladi?', /4–7 kun.*15–18 kun.*d2d\.uz.*kargo kompaniyasidan soʻrang/su],
+    ['Xitoydan tovar qancha vaqtda keladi?', /9,49 \$\/kg/],
     ['Sifatsiz tovar kelsa nima qilaman?', /8-qadamda \(Qabul\).*2 500 so‘m/su],
     ['Soliq qancha toʻlayman?', /7-qadamda \(Rasmiylashtirish\) soliq foizi.*soliq va yuridik masalalarda maslahat bermaydi/su],
     ['Daromad soligʻi qancha?', /7-qadamda \(Rasmiylashtirish\) soliq foizi/],

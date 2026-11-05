@@ -115,6 +115,9 @@ const BOLIMLAR: ReadonlyArray<[RegExp, readonly string[]]> = [
   [/ombor|topshir|taymslot|yetkazma|qadoq|склад|постав/u, ['Tovarni Uzum omboriga']],
   [/reklama|aksiya|promokod|bust|реклам/u, ['Reklama']],
   [/jarima|shtraf|blok|taqiq|штраф|запрещ/u, ['Yangi sotuvchi', 'Kim sotishi']],
+  // 2026-11-05: kargo narxi va muddati (5 marta «maʼlumotim yoʻq» degan edi), bojxona limiti.
+  [/kargo|cargo|карго|avia|авиа|bojxona|таможн|растамож|posilka|посылк|necha kunda kel|qancha kunda kel|qancha vaqtda kel|сколько дней/u,
+    ['Kargo va bojxona']],
 ];
 
 /**

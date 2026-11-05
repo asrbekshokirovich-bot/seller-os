@@ -7,6 +7,13 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-11-05] **AI tahlilchiga kunlik limit (`AI_TAHLIL=on` dan oldin).** Bitta tahlil savoli 2–5 ta Claude
+chaqiruvi va bir nechta SQL soʻrovi (eng ogʻiri ~2–4 s, butun bozor boʻyicha soʻz qidiruvi). Hozir chatda kunlik limit
+yoʻq — bitta sessiya ketma-ket yozib xarajat va baza yukini oshira oladi (eski AI yoʻlida ham shunday, tahlilchida narx
+3–8 barobar). Taklif: sessiya boʻyicha kunlik tahlil soni (`ai_usage` dan, `purpose='tahlil'`), oshsa — oddiy javob
+yoʻli; nazoratchi chegarani tanlaydi. Xavfsizlik koʻrigi (2026-11-05): `sinov` rejimi telefon naqshiga tayanadi —
+bu vaqtinchalik yoyish bayrogʻi, himoya emas (`tahlilchi.ts`, `sinovTelefonimi` izohi).
+
 — [agent, 2026-11-05] **Eski zumsavdo `sweep.yml` (GitHub Actions) 2-noyabrdan yana ishlayapti.**
 `zumsavdo.sweep` jurnali: 04.11 08:29, 17:42, 23:06 UTC — har biri ~3 soat, ~267 ming tovar, ustiga
 «sharh tarixi». Oktyabrda daqiqalar tugab jim toʻxtagan edi, noyabrda qayta ochildi. Zarari: (1) private

@@ -58,3 +58,4 @@ export * from './tovar-sotuvi.ts';
 export * from './bozor-paneli.ts';
 export * from './hisob.ts';
 export * from './bosh-namuna.ts';
+export * from './tahlilchi.ts';

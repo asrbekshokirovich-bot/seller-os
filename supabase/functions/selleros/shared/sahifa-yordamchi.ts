@@ -23,6 +23,7 @@ import { bilimJavobi } from './bilim-javob.ts';
 import { tekshir } from './tekshiruv.ts';
 import { apostrofTozala, kirillUlushi, ruschami, tushunishUchun, yozuvi, type Yozuv } from './yozuv.ts';
 import { aiUzr, SAYT_NOMLARI } from './ai-suhbat.ts';
+import { uzumOchishManzili, type TahlilHavola, type TahlilNatijasi, type TahlilSavoli } from './tahlilchi.ts';
 
 export type Sahifa = 'bosh' | 'kirish' | 'maxfiylik' | 'obuna';
 export const SAHIFALAR: readonly Sahifa[] = ['bosh', 'kirish', 'maxfiylik', 'obuna'];
@@ -57,8 +58,16 @@ export interface SahifaSorovi {
   tuzat: string | null;
 }
 
-export type SahifaManba = 'ai' | 'baza' | 'shablon';
-export interface SahifaJavobi { matn: string; manba: SahifaManba }
+export type SahifaManba = 'ai' | 'baza' | 'shablon' | 'tahlil';
+export interface SahifaJavobi {
+  matn: string;
+  manba: SahifaManba;
+  /** AI tahlilchi (2026-11-05): toʻliq tahlil («Batafsil»), tovar/doʻkon havolalari, «Uzumda ochish». */
+  batafsil?: string | null;
+  havolalar?: TahlilHavola[];
+  ochishManzili?: string | null;
+  keyingi?: string[];
+}
 
 export interface SahifaBogliqliklari {
   /** AI chaqiruvi (`llm.ts`, `sahifaJavobBer`); `null` — AI yoʻq. `vaqtMs` — shu chaqiruvga vaqt. */
@@ -69,7 +78,13 @@ export interface SahifaBogliqliklari {
    * Oqim (2026-10-20, «matn yozilgan sari chiqib borsin»): AI yozayotgan javob — qoralama
    * (shu paytgacha, har safar boshidan); darvozadan oʻtmasa — `qayta` (olib tashlansin).
    */
-  oqim?: { qism: (matn: string) => void; qayta: () => void } | null;
+  oqim?: { qism: (matn: string) => void; qayta: () => void; holat?: (izoh: string) => void } | null;
+  /**
+   * AI TAHLILCHI (2026-11-05): Uzum bozori haqidagi savolga bazadan, asboblar bilan (`tahlilchi.ts`).
+   * Berilsa — avval shu; `null` qaytarsa — oddiy javob yoʻli.
+   */
+  tahlil?: ((s: TahlilSavoli, vaqtMs: number, oqim?: { holat: (izoh: string) => void; qism: (q: string) => void; qayta: () => void })
+    => Promise<TahlilNatijasi | null>) | null;
 }
 
 export const SAHIFA_KORSATMA = [
@@ -126,6 +141,8 @@ const SAHIFA_MUDDAT_MS = 50_000;
 const SAHIFA_KAM_MS = 6_000;
 /** Urinishlar (2026-10-26: ikki → uch): darvoza oʻtkazmasa — sababi bilan, yiqilsa — shunchaki qayta. */
 const SAHIFA_URINISH = 3;
+/** AI tahlilchiga vaqt (2026-11-05): ishlamasa ham oddiy javobga ~10 s qoladi (Vercel — 60 s). */
+const TAHLIL_MS = 38_000;
 
 /** Brauzerdan kelgan tarix — tekshirib, oxirgi 6 tasi, har biri 500 belgigacha. */
 export function sahifaTarixi(x: unknown): SahifaXabari[] {
@@ -154,6 +171,25 @@ export async function sahifaJavobi(
   // Til — yozgan gapidan; aniq boʻlmasa (raqam, belgi) — sahifa tilidan.
   const yozuv = yozuvi(savol);
   const til: Yozuv = yozuv !== 'uz' ? yozuv : k.til === 'ru' && !/\p{Script=Latin}/u.test(savol) ? 'ru' : 'uz';
+  if (d.tahlil) {
+    const oqim = d.oqim ?? null;
+    const r = await d.tahlil({
+      savol, til, bugun: new Date().toISOString().slice(0, 10), holat: k.holat,
+      sahifa: SAHIFA_TAVSIFI[k.sahifa],
+      tarix: k.tarix.length ? k.tarix.map((x) => `${x.rol === 'mijoz' ? 'Odam' : 'Yordamchi'}: ${x.matn}`).join('\n') : null,
+      bilim: yordamchiBilimi(t, d.tarifCheklovi),
+    }, TAHLIL_MS, oqim ? {
+      holat: (izoh) => oqim.holat?.(izoh),
+      qism: (q) => oqim.qism(q),
+      qayta: () => oqim.qayta(),
+    } : undefined).catch(() => null);
+    if (r) {
+      return {
+        matn: apostrofTozala(r.qisqa), manba: 'tahlil', batafsil: r.batafsil ? apostrofTozala(r.batafsil) : null,
+        havolalar: r.havolalar, ochishManzili: r.ochish ? uzumOchishManzili(r.ochish) : null, keyingi: r.keyingi,
+      };
+    }
+  }
   if (d.ai) {
     const bilim = yordamchiBilimi(t, d.tarifCheklovi);
     const manba = {
