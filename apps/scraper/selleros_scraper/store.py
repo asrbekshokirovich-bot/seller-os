@@ -133,6 +133,17 @@ class Store:
         """Uzum aytgan turkum hajmini yozadi."""
         return self._rpc(client, "so_turkum_hajmi_yoz", {"p_royxat": royxat})
 
+    def turkum_daraxtini_yoz(self, client: httpx.Client, tugunlar: list[dict[str, Any]]) -> dict[str, Any]:
+        """Butun daraxtni almashtiradi (0077). Javob — `{tugunlar, barglar, ochirildi, ...}`.
+
+        Baza yarim roʻyxatni rad etadi (5 000 dan kam yoki ildizsiz) — bu yerda ham
+        javob shakli tekshiriladi: obyekt boʻlmasa yozilgan deb hisoblanmaydi.
+        """
+        javob = self._rpc(client, "so_turkum_daraxti_yoz", {"p_tugunlar": tugunlar})
+        if not isinstance(javob, dict) or "tugunlar" not in javob:
+            raise StoreError(f"so_turkum_daraxti_yoz kutilmagan javob: {str(javob)[:120]}")
+        return javob
+
     def sotuvni_hisobla(self, client: httpx.Client, kundan: str, kungacha: str) -> dict[str, Any]:
         return self._rpc(client, "so_rollup_sales", {"p_from": kundan, "p_to": kungacha})
 

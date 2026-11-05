@@ -7,6 +7,24 @@ Format: `— [kim taklif qildi] g'oya. Nega keyinroq.`
 
 ## Ko'rib chiqilmagan
 
+— [agent, 2026-11-05] **Eski zumsavdo `sweep.yml` (GitHub Actions) 2-noyabrdan yana ishlayapti.**
+`zumsavdo.sweep` jurnali: 04.11 08:29, 17:42, 23:06 UTC — har biri ~3 soat, ~267 ming tovar, ustiga
+«sharh tarixi». Oktyabrda daqiqalar tugab jim toʻxtagan edi, noyabrda qayta ochildi. Zarari: (1) private
+repo daqiqalarini kuniga ~9 soat yeydi va oy oʻrtasida yana jim toʻxtaydi; (2) `zumsavdo.product_day.sold_units`
+xom (04.11: 10 267 tovarda 817 100 dona/kun — zaxira toʻldirish sotuv boʻlib sanalgan) — AI tahlilchi buni
+ISHLATMAYDI (faqat `tovar_30kun` + formula). VPS sikli bu ishni allaqachon qiladi. Taklif: `sweep.yml` ni
+oʻchirish (nazoratchi qarori — workflow ni oʻchirish repo sozlamasi). Keyinroq: VPS qaytgach.
+
+— [agent, 2026-11-05] **Onboarding sohasi — daraxtdan, nomdan emas.** `soha.ts` turkum sohasini NOM
+boʻyicha regex bilan taxmin qiladi: «Kiyim qisqichlari», «Kiyimlarni tozalash roliklari», «Poyabzal
+quritgichlar» «kiyim» ga tushadi. Daraxt (0077) bor — soha = turkumning yuqori darajadagi otasi
+(«Kiyim», «Poyabzallar» …) aniq beriladi. Keyinroq: daraxt jonli yuklangach, 12 ta soha ↔ Uzum
+yuqori turkumlari moslik jadvali (nazoratchi koʻrib chiqadi).
+
+— [agent, 2026-11-05] **Doʻkon havolasi.** AI tahlilchi doʻkonni Uzumda ocha olmaydi: doʻkon sahifasi
+`uzum.uz/uz/shop/<slug>`, slug esa bazada yoʻq (perepis faqat id va nomni yozadi). Hozircha doʻkon
+oʻrniga uning eng koʻp sotgan tovari ochiladi. Keyinroq: perepis `Shop.url` ni ham yozsin (VPS).
+
 — [agent, 2026-10-26] **Kengaytma sessiya tokeni manzilga umuman tushmasin.**
 Xavfsizlik tekshiruvi (OʻRTA): kengaytma tokenni `#sessiya=…` da beradi (`/usta` yon
 panel ramkasida, `/taqqos` yangi varaqda). 2026-10-26 dan sayt uni varaq xotirasiga

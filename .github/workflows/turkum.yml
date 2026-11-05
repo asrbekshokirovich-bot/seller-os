@@ -35,7 +35,18 @@ jobs:
       - run: pip install -e '.[dev]'
         working-directory: apps/scraper
 
+      # Turkum daraxti (0077) — BITTA soʻrov (qidiruv emas, limitga tegmaydi).
+      # Yarim daraxt yozilmaydi: skript ham, baza ham rad etadi. Yiqilsa hajm
+      # yigʻish baribir yuradi — ular bir-biriga bogʻliq emas.
+      - name: Daraxt
+        working-directory: apps/scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python -m selleros_scraper.daraxt
+
       - name: Yigʻish
+        if: success() || failure()
         working-directory: apps/scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

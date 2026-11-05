@@ -246,6 +246,31 @@ kesh har nusxada alohida — jonli, eng katta turkum takroriy soʻrovda ham 4 s 
 `so_bozor_qatorlar` oʻzgarmadi (saralashsiz varianti iliq oʻqishda 0,86 → 0,80 s — farq kichik).
 RLS yoqiq, siyosat yoʻq; faqat `service_role` funksiyalari orqali.
 
+### AI tahlilchi jadvallari (0077–0081, 2026-11-05)
+
+Nega: AI butun bozor boʻyicha savolga («kiyimda nechta sotuvchi yaxshi sotyapti, nimaga?»)
+aniq raqam bilan javob bersin. Xom jadvallardan bunday hisob 1–3 daqiqa — chat uchun
+sekin; tayyor jadval bilan < 1 s. Hech biri yangi oʻlchov emas — hammasi quyidagi manbalardan.
+
+| Jadval | Nima | Manba |
+|---|---|---|
+| `zumsavdo.turkum` (0077) | Uzum turkum daraxti: `ota_id`, `chuqurlik`, `yol bigint[]` (ildizdan), `yol_nomi` («Kiyim › Ayollar kiyimi › Shimlar»), `barg` | skreyper `selleros_scraper.daraxt` (`turkum.yml`, kuniga 1 soʻrov) → `so_turkum_daraxti_yoz` (toʻliq almashtiradi; 5 000 dan kam tugun, ildizsiz, takror, yetim yoki halqa — rad) |
+| `zumsavdo.tahlil_tovar` (MV) | har tovar: turkum, doʻkon, narx, `oyiga`/`holat`/`ishonch` (`zumsavdo.tovar_baho` — FORMULA.md «Tovar sotuvi» ning SQL nusxasi, 0078), `tushum` = oyiga × narx (ziddiyatsiz), trend (`s7/k7`, `s23/k23`), sharh, reyting (perepis), `yosh_kun` (tovar raqamidan) | `tovar_30kun` + oxirgi TOʻLIQ perepis oʻtishi + `product` |
+| `zumsavdo.tahlil_census_dt` (MV) | doʻkon × barg, SHU PAYTGACHA: qoʻyilgan tovarlar (olib tashlanganlari ham), sharhli (sotuvi isbotlangan), doʻkonning jami buyurtmasi (Uzum hisobi) | `product` + `product_census` |
+| `zumsavdo.tahlil_dokon_turkum` (MV) | doʻkon × barg, OXIRGI 30 KUN: tovar, sotgan, dona, tushum, narx medianasi, reyting, chegirma, tugagan, yangi | `tahlil_tovar` |
+| `zumsavdo.tahlil_dokon` (MV) | doʻkon: ikkalasi + nom, yosh (eng eski tovaridan), asosiy turkum | yuqoridagilar |
+| `zumsavdo.tahlil_turkum` (MV) | daraxtning HAR tuguni (ota ham — barglar yigʻindisi, doʻkon bir marta): sotuvchilar, sotgan, tovar, dona, tushum, eng yaxshi 20% / 10 doʻkon tushumi, narx medianasi, trend, shu paytgacha sotuvchilar | yuqoridagilar + daraxt |
+| `zumsavdo.tahlil_jurnal` | har yangilash: qaysi kun, qaysi perepis oʻtishi (va sanasi), qaysi jadvallar, nechta qator, daraxtsiz tovar soni | `tahlil_yangila()` |
+
+Yangilash — `zumsavdo.tahlil_yangila()`, pg_cron har 10 daqiqada (0081): faqat manba
+oʻzgarganda (`xulosa_jurnal` ning yangi kuni, yangi toʻliq perepis oʻtishi, daraxt);
+`refresh … concurrently` — AI oʻqishda davom etadi. Tovar yoshi: 0043 statik
+kalibrovkasi + `selleros.id_frontier` va `market_day.id_frontier` nuqtalari (3 mln dan
+yuqori), chiziqli. AI asboblari (0080, faqat `service_role`): `so_tahlil_turkum_top`,
+`so_tahlil_bozor`, `so_tahlil_sotuvchilar`, `so_tahlil_tovarlar`, `so_tahlil_dokon`,
+`so_tahlil_tovar`, `so_tahlil_turkumlar` — har javobda `holat` (maʼlumot sanasi, perepis
+sanasi). Hammasi `zumsavdo` sxemasida: anon/authenticated ga huquq yoʻq.
+
 ## 3. Usta jadvallari
 
 ### `product_flags`

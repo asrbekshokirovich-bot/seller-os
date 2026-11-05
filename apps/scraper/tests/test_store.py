@@ -92,3 +92,23 @@ def test_royxat_ORNIGA_boshqa_narsa_kelsa_xato():
     s, c = store_bilan(lambda r: httpx.Response(200, json={"xato": "yo'q"}))
     with pytest.raises(StoreError, match="ro'yxat qaytarmadi"):
         s.kuzatuv_royxati(c)
+
+
+def test_turkum_daraxti_javob_shakli_tekshiriladi():
+    """0077: obyekt boʻlmagan javob «yozildi» deb hisoblanmaydi."""
+    olingan = {}
+
+    def handler(r):
+        olingan["url"] = str(r.url)
+        olingan["tana"] = r.content
+        return httpx.Response(200, json={"tugunlar": 6923, "barglar": 5934, "ochirildi": 0})
+
+    s, c = store_bilan(handler)
+    j = s.turkum_daraxtini_yoz(c, [{"id": 1, "ota_id": None, "nom": "R", "kattalar": False}])
+    assert j["tugunlar"] == 6923
+    assert olingan["url"].endswith("/rest/v1/rpc/so_turkum_daraxti_yoz")
+    assert b'"p_tugunlar"' in olingan["tana"]
+
+    s2, c2 = store_bilan(lambda r: httpx.Response(204))
+    with pytest.raises(StoreError, match="kutilmagan"):
+        s2.turkum_daraxtini_yoz(c2, [])
