@@ -778,7 +778,13 @@ export function tahlilRejimi(env: string | null | undefined): TahlilRejimi {
   return 'sinov';
 }
 
-/** Sinov telefoni: `+998 90 000 …` (jonli sinov personalari; haqiqiy raqam bunday boshlanmaydi). */
+/**
+ * Sinov telefoni: `+998 90 000 …` (jonli sinov personalari). Bu XAVFSIZLIK CHEGARASI EMAS — vaqtinchalik
+ * yoyish bayrogʻi: raqamni mijoz oʻzi yozadi, ya'ni bunday raqam yozgan har kim tahlilchini sinovdan oldin
+ * oladi. Ataylab qabul qilingan (2026-11-05, xavfsizlik koʻrigi): tahlilchi faqat oʻqiydi, natijasi — Uzumning
+ * ochiq maʼlumotidan yigʻilgan raqamlar (shaxsiy maʼlumot yoʻq), bitta savol narxi aylanishlar va vaqt bilan
+ * cheklangan, `sinov` rejimi esa 50 savollik sinovgacha qisqa muddat. `on` dan oldin — kunlik limit (BACKLOG).
+ */
 export function sinovTelefonimi(telefon: unknown): boolean {
   return typeof telefon === 'string' && /^\+99890000\d{4}$/.test(telefon.replace(/\s+/g, ''));
 }
