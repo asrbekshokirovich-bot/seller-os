@@ -46,7 +46,7 @@ import b from './bosh.module.css';
 const ZINA: readonly (readonly [string, string])[] = [
   ['Tanishuv', 'Знакомство'], ['Yoʻnalish', 'Направление'], ['Tovar', 'Товар'],
   ['Tannarx', 'Расчёт'], ['Zavod', 'Фабрика'], ['Buyurtma', 'Заказ'],
-  ['Bojxona', 'Таможня'], ['Qabul', 'Приёмка'], ['Studiya', 'Студия'],
+  ['Rasmiy', 'Оформление'], ['Qabul', 'Приёмка'], ['Studiya', 'Студия'],
   ['Yuklash', 'Загрузка'], ['Sotuv', 'Продажи'], ['Hisobot', 'Отчёт'],
 ];
 
@@ -55,10 +55,10 @@ const IZOH: readonly (readonly [string, string])[] = [
   ['Siz haqingizda bir necha savol.', 'Несколько вопросов о вас.'],
   ['Byudjet va qiziqishingizga mos yoʻnalish.', 'Направление под ваш бюджет и интересы.'],
   ['Uzum bazasidan tovar va tavsiya miqdor.', 'Товар из базы Uzum и рекомендуемое количество.'],
-  ['Tovar, kargo, bojxona va Uzum ulushi.', 'Товар, карго, таможня и доля Uzum.'],
+  ['Xitoyda qancha toʻlash mumkin: Uzum komissiyasi va yetkazish bilan.', 'Сколько можно платить в Китае: с комиссией и доставкой Uzum.'],
   ['Xitoydan zavod va narx, soʻmda.', 'Фабрика в Китае и цена в сумах.'],
   ['Buyurtma berish va yoʻlga chiqarish.', 'Заказ и отправка в путь.'],
-  ['Bojxona va hujjatlar.', 'Таможня и документы.'],
+  ['YATT, bank hisobi va Uzum kabineti.', 'ИП, расчётный счёт и кабинет Uzum.'],
   ['Tovarni qabul qilish.', 'Приёмка товара.'],
   ['Tovar suratlari va tavsifi.', 'Фото и описание товара.'],
   ['Uzumga kartochka yuklash.', 'Загрузка карточки на Uzum.'],
@@ -85,8 +85,8 @@ const OLISH: readonly (readonly [string, string, string, string, boolean])[] = [
     'Направления', 'Под вашу сферу и бюджет — с цифрами из базы и фото с Uzum.', true],
   ['Tovar va nechta olish', 'Uzumda qancha sotilayotganiga qarab; sotilmaydiganlari chiqarib tashlanadi.',
     'Товар и сколько брать', 'По тому, сколько продаётся на Uzum; неходовые отсеиваются.', false],
-  ['Tannarx va Xitoydagi narx', 'Kargo, bojxona va Uzum ulushi bilan, soʻmda; Xitoydagi zavodlar — rasm boʻyicha.',
-    'Себестоимость и цена в Китае', 'С карго, таможней и долей Uzum, в сумах; фабрики в Китае — по фото.', false],
+  ['Tannarx va Xitoydagi narx', 'Uzum komissiyasi va yetkazish bilan, soʻmda; Xitoydagi zavodlar — rasm boʻyicha.',
+    'Себестоимость и цена в Китае', 'С комиссией и доставкой Uzum, в сумах; фабрики в Китае — по фото.', false],
 ];
 
 /** Imkoniyat kartasidagi misol (dizayndagi): Xitoyda 36 700, Uzumda 89 000 soʻm. Kartada «misol» deb yozilgan. */
@@ -290,7 +290,7 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil, namuna
               />
               <div className={b.belgilar}>
                 <Belgili>{tr('Har yoʻnalishda — sotuvchilar soni va katta doʻkonlar ulushi', 'В каждом направлении — число продавцов и доля крупных магазинов')}</Belgili>
-                <Belgili>{tr('Tannarx soʻmda: kargo, bojxona va Uzum ulushi bilan', 'Себестоимость в сумах: с карго, таможней и долей Uzum')}</Belgili>
+                <Belgili>{tr('Tannarx soʻmda: Uzum komissiyasi va yetkazish bilan', 'Себестоимость в сумах: с комиссией и доставкой Uzum')}</Belgili>
                 <Belgili>{tr('Xitoydagi zavod narxlari — rasm boʻyicha', 'Цены фабрик в Китае — по фото')}</Belgili>
               </div>
               <div>
@@ -353,8 +353,8 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil, namuna
             <details className={`${b.rv} ${b.ochKarta} ${b.keyin}`}>
               <summary className={b.keyinBosh}>
                 {tr(
-                  `Keyin yana ${keyingiQadamlar.length} qadam: buyurtma, bojxona, Uzumga yuklash, sotuv va hisobot`,
-                  `Дальше ещё ${keyingiQadamlar.length} ${ruShakl(keyingiQadamlar.length, ['шаг', 'шага', 'шагов'])}: заказ, таможня, загрузка на Uzum, продажи и отчёт`,
+                  `Keyin yana ${keyingiQadamlar.length} qadam: buyurtma, rasmiylashtirish, Uzumga yuklash, sotuv va hisobot`,
+                  `Дальше ещё ${keyingiQadamlar.length} ${ruShakl(keyingiQadamlar.length, ['шаг', 'шага', 'шагов'])}: заказ, оформление, загрузка на Uzum, продажи и отчёт`,
                 )}
               </summary>
               <ol className={b.qadamlar}>
@@ -423,13 +423,13 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil, namuna
                 {(cheklov === false
                   ? [
                     tr('Yoʻnalish va tovar', 'Направление и товар'),
-                    tr('Tannarx: kargo, bojxona va Uzum ulushi bilan', 'Себестоимость: с карго, таможней и долей Uzum'),
+                    tr('Tannarx: Uzum komissiyasi va yetkazish bilan', 'Себестоимость: с комиссией и доставкой Uzum'),
                     tr('Xitoydagi zavod narxlari', 'Цены фабрик в Китае'),
                     tr('Buyurtmadan Uzumda sotuvgacha', 'От заказа до продаж на Uzum'),
                   ]
                   : [
                     tr('Yoʻnalish va tovar', 'Направление и товар'),
-                    tr('Tannarx: kargo, bojxona va Uzum ulushi bilan', 'Себестоимость: с карго, таможней и долей Uzum'),
+                    tr('Tannarx: Uzum komissiyasi va yetkazish bilan', 'Себестоимость: с комиссией и доставкой Uzum'),
                     tr('Xitoydagi zavod narxlari', 'Цены фабрик в Китае'),
                   ]).map((m) => (
                   <div key={m} className={b.ochBelgi}>
@@ -455,7 +455,7 @@ export default function BoshSahifa({ tovar, holat, holatRu, til: boshTil, namuna
               </div>
               <div className={b.belgilar12}>
                 <Belgili>{tr('Buyurtma va kargo', 'Заказ и карго')}</Belgili>
-                <Belgili>{tr('Bojxona va qabul', 'Таможня и приёмка')}</Belgili>
+                <Belgili>{tr('Rasmiylashtirish va qabul', 'Оформление и приёмка')}</Belgili>
                 <Belgili>{tr('Surat, kartochka va Uzumga yuklash', 'Фото, карточка и загрузка на Uzum')}</Belgili>
                 <Belgili>{tr('Sotuv kuzatuvi va oylik hisobot', 'Отслеживание продаж и отчёт за месяц')}</Belgili>
               </div>
@@ -593,7 +593,7 @@ function BoshSavol({ til, tr }: { til: Til; tr: Tr }) {
       <button type="submit" className={`${b.tugma} ${b.tugmaOq} ${b.korishTugma}`} disabled={!matn || ketdi}>
         {tr('Yoʻnalishlarni koʻrish', 'Показать направления')}<Strelka />
       </button>
-      <p className={b.heroIzoh}>{tr('Roʻyxatdan oʻtish va telefon kerak emas.', 'Без регистрации и номера телефона.')}</p>
+      <p className={b.heroIzoh}>{tr('Yoʻnalishlar roʻyxatdan oʻtmasdan chiqadi. Davom etish uchun keyin ism va telefon soʻraladi.', 'Направления — без регистрации. Чтобы продолжить, потом спросим имя и телефон.')}</p>
     </form>
   );
 }

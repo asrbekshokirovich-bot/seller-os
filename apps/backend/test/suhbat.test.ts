@@ -477,7 +477,7 @@ describe('suhbatTurn', () => {
     expect(t8.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'kod', 'menejer']);
     expect(t8.xabarlar[1]!.savolId).toBe('ochiq_ish');
     expect(t8.xabarlar[2]!.savolId).toBe('rasmiy');
-    expect(t8.xabarlar[2]!.matn).toMatch(/Faktda yoʻq: BHM/);
+    expect(t8.xabarlar[2]!.matn).toMatch(/Hali kiritilmagan: BHM/);
     if (t8.keyingi.tur !== 'savol') throw new Error(t8.keyingi.tur);
     expect(t8.keyingi.savol.id).toBe('huquqiy_shakl');
     const t9 = await suhbatTurn(d, 'tok', { savolId: 'huquqiy_shakl', javob: 'yatt' });

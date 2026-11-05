@@ -134,14 +134,14 @@ describe('buyurtma — kargo hamkori YOʻQ (0056 holati)', () => {
     expect(s.urllar).toEqual(['https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/']);
     expect(b.nomlar()).toEqual(['so_fakt_oqi']);
     expect(b.chaqiruvlar[0]!.arg.p_kalitlar).toContain('kargo.avia.usd_kg');
-    expect(n.izoh).toMatch(/Tizim buyurtma bermaydi/);
+    expect(n.izoh).toMatch(/Biz buyurtma bermaymiz/);
   });
 
   it('fakt oʻqilmadi (baza null) — "kiritilmagan" EMAS, "oʻqilmadi"', async () => {
     const b = soxtaBaza({ fakt: null });
     const n = await kod(b).buyurtma(holatYasa());
-    expect(n.kargo.izoh).toBe('fakt roʻyxati oʻqilmadi (baza javob bermadi)');
-    expect(qator(n, 100).kargoIzoh).toBe('fakt roʻyxati oʻqilmadi (baza javob bermadi)');
+    expect(n.kargo.izoh).toBe('maʼlumotlar oʻqilmadi (baza javob bermadi)');
+    expect(qator(n, 100).kargoIzoh).toBe('maʼlumotlar oʻqilmadi (baza javob bermadi)');
   });
 
   it('5-qadam kursi yoʻq va CBU yiqilsa — soʻm null, yuan turadi (nol emas)', async () => {
@@ -186,7 +186,7 @@ describe('buyurtma — qayta buyurtma (11-qadam «Ha, yana buyurtma», partiya �
     expect(n.qatorlar.map((q) => [q.productId, q.miqdor, q.holat])).toEqual([[100, 75, 'tayyor']]);
     expect(qator(n, 100)).toMatchObject({ narxYuan: 27, jamiYuan: 2025 });
     expect(n.jami).toMatchObject({ dona: 75, tayyor: 1, tanlanmagan: 0 });
-    expect(n.izoh).toMatch(/^2-partiya \(qayta buyurtma\)\. Varaqa:/);
+    expect(n.izoh).toMatch(/^2-partiya \(qayta buyurtma\)\. Varaqa 5-qadamda/);
   });
 
   it('oʻtkazilgan — oldingi partiya miqdori; hammasiga 0 — olchov_yoq, sababi aytiladi', async () => {
@@ -263,7 +263,7 @@ describe('ochiqIsh', () => {
     const c = b.chaqiruvlar.find((x) => x.nom === 'so_ochiq_ish_yoz')!;
     expect(c.arg).toMatchObject({ p_token: 'tok', p_tur: 'kutyapman', p_sabab: 'yuk kelishi', p_muddat: null,
       p_props: { shahar: 'Toshkent', kargo_yol: null, buyurtma_raqami: 'ORD-1' } });
-    expect(n.izoh).toMatch(/Eslatma mexanizmi hali yoʻq/);
+    expect(n.izoh).toMatch(/eslatma yubormaymiz/);
   });
 
   it('kargo yoʻli BITTA (tanlov soʻralmagan) — oʻsha yoʻl muddati; Toshkent sanasi (UTC 20:00 — ertasi kun)', async () => {

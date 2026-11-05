@@ -42,6 +42,9 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga, sarlavha }: {
 }) {
   // Joriy reja va Payme/Click ulanganmi — serverdan (`obunaHolati.ts`).
   const holat = useObunaHolati(sarlavha);
+  // Cheklov oʻchiq — hozir 12 qadamning hammasi bepul (ikkinchi koʻrik, 3-taklif): qulf, «Tanlangan» va toʻlov
+  // qismi koʻrsatilmaydi — mijoz «Keyingi toʻlov 5 dek» ni koʻrib qoʻrqib ketmasin. Cheklov yoqilsa — hammasi qaytadi.
+  const hammasiBepul = holat.cheklov === false;
   const joriy: Reja = holat.joriy === 'bepul' ? 'bepul' : 'pro';
   const [tanlangan, setTanlangan] = useState<Reja>('pro');
   const [usul, setUsul] = useState<'payme' | 'click'>('payme');
@@ -74,11 +77,19 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga, sarlavha }: {
         <MavzuTugma mavzu={mavzu} tanla={mavzuniTanla} tr={tr} />
       </header>
 
-      <div className={o.ichi}>
+      <div className={`${o.ichi} ${hammasiBepul ? o.ichiYakka : ''}`}>
+        <div className={o.rejalarUstun}>
+        {hammasiBepul && (
+          <div className={o.bepulXabar} role="status">
+            <span className={o.ogohIkon}><Ikon nom="belgi" o={15} /></span>
+            {tr(`Hozir ${SUHBAT_QADAMLARI.length} qadamning hammasi bepul — toʻlov kerak emas. Pullik reja keyinroq yoqiladi.`,
+              `Сейчас все ${SUHBAT_QADAMLARI.length} шагов бесплатны — платить не нужно. Платный тариф включим позже.`)}
+          </div>
+        )}
         <div className={o.rejalar}>
           {REJALAR.map((r) => {
             const chegara = REJA_QADAMI[r];
-            const faol = r === tanlangan && r !== joriy;
+            const faol = !hammasiBepul && r === tanlangan && r !== joriy;
             return (
               <div key={r} className={`${o.reja} ${faol ? o.rejaTanlangan : ''}`}>
                 <div className={o.rejaBosh}>
@@ -91,11 +102,15 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga, sarlavha }: {
                   <span className={`${o.narxSon} ${faol ? o.narxAcc : ''}`}>{son(narx(r))}</span>
                   <span className={o.narxBirlik}>{tr('soʻm / oy', 'сум / мес')}</span>
                 </div>
-                <div className={o.qadam}>{tr(`1–${chegara}-qadam`, `Шаги 1–${chegara}`)}</div>
+                <div className={o.qadam}>
+                  {hammasiBepul && r === 'bepul'
+                    ? tr(`Hozir 1–${qadamlar.length}-qadam bepul`, `Сейчас шаги 1–${qadamlar.length} бесплатно`)
+                    : tr(`1–${chegara}-qadam`, `Шаги 1–${chegara}`)}
+                </div>
                 <div className={o.chiziq} />
                 <ul className={o.royxat}>
                   {qadamlar.map((q) => {
-                    const bor = q.n <= chegara;
+                    const bor = hammasiBepul || q.n <= chegara;
                     return (
                       <li key={q.n} className={bor ? '' : o.yopiq}>
                         <span className={bor ? o.belgiBor : o.belgiYoq}>
@@ -109,6 +124,8 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga, sarlavha }: {
                 <div className={o.boshliq} />
                 {r === joriy
                   ? <button type="button" className={`${o.tugma} ${o.tugmaChiziq}`} disabled>{tr('Joriy reja', 'Текущий тариф')}</button>
+                  : hammasiBepul
+                    ? <button type="button" className={`${o.tugma} ${o.tugmaChiziq}`} disabled>{tr('Hozir kerak emas', 'Сейчас не нужно')}</button>
                   : faol
                     ? <button type="button" className={`${o.tugma} ${o.tugmaAcc}`} aria-pressed="true">{tr('Tanlangan', 'Выбрано')}<Ikon nom="belgi" o={18} /></button>
                     : <button type="button" className={`${o.tugma} ${o.tugmaQora}`} onClick={() => setTanlangan(r)}>{tr('Tanlash', 'Выбрать')}</button>}
@@ -116,7 +133,9 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga, sarlavha }: {
             );
           })}
         </div>
+        </div>
 
+        {!hammasiBepul && (
         <aside className={o.tolov}>
           {/* Ikki guruh: keng ekranda bitta ustun (dizayn), tor ekranda yonma-yon — toʻlov tugmasi pastga tushib ketmaydi. */}
           <div className={o.tolovChap}>
@@ -166,6 +185,7 @@ export function Obuna({ tr, mavzu, mavzuniTanla, orqaga, sarlavha }: {
           </button>
           </div>
         </aside>
+        )}
       </div>
     </>
   );

@@ -39,6 +39,7 @@ import {
   hisobniYoz,
   voronkaniOl,
   boshNamunasi,
+  kartochkaMosBer,
   kartochkaYozBer,
   turkumRasmlari,
   suhbatBoshdan,
@@ -457,7 +458,11 @@ export function build(): FastifyInstance {
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
         kurs: { qiymat: kurs },
         ...(claude
-          ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(token), k) }
+          ? {
+            kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(token), k),
+            // Ikki til bir xil maʼnodami (ikkinchi koʻrik, 4-taklif) — Edge bilan bir xil: tez model.
+            kartochkaMos: (m: Parameters<typeof kartochkaMosBer>[1]) => kartochkaMosBer({ ...llmSozlama(token), provayder: claudeTushun }, m),
+          }
           : {}) }),
     // AI suhbat (2026-10-19) — Edge bilan bir xil: faqat Claude bilan, `AI_SUHBAT=0` oʻchiradi.
     ...(claude !== null && process.env.AI_SUHBAT !== '0'

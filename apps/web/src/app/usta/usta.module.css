@@ -465,9 +465,11 @@
 
 button.sizBelgi { cursor: pointer; }
 
-button.sizBelgi:not(:disabled):hover {
-  box-shadow: inset 0 0 0 1.5px var(--acc);
-  color: var(--acc);
+@media (hover: hover) {
+  button.sizBelgi:not(:disabled):hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 button.sizBelgi:disabled { opacity: 0.6; }
@@ -909,6 +911,14 @@ button.sizBelgi:disabled { opacity: 0.6; }
   color: var(--xira);
 }
 
+/* Manba sayti — bosiladigan (1-taklif). */
+.manbaHavola {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
 .ajratilgan {
   margin: 14px 0 0;
   padding-top: 14px;
@@ -1272,11 +1282,24 @@ button.sizBelgi:disabled { opacity: 0.6; }
   text-align: left;
 }
 
-.variant:not(:disabled):hover,
 .variantTanlangan {
   box-shadow: inset 0 0 0 2px var(--acc);
   background: var(--acc10);
 }
+
+/*
+ * Sichqoncha bezagi — faqat sichqonchali qurilmada (ikkinchi koʻrik, 8-taklif): telefonda bosilgan joydagi
+ * :hover keyingi savolning xuddi shu joydagi tugmasida qolib, u «tanlangandek» koʻrinardi.
+ */
+@media (hover: hover) {
+  .variant:not(:disabled):hover {
+    box-shadow: inset 0 0 0 2px var(--acc);
+    background: var(--acc10);
+  }
+}
+
+/* Koʻp tanlovdagi oʻz nomli tugma («Bilmayman», 7-taklif) — butun qator. */
+.variantKeng { grid-column: 1 / -1; }
 
 .variantUzun {
   height: auto;
@@ -1420,7 +1443,9 @@ button.sizBelgi:disabled { opacity: 0.6; }
   white-space: nowrap;
 }
 
-.nomTugma:not(:disabled):hover { box-shadow: inset 0 0 0 2px var(--acc); }
+@media (hover: hover) {
+  .nomTugma:not(:disabled):hover { box-shadow: inset 0 0 0 2px var(--acc); }
+}
 .nomTugma:disabled { opacity: 0.55; }
 
 /* Yoʻnalish kartasidagi tanlash tugmasi — butun kenglikda, uzun nom oʻraladi. */
@@ -1611,9 +1636,11 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.tezSavol:not(:disabled):hover {
-  box-shadow: inset 0 0 0 1.5px var(--acc);
-  color: var(--acc);
+@media (hover: hover) {
+  .tezSavol:not(:disabled):hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 .tezSavol:disabled { opacity: 0.55; }
@@ -1642,10 +1669,16 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.batafsilTugma:hover,
 .batafsilTugma[aria-expanded='true'] {
   box-shadow: inset 0 0 0 1.5px var(--acc);
   color: var(--acc);
+}
+
+@media (hover: hover) {
+  .batafsilTugma:hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 .batafsilMatn {
@@ -1699,12 +1732,20 @@ button.sizBelgi:disabled { opacity: 0.6; }
   opacity: 0.7;
 }
 
-.javobBahoTugma:not(:disabled):hover,
 .javobBahoTanlangan {
   filter: none;
   opacity: 1;
   box-shadow: inset 0 0 0 1.5px var(--acc);
   background: var(--acc10);
+}
+
+@media (hover: hover) {
+  .javobBahoTugma:not(:disabled):hover {
+    filter: none;
+    opacity: 1;
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    background: var(--acc10);
+  }
 }
 
 .javobBahoRahmat {
@@ -1728,6 +1769,14 @@ button.sizBelgi:disabled { opacity: 0.6; }
 }
 
 .ilova .otkazishIchki { color: var(--xira); }
+
+/* «Bu tovarni oʻtkazib yuborish» — hech bir 1688 taklifi chegaraga sigʻmaganda maslahat (6-taklif). */
+.otkazishAsosiy,
+.ilova .otkazishAsosiy {
+  color: var(--acc);
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  background: var(--acc10);
+}
 
 /* Erkin javob — dizayndagi «Oʻzim yozaman» qatori. */
 .kiritish {
@@ -2350,9 +2399,11 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.nusxaTugma:hover {
-  box-shadow: inset 0 0 0 1.5px var(--acc);
-  color: var(--acc);
+@media (hover: hover) {
+  .nusxaTugma:hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 .nusxaMatn {
@@ -2437,8 +2488,10 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.sbKarta:hover {
-  border-color: var(--acc);
+@media (hover: hover) {
+  .sbKarta:hover {
+    border-color: var(--acc);
+  }
 }
 
 .sbKartaJoriy {

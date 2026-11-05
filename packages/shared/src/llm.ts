@@ -16,6 +16,7 @@
  */
 
 import type { KartochkaMatni } from './kartochka-matn.js';
+import { KARTOCHKA_MOS_KORSATMA, KARTOCHKA_MOS_SXEMA, kartochkaMosMatni, kartochkaMosniOqi, type KartochkaMosligi } from './kartochka-mos.js';
 import { XITOY_NOM_KORSATMA, XITOY_NOM_SXEMA, xitoyNomlariniOqi, xitoyNomMatni } from './xitoy-nom.js';
 import {
   AI_TUSHUN_KORSATMA, AI_TUSHUN_SXEMA, AI_YOZ_KORSATMA, AI_YOZ_SXEMA, aiTushunchaniOqi, aiTushunMatni, aiYozMatni, aiYozuvniOqi,
@@ -180,6 +181,19 @@ export async function kartochkaYozBer(
     console.warn('llm kartochka: JSON emas');
     return null;
   }
+}
+
+/**
+ * Kartochka matni — oʻzbekcha va ruscha qism bir xil maʼnodami (ikkinchi koʻrik, 4-taklif;
+ * `kartochka-mos.ts`). Tez model. `null` — ishlamadi yoki JSON buzuq: tekshirilmadi deb hisoblanadi.
+ */
+export async function kartochkaMosBer(s: LlmSozlama, m: KartochkaMatni): Promise<KartochkaMosligi | null> {
+  const javob = await chaqir({ ...s, vaqtMs: s.vaqtMs ?? 15_000 }, KARTOCHKA_MOS_KORSATMA, kartochkaMosMatni(m), 'kartochka-mos',
+    KARTOCHKA_MOS_SXEMA as unknown as Record<string, unknown>);
+  if (!javob) return null;
+  const n = kartochkaMosniOqi(javob);
+  if (!n) console.warn('llm kartochka-mos: JSON shakli buzuq');
+  return n;
 }
 
 /**
