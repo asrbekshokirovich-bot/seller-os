@@ -265,9 +265,11 @@ begin
            'dona_oyiga', coalesce(sum(r.dona), 0)),
          (select coalesce(jsonb_agg(jsonb_build_object(
                     'id', r2.dokon, 'nom', s.name, 'tushum_mln', round(r2.tushum / 1e6, 1), 'dona_oyiga', r2.dona,
-                    'tovarlar', r2.tovarlar, 'ulush_foiz', round(100.0 * r2.tushum / nullif(r2.jami, 0), 1))
+                    'tovarlar', r2.tovarlar, 'ulush_foiz', round(100.0 * r2.tushum / nullif(r2.jami, 0), 1),
+                    'eng_yaxshi_tovar', td.eng_yaxshi_tovar)
                   order by r2.orin), '[]'::jsonb)
             from r r2 left join zumsavdo.shop s on s.id = r2.dokon
+            left join zumsavdo.tahlil_dokon td on td.dokon = r2.dokon
            where r2.orin <= 3 and r2.tushum > 0)
     into v_dokonlar, v_top_d
     from r;
@@ -374,7 +376,7 @@ begin
   ),
   r as (
     select d.*, row_number() over (order by d.tushum desc, d.dokon) as orin, count(*) over () as n,
-           sum(d.tushum) over () as jami, td.yosh_kun, td.jami_buyurtma, td.nom
+           sum(d.tushum) over () as jami, td.yosh_kun, td.jami_buyurtma, td.nom, td.eng_yaxshi_tovar
       from d left join zumsavdo.tahlil_dokon td on td.dokon = d.dokon
   ),
   p as (
@@ -409,7 +411,8 @@ begin
   select coalesce(jsonb_object_agg(substr(g.pog, 3), jsonb_strip_nulls(to_jsonb(g) - 'pog') order by g.pog), '{}'::jsonb),
          (select coalesce(jsonb_agg(jsonb_build_object(
                     'id', p2.dokon, 'nom', p2.nom, 'tushum_mln', round(p2.tushum / 1e6, 1), 'dona_oyiga', p2.dona,
-                    'tovarlar', p2.tovarlar, 'jami_buyurtma', p2.jami_buyurtma, 'yosh_kun', p2.yosh_kun)
+                    'tovarlar', p2.tovarlar, 'jami_buyurtma', p2.jami_buyurtma, 'yosh_kun', p2.yosh_kun,
+                    'eng_yaxshi_tovar', p2.eng_yaxshi_tovar)
                   order by p2.orin), '[]'::jsonb)
             from p p2 where p2.orin <= 5 and p2.tushum > 0)
     into v_poglar, v_misol
@@ -557,7 +560,8 @@ begin
       'shu_paytgacha_tovarlar', v_d.census_tovarlar, 'sharhli_tovarlar', v_d.census_sharhli,
       'faol_tovarlar', v_d.tovarlar, 'sotgan_tovarlar', v_d.sotgan, 'dona_oyiga', v_d.dona,
       'tushum_oyiga', v_d.tushum, 'tushum_mln', round(v_d.tushum / 1e6, 1), 'turkumlar', v_d.turkumlar,
-      'reyting_ortacha', round(v_d.reyting_ort, 2), 'tugagan_tovarlar', v_d.tugagan, 'yangi_tovarlar_60kun', v_d.yangi),
+      'reyting_ortacha', round(v_d.reyting_ort, 2), 'tugagan_tovarlar', v_d.tugagan, 'yangi_tovarlar_60kun', v_d.yangi,
+      'eng_yaxshi_tovar', v_d.eng_yaxshi_tovar),
     'asosiy_turkumdagi_orni', v_orin,
     'turkumlari', (select coalesce(jsonb_agg(jsonb_build_object(
                       'turkum', x.turkum, 'yol', coalesce(k.yol_nomi, c.name), 'tovarlar', x.tovarlar,

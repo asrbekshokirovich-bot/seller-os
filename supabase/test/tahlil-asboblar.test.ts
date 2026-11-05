@@ -46,7 +46,8 @@ describe('0080 — tahlil asboblari', () => {
       qamrov: { turkumlar: [{ id: 100, yol: 'Kiyim' }], barglar: 2 },
     });
     expect(ids(b.eng_kop_sotgan_tovarlar)).toEqual([10, 11, 20]);
-    expect(birinchi(b.eng_katta_dokonlar)).toMatchObject({ id: 1, nom: 'Katta', tushum_mln: 24 });
+    // Doʻkon sahifasi manzili yoʻq — Uzumda uning eng koʻp tushum bergan tovari ochiladi (Katta: 50, 27 mln).
+    expect(birinchi(b.eng_katta_dokonlar)).toMatchObject({ id: 1, nom: 'Katta', tushum_mln: 24, eng_yaxshi_tovar: 50 });
   });
 
   it('bozor: tovar filtri (narx ≤ 100 000) — perepis qismi yoʻq, tovar qatorlaridan', async () => {
@@ -91,7 +92,7 @@ describe('0080 — tahlil asboblari', () => {
   it('doʻkon: nomi boʻyicha topiladi, jami buyurtma va asosiy turkumdagi oʻrni', async () => {
     const d = await j<Obj>(`select public.so_tahlil_dokon(null, 'katta') as j`);
     expect(d).toMatchObject({
-      dokon: { id: 1, nom: 'Katta', jami_buyurtma: 9000, tushum_mln: 51 },
+      dokon: { id: 1, nom: 'Katta', jami_buyurtma: 9000, tushum_mln: 51, eng_yaxshi_tovar: 50 },
       asosiy_turkumdagi_orni: { turkum: 14237, orin: 1 },
     });
     expect(ids(d.eng_kop_sotgan)[0]).toBe(50);

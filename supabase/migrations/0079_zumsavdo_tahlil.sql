@@ -184,7 +184,9 @@ select t.dokon,
        coalesce(sum(t.s7), 0)::bigint                                 as s7,
        coalesce(sum(t.k7), 0)::bigint                                 as k7,
        coalesce(sum(t.s23), 0)::bigint                                as s23,
-       coalesce(sum(t.k23), 0)::bigint                                as k23
+       coalesce(sum(t.k23), 0)::bigint                                as k23,
+       -- Doʻkon sahifasi manzili bazada yoʻq (slug) — Uzumda doʻkon oʻrniga shu tovar ochiladi.
+       (array_agg(t.product_id order by t.tushum desc nulls last, t.product_id))[1] as eng_yaxshi_tovar
   from zumsavdo.tahlil_tovar t
  where t.dokon is not null and t.turkum is not null
  group by t.dokon, t.turkum
@@ -204,7 +206,8 @@ a as (
          count(*) as turkumlar, sum(d.sharh)::bigint as sharh, sum(d.tugagan)::bigint as tugagan,
          sum(d.yangi)::bigint as yangi,
          sum(d.reyting_ort * d.tovarlar) / nullif(sum(d.tovarlar) filter (where d.reyting_ort is not null), 0) as reyting_ort,
-         (array_agg(d.turkum order by d.tushum desc, d.tovarlar desc, d.turkum))[1] as asosiy_turkum
+         (array_agg(d.turkum order by d.tushum desc, d.tovarlar desc, d.turkum))[1] as asosiy_turkum,
+         (array_agg(d.eng_yaxshi_tovar order by d.tushum desc, d.tovarlar desc, d.turkum))[1] as eng_yaxshi_tovar
     from zumsavdo.tahlil_dokon_turkum d
    group by d.dokon
 ),
@@ -226,6 +229,7 @@ select coalesce(a.dokon, c.dokon)                   as dokon,
        coalesce(a.tushum, 0)                        as tushum,
        coalesce(a.turkumlar, 0)                     as turkumlar,
        a.asosiy_turkum,
+       a.eng_yaxshi_tovar,
        a.reyting_ort,
        coalesce(a.sharh, 0)                         as sharh,
        coalesce(a.tugagan, 0)                       as tugagan,
