@@ -417,6 +417,12 @@
   .zinaNom { display: block; }
 }
 
+/* Telefonda «10», «12» kesilmasin (ikkinchi koʻrik, 19-taklif): ichki chet kichik, raqam markazda. */
+@container (max-width: 560px) {
+  .zinapoya { padding-left: 1px; padding-right: 1px; align-items: center; }
+  .zinaRaqam { font-size: 13px; }
+}
+
 .heroPast {
   background: #2a1733;
   color: #e3d6ea;

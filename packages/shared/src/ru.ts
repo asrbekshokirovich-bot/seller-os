@@ -70,7 +70,7 @@ export const VARIANT_RU: Readonly<Record<string, string>> = {
   'Tayyor': 'Готово',
   'Qoʻllanma boshqacha': 'Инструкция другая',
   'Oʻzim Toshkent omboriga olib boraman': 'Сам(а) отвезу на склад в Ташкенте',
-  'Uzum logistikasi (BTP orqali, pullik)': 'Логистика Uzum (через ПВЗ, платно)',
+  'Uzum logistikasi (topshirish punkti orqali, pullik)': 'Логистика Uzum (через ПВЗ, платно)',
   'Yaratdim, taymslot oldim': 'Создал(а), таймслот получен',
   'Topshirdim': 'Сдал(а)',
   'Taymslotni kutyapman': 'Жду таймслот',

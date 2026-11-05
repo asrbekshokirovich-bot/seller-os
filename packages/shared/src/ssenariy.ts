@@ -59,6 +59,7 @@ import type { KartochkaMatniNatijasi } from './kartochka-matn.js';
 import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, type SotuvSignali } from './sotuv.js';
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.js';
 import { matndanSon, valyutami } from './tekshiruv.js';
+import { apostrofTozala } from './yozuv.js';
 import { BYUDJET_DOLLAR, byudjetMatni, byudjetniOqi, mlnMatni, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.js';
 import { REJA_QADAMI, type Darvoza } from './tarif.js';
 import { ruschaVariantlar, variantRu } from './ru.js';
@@ -176,7 +177,7 @@ export interface YolHolati {
    * (nechanchi partiya, 11-qadam "yana buyurtma"), `oldingi_partiyalar`,
    * `oylar` (12-qadam arxivi).
    */
-  natijalar: Partial<Record<KodHarakati | 'partiya' | 'oldingi_partiyalar' | 'oylar', unknown>>;
+  natijalar: Partial<Record<KodHarakati | 'partiya' | 'oldingi_partiyalar' | 'oylar' | 'sotuv_boshlandi', unknown>>;
 }
 
 // ==================================================================== qadamlar
@@ -279,9 +280,9 @@ export function savolMatni(s: Pick<SuhbatSavoli, 'matn' | 'ru'>, til: 'uz' | 'ru
  * mijoz natijani koʻrgan, endi uni saqlash uchun soʻraladi. Faqat ism yozilsa — telefon alohida.
  */
 const ISM_SAQLASH = 'Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz '
-  + 'va telefon raqamingizni yozing. Raqam boshqa hech kimga berilmaydi.';
+  + 'va telefon raqamingizni yozing.';
 const ISM_SAQLASH_RU = 'Чтобы сохранить ваши результаты и при необходимости связаться с вами, напишите имя, фамилию и номер '
-  + 'телефона. Номер никому не передаётся.';
+  + 'телефона.';
 
 /** Faqat telefon yozilgan boʻlsa — ism qayta soʻraladi. */
 const ISM_QAYTA = 'Rahmat, raqamingizni yozib oldim. Endi ismingiz va familiyangizni yozing — masalan: Aziz Karimov.';
@@ -497,6 +498,10 @@ export interface BuyurtmaQatori {
   kargoSom: number | null;
   kargoIzoh: string | null;
   holat: 'tayyor' | 'tanlanmagan';
+  /** Tanlangan 1688 taklifining oʻzbekcha nomi (7-taklif); boʻlmasa — yoʻq. */
+  nomUz?: string | null;
+  /** Rang va oʻlcham — mijoz yozgani (ikkinchi koʻrik, 14-taklif); oʻtkazilgan — `null`. */
+  rangOlcham?: string | null;
 }
 
 export interface BuyurtmaNatijasi {
@@ -1063,7 +1068,7 @@ export const QADOQ_TAYYOR: readonly SuhbatVarianti[] = [
 ];
 export const YETKAZISH: readonly SuhbatVarianti[] = [
   { qiymat: 'ozim', nom: 'Oʻzim Toshkent omboriga olib boraman' },
-  { qiymat: 'logistika', nom: 'Uzum logistikasi (BTP orqali, pullik)' },
+  { qiymat: 'logistika', nom: 'Uzum logistikasi (topshirish punkti orqali, pullik)' },
   { qiymat: 'keyin', nom: 'Keyinroq' },
 ];
 export const TAYMSLOT: readonly SuhbatVarianti[] = [
@@ -1099,7 +1104,7 @@ function yukKeldiMatni(n: QabulQadamNatijasi): string {
 }
 function yukKutishMatni(n: QabulQadamNatijasi): string {
   const y = n.faktlar.yorliq;
-  return `Kelguncha tayyorlab turing: yorliq printeri yoki oddiy printer (yorliq ${y.tavsiya ?? 'oʻlchami hali kiritilmagan'}, kod: ${y.kod ?? 'hali kiritilmagan'}), qadoq materiallari (${n.faktlar.qadoqUmumiy ?? 'qoida hali kiritilmagan'}). Yuk kelganda «Keldi» ni bosing.`;
+  return `Kelguncha tayyorlab turing: yorliq printeri yoki oddiy printer (yorliq ${y.tavsiya ?? 'oʻlchami hali kiritilmagan'}, kod: ${y.kod ?? 'hali kiritilmagan'}), qadoq materiallari (${n.faktlar.qadoqUmumiy ?? 'qoida hali kiritilmagan'}). Yuk kelganda «Keldi»ni bosing.`;
 }
 function yukMosMatni(n: QabulQadamNatijasi): string {
   return `Sanang va koʻzdan kechiring: ${donaManbasi(n)}. Nuqsonli yoki qadogʻi buzilgan tovarni Uzum qabul qilmaydi (tafovut — ${tafovutMatni(n.faktlar.tafovutSom)}). Hammasi mosmi?`;
@@ -1151,7 +1156,7 @@ function kartochkaMatni(n: YuklashNatijasi): string {
   const t = n.talablar;
   const talab = t.minEni !== null && t.minBoyi !== null ? `kamida ${t.minEni}×${t.minBoyi}` : 'ruxsat hali kiritilmagan';
   const qoidalar = t.kartochkaQoidalari.length ? `${t.kartochkaQoidalari.length} ta qoida` : 'qoidalar hali kiritilmagan';
-  return `Uzum kabinetida har tovar uchun kartochka yarating: nom, tavsif, xususiyatlar, VGT (oʻlcham va vazn) va 9-qadam suratlari — birinchisi tovarning old tomoni. Surat talabi: ${talab}, ${t.nisbat ?? 'nisbat hali kiritilmagan'}, ${t.maxMb !== null ? `${t.maxMb} MB gacha` : 'hajm hali kiritilmagan'}. Kartochka qoidalari (${qoidalar}) yuqoridagi kartada. Nom va tavsifni oʻzbek va rus tilida yozib berishimni xohlasangiz — «Kartochka matnini yozib ber» ni bosing. Yaratdingizmi?`;
+  return `Uzum kabinetida har tovar uchun kartochka yarating: nom, tavsif, xususiyatlar, VGT (oʻlcham va vazn) va 9-qadam suratlari — birinchisi tovarning old tomoni. Surat talabi: ${talab}, ${t.nisbat ?? 'nisbat hali kiritilmagan'}, ${t.maxMb !== null ? `${t.maxMb} MB gacha` : 'hajm hali kiritilmagan'}. Kartochka qoidalari (${qoidalar}) yuqoridagi kartada. Nom va tavsifni oʻzbek va rus tilida yozib berishimni xohlasangiz — «Kartochka matnini yozib ber»ni bosing. Yaratdingizmi?`;
 }
 
 const som = (x: number | null | undefined): string => (x === null || x === undefined ? 'oʻlchanmagan' : `${minglik(Math.round(x))} soʻm`);
@@ -1224,18 +1229,18 @@ function sotuvHolatMatni(sn: SotuvNatijasi): string {
   // Oʻlchov oʻqilmadi / kuzatuvga qoʻshilmadi — "qoʻshildi, birinchi oʻlchov
   // keyingi aylanishda" deyilmaydi (tekshiruv, 2026-10-05).
   if (sn.olchov_yoq) {
-    return `Sotuv oʻlchovini oʻqiy olmadim (${sn.sabab ?? 'baza javob bermadi'}) — bu "sotuv yoʻq" degani emas. «Yangilash» ni keyinroq bosing. Oy yakunida — «Oy hisoboti».`;
+    return `Sotuv oʻlchovini oʻqiy olmadim (${sn.sabab ?? 'baza javob bermadi'}) — bu "sotuv yoʻq" degani emas. «Yangilash»ni keyinroq bosing. Oy yakunida — «Oy hisoboti».`;
   }
   const ozlar = sn.qatorlar.filter((q) => q.oz !== null);
   const olchangan = ozlar.filter((q) => q.oz?.holat === 'olchandi');
   if (ozlar.length === 0) {
-    return 'Kartochka havolasi berilmagan — kuzatadigan narsa yoʻq. Kartochka Uzumda chiqqach «Havola qoʻshish» ni bosing. Oy yakunida — «Oy hisoboti».';
+    return 'Kartochka havolasi berilmagan — kuzatadigan narsa yoʻq. Kartochka Uzumda chiqqach «Havola qoʻshish»ni bosing. Oy yakunida — «Oy hisoboti».';
   }
   if (olchangan.length === 0) {
     if (sn.kuzatuvXato) {
-      return `Kartochkani kuzatuvga qoʻsha olmadim (${sn.kuzatuvXato}). «Yangilash» ni bosib qayta urinib koʻring.`;
+      return `Kartochkani kuzatuvga qoʻsha olmadim (${sn.kuzatuvXato}). «Yangilash»ni bosib qayta urinib koʻring.`;
     }
-    return `Kartochkalar kuzatuvga qoʻshildi (${ozlar.length} ta). Birinchi oʻlchov tizimning keyingi aylanishida (kuniga 3 marta: ${KUZATUV_VAQTLARI}, Toshkent), sotuv raqami — ikki oʻlchovdan keyin. Ertaga «Yangilash» ni bosing.`;
+    return `Kartochkalar kuzatuvga qoʻshildi (${ozlar.length} ta). Birinchi oʻlchov tizimning keyingi aylanishida (kuniga 3 marta: ${KUZATUV_VAQTLARI}, Toshkent), sotuv raqami — ikki oʻlchovdan keyin. Ertaga «Yangilash»ni bosing.`;
   }
   const j = sn.jami;
   const zaxiralar = olchangan.map((q) => q.oz?.zaxira ?? null).filter((x): x is number => x !== null);
@@ -1334,7 +1339,7 @@ function kartochkaMatniTushuntir(n: KartochkaMatniNatijasi): string {
     return `Kartochka matni tayyor: ${jami} ta tovar uchun nom, qisqa tavsif va tavsif — oʻzbek va rus tilida, Uzum qoidalari bilan tekshirildi. Pastda nusxa olib, kabinetga qoʻying.${qolgan}`;
   }
   if (yozildi === 0) {
-    return 'Hozir kartochka matnini yoza olmadim — sunʼiy intellekt ishlamadi yoki matn Uzum qoidalaridan oʻtmadi. Pastda har tovar uchun qolip va qoidalar bor: matnni shu qolip bilan yozing yoki «Kartochka matnini yozib ber» ni keyinroq yana bosing.';
+    return 'Hozir kartochka matnini yoza olmadim — sunʼiy intellekt ishlamadi yoki matn Uzum qoidalaridan oʻtmadi. Pastda har tovar uchun qolip va qoidalar bor: matnni shu qolip bilan yozing yoki «Kartochka matnini yozib ber»ni keyinroq yana bosing.';
   }
   return `Kartochka matni ${yozildi} ta tovar uchun tayyor; ${jami - yozildi} tasiga hozir yoza olmadim — ularga qolip va qoidalar pastda.${qolgan}`;
 }
@@ -1617,8 +1622,8 @@ function sohaRu(id: string): string {
 function qiziqishSavoli(h: YolHolati, salom = false): SuhbatSavoli {
   const oldindan = tajribadanSohalar(h);
   const matn = oldindan.length
-    ? `Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab ${oldindan.map((x) => `«${sohaNomi(x)}»`).join(', ')} ni `
-      + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
+    ? `Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab ${oldindan.map((x) => `«${sohaNomi(x)}»`).join(', ')}ni `
+      + 'belgilab qoʻydim — toʻgʻri boʻlsa «Davom etish»ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.'
     : 'Qaysi sohadagi tovarlar sizga yaqin? Bir nechtasini tanlashingiz mumkin — keyin «Davom etish». '
       + 'Bilmasangiz «Bilmayman»ni bosing — hamma sohadan eng yaxshilarini koʻrsataman.';
   const ru = oldindan.length
@@ -1767,7 +1772,7 @@ export function tahrirgaOch(h: YolHolati, id: string): { holat: YolHolati; xato:
       holat: h,
       xato: savol === 'uzum_dokoni'
         ? 'Rasmiylashtirish qadamidan keyin tajribani oʻzgartirib boʻlmaydi.'
-        : 'Tovarlar tanlangan — soha yoki pulni oʻzgartirish uchun «Boshidan boshlash» ni bosing.',
+        : 'Tovarlar tanlangan — soha yoki pulni oʻzgartirish uchun «Boshidan boshlash»ni bosing.',
     };
   }
   const javoblar = { ...h.javoblar };
@@ -1864,9 +1869,9 @@ function keyingiAsl(h: YolHolati): Keyingi {
     return { tur: 'savol', savol: savol('yonalish', 2,
       yonalishlar.length
         ? 'Qaysi yoʻnalishda boshlaymiz? Yoqqan kartaning pastidagi tugmani bosing. Boshqasi kerak boʻlsa — '
-          + (yanaBor ? '«Yana koʻrsatish» ni bosing yoki ' : '')
+          + (yanaBor ? '«Yana koʻrsatish»ni bosing yoki ' : '')
           + 'pastga tovar nomini yozing (masalan: ruchka, atir, oʻyinchoq).'
-        : `Yoʻnalishlarni hozir koʻrsata olmayman: ${yn.sabab ?? 'oʻlchov yoʻq'}. «Qayta urinish» ni bosing.`,
+        : `Yoʻnalishlarni hozir koʻrsata olmayman: ${yn.sabab ?? 'oʻlchov yoʻq'}. «Qayta urinish»ni bosing.`,
       'tanlov', {
         ...(yonalishlar.length ? {
           ru: 'Какое направление выберем? Нажмите кнопку внизу понравившейся карточки. Нужно другое — '
@@ -1874,7 +1879,8 @@ function keyingiAsl(h: YolHolati): Keyingi {
             + 'напишите название товара ниже (например: ручка, духи, игрушка).',
         } : {}),
         variantlar: yonalishlar.length
-          ? [...korsatilgan.map((y) => ({ qiymat: y.categoryId, nom: y.name })), ...(yanaBor ? [YANA_YONALISH] : [])]
+          // Bazadagi nom oddiy apostrof bilan boʻlishi mumkin («Kiyim to'plamlari») — ʻ ga (19-taklif).
+          ? [...korsatilgan.map((y) => ({ qiymat: y.categoryId, nom: apostrofTozala(y.name) })), ...(yanaBor ? [YANA_YONALISH] : [])]
           : [QAYTA_URINISH],
         erkin: yonalishlar.length > 0,
         otkazishMumkin: yonalishlar.length === 0,
@@ -1886,9 +1892,9 @@ function keyingiAsl(h: YolHolati): Keyingi {
   if (!berilgan(h, 'telefon')) {
     const ism = typeof h.javoblar['ism'] === 'string' ? (h.javoblar['ism'] as string).split(' ')[0] : null;
     return { tur: 'savol', savol: savol('telefon', 2,
-      `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.`,
+      `${ism ? `${ism}, t` : 'T'}elefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz.`,
       'matn', { erkin: true, profilMaydoni: 'phone', forma: 'telefon',
-        ru: `${ism ? `${ism}, н` : 'Н'}апишите номер телефона — при необходимости свяжемся по нему. Номер никому не передаётся.` }) };
+        ru: `${ism ? `${ism}, н` : 'Н'}апишите номер телефона — при необходимости свяжемся по нему.` }) };
   }
 
   // ---------------------------------------------------------- 3. Tovar va miqdor
@@ -2084,6 +2090,19 @@ function keyingiAsl(h: YolHolati): Keyingi {
       return { tur: 'savol', savol: savol(sid, 6, qaytaMiqdorMatni(t, partiya), 'son', { variantlar: qaytaMiqdorVariantlari(t), erkin: true, otkazishMumkin: true }) };
     }
   }
+  // Rang va oʻlcham (ikkinchi koʻrik, 14-taklif): agent «20 dona» bilan buyurtma bera olmaydi — qaysi rang va
+  // oʻlchamdan nechta. Har tanlangan tovar uchun mijoz oʻzi yozadi yoki oʻtkazadi; varaqaga shu yoziladi.
+  if (buyurtmaNatija(h) === null) {
+    for (const t of qaytaTovarlar(h)) {
+      if (partiya > 1 && h.javoblar[`partiya_miqdor:${t.productId}`] === 0) continue;
+      const sid = `rang_olcham:${t.productId}`;
+      if (berilgan(h, sid)) continue;
+      return { tur: 'savol', savol: savol(sid, 6,
+        `«${t.title}»: qaysi rang va oʻlchamdan nechta olasiz? Masalan: «qora: 40×5, 41×5; oq: 42×10». Agent shunga qarab `
+          + 'buyurtma beradi. Rangi yoki oʻlchami bitta boʻlsa — oʻtkazib yuboring.',
+        'matn', { erkin: true, otkazishMumkin: true }) };
+    }
+  }
   const bn = buyurtmaNatija(h);
   if (bn === null) return { tur: 'kod', harakat: 'buyurtma', qadam: 6 };
   if (!berilgan(h, 'shahar')) {
@@ -2255,6 +2274,13 @@ function keyingiAsl(h: YolHolati): Keyingi {
     // tugagan oyni ham, joriy oyni ham taklif qilamiz, oʻzi tanlaydi.
     if (!berilgan(h, 'hisobot_oy')) {
       const oldin = oldingiOy(sn.oy);
+      // Sotuv shu oy boshlangan — oʻtgan oyda sotuv yoʻq edi, faqat «hozirgacha» (ikkinchi koʻrik, 19-taklif).
+      const boshlandi = h.natijalar.sotuv_boshlandi;
+      if (typeof boshlandi === 'string' && boshlandi >= sn.oy) {
+        return { tur: 'savol', savol: savol('hisobot_oy', 12,
+          `Sotuvni ${oyNomi(sn.oy)}da boshladingiz — hisobot hozirgacha boʻladi, oy hali tugamagan. Hisoblaymizmi?`,
+          'tanlov', { variantlar: [{ qiymat: sn.oy, nom: `${oyNomi(sn.oy)} — hozirgacha` }] }) };
+      }
       return { tur: 'savol', savol: savol('hisobot_oy', 12,
         `Qaysi oy uchun hisobot? ${oyNomi(oldin)} — tugagan oy; ${oyNomi(sn.oy)} — hozirgacha, oy hali tugamagan.`,
         'tanlov', { variantlar: [
@@ -2592,7 +2618,7 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
     for (const id of ['buyurtma_raqami', 'dokon_tayyorlash', 'kargo_yol', 'yuk_keldi', 'yuk_kutish', 'yuk_mos', 'yuk_izoh',
       'qadoq_tayyor', 'yetkazish', 'taymslot', 'topshirildi', 'sotuv_holat', 'hisobot_oy', 'oy_sotuv', 'oy_komissiya', 'deklaratsiya',
       'deklaratsiya_qadam', 'yangi_oy']) delete yangi[id];
-    for (const id of Object.keys(yangi)) if (id.startsWith('partiya_miqdor:')) delete yangi[id];
+    for (const id of Object.keys(yangi)) if (id.startsWith('partiya_miqdor:') || id.startsWith('rang_olcham:')) delete yangi[id];
     const natijalar = { ...holat.natijalar };
     const partiya = partiyaRaqami(holat);
     // Arxivga oʻsha kungi oʻlchov ham yoziladi: tezlik — keyingi miqdor
@@ -2656,7 +2682,10 @@ function yoz(h: YolHolati, s: SuhbatSavoli, qiymat: unknown): QabulNatijasi {
 
 /** Kod harakati natijasini holatga yozadi. */
 export function natijaniYoz(h: YolHolati, harakat: KodHarakati, natija: unknown): YolHolati {
-  return { ...h, natijalar: { ...h.natijalar, [harakat]: natija } };
+  // Sotuv kuzatuvi qaysi oyda boshlangani (ikkinchi koʻrik, 19-taklif): 12-qadam undan oldingi oyni taklif qilmaydi.
+  const oy = harakat === 'sotuv' ? (natija as { oy?: unknown } | null)?.oy : undefined;
+  const boshlandi = h.natijalar.sotuv_boshlandi === undefined && typeof oy === 'string' ? { sotuv_boshlandi: oy } : {};
+  return { ...h, natijalar: { ...h.natijalar, ...boshlandi, [harakat]: natija } };
 }
 
 /** Joriy qadam raqami — yon panel uchun. Obuna darvozasi qadamni oʻzgartirmaydi (`keyingi`). */
@@ -2724,7 +2753,7 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
         : `Siz tanlagan sohada (${nomlar}) hozir kuzatayotgan yoʻnalishimiz yoʻq — boshqa sohalardan ${n.royxat.length} ta yoʻnalish.`;
     const yana = (n.keyingilar?.length ?? 0) > 0;
     // Tanlagan sohasidan eng yuqorisi — birinchi (nazoratchi, 2026-10-19: kiyim tanlagan odamga
-    // xulosa boshqa sohadagi «Sumkalar» ni maqtadi). Boshqa sohada undan yuqorisi boʻlsa — u ham aytiladi.
+    // xulosa boshqa sohadagi «Sumkalar»ni maqtadi). Boshqa sohada undan yuqorisi boʻlsa — u ham aytiladi.
     const ozi = qiziqSoni ? tartib(n.royxat.filter((y) => y.soha !== undefined && qiziq.includes(y.soha)))[0]! : null;
     const engGap = ozi
       ? `Siz tanlagan sohadan eng yuqorisi — «${ozi.name}»${ballda(ozi)}`

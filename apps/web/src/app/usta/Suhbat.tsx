@@ -26,9 +26,9 @@
  * oyma-oy aylanadi; qurilmagan qadam paydo boʻlsa "tez orada" deb chiqadi.
  */
 
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
+import { createContext, Fragment, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { izohRu, izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
+import { apostrofTozala, izohRu, izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { BOSH_XABAR_KALIT, boshXabarniOl } from '@/lib/bosh-xabar';
 import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
@@ -43,7 +43,7 @@ import { Ikon } from '../Ikon';
 import { MavzuTugma } from '../MavzuTugma';
 import { Obuna } from './Obuna';
 import { tolovgaOt, useObunaHolati } from './obunaHolati';
-import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, manbaKorinishi, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, tanlanganNomlar, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Aloqa, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, manbaKorinishi, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, suhbatBorDeb, suhbatBormi, tanlanganNomlar, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Aloqa, type Keyingi, type Langar, type Savol, type SizBelgi, type SuhbatJavobi, type Xabar } from './suhbatYordam';
 import u from './usta.module.css';
 import Yordamchi from '../Yordamchi';
 
@@ -117,7 +117,11 @@ function useModalFokus(ref: RefObject<HTMLElement | null>) {
 
 /* ------------------------------------------------------ sahifa */
 
-export default function Suhbat({ til: boshTil }: { til: Til }) {
+export default function Suhbat({ til: boshTil, boshlangich }: {
+  til: Til;
+  /** Yangi mijozning birinchi savoli (salom bilan) — server javobidan oldin chiziladi (9-taklif). */
+  boshlangich?: Keyingi;
+}) {
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [keyingi, setKeyingi] = useState<Keyingi | null>(null);
   const [qadam, setQadam] = useState(1);
@@ -208,6 +212,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
   const qabul = useCallback((r: SuhbatJavobi, o: { almashtir?: boolean; tozala?: boolean; javobKetdi?: boolean; matnKetdi?: boolean } = {}) => {
     // «Boshidan boshlash» — yangi suhbat: oxirgi belgidan oldingisi (belgining oʻzi
     // ham) chatga chiqmaydi. Server ham shunday qaytaradi; bu — eski javob shakli uchun.
+    // Mijoz javob bergan — keyingi ochilishda tayyor salom koʻrsatilmaydi (9-taklif).
+    suhbatBorDeb(r.tarix ?? r.xabarlar);
     if (r.tarix !== undefined) setXabarlar(songgiSuhbat(r.tarix));
     else if (r.xabarlar.length) setXabarlar((eski) => (o.almashtir ? songgiSuhbat(r.xabarlar) : [...eski, ...r.xabarlar]));
     setKeyingi(r.keyingi);
@@ -254,6 +260,16 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
       setYuklandi(true);
     }
   }, [qabul]);
+
+  /*
+   * Yangi mijozga salom va birinchi savol DARHOL (ikkinchi koʻrik, 9-taklif): ilgari 3–5 s faqat «Yuklanmoqda…»
+   * turardi. Ular har doim bir xil — sahifa bilan keladi, server javobi kelib oʻrnini oladi; tugmalar shungacha
+   * oʻchiq. Suhbati bor mijozda (`suhbatBormi`) va kengaytmada (token bilan) — kutiladi: ularning suhbati boshqa.
+   */
+  useEffect(() => {
+    if (!boshlangich || /sessiya=/u.test(window.location.hash) || suhbatBormi()) return;
+    setKeyingi((k) => k ?? boshlangich);
+  }, [boshlangich]);
 
   useEffect(() => { void yukla(); }, [yukla]);
 
@@ -594,6 +610,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     if (!kutishBormi) return;
     let toxta = false;
     let taymer: ReturnType<typeof setTimeout> | undefined;
+    // Birinchi tekshiruv darhol (ikkinchi koʻrik, 19-taklif): sahifa qayta ochilganda natija tayyor boʻlishi mumkin.
+    let birinchi = true;
     const navbat = () => {
       taymer = setTimeout(() => {
         if (toxta) return;
@@ -604,7 +622,8 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
           if (tekshiruv.current === p) tekshiruv.current = null;
           if (!toxta) navbat();
         });
-      }, 8000);
+      }, birinchi ? 400 : 8000);
+      birinchi = false;
     };
     navbat();
     return () => { toxta = true; if (taymer !== undefined) clearTimeout(taymer); };
@@ -757,6 +776,17 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
     else void yubor({});
   };
 
+  // Buyurtma qilingan rang va oʻlcham (6-qadam) — studiya kartasida eslatma (ikkinchi koʻrik, 15-taklif).
+  const rangOlchamlar = useMemo(() => {
+    const m: Record<number, string> = {};
+    for (const x of xabarlar) {
+      if (x.rol !== 'kod' || x.savolId !== 'buyurtma') continue;
+      for (const q of ((x.javob as { qatorlar?: Array<{ productId?: unknown; rangOlcham?: unknown }> } | null | undefined)?.qatorlar ?? [])) {
+        if (typeof q.productId === 'number' && typeof q.rangOlcham === 'string' && q.rangOlcham) m[q.productId] = q.rangOlcham;
+      }
+    }
+    return m;
+  }, [xabarlar]);
   const savol = keyingi?.tur === 'savol' ? keyingi.savol : null;
   // Oxirgi tovar katalogi — joriy savol "tovarlar" bo'lsa aynan u bosiladi.
   let oxirgiTovarKod = -1;
@@ -808,7 +838,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
    */
   const tugmaliSavol = savol !== null && savol.variantlar.length > 0 && savol.id !== 'tovarlar' && !savol.id.startsWith('xitoy_tanlov:') ? savol : null;
   const tugmalar = tugmaliSavol && (
-    <SavolTugmalari savol={tugmaliSavol} band={band} klaviatura={!modal && !menyu && !obunaOchiq}
+    <SavolTugmalari savol={tugmaliSavol} band={band || !yuklandi} klaviatura={!modal && !menyu && !obunaOchiq}
       tanlangan={tanlangan} setTanlangan={setTanlangan} javobBer={javobBer}
       yozishga={() => kiritishRef.current?.focus()} dollarga={dollarga} tr={tr} />
   );
@@ -975,6 +1005,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
 
         <div className={u.oqim} ref={oqim} style={yashir}>
           <div className={u.ichi} role="log" aria-label={tr('Suhbat', 'Чат')}>
+            <RangKonteksti.Provider value={rangOlchamlar}>
             {xabarlar.map((x, i) => (
               <XabarPufagi
                 key={x.seq ?? `y${i}`}
@@ -998,6 +1029,7 @@ export default function Suhbat({ til: boshTil }: { til: Til }) {
                 savolmi={i === savolPufagi}
               />
             ))}
+            </RangKonteksti.Provider>
             {savolKorsat && savol && (
               <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`} data-savol="1">
                 <SavolMatni matn={tr(savol.matn, savol.ru ?? savol.matn)} batafsil={savol.batafsil ? tr(savol.batafsil, savol.batafsilRu ?? savol.batafsil) : null} tr={tr} />
@@ -1483,7 +1515,7 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, rejim, tr }: {
           return (
             <div key={y.categoryId} className={u.karta}>
               <div className={u.kartaBoshi}>
-                <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{y.name}</div></div>
+                <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{apostrofTozala(y.name)}</div></div>
                 <div className={u.kartaTeglar}>
                   {i === engYuqori && <span className={`${u.teg} ${u.tegYaxshi}`}>{tr('Eng yuqori baho', 'Лучшая оценка')}</span>}
                   <span className={`${u.teg} ${u.tegNeytral}`}>{sohaTeg(y.soha)}</span>
@@ -1538,7 +1570,7 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, rejim, tr }: {
                 : rejim.idlar.has(String(y.categoryId)) && (
                   <button type="button" className={`${u.tugma} ${u.tugmaAsosiy} ${u.kartaTanla}`} disabled={rejim.band}
                     onClick={() => rejim.tanla(y.categoryId)}>
-                    {tr(`«${y.name}»ni tanlayman`, `Выбираю «${y.name}»`)}
+                    {tr(`«${apostrofTozala(y.name)}»ni tanlayman`, `Выбираю «${y.name}»`)}
                   </button>
                 ))}
             </div>
@@ -1811,6 +1843,7 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
                         {havola ? <a href={havola} target="_blank" rel="noopener noreferrer">{t.nomUz ?? t.title}</a> : t.nomUz ?? t.title}
                       </div>
                       {t.nomUz && <div className={u.aslNom} lang="zh">{t.title}</div>}
+                      {havola && <a className={u.manbaHavola} href={havola} target="_blank" rel="noopener noreferrer">{tr('1688 da koʻrish ↗', 'Открыть на 1688 ↗')}</a>}
                       <div className={u.katalogNarx}>
                         <span className={u.narx}>
                           <span className={u.narxSon}>¥{t.narxYuan}</span>
@@ -1823,7 +1856,7 @@ function XitoyTakliflari({ qatorlar, kurs, izoh, rejim, havolaYopiq = false, tr 
                           <span>{t.buyurtmalar === null ? '—' : `${son(t.buyurtmalar)} ${tr('buyurtma', 'заказов')}`}</span>
                         </div>
                         <div className={u.katalogQator}>
-                          <span>{t.superZavod === true ? tr('super zavod', 'супер-завод') : t.zavod === true ? tr('zavod', 'завод') : t.zavod === false ? tr('sotuvchi', 'продавец') : '—'}</span>
+                          <span>{t.superZavod === true ? tr('Ishlab chiqaruvchi (super zavod)', 'Производитель (супер-завод)') : t.zavod === true ? tr('Ishlab chiqaruvchi (zavod)', 'Производитель (завод)') : t.zavod === false ? tr('Qayta sotuvchi', 'Перепродавец') : '—'}</span>
                           <span className={u.reyting}>
                             {/* Reyting — bitta kasr bilan (7-taklif): «3.4161751 · #2» oʻrniga «3.4». */}
                             {t.reyting === null ? '—' : <><span className={u.yulduz}><Ikon nom="yulduz" o={14} /></span>{t.reyting.toFixed(1)}</>}
@@ -1877,6 +1910,8 @@ interface BuyurtmaQatorQ {
   productId: number; title: string; sourceId: string | null; xitoyTitle: string | null; manzil: string | null;
   miqdor: number | null; narxYuan: number | null; narxSom: number | null; jamiYuan: number | null; jamiSom: number | null;
   weightG: number | null; kargoSom: number | null; kargoIzoh: string | null; holat: 'tayyor' | 'tanlanmagan';
+  /** 1688 taklifining oʻzbekcha nomi va mijoz yozgan rang/oʻlcham (ikkinchi koʻrik, 14-taklif). */
+  nomUz?: string | null; rangOlcham?: string | null;
 }
 interface BuyurtmaQ {
   qatorlar?: BuyurtmaQatorQ[];
@@ -1894,7 +1929,8 @@ function varaqaMatni(n: BuyurtmaQ, tr: Tr): string {
   const q = (n.qatorlar ?? []).filter((x) => x.holat === 'tayyor');
   const dona = tr('dona', 'шт');
   const satrlar = q.map((x, i) =>
-    `${i + 1}. ${x.xitoyTitle ?? x.title} — ${x.miqdor ?? '?'} ${dona} × ¥${x.narxYuan ?? '?'}${x.jamiYuan !== null ? ` = ¥${x.jamiYuan}` : ''}${x.manzil ? `\n   ${x.manzil}` : ''}`);
+    `${i + 1}. ${x.nomUz ?? x.title}${x.xitoyTitle ? ` (${x.xitoyTitle})` : ''} — ${x.miqdor ?? '?'} ${dona} × ¥${x.narxYuan ?? '?'}${x.jamiYuan !== null ? ` = ¥${x.jamiYuan}` : ''}`
+    + `${x.rangOlcham ? `\n   ${tr('Rang va oʻlcham', 'Цвет и размер')}: ${x.rangOlcham}` : ''}${x.manzil ? `\n   ${x.manzil}` : ''}`);
   const j = n.jami;
   return [tr('Buyurtma varaqasi', 'Лист заказа'), ...satrlar, j ? `${tr('Jami', 'Итого')}: ${j.dona ?? '?'} ${dona}, ¥${j.yuan ?? '?'}` : ''].filter(Boolean).join('\n');
 }
@@ -1914,9 +1950,11 @@ function BuyurtmaVaraqasi({ n, tr }: { n: BuyurtmaQ; tr: Tr }) {
           <div className={u.kartaBoshi}>
             <div className={u.kartaNomBlok}>
               <div className={u.kartaNomi}>{x.title}</div>
-              {x.xitoyTitle && (
+              {/* 1688 taklifi — oʻzbekcha nomi, xitoychasi yonida kichik (ikkinchi koʻrik, 14-taklif). */}
+              {(x.nomUz || x.xitoyTitle) && (
                 <div className={u.kartaOst}>
-                  {x.manzil ? <a href={x.manzil} target="_blank" rel="noopener noreferrer">{x.xitoyTitle}</a> : x.xitoyTitle}
+                  1688: {x.manzil ? <a href={x.manzil} target="_blank" rel="noopener noreferrer">{x.nomUz ?? x.xitoyTitle}</a> : x.nomUz ?? x.xitoyTitle}
+                  {x.nomUz && x.xitoyTitle && <span lang="zh"> · {x.xitoyTitle}</span>}
                 </div>
               )}
             </div>
@@ -1928,6 +1966,7 @@ function BuyurtmaVaraqasi({ n, tr }: { n: BuyurtmaQ; tr: Tr }) {
             <Stat nom={tr('Jami', 'Итого')} q={yuan(x.jamiYuan, x.jamiSom)} />
             <Stat nom={tr('Kargo / dona', 'Карго / шт')} q={x.kargoSom === null ? '—' : `${raqam(x.kargoSom)} ${tr('soʻm', 'сум')}`} izoh={x.kargoIzoh ?? undefined} />
           </div>
+          {x.rangOlcham && <p className={u.kichikIzoh}><b>{tr('Rang va oʻlcham', 'Цвет и размер')}:</b> {x.rangOlcham}</p>}
         </div>
       ))}
       {j && (
@@ -1945,6 +1984,14 @@ function BuyurtmaVaraqasi({ n, tr }: { n: BuyurtmaQ; tr: Tr }) {
               {nusxalandi ? tr('Nusxalandi ✓', 'Скопировано ✓') : tr('Varaqani nusxalash (agentga yuborish uchun)', 'Скопировать лист (для агента)')}
             </button>
           </div>
+          {/* Yangi sotuvchi agentni qayerdan topishni bilmaydi (ikkinchi koʻrik, 14-taklif). */}
+          <details className={u.agentIzoh}>
+            <summary>{tr('Agent kim va uni qayerdan topaman?', 'Кто такой агент и где его найти?')}</summary>
+            <p className={u.kichikIzoh}>{tr(
+              'Agent — Xitoyda 1688 dan tovarni siz uchun sotib olib, kargo orqali joʻnatib beradigan vositachi. Uni kargo kompaniyalari yoki tanishlar orqali topasiz. Kelishishdan oldin xizmat haqi, toʻlov tartibi va muddatni yozma kelishib oling.',
+              'Агент — посредник в Китае: покупает для вас товар на 1688 и отправляет через карго. Его находят через карго-компании или знакомых. До сделки письменно договоритесь о комиссии, порядке оплаты и сроках.',
+            )}</p>
+          </details>
         </>
       )}
       {n.izoh && <p className={u.kichikIzoh}>{n.izoh}{n.kurs?.cny ? ` ${tr('Kurs', 'Курс')}: 1 ¥ = ${son(n.kurs.cny.somPerYuan)} (${n.kurs.cny.sana}).` : ''}</p>}
@@ -1976,6 +2023,12 @@ function ruYil(n: number): string {
   if (o >= 11 && o <= 14) return 'лет';
   if (b === 1) return 'год';
   return b >= 2 && b <= 4 ? 'года' : 'лет';
+}
+
+/** Banklar oxirgi marta tekshirilgan sana «14.10.2026» (ikkinchi koʻrik, 16-taklif); yoʻq — `null`. */
+function bankSanasi(b: ReadonlyArray<{ olchandi: string | null }>): string | null {
+  const s = b.map((x) => x.olchandi).filter((x): x is string => !!x).sort().at(-1);
+  return s ? sanaMatni(s) : null;
 }
 
 /**
@@ -2040,7 +2093,7 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
           <Stat katta nom={tr('Partiya sotilsa', 'При продаже партии')} q={s?.aylanmaSom == null ? '—' : raqam(s.aylanmaSom)} birlik={s?.aylanmaSom == null ? undefined : somB}
             izoh={n.partiyaSotuvSom !== null && n.partiyaSotuvSom !== undefined ? `${raqam(n.partiyaSotuvSom)} ${tr('soʻm sotuvdan', 'сум продаж')}` : undefined} />
           <Stat katta nom={tr('BHM', 'БРВ')} q={f.bhmSom === null ? yoq : raqam(f.bhmSom)} birlik={f.bhmSom === null ? undefined : somB}
-            izoh={f.soliq.rejimTugaydi ? tr(`rejim ${f.soliq.rejimTugaydi} gacha`, `режим до ${f.soliq.rejimTugaydi}`) : undefined} />
+            izoh={f.soliq.rejimTugaydi ? tr(`rejim ${sanaMatni(f.soliq.rejimTugaydi)} gacha`, `режим до ${sanaMatni(f.soliq.rejimTugaydi)}`) : undefined} />
         </div>
         <Manba manba={f.soliq.manba} olchandi={f.soliq.olchandi} tr={tr} />
         {n.izoh && <p className={u.ajratilgan}>{n.izoh}</p>}
@@ -2060,14 +2113,30 @@ function RasmiyKartasi({ n, tr }: { n: RasmiyQ; tr: Tr }) {
           </div>
           <div className={u.karta}>
             <div className={u.kartaSarlavha}>{tr('2. Biznes hisob raqami', '2. Расчётный счёт')}</div>
-            {f.banklar.length === 0 ? <p className={u.kichikIzoh}>{tr('Bank roʻyxati hali kiritilmagan.', 'Список банков не заполнен.')}</p> : f.banklar.map((b) => (
-              <div key={b.nom} className={u.statlar}>
-                {/* Eski saqlangan natijada izoh «[TASDIQ]» bilan qolgan boʻlishi mumkin — mijozga belgisiz. */}
-                <Stat nom={b.nom} q={b.onlayn === true ? tr('onlayn', 'онлайн') : b.onlayn === false ? tr('ofisda', 'в офисе') : '—'} izoh={izohTozala(b.izoh) ?? undefined} />
-                <Stat nom={tr('Ochish', 'Открытие')} q={bepulYoki(b.ochishSom)} />
-                <Stat nom={tr('Oylik', 'В месяц')} q={bepulYoki(b.oylikSom)} izoh={b.olchandi ?? undefined} />
+            {/* Har bank — bitta qator (ikkinchi koʻrik, 16-taklif): nomi, ochish va oylik narxi; batafsil — bosilganda. */}
+            {f.banklar.length === 0 ? <p className={u.kichikIzoh}>{tr('Bank roʻyxati hali kiritilmagan.', 'Список банков не заполнен.')}</p> : (
+              <div className={u.bankRoyxat}>
+                {f.banklar.map((b) => {
+                  // Eski saqlangan natijada izoh «[TASDIQ]» bilan qolgan boʻlishi mumkin — mijozga belgisiz.
+                  const batafsil = [
+                    b.onlayn === true ? tr('Onlayn ochiladi.', 'Открывается онлайн.') : b.onlayn === false ? tr('Ofisga borish kerak.', 'Нужно прийти в офис.') : '',
+                    izohTozala(b.izoh) ?? '',
+                  ].filter(Boolean).join(' ');
+                  const qator = (
+                    <>
+                      <span className={u.bankNom}>{b.nom}</span>
+                      <span className={u.bankNarx}>{tr('ochish', 'открытие')}: {bepulYoki(b.ochishSom)} · {tr('oyiga', 'в месяц')}: {bepulYoki(b.oylikSom)}</span>
+                    </>
+                  );
+                  return batafsil
+                    ? <details key={b.nom} className={u.bankQator}><summary>{qator}</summary><p className={u.kichikIzoh}>{batafsil}</p></details>
+                    : <div key={b.nom} className={`${u.bankQator} ${u.bankQatorOddiy}`}>{qator}</div>;
+                })}
               </div>
-            ))}
+            )}
+            {bankSanasi(f.banklar) !== null && (
+              <p className={u.kichikIzoh}>{tr(`Banklar ${bankSanasi(f.banklar)} da tekshirilgan.`, `Банки проверены ${bankSanasi(f.banklar)}.`)}</p>
+            )}
             <p className={u.kichikIzoh}>{tr('Faqat oʻz nomingizdagi hisob — Uzum boshqa odamning kartasiga toʻlamaydi.', 'Только счёт на ваше имя — Uzum не платит на чужую карту.')}</p>
           </div>
           <div className={u.karta}>
@@ -2191,7 +2260,11 @@ function talabQatori(t: SuratTalablariQ | null | undefined, tr: Tr): string {
  * yuklanadi. Tizim suratni Uzumga YUKLAMAYDI — kartochkaga siz qoʻyasiz.
  * Studiya tayyorlay olmagan surat (manba yopiq va h.k.) belgilanmaydi.
  */
+/** 6-qadamda buyurtma qilingan rang va oʻlcham (tovar id → matn) — studiya kartasida eslatma (15-taklif). */
+const RangKonteksti = createContext<Readonly<Record<number, string>>>({});
+
 function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
+  const rangOlchamlar = useContext(RangKonteksti);
   const [tanlangan, setTanlangan] = useState<string[]>([]);
   const [buzuq, setBuzuq] = useState<string[]>([]);
   const [band, setBand] = useState(false);
@@ -2272,7 +2345,7 @@ function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
                         ? <span className={u.studiyaYoq}>{tr('Studiya bu suratni ololmadi', 'Студия не смогла получить фото')}</span>
                         : <img src={s.url ?? s.asl} alt={s.nom ?? x.title} loading="lazy" referrerPolicy="no-referrer"
                             onError={() => setBuzuq((e) => (e.includes(k) ? e : [...e, k]))} />}
-                      <span className={u.studiyaManba}>{i + 1}. {manbaNomi(s)}{s.eni !== null && s.boyi !== null ? ` · ${s.eni}×${s.boyi}` : ''}</span>
+                      <span className={u.studiyaManba}>{tr(`${i + 1}-surat`, `Фото ${i + 1}`)}{s.manba === '1688-oxshash' ? ` · ${manbaNomi(s)}` : ''}{s.eni !== null && s.boyi !== null ? ` · ${s.eni}×${s.boyi}` : ''}</span>
                       {s.url !== null && !yoq && (
                         <span className={u.studiyaRasmIchi} aria-hidden="true">{tanlangan.includes(k) && <Ikon nom="belgi" o={13} q={3} />}</span>
                       )}
@@ -2292,6 +2365,9 @@ function StudiyaKartasi({ n, tr }: { n: StudiyaQ; tr: Tr }) {
             )}
             {x.suratlar.some((y) => y.manba === '1688-oxshash') && (
               <p className={u.kichikIzoh}>{tr('«Oʻxshash taklif» — boshqa 1688 sotuvchisining surati: tovar aynan siz olganidek ekanini tekshiring.', '«Похожий вариант» — фото другого продавца 1688: проверьте, что товар точно такой же.')}</p>
+            )}
+            {rangOlchamlar[x.productId] && (
+              <p className={u.kichikIzoh}><b>{tr('Siz buyurtma qilgan rang va oʻlcham', 'Вы заказали цвет и размер')}:</b> {rangOlchamlar[x.productId]}</p>
             )}
             {x.video && /^https?:\/\//i.test(x.video) && (
               <p className={u.kichikIzoh}>
@@ -2558,13 +2634,13 @@ function SotuvKartasi({ n, tr }: { n: SotuvQ; tr: Tr }) {
               </div>
             )}
             {x.ozId !== null && o?.holat !== 'olchandi' && (
-              <p className={u.kichikIzoh}>{tr('Kuzatuvga qoʻshildi. Skreyper kuniga 3 marta oʻlchaydi (09:00, 17:00, 01:00); sotuv raqami ikki oʻlchovdan keyin chiqadi.', 'Добавлено в отслеживание. Замер 3 раза в день (09:00, 17:00, 01:00); продажи — после двух замеров.')}</p>
+              <p className={u.kichikIzoh}>{tr('Kuzatuvga qoʻshildi. Kuniga 3 marta oʻlchanadi (09:00, 17:00, 01:00); sotuv raqami ikki oʻlchovdan keyin chiqadi.', 'Добавлено в отслеживание. Замер 3 раза в день (09:00, 17:00, 01:00); продажи — после двух замеров.')}</p>
             )}
             {r && r.narx !== null && (
               <p className={u.kichikIzoh}>
                 {tr('Raqobatchi narxi', 'Цена конкурента')}: {somQ(r.narx, tr)}
                 {r.tushdiFoiz !== null && r.oldingiNarx !== null ? ` (${tr('oldin', 'было')} ${raqam(r.oldingiNarx)}, −${r.tushdiFoiz} %)` : ''}
-                {r.sana ? ` · ${r.sana}` : ''}
+                {r.sana ? ` · ${sanaMatni(r.sana)}` : ''}
               </p>
             )}
           </div>
@@ -2866,7 +2942,7 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
         <div className={u.havolalar}>
           {yana && (
             <button type="button" className={u.havolaTugma} disabled={band} onClick={() => javobBer(savol.id, yana.qiymat)}>
-              {tr('Yana yoʻnalishlar koʻrsatish', 'Показать ещё направления')}
+              {variantNomi(yana, tr)}
             </button>
           )}
           <button type="button" className={u.havolaTugma} onClick={yozishga}>
@@ -2879,7 +2955,6 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
 
   return (
     <div className={u.savolJavob} role="group" aria-label={tr('Javob variantlari', 'Варианты ответа')}>
-      {kop && <p className={u.savolJavobIzoh}>{tr('Bir nechtasini belgilang — keyin pastdagi «Davom etish»', 'Отметьте несколько — затем «Продолжить» внизу')}</p>}
       <div ref={variantlarRef} className={u.variantlar} data-ustun={ustun} style={{ gridTemplateColumns: `repeat(${ustun}, minmax(0, 1fr))` }}>
         {savol.variantlar.map((v, i) => {
           const bor = kop && tanlangan.some((x) => String(x) === String(v.qiymat));
@@ -2912,14 +2987,16 @@ function SavolTugmalari({ savol, band, klaviatura, tanlangan, setTanlangan, javo
             <span className={u.variantNomi}>{otkazishNomi(savol, tr)}</span>
           </button>
         )}
-        {savol.erkin && !kop && !raqamli && (
-          <button type="button" className={u.variantBoshqa} onClick={yozishga}>
-            <span><Ikon nom="plyus" o={16} /></span>
+      </div>
+      {/* «Boshqa … — pastda yozing» — hamma savolda bir xil havola (ikkinchi koʻrik, 19-taklif). */}
+      {savol.erkin && !kop && !raqamli && (
+        <div className={u.havolalar}>
+          <button type="button" className={u.havolaTugma} onClick={yozishga}>
             {savol.id === 'shahar' ? tr('Boshqa shahar — pastda yozing', 'Другой город — напишите ниже')
               : tr('Boshqa javob — pastda yozing', 'Другой ответ — напишите ниже')}
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {savol.id === 'byudjet' && savol.erkin && (
         <div className={u.havolalar}>
           <button type="button" className={u.havolaTugma} onClick={dollarga}>{tr('Dollarda yozaman ($)', 'Напишу в долларах ($)')}</button>
@@ -3153,7 +3230,7 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
             : savol.id === 'byudjet' ? tr('Oʻzim yozaman: masalan, 70 mln', 'Своя сумма: например, 70 млн')
               // 2-qadam: pastga yozilgan tovar nomi — qidiruv (2026-10-13).
               : savol.id === 'yonalish' && savol.erkin ? tr('Tovar nomini yozing — masalan: ruchka', 'Напишите товар — например: ручка')
-              : savol.id === 'qiziqish' ? tr('Yoki sohani yozing — masalan: kanstovar', 'Или напишите сферу — например: канцтовары')
+              : savol.id === 'qiziqish' ? tr('Yoki yozing: kanstovar', 'Или напишите: канцтовары')
               : savol.turi === 'son'
                 ? tr('Oʻzim yozaman: aniq son', 'Своё число')
                 : ochiqJavob ? tr('Oʻzim yozaman', 'Свой ответ') : tr('Savolingiz boʻlsa — yozing', 'Есть вопрос — напишите')}
@@ -3217,7 +3294,7 @@ function Javoblash({ savol, tezOrada, kutish, yuklanmadi, band, kiritish, tanlan
           <span className={u.tanlovNomlar}>
             {nomlar.length > 0 ? nomlar.join(', ')
               : savol.id === 'tovarlar' ? tr('Yuqoridagi kartalardan tanlang', 'Выберите карточки выше')
-                : tr('Yuqorida bir nechtasini belgilang', 'Отметьте несколько выше')}
+                : tr('Yuqoridan tanlang', 'Выберите выше')}
           </span>
           {davom}
         </div>

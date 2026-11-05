@@ -53,7 +53,7 @@ describe('faktlarniOqi / faktSon / faktMatn', () => {
 describe('kargoStavkasi', () => {
   it('0056 holati (hamma NULL) — hamkor yoʻq, yoʻl yoʻq, tanlov yoʻq, izoh rost', () => {
     const k = kargoStavkasi(faktlarniOqi(BOSH), USD);
-    expect(k).toEqual({ hamkor: null, avia: null, quruqlik: null, usdM3: null, minUsd: null, tanlovBor: false, izoh: 'kargo hamkori, kargo stavkasi kiritilmagan' });
+    expect(k).toEqual({ hamkor: null, avia: null, quruqlik: null, usdM3: null, minUsd: null, tanlovBor: false, izoh: 'kargo narxlari hali kiritilmagan — narxni kargo kompaniyangizdan soʻrang' });
     // Kalitlar umuman yoʻq boʻlsa ham xuddi shu — nol paydo boʻlmaydi.
     expect(kargoStavkasi({}, null)).toEqual(k);
   });

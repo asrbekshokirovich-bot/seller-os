@@ -16,8 +16,16 @@
  * funksiyaga yuborardi (2026-10-01 oʻlchov: statik ~0.5 s, dinamik 1 s+).
  */
 
+import { boshlangichHolat, keyingi } from '@selleros/shared';
 import Suhbat from './Suhbat';
+import type { Keyingi } from './suhbatYordam';
+
+/**
+ * Yangi mijozga salom va birinchi savol — sahifa bilan birga (ikkinchi koʻrik, 9-taklif): ular har doim
+ * bir xil. Build paytida hisoblanadi; server javobi orqada kelib oʻrnini oladi.
+ */
+const BOSHLANGICH = JSON.parse(JSON.stringify(keyingi(boshlangichHolat()))) as Keyingi;
 
 export default function Usta() {
-  return <Suhbat til="uz" />;
+  return <Suhbat til="uz" boshlangich={BOSHLANGICH} />;
 }

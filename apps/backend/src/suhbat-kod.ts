@@ -643,6 +643,11 @@ export function suhbatKodHarakatlari(
       };
       const royxat = qayta === null ? tanlangan : tanlangan.filter((id) => qayta.has(id) && miqdorOl(id) !== 0);
 
+      // Rang va oʻlcham — mijoz 6-qadamda yozgani (ikkinchi koʻrik, 14-taklif).
+      const rangOlchami = (id: number): string | null => {
+        const r = holat.javoblar[`rang_olcham:${id}`];
+        return typeof r === 'string' && r.trim() ? r.trim().slice(0, 300) : null;
+      };
       const qatorlar: BuyurtmaQatori[] = royxat.map((id) => {
         const t = tovar(id);
         const title = t?.title ?? `#${id}`;
@@ -659,6 +664,7 @@ export function suhbatKodHarakatlari(
         const kargo = kargoSomBirDona(yol, weightG, { volumeMl: t?.volumeMl ?? null, usdM3: kf.stavka.usdM3, kursUsd: kf.usd?.somPerYuan ?? null });
         return {
           productId: id, title, sourceId: taklif.sourceId, xitoyTitle: taklif.title, manzil: taklif.manzil, miqdor,
+          nomUz: taklif.nomUz ?? null, rangOlcham: rangOlchami(id),
           narxYuan: taklif.narxYuan, narxSom,
           jamiYuan: miqdor === null ? null : Math.round(taklif.narxYuan * miqdor * 100) / 100,
           jamiSom: miqdor === null || narxSom === null ? null : narxSom * miqdor,

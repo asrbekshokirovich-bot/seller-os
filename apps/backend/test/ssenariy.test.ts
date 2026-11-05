@@ -279,7 +279,7 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     if (ki.tur !== 'savol') throw new Error(ki.tur);
     // Sahifada ikki maydon (5-taklif, 2026-11-04): ism va telefon — `forma`.
     expect(ki.savol).toMatchObject({ id: 'ism', qadam: 2, turi: 'matn', otkazishMumkin: false, forma: 'ism_telefon' });
-    expect(ki.savol.matn).toBe('Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz va telefon raqamingizni yozing. Raqam boshqa hech kimga berilmaydi.');
+    expect(ki.savol.matn).toBe('Natijalaringizni saqlab qoʻyishim va kerak boʻlsa siz bilan bogʻlanishim uchun ismingiz, familiyangiz va telefon raqamingizni yozing.');
     h = javob(h, 'ism', 'aziz karimov');
     const kt = keyingi(h);
     if (kt.tur !== 'savol') throw new Error(kt.tur);
@@ -374,8 +374,8 @@ describe('1-qadam — Tanishuv (nazoratchi tartibi, 2026-10-26)', () => {
     };
     const s = eski('oldin sotganman maishiy texnika');
     expect(s.tanlangan).toEqual(['uy']);
-    expect(s.matn).toBe('Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab «Uy-roʻzgʻor va maishiy texnika» ni belgilab qoʻydim — '
-      + 'toʻgʻri boʻlsa «Davom etish» ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.');
+    expect(s.matn).toBe('Qaysi sohadagi tovarlar sizga yaqin? Yozganingizga qarab «Uy-roʻzgʻor va maishiy texnika»ni belgilab qoʻydim — '
+      + 'toʻgʻri boʻlsa «Davom etish»ni bosing. Xohlasangiz boshqasini ham belgilang yoki olib tashlang.');
     expect(eski('bozorda kiyim va kosmetika sotganman').tanlangan).toEqual(['kiyim', 'gozallik']);
     for (const t of ['oldin savdo qilganman', 'yoq', 'boshqa']) {
       const q = eski(t);
@@ -897,7 +897,12 @@ describe('5-qadam — Xitoydan topish', () => {
     expect(k.savol.matn).not.toMatch(/kesh|provayder/u);
     expect(javobniQabulQil(h, 'xitoy_tanlov:100', 'yoq-id').xato).not.toBeNull();
     h = javob(h, 'xitoy_tanlov:100', '983093623752');
-    // Tanlov tugadi — 6-qadam: buyurtma varaqasi kodi.
+    // Tanlov tugadi — 6-qadam: avval rang va oʻlcham (ikkinchi koʻrik, 14-taklif), keyin varaqa kodi.
+    const kr = keyingi(h);
+    if (kr.tur !== 'savol') throw new Error(kr.tur);
+    expect(kr.savol).toMatchObject({ id: 'rang_olcham:100', qadam: 6, turi: 'matn', erkin: true, otkazishMumkin: true });
+    expect(kr.savol.matn).toMatch(/^«Quloqchin A»: qaysi rang va oʻlchamdan nechta olasiz\? Masalan: «qora: 40×5, 41×5; oq: 42×10»\./);
+    h = javob(h, 'rang_olcham:100', 'qora: 40×5, 41×5');
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
     expect(joriyQadam(h)).toBe(6);
   });
@@ -1012,7 +1017,7 @@ function xitoyTanlandi(): YolHolati {
 
 describe('6-qadam — Buyurtma va kargo (hamkor yoʻq)', () => {
   it('varaqa kodi → shahar (tanlov + oʻzim yozaman, profil city) → kargo yoʻli SOʻRALMAYDI → raqam → boshlaymiz → ochiq ish → 7 "tez orada"', () => {
-    let h = xitoyTanlandi();
+    let h = javob(xitoyTanlandi(), 'rang_olcham:100', null);
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
     h = natijaniYoz(h, 'buyurtma', BUYURTMA);
     const k = keyingi(h);
@@ -1220,7 +1225,7 @@ describe('8-qadam — Qabul (Xitoydan kelgan yuk; hamma raqam faktdan)', () => {
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.id).toBe('yuk_kutish');
-    expect(k.savol.matn).toMatch(/yorliq 58×40 mm, kod: EAN-13 yoki Uzum QR.*Zavod qutisi \+ strech.*«Keldi» ni bosing/);
+    expect(k.savol.matn).toMatch(/yorliq 58×40 mm, kod: EAN-13 yoki Uzum QR.*Zavod qutisi \+ strech.*«Keldi»ni bosing/);
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['keldi']);
     expect(k.savol.otkazishMumkin).toBe(false);
     h = javob(h, 'yuk_kutish', 'keldi');
@@ -1533,13 +1538,16 @@ describe('11-qadam — Sotuv boshlandi (oʻz kartochka kuzatuvi, signallar)', ()
       { ...SOTUV_JIM, qatorlar: [{ ...SOTUV.qatorlar[0]!, oz: { ...OZ, holat: 'kutilmoqda' as const } }] });
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
-    expect(k.savol.matn).toMatch(/^Kartochkalar kuzatuvga qoʻshildi \(1 ta\)\. Birinchi oʻlchov .*09:00, 17:00, 01:00.*«Yangilash» ni bosing\.$/);
+    expect(k.savol.matn).toMatch(/^Kartochkalar kuzatuvga qoʻshildi \(1 ta\)\. Birinchi oʻlchov .*09:00, 17:00, 01:00.*«Yangilash»ni bosing\.$/);
   });
 
   it('«Ha, yana buyurtma» — ikkinchi partiya: miqdor oʻz tezligidan soʻraladi, 6-qadamdan qayta; sotuvchi, rasmiylashtirish, kartochka saqlanadi', () => {
     let h = natijaniYoz(javob(sotuvBoshi(), 'uzum_havola:100', '5001'), 'sotuv', SOTUV);
     const tanlov = h.javoblar['xitoy_tanlov:100'];
+    // 1-partiyada rang va oʻlcham yozilgan (ikkinchi koʻrik, 14-taklif) — yangi partiyada qaytadan soʻraladi.
+    h = { ...h, javoblar: { ...h.javoblar, 'rang_olcham:100': 'qora: 40×5' } };
     h = javob(h, 'signal:zaxira:100:p1', 'yana');
+    expect(h.javoblar).not.toHaveProperty('rang_olcham:100');
     expect(h.natijalar.partiya).toBe(2);
     expect(h.natijalar.oldingi_partiyalar).toEqual([{ partiya: 1, sana: '2026-09-30', buyurtma: BUYURTMA, zaxira: { 100: 4 }, tezlik: { 100: 2.5 } }]);
     expect(h.natijalar.buyurtma).toBeUndefined();
@@ -1556,6 +1564,9 @@ describe('11-qadam — Sotuv boshlandi (oʻz kartochka kuzatuvi, signallar)', ()
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([75, 150, 30, 0]);
     expect(javob(h, 'partiya_miqdor:100', 0).javoblar['partiya_miqdor:100']).toBe(0);
     h = javob(h, 'partiya_miqdor:100', 60);
+    // Yangi partiya — rang va oʻlcham qaytadan soʻraladi (ikkinchi koʻrik, 14-taklif).
+    expect(savolId(h)).toBe('rang_olcham:100');
+    h = javob(h, 'rang_olcham:100', null);
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
     // Ikkinchi aylanish qisqa: shahar va 7-qadam (rasmiylashtirish) qayta soʻralmaydi.
     h = natijaniYoz(h, 'buyurtma', { ...BUYURTMA, qatorlar: [{ ...BUYURTMA.qatorlar[0]!, miqdor: 60 }] });
@@ -1618,6 +1629,14 @@ describe('12-qadam — Hisobot (oy yakuni, soliq, keyingi oy)', () => {
     // Avval sotuv qayta oʻlchanadi: oy (va «tugagan» belgisi) eski natijadan olinmaydi.
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'sotuv', qadam: 11 });
     h = natijaniYoz(h, 'sotuv', SOTUV_JIM);
+    // Shu oy boshlangan sotuv — faqat «hozirgacha» (ikkinchi koʻrik, 19-taklif): oʻtgan oyda sotuv yoʻq edi.
+    expect(h.natijalar.sotuv_boshlandi).toBe('2026-09');
+    const birOy = keyingi(h);
+    if (birOy.tur !== 'savol') throw new Error(birOy.tur);
+    expect(birOy.savol.variantlar).toEqual([{ qiymat: '2026-09', nom: '2026-yil sentyabr — hozirgacha' }]);
+    expect(birOy.savol.matn).toMatch(/^Sotuvni 2026-yil sentyabrda boshladingiz — hisobot hozirgacha boʻladi/);
+    // Sotuv avgustda boshlangan — ikki oy taklif qilinadi.
+    h = { ...h, natijalar: { ...h.natijalar, sotuv_boshlandi: '2026-08' } };
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.id).toBe('hisobot_oy');
@@ -2046,6 +2065,7 @@ describe('tekshiruv tuzatishlari (2026-10-05)', () => {
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual(['qayta']);
     h = javob(h, 'xato_qayta:buyurtma', 'qayta');
     expect(h.natijalar.buyurtma).toBeUndefined();
+    h = javob(h, 'rang_olcham:100', null);
     expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
     // Oldingi versiya yozgan "hisob yiqildi: …" natijasi ham ushlanadi (shahar savolidan keyin yiqilmaydi).
     const eski = natijaniYoz(rasmiyBoshi(), 'rasmiy', { olchov_yoq: true, sabab: 'hisob yiqildi: x is undefined' });
@@ -2083,12 +2103,19 @@ describe('2-qadam — qiziqish, aralash roʻyxat, «Yana koʻrsatish», qidiruv 
     expect(javob(bosh, 'qiziqish', null).javoblar['qiziqish']).toEqual(['bilmayman']);
   });
 
+  it('turkum nomidagi oddiy apostrof tugmada ʻ boʻladi (ikkinchi koʻrik, 19-taklif)', () => {
+    const h = natijaniYoz(tanishuvTugadi(), 'yonalishlar', { ...YONALISHLAR, royxat: [{ categoryId: 11, name: "Kiyim to'plamlari", yetadi: true, ball: { value: 72 } }] });
+    const k = keyingi(h);
+    if (k.tur !== 'savol') throw new Error(k.tur);
+    expect(k.savol.variantlar[0]).toMatchObject({ qiymat: 11, nom: 'Kiyim toʻplamlari' });
+  });
+
   it('tugmalar — koʻrsatilgan kartalar va «Yana koʻrsatish»; oʻzi yozsa boʻladi (qidiruv)', () => {
     const k = keyingi(royxatda());
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.variantlar.map((v) => v.qiymat)).toEqual([1, 2, 3, 4, 5, 6, 'yana']);
     expect(k.savol.erkin).toBe(true);
-    expect(k.savol.matn).toMatch(/«Yana koʻrsatish» ni bosing yoki pastga tovar nomini yozing/);
+    expect(k.savol.matn).toMatch(/«Yana koʻrsatish»ni bosing yoki pastga tovar nomini yozing/);
   });
 
   it('«Yana koʻrsatish» — yoʻnalish tanlanmaydi, navbatdagi sahifa kod xabari boʻlib chiqadi', () => {
@@ -2204,12 +2231,13 @@ describe('obuna darvozasi — 5-qadamdan keyin obuna (nazoratchi, 2026-10-14)', 
     let h = boshlangichHolat();
     for (let i = 0; i < 80; i++) {
       const k = keyingi(h);
-      if (k.tur === 'kod' && k.harakat === 'buyurtma') break;
+      // 6-qadam boshlandi (rang va oʻlcham savoli yoki varaqa kodi) — darvoza shu yerda.
+      if ((k.tur === 'kod' && k.harakat === 'buyurtma') || (k.tur === 'savol' && k.savol.qadam >= 6)) break;
       // Obunasiz ham 1–5-qadamda aynan oʻsha harakat.
       expect(keyingi(h, YOQ), k.tur === 'savol' ? k.savol.id : k.tur).toEqual(k);
       h = qadamYur(h, k);
     }
-    expect(keyingi(h)).toEqual({ tur: 'kod', harakat: 'buyurtma', qadam: 6 });
+    expect(joriyQadam(h)).toBe(6);
     // Darvoza yoʻq (cheklov oʻchiq) yoki obuna faol — yoʻl oldingidek.
     expect(keyingi(h, null)).toEqual(keyingi(h));
     expect(keyingi(h, FAOL)).toEqual(keyingi(h));

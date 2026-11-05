@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, manbaKorinishi, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, tanlanganNomlar, telefonGuruhla, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, manbaKorinishi, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, suhbatBorDeb, suhbatBormi, tanlanganNomlar, telefonGuruhla, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -50,6 +50,27 @@ describe('manbaKorinishi (ikkinchi koʻrik, 1-taklif: ichki fayl nomi va xom man
     expect(manbaKorinishi('Oferta 14.08.2026, 4.17-band', '2026-09-28')).toEqual({ havolalar: [], matn: 'Oferta 14.08.2026, 4.17-band', sana: '28.09.2026' });
     expect(manbaKorinishi('Soliq qoʻmitasi 50017 (ikkilamchi)', null).matn).toBe('Soliq qoʻmitasi 50017');
     expect(manbaKorinishi(null, null)).toEqual({ havolalar: [], matn: null, sana: null });
+  });
+});
+
+describe('suhbatBormi / suhbatBorDeb (ikkinchi koʻrik, 9-taklif: yangi mijozga salom darhol)', () => {
+  it('mijoz xabari boʻlsa — belgi qoʻyiladi; boʻlmasa — yoʻq; saqlab boʻlmasa — yiqilmaydi', () => {
+    const xotira = new Map<string, string>();
+    const g = globalThis as unknown as { window?: unknown };
+    const eski = g.window;
+    g.window = { localStorage: { getItem: (k: string) => xotira.get(k) ?? null, setItem: (k: string, v: string) => { xotira.set(k, v); } } };
+    try {
+      expect(suhbatBormi()).toBe(false);
+      suhbatBorDeb([{ rol: 'menejer' }]);
+      expect(suhbatBormi()).toBe(false);
+      suhbatBorDeb([{ rol: 'menejer' }, { rol: 'obunachi' }]);
+      expect(suhbatBormi()).toBe(true);
+      g.window = undefined;
+      expect(suhbatBormi()).toBe(false);
+      expect(() => suhbatBorDeb([{ rol: 'obunachi' }])).not.toThrow();
+    } finally {
+      g.window = eski;
+    }
   });
 });
 

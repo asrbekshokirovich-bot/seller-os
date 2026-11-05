@@ -58,13 +58,13 @@ const MAVZULAR: readonly Mavzu[] = [
   { savol: 'byudjet', re: /yetadimi|yetarlimi|yetarli|kam emasmi|qancha kerak|qancha pul kerak|qanchadan boshla|сколько нужно|хватит/u,
     javob: () => ['Qancha kerakligi yoʻnalish va tovarga bogʻliq: keyingi qadamda har yoʻnalish uchun «Pulingiz yetadi» yoki «yetmasligi mumkin» deb koʻrsataman.', MASLAHAT[0]!] },
   { savol: 'qiziqish', re: /qaysi .*(yaxshi|tanla|oson|foydali|qulay)|qaysi biri|maslahat|nima sotsam|bilmasam|bilmayman/u,
-    javob: () => [MASLAHAT[2]!, 'Bilmasangiz «Bilmayman» ni bosing — keyingi qadamda hamma sohadan eng yuqori baholi yoʻnalishlarni koʻrsataman, raqamlari bilan.'] },
+    javob: () => [MASLAHAT[2]!, 'Bilmasangiz «Bilmayman»ni bosing — keyingi qadamda hamma sohadan eng yuqori baholi yoʻnalishlarni koʻrsataman, raqamlari bilan.'] },
   // Kartalar hali yoʻq qadamlarda soha/tovar solishtirish ("kanstovar bilan kiyimdan qaysi biri
   // osonroq?") — pul haqidagi "qaysi biri" (80 mln yoki 100 mln) bu yerga tushmaydi.
   { savol: ['uzum_dokoni', 'byudjet'], re: /qaysi .*(yaxshi|tanla|oson|foydali|qulay)|qaysi biri|nima sotsam/u, emas: PUL_GAPI,
     javob: () => [MASLAHAT[2]!, 'Qaysi biri osonroq ekanini raqam bilan Yoʻnalish qadamida koʻrsataman: har yoʻnalishda xaridor qanchalik koʻpligi va raqobat chiqadi.'] },
   { savol: 'yonalish', re: /nega .*(sumka|krossovka|quloqchin|kiyim|boshqa)|men .*dedim|faqat .*(kerak|chiqar)/u,
-    javob: () => ['Roʻyxatda siz tanlagan sohadan 4 ta va boshqa sohalardan eng yuqori baholi 2 ta yoʻnalish koʻrsatiladi — taqqoslash uchun. Faqat oʻz sohangiz kerak boʻlsa — pastga uning nomini yozing (masalan: kanstovar) yoki «Yana koʻrsatish» ni bosing.'] },
+    javob: () => ['Roʻyxatda siz tanlagan sohadan 4 ta va boshqa sohalardan eng yuqori baholi 2 ta yoʻnalish koʻrsatiladi — taqqoslash uchun. Faqat oʻz sohangiz kerak boʻlsa — pastga uning nomini yozing (masalan: kanstovar) yoki «Yana koʻrsatish»ni bosing.'] },
   { re: /qayerdan boshla|nimadan boshla|hech narsa(ni)? bilmayman|nima qilishim kerak|qanday boshla|tajriba(m|si)? yo'q|tajribasiz/u,
     javob: () => ['Hech narsa bilmasangiz ham boʻladi: men sizni 12 qadamda olib boraman — yoʻnalish va tovar tanlash, narxini hisoblash, Xitoydan topish, rasmiylashtirish va Uzumga chiqarishgacha. Hozir faqat pastdagi savolga javob bering, qolganini birga qilamiz.'] },
   { re: /(^|[^\p{L}])ball|imkoniyat baho|baho nima|baho degani/u, javob: () => [lugat('Imkoniyat bahosi')] },

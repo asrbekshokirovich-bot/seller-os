@@ -30,7 +30,8 @@ const QADAMLAR = [
     + 'toʻlash mumkin boʻlgan chegara narx hisoblanadi.',
   '5. Xitoydan topish — tovar rasmi boʻyicha 1688 dan oʻxshash takliflar; narx Markaziy bank kursi bilan soʻmga '
     + 'oʻgiriladi va chegara narx bilan solishtiriladi.',
-  '6. Buyurtma va kargo — agentga yuboriladigan buyurtma varaqasi va kargo yoʻli.',
+  '6. Buyurtma va kargo — agentga yuboriladigan buyurtma varaqasi (rang va oʻlcham bilan). Kargo yoʻli (avia yoki '
+    + 'quruqlik) faqat kargo narxlari kiritilgan boʻlsa tanlanadi; kiritilmagan boʻlsa varaqada «kargo hisobga kirmadi» deb yoziladi.',
   '7. Rasmiylashtirish — YATT yoki MChJ, soliq, bank, Uzum bilan shartnoma boʻyicha faktlar.',
   '8. Qabul — yuk kelganda sanash va koʻzdan kechirish; kam yoki nuqsonli boʻlsa — daʼvo uchun yozib qoʻyish.',
   '9. Studiya — kartochka uchun oq fonli suratlar.',
@@ -55,7 +56,9 @@ export const LUGAT: readonly string[] = [
   'Chegara narx — Xitoyda bitta tovar uchun toʻlash mumkin boʻlgan eng yuqori narx: undan qimmat olinsa, tanlangan '
     + 'marja qolmaydi.',
   'Komissiya — Uzum har sotuvdan oladigan foiz; turkumga qarab har xil (4-qadamda tanlangan turkum boʻyicha olinadi).',
-  'Kargo — Xitoydan Oʻzbekistonga yuk tashish xizmati; narxi kargo kompaniyasiga bogʻliq.',
+  'Kargo — Xitoydan Oʻzbekistonga yuk tashish xizmati. Narx odatda 1 kg yoki 1 kub metr hajm uchun olinadi (ogʻir '
+    + 'tovarda vazni, yengil lekin katta tovarda hajmi hisoblanadi); avia — tezroq, lekin qimmatroq; quruqlik (avto yoki '
+    + 'temir yoʻl) — sekinroq, lekin arzonroq. Aniq narx kargo kompaniyasiga bogʻliq.',
   '1688 — Xitoyning ulgurji savdo sayti (zavod va ulgurji sotuvchilar narxlari).',
   'Partiya — bir martada olinadigan tovar miqdori.',
   'YATT — yakka tartibdagi tadbirkor; MChJ — masʼuliyati cheklangan jamiyat.',
@@ -73,6 +76,8 @@ export const MASLAHAT: readonly string[] = [
   'Oʻzingiz tushunadigan sohadan boshlang: sifatni tekshirish, rasm va tavsif tayyorlash, xaridorga javob berish oson.',
   'Sertifikat yoki markirovka talab qilinadigan tovarda birinchi marta vaqt va xarajat koʻproq ketadi.',
   'Ogʻir va katta hajmli tovarda kargo va logistika qimmat — tannarxni oldin hisoblang.',
+  'Kargo narxini 2–3 kompaniyadan soʻrang: 1 kg va 1 kub metr narxi, necha kunda yetkazadi, bojxona narxga kiradimi, '
+    + 'yuk yoʻqolsa yoki shikastlansa kim javob beradi. Kelishuvni yozma qiling.',
   'Mavsumiy tovarni mavsum boshlanishidan oldin olib keling.',
   'Sotuv raqamlari taxminiy — bitta raqamga emas, bir nechta tovarni solishtirib qaror qiling.',
   'Yopiq brend tovarini sotmang: Uzum huquq egasidan ruxsat hujjatini soʻraydi.',
