@@ -7,7 +7,7 @@
 import type { Tr } from '../../lib/til';
 
 /** Suhbati bor mijoz belgisi (ikkinchi koʻrik, 9-taklif): bor boʻlsa — tayyor salom koʻrsatilmaydi. */
-const SUHBAT_BOR = 'zs-suhbat-bor';
+export const SUHBAT_BOR = 'zs-suhbat-bor';
 
 /** Bu brauzerda mijoz oldin javob berganmi (`suhbatBorDeb`). Saqlab boʻlmasa — yoʻq. */
 export function suhbatBormi(): boolean {

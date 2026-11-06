@@ -123,7 +123,8 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
   boshlangich?: Keyingi;
 }) {
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
-  const [keyingi, setKeyingi] = useState<Keyingi | null>(null);
+  // Yangi mijozning birinchi savoli sahifa HTMLida turadi (9-taklif) — JavaScript yuklanishini kutmaydi.
+  const [keyingi, setKeyingi] = useState<Keyingi | null>(boshlangich ?? null);
   const [qadam, setQadam] = useState(1);
   const [yuklandi, setYuklandi] = useState(false);
   const [band, setBand] = useState(false);
@@ -267,8 +268,9 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
    * oʻchiq. Suhbati bor mijozda (`suhbatBormi`) va kengaytmada (token bilan) — kutiladi: ularning suhbati boshqa.
    */
   useEffect(() => {
-    if (!boshlangich || /sessiya=/u.test(window.location.hash) || suhbatBormi()) return;
-    setKeyingi((k) => k ?? boshlangich);
+    // Suhbati bor mijoz yoki kengaytma — tayyor salom emas, server javobi kutiladi (sahifa chizilishidan oldin
+    // bosh skript `data-suhbat-bor` qoʻyadi va CSS salomni yashiradi — bir lahza ham koʻrinmaydi).
+    if (boshlangich && (/sessiya=/u.test(window.location.hash) || suhbatBormi())) setKeyingi((k) => (k === boshlangich ? null : k));
   }, [boshlangich]);
 
   useEffect(() => { void yukla(); }, [yukla]);
@@ -1031,7 +1033,7 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
             ))}
             </RangKonteksti.Provider>
             {savolKorsat && savol && (
-              <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`} data-savol="1">
+              <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}${keyingi === boshlangich ? ` ${u.boshlangichPufak}` : ''}`} data-savol="1">
                 <SavolMatni matn={tr(savol.matn, savol.ru ?? savol.matn)} batafsil={savol.batafsil ? tr(savol.batafsil, savol.batafsilRu ?? savol.batafsil) : null} tr={tr} />
                 {ilova}
               </div>
