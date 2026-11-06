@@ -28,7 +28,7 @@
 
 import { createContext, Fragment, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { apostrofTozala, izohRu, izohTozala, oqimmi, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
+import { apostrofTozala, izohRu, izohTozala, oqimmi, turkumRu, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { BOSH_XABAR_KALIT, boshXabarniOl } from '@/lib/bosh-xabar';
 import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
@@ -1517,7 +1517,7 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, rejim, tr }: {
           return (
             <div key={y.categoryId} className={u.karta}>
               <div className={u.kartaBoshi}>
-                <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{apostrofTozala(y.name)}</div></div>
+                <div className={u.kartaNomBlok}><div className={u.kartaNomi}>{tr(apostrofTozala(y.name), turkumRu(y.categoryId) ?? y.name)}</div></div>
                 <div className={u.kartaTeglar}>
                   {i === engYuqori && <span className={`${u.teg} ${u.tegYaxshi}`}>{tr('Eng yuqori baho', 'Лучшая оценка')}</span>}
                   <span className={`${u.teg} ${u.tegNeytral}`}>{sohaTeg(y.soha)}</span>
@@ -1572,7 +1572,7 @@ function Yonalishlar({ royxat, eskirgan, baholanmadi, bolish, rejim, tr }: {
                 : rejim.idlar.has(String(y.categoryId)) && (
                   <button type="button" className={`${u.tugma} ${u.tugmaAsosiy} ${u.kartaTanla}`} disabled={rejim.band}
                     onClick={() => rejim.tanla(y.categoryId)}>
-                    {tr(`«${apostrofTozala(y.name)}»ni tanlayman`, `Выбираю «${y.name}»`)}
+                    {tr(`«${apostrofTozala(y.name)}»ni tanlayman`, `Выбираю «${turkumRu(y.categoryId) ?? y.name}»`)}
                   </button>
                 ))}
             </div>
