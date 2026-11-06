@@ -16,7 +16,7 @@ import s from './sahifaTepa.module.css';
 const jim = () => () => {};
 
 /** Statik sahifada til — head skripti qoʻygan `<html lang>` (serverda — oʻzbekcha). */
-function useHujjatTili(): Til {
+export function useHujjatTili(): Til {
   return useSyncExternalStore(jim, () => (document.documentElement.lang === 'ru' ? 'ru' : 'uz'), () => 'uz');
 }
 

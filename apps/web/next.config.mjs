@@ -48,6 +48,8 @@ const config = {
     return {
       beforeFiles: [
         { source: '/usta', has: [{ type: 'cookie', key: 'so_til', value: 'ru' }], destination: '/usta/ru' },
+        // «Maxfiylik» ruschasi (ikkinchi koʻrik, 12-taklif) — xuddi Usta kabi statik nusxa.
+        { source: '/maxfiylik', has: [{ type: 'cookie', key: 'so_til', value: 'ru' }], destination: '/maxfiylik/ru' },
       ],
     };
   },

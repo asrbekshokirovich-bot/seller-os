@@ -444,6 +444,35 @@ function qisqaYozuv(b: SotuvBahosi): string {
 }
 
 const ISHONCH_MATNI: Record<Ishonch, string> = { yuqori: 'ishonch yuqori', orta: 'ishonch oʻrta', past: 'ishonch past' };
+const ISHONCH_MATNI_RU: Record<Ishonch, string> = { yuqori: 'надёжность высокая', orta: 'надёжность средняя', past: 'надёжность низкая' };
+
+/**
+ * Belgining ruschasi — taqqoslash sahifasi rus tilida (ikkinchi koʻrik, 12-taklif). Raqamlar oʻsha (`belgiAsosi`),
+ * faqat soʻzlar ruscha. Kengaytma belgilari oʻzbekcha qoladi (`kartochkaBelgisi`).
+ */
+export function belgiRuscha(b: SotuvBahosi): KartochkaBelgisi {
+  const asl = kartochkaBelgisi(b);
+  switch (b.holat) {
+    case 'sotilyapti':
+    case 'sekin': {
+      const qism = [`замер ${b.malumKun} дн`];
+      if (b.tugaganKun > 0) qism.push(`${b.tugaganKun} дн нет в наличии`);
+      qism.push(ISHONCH_MATNI_RU[b.ishonch ?? 'past']);
+      return { ...asl, matn: `≈ ${minglik(b.oyiga!)} шт/мес`, izoh: qism.join(' · ') };
+    }
+    case 'ziddiyat': return { ...asl, matn: 'Продажи неясны' };
+    case 'tugagan': return { ...asl, matn: 'Закончился', izoh: `остаток 0 уже ${b.tugaganiga} дн` };
+    case 'sotilmadi': return { ...asl, matn: 'Продаж не видно', izoh: `за ${b.malumKun} дн остаток не уменьшился` };
+    case 'kam': return { ...asl, izoh: `замер пока ${b.olchanganKun} дн` };
+    default: return { ...asl, izoh: 'не измерено' };
+  }
+}
+
+/** Taqqoslash jadvali qatorlarining ruscha nomi (`kalit` boʻyicha). */
+const QATOR_RU: Readonly<Record<string, string>> = {
+  narx: 'Цена, сум', sotuv: 'Продажи в месяц, оценка', aylanma: 'Оборот в месяц (не прибыль)', sharh: 'Новые отзывы, 30 дней',
+  belgi: 'Значок Uzum, в неделю', tugagan: 'Дней без остатка', komissiya: 'Комиссия Uzum', chegara: 'Предельная цена, 1 шт',
+};
 
 export function kartochkaBelgisi(b: SotuvBahosi): KartochkaBelgisi {
   return { ...belgiAsosi(b), qisqa: qisqaYozuv(b) };
@@ -675,8 +704,9 @@ const chiziq = (x: number | null, f: (n: number) => string = minglik) => (x === 
 
 export function taqqosJadvali(
   tovarlar: Array<{ productId: number; t: Tovar30Kun | null }>,
-  opts: { soliqFoizi: number | null },
+  opts: { soliqFoizi: number | null; til?: 'uz' | 'ru' },
 ): TaqqosJadvali {
+  const ru = opts.til === 'ru';
   const pas = tovarlar.slice(0, TAQQOS_MAX).map(({ productId, t }) => tovarPasporti(t, productId, opts));
   const b = pas.map((p) => p.baho);
   const ishonchli = (x: SotuvBahosi) => (x.holat === 'ziddiyat' || x.ishonch === 'past' ? null : x.oyiga);
@@ -688,12 +718,12 @@ export function taqqosJadvali(
     { kalit: 'narx', nom: 'Narx, soʻm', qiymatlar: b.map((x) => chiziq(x.narx.oxirgi)), eng: null },
     {
       kalit: 'sotuv', nom: 'Oyiga sotuv, taxminiy',
-      qiymatlar: b.map((x) => (x.oyiga === null ? '—' : `≈ ${minglik(x.oyiga)}${x.ishonch && x.ishonch !== 'yuqori' ? ` (${ISHONCH_MATNI[x.ishonch]})` : ''}`)),
+      qiymatlar: b.map((x) => (x.oyiga === null ? '—' : `≈ ${minglik(x.oyiga)}${x.ishonch && x.ishonch !== 'yuqori' ? ` (${(ru ? ISHONCH_MATNI_RU : ISHONCH_MATNI)[x.ishonch]})` : ''}`)),
       eng: engIndeks(sotuv, true),
     },
     {
       kalit: 'aylanma', nom: 'Oylik aylanma (foyda emas)',
-      qiymatlar: aylanma.map((x) => chiziq(x, (n) => (n >= 1_000_000 ? `≈ ${(n / 1_000_000).toFixed(1).replace('.', ',')} mln` : `≈ ${minglik(n)}`))),
+      qiymatlar: aylanma.map((x) => chiziq(x, (n) => (n >= 1_000_000 ? `≈ ${(n / 1_000_000).toFixed(1).replace('.', ',')} ${ru ? 'млн' : 'mln'}` : `≈ ${minglik(n)}`))),
       eng: engIndeks(aylanma, true),
     },
     { kalit: 'sharh', nom: 'Yangi sharhlar, 30 kun', qiymatlar: b.map((x) => (x.sharhOsish === null ? '—' : `+${minglik(x.sharhOsish)}`)), eng: engIndeks(b.map((x) => x.sharhOsish), true) },
@@ -703,21 +733,29 @@ export function taqqosJadvali(
     { kalit: 'chegara', nom: 'Chegara narx, 1 dona', qiymatlar: chegara.map((x) => chiziq(x)), eng: engIndeks(chegara, true) },
   ];
 
+  // Rus tilida — qator nomlari ruscha (12-taklif); raqamlar oʻsha.
+  if (ru) for (const q of qatorlar) q.nom = QATOR_RU[q.kalit] ?? q.nom;
   const xulosa: string[] = [];
-  const nomi = (i: number) => `${i + 1}-tovar`;
+  const nomi = (i: number) => (ru ? `товар ${i + 1}` : `${i + 1}-tovar`);
   const engSotuv = qatorlar[1]!.eng;
   const engChegara = qatorlar[7]!.eng;
-  if (engSotuv !== null) xulosa.push(`Eng koʻp sotiladigani — ${nomi(engSotuv)}.`);
+  if (engSotuv !== null) xulosa.push(ru ? `Больше всего продаётся — ${nomi(engSotuv)}.` : `Eng koʻp sotiladigani — ${nomi(engSotuv)}.`);
   if (engChegara !== null && engChegara !== engSotuv) {
-    xulosa.push(`Har donadan eng koʻp pul qoldirishi mumkin boʻlgani — ${nomi(engChegara)}` +
-      (engSotuv !== null && (sotuv[engChegara] ?? 0) < (sotuv[engSotuv] ?? 0) ? ', lekin u kamroq sotiladi.' : '.'));
+    const kam = engSotuv !== null && (sotuv[engChegara] ?? 0) < (sotuv[engSotuv] ?? 0);
+    xulosa.push(ru
+      ? `Больше всего денег с одной штуки может оставить ${nomi(engChegara)}` + (kam ? ', но он продаётся реже.' : '.')
+      : `Har donadan eng koʻp pul qoldirishi mumkin boʻlgani — ${nomi(engChegara)}` + (kam ? ', lekin u kamroq sotiladi.' : '.'));
   }
   const aniqEmas = b.map((x, i) => (sotuv[i] === null && x.oyiga !== null ? nomi(i) : null)).filter((x): x is string => x !== null);
-  if (aniqEmas.length) xulosa.push(`${aniqEmas.join(', ')}: sotuv raqami ishonchsiz — solishtirishda hisobga olinmadi.`);
-  xulosa.push('Xitoydagi narxini bilmaguncha foyda nomaʼlum — «Xitoydan top» bilan tekshiring. Qaror sizniki.');
+  if (aniqEmas.length) {
+    xulosa.push(ru ? `${aniqEmas.join(', ')}: цифра продаж ненадёжна — в сравнении не учтена.`
+      : `${aniqEmas.join(', ')}: sotuv raqami ishonchsiz — solishtirishda hisobga olinmadi.`);
+  }
+  xulosa.push(ru ? 'Пока неизвестна цена в Китае, прибыль неизвестна — проверьте через «Найти в Китае». Решение за вами.'
+    : 'Xitoydagi narxini bilmaguncha foyda nomaʼlum — «Xitoydan top» bilan tekshiring. Qaror sizniki.');
 
   return {
-    ustunlar: pas.map((p) => ({ productId: p.productId, nom: p.nom, belgi: p.belgi })),
+    ustunlar: pas.map((p) => ({ productId: p.productId, nom: p.nom, belgi: ru ? belgiRuscha(p.baho) : p.belgi })),
     qatorlar,
     xulosa,
     versiya: TOVAR_SOTUVI_VERSIYASI,

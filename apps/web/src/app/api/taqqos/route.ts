@@ -14,10 +14,12 @@ const IDLAR = /^\d{1,11}(?:,\d{1,11}){0,4}$/;
 
 export async function GET(request: Request): Promise<Response> {
   if (!sozlanganmi()) return javob({ xato: 'API manzili sozlanmagan' }, 503);
-  const ids = new URL(request.url).searchParams.get('ids') ?? '';
+  const soz = new URL(request.url).searchParams;
+  const ids = soz.get('ids') ?? '';
+  const ru = soz.get('til') === 'ru';
   if (!IDLAR.test(ids)) return javob({ xato: 'ids — 1–5 ta tovar raqami, vergul bilan' }, 400);
   try {
-    const r = await apigaSessiya(request, `/taqqos?ids=${ids}`, { method: 'GET' });
+    const r = await apigaSessiya(request, `/taqqos?ids=${ids}${ru ? '&til=ru' : ''}`, { method: 'GET' });
     if (!r) return javob({ xato: 'sessiya ochilmadi' }, 503);
     return new Response(await r.text(), {
       status: r.status,

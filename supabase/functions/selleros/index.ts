@@ -892,7 +892,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       if (!ruxsat.ochiq) return javob({ ...ruxsat.javob, sana, belgi: p.belgi }, 402);
       return javob({ sana, pasport: p });
     }
-    const jadval = taqqosJadvali(ids.map((id) => ({ productId: id, t: boyicha.get(id) ?? null })), opts);
+    // Rus sahifasida jadval ruscha (ikkinchi koʻrik, 12-taklif).
+    const jadval = taqqosJadvali(ids.map((id) => ({ productId: id, t: boyicha.get(id) ?? null })), { ...opts, til: parametr.get('til') === 'ru' ? 'ru' : 'uz' });
     if (!ruxsat.ochiq) return javob({ ...ruxsat.javob, sana, ustunlar: jadval.ustunlar }, 402);
     return javob({ sana, jadval });
   }
