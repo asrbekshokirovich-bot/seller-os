@@ -197,6 +197,19 @@ describe('taqqosJadvali', () => {
     expect(j.xulosa[1]).toMatch(/3-tovar, lekin u kamroq sotiladi/);
   });
 
+  it('rus tilida (ikkinchi koʻrik, 12-taklif): qator nomlari, xulosa va belgi ruscha; raqamlar oʻsha', () => {
+    const uz = taqqosJadvali([t(1978350), t(3302715), t(1988172)], opts);
+    const j = taqqosJadvali([t(1978350), t(3302715), t(1988172)], { ...opts, til: 'ru' });
+    expect(j.qatorlar.map((q) => q.nom)).toContain('Продажи в месяц, оценка');
+    expect(j.qatorlar.find((q) => q.kalit === 'chegara')!.qiymatlar).toEqual(uz.qatorlar.find((q) => q.kalit === 'chegara')!.qiymatlar);
+    expect(j.xulosa[0]).toBe('Больше всего продаётся — товар 1.');
+    expect(j.xulosa.at(-1)).toMatch(/^Пока неизвестна цена в Китае/);
+    expect(j.ustunlar[0]!.belgi.matn).toMatch(/шт\/мес|Продаж|Законч|неясны|—/u);
+    // Tarjima qilinadigan maydonlarda oʻzbekcha soʻz qolmagan (tovar nomi va formula versiyasi — oʻzi).
+    const matnlar = [...j.qatorlar.map((q) => q.nom), ...j.xulosa, ...j.ustunlar.flatMap((u) => [u.belgi.matn, u.belgi.izoh])];
+    expect(matnlar.join(' | ')).not.toMatch(/tovar|sotiladi|oʻlchandi|ishonch|kun/u);
+  });
+
   it('ishonchsiz raqam solishtirishga kirmaydi va bu ochiq aytiladi', () => {
     const j = taqqosJadvali([t(1978350), t(2996358)], opts);
     const sotuv = j.qatorlar.find((q) => q.kalit === 'sotuv')!;

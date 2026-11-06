@@ -23,10 +23,10 @@ export const metadata: Metadata = {
 
 export default function TaqqosSahifa() {
   return (
-    <div className={`zs-mavzu ${u.sahifa}`} lang="uz">
-      <SahifaTepa til="uz" havola={{ href: '/usta', uz: 'Suhbatga oʻtish', ru: 'Начать чат' }} />
+    // Til — head skripti qoʻygan `<html lang>` dan (ikkinchi koʻrik, 12-taklif): rus tilida sahifa ruscha.
+    <div className={`zs-mavzu ${u.sahifa}`}>
+      <SahifaTepa havola={{ href: '/usta', uz: 'Suhbatga oʻtish', ru: 'Начать чат' }} />
       <main className={u.ichi}>
-        <h1>Taqqoslash</h1>
         <Taqqos />
       </main>
     </div>
