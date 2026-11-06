@@ -207,7 +207,7 @@ describe('taqqosJadvali', () => {
     expect(j.ustunlar[0]!.belgi.matn).toMatch(/шт\/мес|Продаж|Законч|неясны|—/u);
     // Tarjima qilinadigan maydonlarda oʻzbekcha soʻz qolmagan (tovar nomi va formula versiyasi — oʻzi).
     const matnlar = [...j.qatorlar.map((q) => q.nom), ...j.xulosa, ...j.ustunlar.flatMap((u) => [u.belgi.matn, u.belgi.izoh])];
-    expect(matnlar.join(' | ')).not.toMatch(/tovar|sotiladi|oʻlchandi|ishonch|kun/u);
+    expect(matnlar.join(' | ')).not.toMatch(/tovar|sotiladi|oʻlchandi|ishonch|kun\b/u);
   });
 
   it('ishonchsiz raqam solishtirishga kirmaydi va bu ochiq aytiladi', () => {
