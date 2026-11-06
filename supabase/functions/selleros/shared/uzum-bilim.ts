@@ -43,6 +43,10 @@ export const UZUM_BILIMI: readonly string[] = [
   '[Ishlash modellari] FBS’da cut-off vaqtini o‘zingiz belgilaysiz. Kabinetda faqat bitta ombor yaratish mumkin va u haftasiga kamida 5 kun ishlashi kerak. (Manba: Uzum qoʻllanmasi 8.2)',
   '[Ishlash modellari] DBS’da yetkazish muddatini har hudud uchun 1 kundan 5 kungacha belgilaysiz. Tovaringiz faqat siz tanlagan hududlardagi xaridorlarga ko‘rinadi. (Manba: Uzum qoʻllanmasi 9.2)',
   '[Komissiya] Komissiya va logistika yig‘imi faqat sotilgan tovar tushumidan ushlanadi. Ular birgalikda quyidagilarni qoplaydi: buyurtmani yig‘ish, ekvayring va kassa, xaridor shahrigacha yetkazish, BBP’da berish yoki kuryer, qaytarishda tovarni omborga qaytarib qayta sotuvga chiqarish. (Manba: Uzum qoʻllanmasi 3.2)',
+  // Raqamlar `selleros.uzum_komissiya` dan (4 705 qator, 2026-11-06 da hisoblandi; ikkinchi koʻrik, 19-taklif).
+  '[Komissiya] Uzumning rasmiy jadvali boʻyicha (FBO, chegirmadan keyin, 06.10.2026 holati) komissiya turkumga qarab 1 % dan '
+    + '35 % gacha; turkumlarning koʻpida 13–25 %, oʻrtacha 20 %. Aniq foizni ZumSavdo 4-qadamda (Tannarx) tanlangan turkum boʻyicha '
+    + 'shu jadvaldan oladi. (Manba: Uzum tariflar jadvali, «Комиссия на продажу» varagʻi.)',
   '[Komissiya] Komissiya miqdori tovar toifasiga bog‘liq va avtomatik hisoblanadi. ZumSavdo 4-qadamda tanlangan turkumning komissiyasini Uzumning rasmiy jadvalidan oladi. (Manba: Uzum qoʻllanmasi 3.2)',
   '[Komissiya] Rasmiy komissiya jadvali — Uzum tariflar jadvalining “Savdo komissiyasi” varag‘i: har toifa uchun FBO, FBS va DBS bo‘yicha “chegirmagacha”, “chegirma miqdori” va “chegirmadan keyingi” komissiya; “-%” bu toifa o‘sha modelda sotilmaydi degani. (Manba: Uzum tariflar jadvali)',
   '[Komissiya] Jadvalning “Kalkulyator” varag‘ida narx, o‘lcham, aylanma va modelni kiritsangiz, komissiya, logistika va saqlash haqi hisoblanadi. Jadvaldagi namuna: 30 000 so‘mlik tovar, 17,00% → 5 100 so‘m komissiya. (Manba: Uzum tariflar jadvali; Uzum qoʻllanmasi 3.2, 3.2.1)',

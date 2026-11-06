@@ -56,6 +56,7 @@ export * from './kartochka.js';
 export * from './kartochka-matn.js';
 export * from './kartochka-mos.js';
 export * from './izohlar.js';
+export * from './turkum-ru.js';
 export * from './tovar-sotuvi.js';
 export * from './bozor-paneli.js';
 export * from './hisob.js';

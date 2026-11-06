@@ -16,6 +16,13 @@ describe('kargo — foydali umumiy maslahat, yoʻq narsa vaʼda qilinmaydi (ikki
   });
 });
 
+describe('komissiya — rasmiy jadvaldan raqamlar (ikkinchi koʻrik, 19-taklif)', () => {
+  it('«Uzum komissiyasi qancha?» — AI bilimida oraliq va oʻrtacha bor', () => {
+    const b = yordamchiBilimi('Uzum komissiyasi qancha oladi?');
+    expect(b).toMatch(/turkumlarning koʻpida 13–25 %, oʻrtacha 20 %/u);
+  });
+});
+
 describe('Uzum bilimi', () => {
   it('har fakt manbasi bilan; "kafolat" yoʻq (darvoza uni taqiqlaydi)', () => {
     expect(UZUM_BILIMI.length).toBeGreaterThanOrEqual(80);

@@ -60,6 +60,7 @@ import { KUZATUV_VAQTLARI, uzumMahsulotId, type OzHolat, type RaqobatchiHolat, t
 import { oldingiOy, oyNomi, sanaMatni, type HisobotFaktlar, type OyHisobi } from './hisobot.ts';
 import { matndanSon, valyutami } from './tekshiruv.ts';
 import { apostrofTozala } from './yozuv.ts';
+import { turkumRu } from './turkum-ru.ts';
 import { BYUDJET_DOLLAR, byudjetMatni, byudjetniOqi, mlnMatni, ismVaTelefonniOqi, telefonniOqi } from './tanishuv.ts';
 import { REJA_QADAMI, type Darvoza } from './tarif.ts';
 import { ruschaVariantlar, variantRu } from './ru.ts';
@@ -1880,7 +1881,11 @@ function keyingiAsl(h: YolHolati): Keyingi {
         } : {}),
         variantlar: yonalishlar.length
           // Bazadagi nom oddiy apostrof bilan boʻlishi mumkin («Kiyim to'plamlari») — ʻ ga (19-taklif).
-          ? [...korsatilgan.map((y) => ({ qiymat: y.categoryId, nom: apostrofTozala(y.name) })), ...(yanaBor ? [YANA_YONALISH] : [])]
+          // Ruscha nomi — lugʻatdan (12-taklif): rus sahifasida tugma va tanlov «Кроссовки» boʻladi.
+          ? [...korsatilgan.map((y) => {
+            const ru = turkumRu(y.categoryId);
+            return { qiymat: y.categoryId, nom: apostrofTozala(y.name), ...(ru ? { ru } : {}) };
+          }), ...(yanaBor ? [YANA_YONALISH] : [])]
           : [QAYTA_URINISH],
         erkin: yonalishlar.length > 0,
         otkazishMumkin: yonalishlar.length === 0,

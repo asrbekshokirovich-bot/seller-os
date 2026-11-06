@@ -2108,6 +2108,10 @@ describe('2-qadam — qiziqish, aralash roʻyxat, «Yana koʻrsatish», qidiruv 
     const k = keyingi(h);
     if (k.tur !== 'savol') throw new Error(k.tur);
     expect(k.savol.variantlar[0]).toMatchObject({ qiymat: 11, nom: 'Kiyim toʻplamlari' });
+    // Ruscha nom — lugʻatdan (12-taklif): rus sahifasida tugma va tanlov ruscha.
+    const kr = keyingi(natijaniYoz(tanishuvTugadi(), 'yonalishlar', { ...YONALISHLAR, royxat: [{ categoryId: 344, name: 'Krossovkalar', yetadi: true, ball: { value: 76 } }] }));
+    if (kr.tur !== 'savol') throw new Error(kr.tur);
+    expect(kr.savol.variantlar[0]).toMatchObject({ qiymat: 344, nom: 'Krossovkalar', ru: 'Кроссовки' });
   });
 
   it('tugmalar — koʻrsatilgan kartalar va «Yana koʻrsatish»; oʻzi yozsa boʻladi (qidiruv)', () => {
