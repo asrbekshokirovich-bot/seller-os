@@ -661,7 +661,7 @@ describe('ikkinchi koʻrik (2026-11-05): YATT tartibi va 1688 chegarasi', () => 
   it('rasmiy_yakun xabari: YATT yoʻq — tartib bilan roʻyxat', () => {
     const y = { olchov_yoq: false, yozildi: [{ tur: 'kutyapman' as const, sabab: 'YATT ochilishi', muddat: null, id: 1, yangi: true }], izoh: 'i' };
     expect(tushuntir('rasmiy_yakun', { ...y, yattYoq: true })).toMatch(/^YATT ochilmaguncha bank hisobi va Uzum kabinetini ochib boʻlmaydi\. Tartib: 1\) YATT oching; 2\) biznes hisob raqami oching; 3\) Uzum kabinetida/);
-    expect(tushuntir('rasmiy_yakun', y)).toMatch(/^Ochiq ishlar yozildi \(1\): YATT ochilishi\.$/);
+    expect(tushuntir('rasmiy_yakun', y)).toMatch(/^Ochiq ishlar yozildi \(1\): YATT ochilishi\. Roʻyxat menyudagi «Ishlarim»da turadi/);
   });
 
   it('1688: hech bir taklif chegaraga sigʻmasa — ochiq aytiladi, «Bu tovarni oʻtkazib yuborish» tugmasi; sigʻsa — oddiy savol', () => {
@@ -1078,6 +1078,10 @@ describe('6-qadam — Buyurtma va kargo (hamkor yoʻq)', () => {
 
   it('tushuntir(ochiq_ish): muddat yoʻq — rostini aytadi; bor — vaʼda emas deydi', () => {
     expect(tushuntir('ochiq_ish', OCHIQ)).toMatch(/Muddatni ayta olmayman/);
+    // «Ishlarim» (ikkinchi koʻrik K2): ish qayerda turishi — ikkala holatda ham; yozilmagan boʻlsa — aytilmaydi.
+    expect(tushuntir('ochiq_ish', OCHIQ)).toMatch(/ Bu ish menyudagi «Ishlarim»da turadi\.$/);
+    expect(tushuntir('ochiq_ish', { ...OCHIQ, muddat: '2026-10-28' })).toMatch(/ Bu ish menyudagi «Ishlarim»da turadi\.$/);
+    expect(tushuntir('ochiq_ish', { ...OCHIQ, olchov_yoq: true, sabab: 'baza javob bermadi' })).not.toMatch(/Ishlarim/);
     expect(tushuntir('ochiq_ish', { ...OCHIQ, muddat: '2026-10-28' })).toMatch(/taxminan 28\.10\.2026 \(hamkor oʻrtacha muddati, vaʼda emas\)/);
     expect(tushuntir('ochiq_ish', { ...OCHIQ, olchov_yoq: true, sabab: 'baza javob bermadi' })).toMatch(/yozib qoʻya olmadim/);
   });
@@ -1182,7 +1186,10 @@ describe('7-qadam — Rasmiylashtirish (hamma raqam faktdan)', () => {
     expect(tushuntir('rasmiy_yakun', { ...y, olchov_yoq: true, sabab: 'sessiya topilmadi' })).toMatch(/xato: sessiya topilmadi; roʻyxat:/);
     // "Sayt boshqacha" jumlasi faqat tekshirish ishi bor boʻlsa — belgilamagan odamga "belgiladingiz" deyilmaydi.
     const faqatKutish = { ...YAKUN, yozildi: [{ tur: 'kutyapman', sabab: 'YATT ochilishi', muddat: null, id: 6, yangi: true }] };
-    expect(tushuntir('rasmiy_yakun', faqatKutish)).toBe('Ochiq ishlar yozildi (1): YATT ochilishi.');
+    expect(tushuntir('rasmiy_yakun', faqatKutish)).toBe('Ochiq ishlar yozildi (1): YATT ochilishi. Roʻyxat menyudagi «Ishlarim»da turadi — bajarganingizni oʻsha yerda belgilaysiz.');
+    // «Ishlarim» gapi (ikkinchi koʻrik K2) — faqat roʻyxatga chiqadigan ish boʻlsa: «tekshirish» belgisi u yerda koʻrinmaydi.
+    const faqatTekshirish = { ...YAKUN, yozildi: [{ tur: 'tekshirish', sabab: 'rasmiy: YATT roʻyxat sayti boshqacha', muddat: null, id: 7, yangi: true }] };
+    expect(tushuntir('rasmiy_yakun', faqatTekshirish)).not.toMatch(/Ishlarim/);
   });
 });
 
@@ -1333,7 +1340,7 @@ describe('9-qadam — Studiya (oq fonli suratlar)', () => {
     expect(tushuntir('studiya', { ...STUDIYA, chiqishMos: false })).toMatch(/5 MB gacha\. DIQQAT: studiya chiqishi \(1200×1600\) bu talabga mos emas — belgilab oldik\. Xitoycha/);
     expect(tushuntir('studiya', { ...STUDIYA, olchov_yoq: true, sabab: 'buyurtma varaqasida 1688 taklifi tanlangan tovar yoʻq' })).toBe('Studiya suratlarini tayyorlay olmadim: buyurtma varaqasida 1688 taklifi tanlangan tovar yoʻq.');
     expect(tushuntir('studiya_yakun', { ...STUDIYA_YAKUN, yozildi: [{ tur: 'kutyapman', sabab: 'studiya: oʻz suratlari (yetmadi)', muddat: null, id: 3, yangi: true }] }))
-      .toBe('Ochiq ishlar yozildi (1): studiya: oʻz suratlari (yetmadi).');
+      .toBe('Ochiq ishlar yozildi (1): studiya: oʻz suratlari (yetmadi). Roʻyxat menyudagi «Ishlarim»da turadi — bajarganingizni oʻsha yerda belgilaysiz.');
     expect(tushuntir('studiya_yakun', STUDIYA_YAKUN)).toBe('Studiya boʻyicha ochiq ish yoʻq — hammasi tayyor.');
   });
 });
@@ -1447,7 +1454,7 @@ describe('10-qadam — Yuklash (kartochka → omborga topshirish)', () => {
       { tur: 'tekshirish', sabab: 'yuklash: kabinet (kartochka) boshqacha', muddat: null, id: 1, yangi: true },
       { tur: 'kutyapman', sabab: 'Uzum ombor qabuli', muddat: '2026-10-06', id: 2, yangi: true },
     ] };
-    expect(tushuntir('yuklash_yakun', y)).toBe('Ochiq ishlar yozildi (2): yuklash: kabinet (kartochka) boshqacha; Uzum ombor qabuli (06.10.2026 gacha). «Boshqacha» belgingiz saqlandi — maʼlumotni yangilashda hisobga olamiz.');
+    expect(tushuntir('yuklash_yakun', y)).toBe('Ochiq ishlar yozildi (2): yuklash: kabinet (kartochka) boshqacha; Uzum ombor qabuli (06.10.2026 gacha). «Boshqacha» belgingiz saqlandi — maʼlumotni yangilashda hisobga olamiz. Roʻyxat menyudagi «Ishlarim»da turadi — bajarganingizni oʻsha yerda belgilaysiz.');
     expect(tushuntir('yuklash_yakun', YUKLASH_YAKUN)).toBe('Yuklash boʻyicha ochiq ish yoʻq — hammasi tayyor.');
   });
 });

@@ -71,6 +71,7 @@ export const FAYLLAR = [
   ['packages/shared/src/kartochka-mos.ts', 'shared/kartochka-mos.ts'],
   ['packages/shared/src/izohlar.ts', 'shared/izohlar.ts'],
   ['packages/shared/src/turkum-ru.ts', 'shared/turkum-ru.ts'],
+  ['packages/shared/src/ishlarim.ts', 'shared/ishlarim.ts'],
   ['packages/shared/src/kurs.ts', 'shared/kurs.ts'],
   ['packages/shared/src/fakt.ts', 'shared/fakt.ts'],
   ['packages/shared/src/rasmiy.ts', 'shared/rasmiy.ts'],

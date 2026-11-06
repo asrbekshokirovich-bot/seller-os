@@ -1345,13 +1345,20 @@ function kartochkaMatniTushuntir(n: KartochkaMatniNatijasi): string {
   return `Kartochka matni ${yozildi} ta tovar uchun tayyor; ${jami - yozildi} tasiga hozir yoza olmadim — ularga qolip va qoidalar pastda.${qolgan}`;
 }
 
+/**
+ * «Ishlarim» (ikkinchi koʻrik K2): yozilgan ish qayerda turishini aytamiz — ilgari roʻyxat faqat shu xabarda
+ * qolardi. «tekshirish» belgilari (jamoa uchun) «Ishlarim»ga chiqmaydi: faqat ular boʻlsa, gap aytilmaydi.
+ */
+const ISHLARIMDA = ' Roʻyxat menyudagi «Ishlarim»da turadi — bajarganingizni oʻsha yerda belgilaysiz.';
+const ishlarimda = (y: ReadonlyArray<{ tur: string }>): string => (y.some((x) => x.tur !== 'tekshirish') ? ISHLARIMDA : '');
+
 function ochiqIshlarMatni(n: QabulYakunNatijasi, bosqich: string): string {
   const y = n.yozildi ?? [];
   const royxat = y.map((x) => `${x.sabab}${x.muddat ? ` (${sanaMatni(x.muddat)} gacha)` : ''}`).join('; ');
   if (n.olchov_yoq) return `Ochiq ishlarni yozishda xato: ${n.sabab ?? 'baza javob bermadi'}${y.length ? `; roʻyxat: ${royxat}` : ''}.`;
   if (y.length === 0) return `${bosqich} boʻyicha ochiq ish yoʻq — hammasi tayyor.`;
   const tekshirish = y.some((x) => x.tur === 'tekshirish');
-  return `Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' «Boshqacha» belgingiz saqlandi — maʼlumotni yangilashda hisobga olamiz.' : ''}`;
+  return `Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' «Boshqacha» belgingiz saqlandi — maʼlumotni yangilashda hisobga olamiz.' : ''}${ishlarimda(y)}`;
 }
 
 /** Yuk keladigan shahar tugmalari — profil roʻyxati bilan bir xil (`savollar.ts`); "Boshqa" oʻrniga erkin matn. */
@@ -2954,7 +2961,7 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
       ? 'YATT ochilmaguncha bank hisobi va Uzum kabinetini ochib boʻlmaydi. Tartib: 1) YATT oching; 2) biznes hisob raqami oching; '
         + '3) Uzum kabinetida roʻyxatdan oʻting. Tayyor boʻlganda shu chatga qayting — davom etamiz. '
       : '';
-    return `${tartib}Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' «Sayt boshqacha» belgingiz saqlandi — maʼlumotni yangilashda hisobga olamiz.' : ''}`;
+    return `${tartib}Ochiq ishlar yozildi (${y.length}): ${royxat}.${tekshirish ? ' «Sayt boshqacha» belgingiz saqlandi — maʼlumotni yangilashda hisobga olamiz.' : ''}${ishlarimda(y)}`;
   }
   if (harakat === 'buyurtma') {
     const n = natija as BuyurtmaNatijasi;
@@ -2979,9 +2986,11 @@ export function tushuntir(harakat: KodHarakati, natija: unknown): string {
     if (n.olchov_yoq) return `Kutish ishini yozib qoʻya olmadim: ${n.sabab ?? 'baza javob bermadi'}. Yuk kelganda oʻzingiz aytasiz.`;
     // Muddat yoʻqligi sababi aniq emas (hamkor yoʻq yoki yoʻl kuni kiritilmagan) —
     // umumiy, rost gap; yuk kelganini har holda obunachi aytadi (eslatma yoʻq).
-    return n.muddat
+    // «Ishlarim» (ikkinchi koʻrik K2): ish qayerda turishi; 8-qadamda «Keldi» desa — oʻzi yopiladi.
+    return (n.muddat
       ? `Yuk kelishini kutamiz: taxminan ${sanaMatni(n.muddat)} (hamkor oʻrtacha muddati, vaʼda emas). Kelganda oʻzingiz xabar bering; kelguncha doʻkonni tayyorlaymiz.`
-      : 'Yuk kelishini kutamiz. Muddatni ayta olmayman — kargo muddati hali kiritilmagan. Kelganda oʻzingiz xabar bering; kelguncha doʻkonni tayyorlaymiz.';
+      : 'Yuk kelishini kutamiz. Muddatni ayta olmayman — kargo muddati hali kiritilmagan. Kelganda oʻzingiz xabar bering; kelguncha doʻkonni tayyorlaymiz.')
+      + ' Bu ish menyudagi «Ishlarim»da turadi.';
   }
   if (harakat === 'xitoy') {
     // Uch holat ATAYLAB alohida sanaladi: topildi / topilmadi (javob) /

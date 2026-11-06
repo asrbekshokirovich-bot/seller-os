@@ -28,7 +28,7 @@
 
 import { createContext, Fragment, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { apostrofTozala, izohRu, izohTozala, oqimmi, turkumRu, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
+import { apostrofTozala, ishNomi, izohRu, izohTozala, muddatiOtgan, oqimmi, turkumRu, oyNomi, REJA_QADAMI, sanaMatni, SAVDO_SOHALARI, songgiSuhbat, sotuvToifasi, sseOqi, STUDIYA_CHIQISH, SUHBAT_QADAMLARI, TARIF_NARXI, tezSavollar, type AiYozuvQismi, type Ish, type Reja, type SuhbatBolagiXabari, type SuhbatKartasi } from '@selleros/shared';
 import { son } from '@/lib/bazamiz';
 import { BOSH_XABAR_KALIT, boshXabarniOl } from '@/lib/bosh-xabar';
 import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
@@ -153,7 +153,7 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
   const [til, tilniTanla] = useTil(boshTil);
   const [menyu, setMenyu] = useState(false);
   /** Modal oyna: «Profilim», «Boshidan boshlash» yoki «Chiqish» tasdigʻi, «Suhbatlarim» — bir vaqtda bittasi. */
-  const [oyna, setOyna] = useState<'profil' | 'tasdiq' | 'suhbatlar' | 'chiqish' | null>(null);
+  const [oyna, setOyna] = useState<'profil' | 'tasdiq' | 'suhbatlar' | 'ishlar' | 'chiqish' | null>(null);
   const [obunaOchiq, setObunaOchiq] = useState(false);
   /** Kengaytma panelida «Chiqish» yoʻq — sessiyani kengaytma saqlaydi (`lib/kengaytma.ts`). */
   const kengaytmada = useKengaytmadami();
@@ -729,6 +729,7 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
     return null;
   }
   const suhbatlarOch = () => { qatlamOch(); setMenyu(false); setOyna('suhbatlar'); };
+  const ishlarOch = () => { qatlamOch(); setMenyu(false); setOyna('ishlar'); };
   const obunaOch = () => { aylanish.current = oqim.current?.scrollTop ?? 0; qatlamOch(); setOyna(null); setObunaOchiq(true); };
 
   async function boshdanBoshla() {
@@ -904,6 +905,11 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
       <button type="button" className={`${u.yangiSuhbat} ${u.suhbatlarTugma}`} onClick={suhbatlarOch} disabled={band || !holatBor}>
         {tr('Suhbatlarim', 'Мои чаты')}
         <span className={u.xiraIkon}><Ikon nom="suhbatlar" o={17} /></span>
+      </button>
+      {/* «Ishlarim» (ikkinchi koʻrik K2): chat yozib qoʻygan ishlar — muddati bilan, bajarilganini belgilash. */}
+      <button type="button" className={`${u.yangiSuhbat} ${u.ishlarTugma}`} onClick={ishlarOch} disabled={band || !holatBor}>
+        {tr('Ishlarim', 'Мои дела')}
+        <span className={u.xiraIkon}><Ikon nom="ishlar" o={17} /></span>
       </button>
 
       <nav className={u.qadamlar} aria-label={tr('Qadamlar', 'Шаги')}>
@@ -1103,6 +1109,7 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
       )}
       {oyna === 'tasdiq' && <BoshdanTasdiq tr={tr} band={band} chiqishBor={!kengaytmada} ha={() => void boshdanBoshla()} yoq={() => yop('oyna')} />}
       {oyna === 'suhbatlar' && <Suhbatlarim tr={tr} band={band} yop={() => yop('oyna')} qayt={suhbatgaQayt} />}
+      {oyna === 'ishlar' && <Ishlarim tr={tr} til={til} yop={() => yop('oyna')} />}
       {oyna === 'chiqish' && <ChiqishTasdiq tr={tr} ha={chiq} yoq={() => yop('oyna')} />}
     </div>
   );
@@ -3463,6 +3470,129 @@ function suhbatMavzusi(k: SuhbatKartasi, tr: Tr): string {
   }
   // Mavzu hali tanlanmagan (1-qadam) — qadam nomi alohida yoziladi, sarlavhada takrorlanmaydi.
   return k.joriy || k.davomEtsaBoladi ? tr('Yangi suhbat', 'Новый чат') : tr('Avvalgi suhbat', 'Прежний чат');
+}
+
+/**
+ * «Ishlarim» (ikkinchi koʻrik K2, 2026-11-06): chat yozib qoʻygan ishlar — YATT, bank, yuk kelishi, ombor
+ * qabuli, soliq… Ilgari roʻyxat faqat chat xabarida qolardi. Ochiqlari tepada, muddat boʻyicha; qator bosilsa —
+ * «bajarildi», yana bosilsa — qayta ochiq (joyidan siljimaydi — keyingi ochilishda tartiblanadi). Chat oʻzi
+ * bilganini oʻzi yopadi («Keldi», «Ha, YATT ochdim»). Eslatma (Telegram) hali yoʻq — oynada shunday aytiladi.
+ */
+function Ishlarim({ tr, til, yop }: { tr: Tr; til: Til; yop: () => void }) {
+  const panel = useRef<HTMLDivElement>(null);
+  useModalFokus(panel);
+  const [ishlar, setIshlar] = useState<Ish[] | null>(null);
+  const [xato, setXato] = useState<string | null>(null);
+  const [band, setBand] = useState<number | null>(null);
+  const yuklanmadi = tr('Yuklab boʻlmadi — internetni tekshirib, qayta oching.', 'Не удалось загрузить — проверьте интернет и откройте снова.');
+
+  // Oyna ochilganda bir marta (tr har renderda yangi — bogʻliqlikka kirmaydi).
+  useEffect(() => {
+    let bekor = false;
+    void (async () => {
+      try {
+        const r = await fetch('/api/ishlarim', { cache: 'no-store', headers: sessiyaSarlavhasi() });
+        const d = (await r.json().catch(() => null)) as { ishlar?: Ish[] } | null;
+        if (bekor) return;
+        if (!r.ok || !Array.isArray(d?.ishlar)) setXato(yuklanmadi);
+        else setIshlar(d.ishlar);
+      } catch {
+        if (!bekor) setXato(yuklanmadi);
+      }
+    })();
+    return () => { bekor = true; };
+  }, []);
+
+  async function belgila(ish: Ish) {
+    const bajarildi = ish.holat === 'ochiq';
+    setBand(ish.id);
+    setXato(null);
+    try {
+      const r = await fetch('/api/ishlarim', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', ...sessiyaSarlavhasi() },
+        body: JSON.stringify({ id: ish.id, bajarildi }),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      setIshlar((x) => (x ?? []).map((y) => (y.id === ish.id
+        ? { ...y, holat: bajarildi ? 'yopiq' : 'ochiq', yopildi: bajarildi ? new Date().toISOString() : null }
+        : y)));
+    } catch {
+      setXato(tr('Saqlab boʻlmadi — qayta urinib koʻring.', 'Не удалось сохранить — попробуйте ещё раз.'));
+    } finally {
+      setBand(null);
+    }
+  }
+
+  const bugun = mahalliySana();
+  const ochiqlar = (ishlar ?? []).filter((x) => x.holat === 'ochiq').length;
+  const sanasi = (ish: Ish): string => {
+    if (ish.holat === 'yopiq') return tr('bajarildi', 'выполнено');
+    if (!ish.muddat) return tr('muddatsiz', 'без срока');
+    return muddatiOtgan(ish, bugun)
+      ? tr(`muddati oʻtdi — ${sanaMatni(ish.muddat)}`, `срок прошёл — ${sanaMatni(ish.muddat)}`)
+      : tr(`${sanaMatni(ish.muddat)} gacha`, `до ${sanaMatni(ish.muddat)}`);
+  };
+
+  return (
+    <div className={u.panelFon} role="presentation" onClick={yop}>
+      <div ref={panel} className={`${u.panel} ${u.sbPanel}`} role="dialog" aria-modal="true" aria-labelledby="ish-sarlavha" onClick={(e) => e.stopPropagation()}>
+        <header className={u.panelBosh}>
+          <div>
+            <h2 id="ish-sarlavha" className={u.panelSarlavha}>{tr('Ishlarim', 'Мои дела')}</h2>
+            <p className={u.panelMeta}>
+              {ishlar === null || ishlar.length === 0
+                ? tr('Chat yozib qoʻygan ishlar', 'Дела, которые записал чат')
+                : ochiqlar > 0 ? tr(`${ochiqlar} ta ochiq ish`, `Открытых дел: ${ochiqlar}`) : tr('Hammasi bajarilgan', 'Всё выполнено')}
+            </p>
+          </div>
+          <button type="button" className={u.yopish} data-fokus aria-label={tr('Yopish', 'Закрыть')} onClick={yop}><Ikon nom="yopish" o={18} /></button>
+        </header>
+        <div className={u.panelIchi}>
+          {xato && <p className={u.sbXato} role="alert">{xato}</p>}
+          {ishlar === null && !xato && <p className={u.kichikIzoh}>{tr('Yuklanmoqda…', 'Загрузка…')}</p>}
+          {ishlar !== null && ishlar.length === 0 && (
+            <p className={u.kichikIzoh}>
+              {tr('Hozircha ish yoʻq. Chat biror ishni keyinga qoldirsa (YATT, yuk kelishi, soliq) — shu yerda chiqadi.',
+                'Пока дел нет. Если чат отложит какое-то дело (ИП, прибытие груза, налог) — оно появится здесь.')}
+            </p>
+          )}
+          {ishlar !== null && ishlar.length > 0 && (
+            <ul className={u.ishRoyxat}>
+              {ishlar.map((ish) => (
+                <li key={ish.id}>
+                  <button type="button" className={`${u.ishQator} ${ish.holat === 'yopiq' ? u.ishBajarildi : ''}`}
+                    aria-pressed={ish.holat === 'yopiq'} disabled={band === ish.id} onClick={() => void belgila(ish)}>
+                    <span className={u.katak} aria-hidden="true">{ish.holat === 'yopiq' && <Ikon nom="belgi" o={14} q={3} />}</span>
+                    <span className={u.ishMatn}>
+                      {/* «3-chorak», «2026-yil» — raqam va soʻz orasidagi chiziqcha uzilmaydi (U+2011). */}
+                      <span className={u.ishNom}>{ishNomi(ish.sabab, til).replace(/(\d)-(?=\p{L})/gu, '$1\u2011')}</span>
+                      <span className={`${u.ishSana} ${muddatiOtgan(ish, bugun) ? u.ishOtdi : ''}`}>
+                        {[ish.tur === 'tolov' ? tr('toʻlov', 'платёж') : null, sanasi(ish)].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {ishlar !== null && ishlar.length > 0 && (
+            <p className={u.kichikIzoh}>
+              {tr('Bajarganingizni bosib belgilang; adashsangiz — yana bosing. Eslatma (Telegram) hozircha yoʻq — muddatlarni shu yerdan kuzating.',
+                'Нажмите на выполненное дело, чтобы отметить; ошиблись — нажмите ещё раз. Напоминаний (Telegram) пока нет — следите за сроками здесь.')}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Mahalliy bugungi sana `YYYY-MM-DD` (muddati oʻtganini koʻrsatish uchun; oyna faqat brauzerda ochiladi). */
+function mahalliySana(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /**

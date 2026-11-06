@@ -57,6 +57,7 @@ export * from './kartochka-matn.ts';
 export * from './kartochka-mos.ts';
 export * from './izohlar.ts';
 export * from './turkum-ru.ts';
+export * from './ishlarim.ts';
 export * from './tovar-sotuvi.ts';
 export * from './bozor-paneli.ts';
 export * from './hisob.ts';
