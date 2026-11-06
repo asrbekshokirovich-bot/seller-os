@@ -455,15 +455,16 @@ export function belgiRuscha(b: SotuvBahosi): KartochkaBelgisi {
   switch (b.holat) {
     case 'sotilyapti':
     case 'sekin': {
-      const qism = [`замер ${b.malumKun} дн`];
-      if (b.tugaganKun > 0) qism.push(`${b.tugaganKun} дн нет в наличии`);
+      // «дн.» — jadval katagi tor; raqam bilan ruschada odatiy qisqartma (oʻqiladigan tartib: «замерено 9 дн.»).
+      const qism = [`замерено ${b.malumKun} дн.`];
+      if (b.tugaganKun > 0) qism.push(`не было в наличии ${b.tugaganKun} дн.`);
       qism.push(ISHONCH_MATNI_RU[b.ishonch ?? 'past']);
       return { ...asl, matn: `≈ ${minglik(b.oyiga!)} шт/мес`, izoh: qism.join(' · ') };
     }
     case 'ziddiyat': return { ...asl, matn: 'Продажи неясны' };
-    case 'tugagan': return { ...asl, matn: 'Закончился', izoh: `остаток 0 уже ${b.tugaganiga} дн` };
-    case 'sotilmadi': return { ...asl, matn: 'Продаж не видно', izoh: `за ${b.malumKun} дн остаток не уменьшился` };
-    case 'kam': return { ...asl, izoh: `замер пока ${b.olchanganKun} дн` };
+    case 'tugagan': return { ...asl, matn: 'Закончился', izoh: `нет в наличии уже ${b.tugaganiga} дн.` };
+    case 'sotilmadi': return { ...asl, matn: 'Продаж не видно', izoh: `за ${b.malumKun} дн. остаток не уменьшился` };
+    case 'kam': return { ...asl, izoh: `пока замерено ${b.olchanganKun} дн.` };
     default: return { ...asl, izoh: 'не измерено' };
   }
 }

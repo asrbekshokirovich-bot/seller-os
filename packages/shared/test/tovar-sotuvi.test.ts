@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  BELGI_MAX, KUNLIK_CHEGARA, OYNA_KUN, idlarniOqi, kartochkaBelgilari, kartochkaBelgisi, kengaytmaQismiOchiq, oynaKuni, sotuvBahosi, taqqosJadvali, tovar30KunOqi,
+  BELGI_MAX, KUNLIK_CHEGARA, OYNA_KUN, belgiRuscha, idlarniOqi, kartochkaBelgilari, kartochkaBelgisi, kengaytmaQismiOchiq, oynaKuni, sotuvBahosi, taqqosJadvali, tovar30KunOqi,
   tovarPasporti, zararsizlikChegarasi, type Tovar30Kun,
 } from '../src/index.js';
 
@@ -208,6 +208,11 @@ describe('taqqosJadvali', () => {
     // Tarjima qilinadigan maydonlarda oʻzbekcha soʻz qolmagan (tovar nomi va formula versiyasi — oʻzi).
     const matnlar = [...j.qatorlar.map((q) => q.nom), ...j.xulosa, ...j.ustunlar.flatMap((u) => [u.belgi.matn, u.belgi.izoh])];
     expect(matnlar.join(' | ')).not.toMatch(/tovar|sotiladi|oʻlchandi|ishonch|kun\b/u);
+    // Ibora tartibi ruscha (jonli koʻrikda «замер пока 1 дн» chiqqan edi): avval feʼl, keyin raqam.
+    const kam = { ...baho(1978350), holat: 'kam' as const, olchanganKun: 1 };
+    expect(belgiRuscha(kam).izoh).toBe('пока замерено 1 дн.');
+    const tugagan = { ...baho(1978350), holat: 'tugagan' as const, tugaganiga: 3 };
+    expect(belgiRuscha(tugagan).izoh).toBe('нет в наличии уже 3 дн.');
   });
 
   it('ishonchsiz raqam solishtirishga kirmaydi va bu ochiq aytiladi', () => {
