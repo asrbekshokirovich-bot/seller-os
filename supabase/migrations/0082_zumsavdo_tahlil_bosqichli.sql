@@ -22,6 +22,8 @@
 --     koʻrinishlar (`zumsavdo.tahlil_tovar` va boshqalar) bir lahzada yangisiga oʻtadi.
 --     AI hech qachon yarim tayyor yoki qulflangan jadvalni oʻqimaydi; 0080 asboblari
 --     oʻzgarmaydi (xuddi shu nomlar, xuddi shu ustunlar).
+--   * Almashgandan keyingi qadamda eski nusxa boʻshatiladi — diskda doim bitta nusxa
+--     (qurilish paytida ikkita).
 --   * Xato yozib qoʻyiladi; 5 ta ketma-ket xato — qurilish toʻxtaydi (jim aylanmaydi).
 --   * Har qadam `zumsavdo.tahlil_qurilish` da koʻrinadi: qaysi bosqich, qayerda, nechta qadam.
 --
@@ -54,8 +56,10 @@ create table if not exists zumsavdo.tahlil_qurilish (
   qadamlar          integer not null default 0,
   qatorlar          jsonb not null default '{}'::jsonb,
   xato_soni         integer not null default 0,
-  oxirgi_xato       text
+  oxirgi_xato       text,
+  tozala            text check (tozala in ('a', 'b'))   -- almashgandan keyin boʻshatiladigan eski nusxa
 );
+alter table zumsavdo.tahlil_qurilish add column if not exists tozala text check (tozala in ('a', 'b'));
 insert into zumsavdo.tahlil_qurilish (id) values (1) on conflict (id) do nothing;
 alter table zumsavdo.tahlil_qurilish enable row level security;
 revoke all on zumsavdo.tahlil_qurilish from public, anon, authenticated;
@@ -247,6 +251,20 @@ begin
     return jsonb_build_object('toxtadi', true, 'oxirgi_xato', s.oxirgi_xato, 'bosqich', s.bosqich);
   end if;
 
+  -- Koʻrinishlar almashgandan keyingi qadam: eski nusxa boʻshatiladi (disk ikki nusxani
+  -- doim saqlamasin). Almashish bilan BIR tranzaksiyada emas: oʻsha lahzada eski jadvalni
+  -- oʻqiyotgan soʻrov boʻsh jadvalga tushib qolmasin. Qulf olinmasa — keyingi qadamda.
+  if s.quriladi is null and s.tozala is not null then
+    begin
+      perform pg_catalog.set_config('lock_timeout', '5s', true);
+      perform zumsavdo.tahlil_nusxa_tozala(s.tozala);
+      update zumsavdo.tahlil_qurilish q set tozala = null where q.id = 1;
+      return jsonb_build_object('tozalandi', s.tozala, 'davom', true);
+    exception when lock_not_available then
+      return jsonb_build_object('tozalash_kutadi', s.tozala, 'davom', false);
+    end;
+  end if;
+
   select j.sana into v_sana from zumsavdo.xulosa_jurnal j order by j.id desc limit 1;
   v_pass := zumsavdo.tahlil_census_pass();
   select max(k.yangilandi) into v_daraxt from zumsavdo.turkum k;
@@ -263,7 +281,7 @@ begin
     x := case when coalesce(s.faol, 'a') = 'a' then 'b' else 'a' end;
     perform zumsavdo.tahlil_nusxa_tozala(x);
     update zumsavdo.tahlil_qurilish q
-       set quriladi = x, bosqich = 'tovar', kursor = -1, kursor_max = null,
+       set quriladi = x, bosqich = 'tovar', kursor = -1, kursor_max = null, tozala = null,
            sana = v_sana, census_pass = v_pass, census_sana = null, daraxt = v_daraxt,
            boshlandi = clock_timestamp(), qadam_vaqti = clock_timestamp(), qadamlar = 1,
            qatorlar = '{}'::jsonb, xato_soni = 0, oxirgi_xato = null
@@ -639,7 +657,7 @@ begin
                                                'daqiqa', round(extract(epoch from clock_timestamp() - s.boshlandi)::numeric / 60, 1)));
 
       update zumsavdo.tahlil_qurilish q
-         set faol = x, quriladi = null, bosqich = null, kursor = null, kursor_max = null,
+         set faol = x, quriladi = null, bosqich = null, kursor = null, kursor_max = null, tozala = q.faol,
              faol_sana = q.sana, faol_census_pass = q.census_pass, faol_census_sana = q.census_sana, faol_daraxt = q.daraxt
        where q.id = 1;
 
@@ -668,7 +686,7 @@ begin
      set qadamlar = q.qadamlar + 1, qadam_vaqti = clock_timestamp(), xato_soni = 0, oxirgi_xato = null
    where q.id = 1
   returning jsonb_build_object('bosqich', coalesce(q.bosqich, 'tayyor'), 'kursor', q.kursor, 'nusxa', coalesce(q.quriladi, q.faol),
-                               'qadamlar', q.qadamlar, 'davom', q.quriladi is not null,
+                               'qadamlar', q.qadamlar, 'davom', q.quriladi is not null or q.tozala is not null,
                                'soniya', round(extract(epoch from clock_timestamp() - v_boshi)::numeric, 2))
     into v_natija;
   return v_natija;

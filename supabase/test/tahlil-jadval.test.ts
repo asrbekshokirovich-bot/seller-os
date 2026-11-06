@@ -41,6 +41,8 @@ describe('0079/0082 — tahlil jadvallari', () => {
   it('birinchi qurilish: hamma bosqich tartib bilan, «b» nusxaga, jurnalga yoziladi; ikkinchisi — hech narsa', async () => {
     const bosqichlar = [...new Set(birinchi.map((q) => q.bosqich).filter(Boolean))];
     expect(bosqichlar).toEqual(['tovar_indeks', 'census', 'census_yig', 'dokon_turkum', 'dokon', 'turkum', 'yakun', 'tayyor']);
+    // Birinchi qurilishda eski nusxa yoʻq — tozalash qadami ham yoʻq.
+    expect(birinchi.some((q) => q.tozalandi)).toBe(false);
     expect(birinchi[0]).toMatchObject({ boshlandi: 'b', sana: '2026-10-27', census_pass: 2 });
     expect(await holat()).toMatchObject({ faol: 'b', quriladi: null, bosqich: null, xato_soni: 0 });
     expect(await korinish('tahlil_tovar')).toContain('tahlil_tovar_b');
@@ -124,6 +126,13 @@ describe('0079/0082 — tahlil jadvallari', () => {
     expect(bosqichlar).toContain('dokon_turkum');
     expect(await holat()).toMatchObject({ faol: 'a', quriladi: null });
     expect(await korinish('tahlil_dokon')).toContain('tahlil_dokon_a');
+    // Almashgandan keyingi qadamda eski nusxa (b) boʻshatildi — diskda bitta nusxa.
+    expect(qolgan.some((q) => q.tozalandi === 'b')).toBe(true);
+    const eski = await bitta<{ n: number }>(
+      `select (select count(*) from zumsavdo.tahlil_tovar_b) + (select count(*) from zumsavdo.tahlil_turkum_b)
+            + (select count(*) from zumsavdo.tahlil_dokon_b) + (select count(*) from zumsavdo.tahlil_census_dt_b) as n`,
+    );
+    expect(Number(eski.n)).toBe(0);
     const keyin = await bitta<{ oyiga: number; census: number }>(
       `select (select oyiga from zumsavdo.tahlil_tovar where product_id = 10) as oyiga,
               (select census_sotuvchilar::int from zumsavdo.tahlil_turkum where turkum = 100) as census`,
