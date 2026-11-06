@@ -289,6 +289,18 @@ async function ochiqIshlarniYoz(
   }
   return xato === null ? { olchov_yoq: false, yozildi, izoh } : { olchov_yoq: true, sabab: xato, yozildi, izoh };
 }
+
+/**
+ * Chat oʻzi bilgan ishni yopadi («Ishlarim», ikkinchi koʻrik K2, 0083): mijoz «Keldi» yoki «Ha, YATT ochdim»
+ * desa, ish roʻyxatda ochiq turib qolmasin. Xato boʻlsa — jim: suhbat toʻxtamaydi, mijoz «Ishlarim» da
+ * oʻzi belgilaydi. Allaqachon yopilgan ish qayta yopilsa — birinchi yopilgan vaqti saqlanadi (bazada).
+ */
+async function ishniYop(rpc: Rpc, token: string, id: unknown): Promise<void> {
+  if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) return;
+  try {
+    await rpc('so_ochiq_ish_holat', { p_token: token, p_id: id, p_bajarildi: true });
+  } catch { /* jim — yuqoridagi izohga qarang */ }
+}
 /** Tarmoq xatosi bilan tugagan tekshiruvlar — shundan keyin "qidirilmadi". */
 const TEKSHIRUV_URINISH_MAX = 3;
 
@@ -881,6 +893,10 @@ export function suhbatKodHarakatlari(
       const IZOH = IZOHLAR.qabulYakun;
       if (xitoy === null) return { olchov_yoq: true, sabab: 'sessiya yoʻq', yozildi: [], izoh: IZOH };
       const j = holat.javoblar;
+      // Yuk keldi — 6-qadamda yozilgan «yuk kelishi» ishi yopiladi («Ishlarim»).
+      if (j['yuk_keldi'] === 'keldi' || j['yuk_kutish'] === 'keldi') {
+        await ishniYop(rpc, xitoy.token, (holat.natijalar.ochiq_ish as OchiqIshNatijasi | undefined)?.id);
+      }
       const ishlar: OchiqIsh[] = [];
       if (Object.prototype.hasOwnProperty.call(j, 'yuk_mos') && (j['yuk_mos'] === 'kam' || j['yuk_mos'] === 'brak')) {
         const izohXom = j['yuk_izoh'];
@@ -1220,6 +1236,11 @@ export function suhbatKodHarakatlari(
     /** 12-qadam — sotuv (sotuvchi yozgan yoki taxmin), komissiya, sof, soliq, muddat, qadam kartalari. */
     async hisobotHisob(holat: YolHolati): Promise<HisobotHisobNatijasi> {
       const IZOH = IZOHLAR.hisobotHisob;
+      // «Ha, YATT ochdim» (shu qadamdagi savol) — 7-qadamda yozilgan «YATT ochilishi» ishi yopiladi («Ishlarim»).
+      if (xitoy !== null && holat.javoblar['yatt_holati'] === 'ochdim') {
+        const rn = holat.natijalar.rasmiy_yakun as RasmiyYakunNatijasi | undefined;
+        await ishniYop(rpc, xitoy.token, rn?.yozildi?.find((y) => y.sabab === 'YATT ochilishi')?.id);
+      }
       const hn = holat.natijalar.hisobot as HisobotNatijasi | undefined;
       const faktlar = hn?.faktlar ?? hisobotFaktlari({});
       const oy = hn?.oy ?? oyKaliti((xitoy?.hozir ?? (() => new Date()))());

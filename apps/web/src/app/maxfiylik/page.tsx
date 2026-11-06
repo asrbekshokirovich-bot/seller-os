@@ -222,7 +222,8 @@ export default function Maxfiylik() {
               <tr>
                 <td>
                   Ochiq ishlar: «keyinroq» degan qadamlaringiz va yuk yoki
-                  Uzum qabulini kutish muddati
+                  Uzum qabulini kutish muddati. Ularni «Ishlarim»da koʻrasiz va bajarilganini
+                  belgilaysiz — belgi va uning vaqti saqlanadi
                 </td>
                 <td><code>ochiq_ish</code></td>
               </tr>

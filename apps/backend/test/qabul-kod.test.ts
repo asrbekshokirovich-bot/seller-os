@@ -84,6 +84,41 @@ describe('qabul', () => {
   });
 });
 
+describe('qabulYakun — «Keldi» deyilgan yuk ishini yopadi («Ishlarim», ikkinchi koʻrik K2)', () => {
+  const yopilganlar = (b: ReturnType<typeof soxtaBaza>) => b.chaqiruvlar.filter((c) => c.nom === 'so_ochiq_ish_holat').map((c) => c.arg);
+  const OCHIQ_ISH = { olchov_yoq: false, id: 17, yangi: true, tur: 'kutyapman', muddat: null, izoh: 'i' };
+
+  it('«Keldi» (birdan yoki kutib) — 6-qadamdagi «yuk kelishi» ishi bajarildi', async () => {
+    for (const javob of [{ yuk_keldi: 'keldi' }, { yuk_keldi: 'hali_yoq', yuk_kutish: 'keldi' }]) {
+      const b = soxtaBaza();
+      await kod(b).qabulYakun(holatYasa({ ...javob, yuk_mos: 'mos' }, { ochiq_ish: OCHIQ_ISH }));
+      expect(yopilganlar(b)).toEqual([{ p_token: 'tok', p_id: 17, p_bajarildi: true }]);
+    }
+  });
+
+  it('yuk kelmagan, ish yozilmagan yoki sessiya yoʻq — hech narsa yopilmaydi', async () => {
+    const b1 = soxtaBaza();
+    await kod(b1).qabulYakun(holatYasa({ yuk_keldi: 'hali_yoq', yuk_mos: 'mos' }, { ochiq_ish: OCHIQ_ISH }));
+    expect(yopilganlar(b1)).toEqual([]);
+    const b2 = soxtaBaza();
+    await kod(b2).qabulYakun(holatYasa({ yuk_keldi: 'keldi', yuk_mos: 'mos' }, { ochiq_ish: { ...OCHIQ_ISH, olchov_yoq: true, id: null } }));
+    expect(yopilganlar(b2)).toEqual([]);
+    const b3 = soxtaBaza();
+    await kod(b3, false).qabulYakun(holatYasa({ yuk_keldi: 'keldi', yuk_mos: 'mos' }, { ochiq_ish: OCHIQ_ISH }));
+    expect(b3.chaqiruvlar).toEqual([]);
+  });
+
+  it('yopish yiqilsa ham qabul yakuni odatdagidek (suhbat toʻxtamaydi)', async () => {
+    const b = soxtaBaza();
+    const yiqil = async <T>(nom: string, arg: unknown): Promise<T | null> => {
+      if (nom === 'so_ochiq_ish_holat') throw new Error('tarmoq');
+      return b.rpc<T>(nom, arg);
+    };
+    const n = await kod({ ...b, rpc: yiqil }).qabulYakun(holatYasa({ yuk_keldi: 'keldi', yuk_mos: 'kam' }, { ochiq_ish: OCHIQ_ISH }));
+    expect(n).toMatchObject({ olchov_yoq: false, yozildi: [expect.objectContaining({ tur: 'tekshirish', sabab: 'qabul: yuk kam keldi' })] });
+  });
+});
+
 describe('qabulYakun — faqat kam/nuqsonli yuk', () => {
   it('kam — tekshirish, izoh bilan; qadoq/yetkazma javoblari bu yerda YOZILMAYDI (10-qadam)', async () => {
     const b = soxtaBaza();

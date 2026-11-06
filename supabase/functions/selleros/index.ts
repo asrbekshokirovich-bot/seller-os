@@ -60,6 +60,8 @@ import {
   suhbatTahrir,
   suhbatBolagi,
   suhbatlarOqi,
+  ishlarimOqi,
+  ishHolatiniYoz,
   suhbatQaytar,
   suhbatOqi,
   suhbatTurn,
@@ -673,6 +675,20 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const r = await suhbatlarOqi({ rpc }, token);
     if ('xato' in r) return javob(r, r.xato === 'baza javob bermadi' ? 503 : 401);
     return javob(r);
+  }
+  // «Ishlarim» (ikkinchi koʻrik K2, 0083): chat yozgan ishlar (GET) va «bajarildi» belgisi (POST) — faqat oʻziniki.
+  if (yol === '/ishlarim' && (req.method === 'GET' || req.method === 'POST')) {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    if (req.method === 'GET') {
+      const r = await ishlarimOqi({ rpc }, token);
+      if ('xato' in r) return javob(r, r.xato === 'baza javob bermadi' ? 503 : 401);
+      return javob(r);
+    }
+    let tana: unknown = null;
+    try { tana = await req.json(); } catch { /* boʻsh — 400 */ }
+    const r = await ishHolatiniYoz({ rpc }, token, tana);
+    return 'xato' in r ? javob({ xato: r.xato }, r.status) : javob(r);
   }
   if (yol === '/suhbat-bolagi' && req.method === 'GET') {
     const token = req.headers.get('x-sessiya') ?? '';
