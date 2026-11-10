@@ -47,6 +47,11 @@ export interface TahlilChaqiruvi {
   vaqtMs: number;
   /** `true` — asbob chaqirilmasin (`tool_choice: none`): vaqt yoki aylanish tugadi, javob yozilsin. */
   asbobsiz: boolean;
+  /**
+   * Fikrlash darajasi (`output_config.effort`). Odatda `low` (tez); model BOʻSH javob yozsa — keyingi urinish
+   * `medium` (jonli sinov, 10.11: `low` da baʼzan `{"qisqa":""…}` 3 marta ketma-ket).
+   */
+  kuch?: 'low' | 'medium' | undefined;
   /** Yozilayotgan matn (chala JSON) — har safar boshidan. */
   qism?: ((matn: string) => void) | undefined;
   sarf?: ((s: LlmSarfi) => void) | undefined;
@@ -599,6 +604,16 @@ export function tahlilJavobiniOqi(matn: string): XomJavob | null {
   };
 }
 
+/** Model JSON ni toʻgʻri yozgan-u, `qisqa` boʻsh (sxemaga mos, mazmunsiz). */
+function bomBoshmi(matn: string): boolean {
+  try {
+    const o = JSON.parse(matn) as Record<string, unknown>;
+    return !!o && typeof o === 'object' && typeof o.qisqa === 'string' && !o.qisqa.trim();
+  } catch {
+    return false;
+  }
+}
+
 /** Natijalardagi obyektlar (ichma-ich), `id` si borlari. */
 function obyektlar(x: unknown, chiqdi: Array<Record<string, unknown>> = []): Array<Record<string, unknown>> {
   if (Array.isArray(x)) { for (const y of x) obyektlar(y, chiqdi); return chiqdi; }
@@ -732,6 +747,7 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
   const ishlatildi: string[] = [];
   let aylanish = 0;
   let tuzatildi = 0;
+  let kuch: 'low' | 'medium' = 'low';
   let qoralama = false;
   const tashla = () => { if (qoralama) { qoralama = false; d.qayta?.(); } };
 
@@ -742,7 +758,7 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
       const asbobsiz = aylanish >= MAX_AYLANISH || qoldi() < YAKUN_MS;
       const j = await d.provayder({
         korsatma: TAHLIL_KORSATMA, asboblar: TAHLIL_ASBOBLARI, xabarlar, json: TAHLIL_JAVOB_SXEMA, vaqtMs: vaqt, asbobsiz,
-        belgi: 'tahlil', sarf: d.sarf,
+        kuch, belgi: 'tahlil', sarf: d.sarf,
         qism: d.qism ? (m: string) => { const q = tahlilQismi(m); if (q) { qoralama = true; d.qism!(q); } } : undefined,
       }).catch(() => null);
       if (!j) { tashla(); return null; }
@@ -778,7 +794,13 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
         // (sirsiz: model matnining boshi, kalit yoʻq).
         console.warn(`tahlil json: ${j.matn.slice(0, 300).replace(/\s+/g, ' ')}`);
       }
-      const tk = javob ? darvoza(javob, s, natijalar, s.til) : { ok: false, sabab: 'javob JSON sxemaga mos emas.' };
+      const bosh = !javob && bomBoshmi(j.matn);
+      if (bosh) kuch = 'medium';
+      const tk = javob
+        ? darvoza(javob, s, natijalar, s.til)
+        : bosh
+          ? { ok: false, sabab: 'javobing BOʻSH (qisqa yoʻq). qisqa ga asbob natijalaridagi raqamlar bilan javob yoz; maʼlumot yetmasa — borini ayt va nima yetishmasligini bir gapda ayt.' }
+          : { ok: false, sabab: 'javob JSON sxemaga mos emas.' };
       if (javob && tk.ok) {
         return {
           qisqa: javob.qisqa,
