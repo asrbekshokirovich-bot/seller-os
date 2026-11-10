@@ -722,13 +722,15 @@ revoke all on function zumsavdo.tahlil_tunmi(timestamptz) from public, anon, aut
 
 -- ============================================================ 6. jadval (faqat kechasi)
 
+-- pg_cron 0081 da oʻrnatilgan. `create extension` bu yerda QAYTA chaqirilmaydi: Supabase
+-- uning ortidan huquqlarni qayta beradi va 0081 dagi `grant … to postgres` sabab
+-- «dependent privileges exist» bilan butun migratsiya qaytadi (10.11 da shunday boʻldi).
 do $$
 begin
-  if not exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+  if not exists (select 1 from pg_catalog.pg_extension where extname = 'pg_cron') then
     raise notice '0082: pg_cron yoʻq — jadval qoʻyilmadi';
     return;
   end if;
-  create extension if not exists pg_cron with schema pg_catalog;
   if exists (select 1 from cron.job where jobname = 'zumsavdo-tahlil') then
     perform cron.unschedule('zumsavdo-tahlil');
   end if;
