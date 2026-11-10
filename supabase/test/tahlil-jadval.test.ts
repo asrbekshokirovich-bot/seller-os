@@ -57,6 +57,13 @@ describe('0079/0082 — tahlil jadvallari', () => {
     expect(h.j).toMatchObject({ sana: '2026-10-27', census_pass: 2 });
   });
 
+  it('0084: qadam «nested loop» siz rejalashtiradi (ostki daraxt hajmini Postgres 35 tugun deb oʻylaydi)', async () => {
+    const r = await bitta<{ c: string[] | null }>(
+      `select proconfig as c from pg_proc where oid = 'zumsavdo.tahlil_qadam(boolean)'::regprocedure`,
+    );
+    expect(r.c ?? []).toContain('enable_nestloop=off');
+  });
+
   it('tovar: oyiga formula bilan, tushum = oyiga × narx, reyting oxirgi TOʻLIQ oʻtishdan', async () => {
     const r = await hammasi<{ product_id: number; oyiga: number; holat: string; tushum: string; reyting: string | null }>(
       'select product_id, oyiga, holat, tushum::text, reyting::text from zumsavdo.tahlil_tovar order by product_id',
