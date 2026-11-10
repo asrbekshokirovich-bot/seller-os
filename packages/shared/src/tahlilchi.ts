@@ -130,7 +130,7 @@ export interface TahlilBogliqliklari {
 // ==================================================================== chegaralar
 
 /** Asbob chaqiruvi aylanishlari (har birida bir nechta parallel asbob). */
-const MAX_AYLANISH = 4;
+const MAX_AYLANISH = 3;
 /** Bitta Claude chaqiruviga eng koʻpi. */
 const CHAQIRUV_MS = 25_000;
 /** Shundan kam vaqt qolsa — chaqirilmaydi. */
@@ -172,7 +172,9 @@ export const TAHLIL_KORSATMA = [
   '- «Yaxshi sotgan sotuvchi» — eng yaxshi 20% (sotuvchilar_tahlili pogʻonalari: eng_yaxshi_20, orta_30, past, sotmagan).',
   '- «Nimaga» — pogʻonalar orasidagi farqdan: tovar soni, narx, reyting, sharh, chegirma, tugab qolgan tovar,',
   '  doʻkon yoshi. Bu bogʻliqlik, sabab emas: «statistikada koʻrinadi» deb ayt va undan amaliy xulosa chiqar.',
-  '- Hosila raqam (farq, nisbat, «necha barobar», foiz, pul rejasi) kerak boʻlsa — hisobla asbobi. Oʻzing hisoblama.',
+  '- Hosila raqam (farq, nisbat, «necha barobar», foiz, pul rejasi) kerak boʻlsa — hisobla asbobi. Oʻzing hisoblama:',
+  '  yigʻindi, farq, oʻzing tanlagan narx chegarasi («200 ming soʻmgacha») ham hosila. Asbob raqamini oʻzgartirmay yoz',
+  '  (faqat yaxlitlash mumkin: 5,603 mln → 5,6 mln). Narx oraligʻi — narx_zinapoyasi dagi narx_dan / narx_gacha dan.',
   '- «Uzumda filtrlab/koʻrsatib ber» — tovar_qidir bilan eng muhim tovarlarni top, ochish ni toʻldir (kategoriya,',
   '  saralash, narx) va 2–3 asosiy tovarni tovarlar ga qoʻy: mijoz ularni Uzumda bir tugma bilan ochadi.',
   '- Mijoz Uzum havolasini yuborsa — tovar_tahlili (havola bilan).',
