@@ -773,6 +773,11 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
 
       if (j.toxtash !== 'end_turn' || !j.matn) { tashla(); return null; }
       const javob = tahlilJavobiniOqi(j.matn);
+      if (!javob) {
+        // Jonli sinov (10.11): baʼzi savollarda 3 marta ketma-ket shu holat — model nima yozayotgani koʻrinsin
+        // (sirsiz: model matnining boshi, kalit yoʻq).
+        console.warn(`tahlil json: ${j.matn.slice(0, 300).replace(/\s+/g, ' ')}`);
+      }
       const tk = javob ? darvoza(javob, s, natijalar, s.til) : { ok: false, sabab: 'javob JSON sxemaga mos emas.' };
       if (javob && tk.ok) {
         return {
