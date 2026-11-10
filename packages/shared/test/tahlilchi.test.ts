@@ -9,7 +9,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import {
-  asbobSorovi, filtrniTekshir, hisobla, tahlilJavobiniOqi, tahlilQil, tahlilQismi, uzumOchishManzili, uzumTovarIdsi,
+  asbobSorovi, boyit, filtrniTekshir, hisobla, tahlilJavobiniOqi, tahlilQil, tahlilQismi, uzumOchishManzili, uzumTovarIdsi,
+  yaxlit2,
   type TahlilChaqiruvi, type TahlilJavobi, type TahlilSavoli,
 } from '../src/tahlilchi';
 
@@ -200,6 +201,72 @@ describe('tahlilQil — nazoratchi savoli', () => {
     expect(c.soʻrovlar.map((s) => s.asbobsiz)).toEqual([false, false, false, true]);
   });
 
+  it('asbobsiz chaqiruvda modelga ochiq aytiladi: «ASBOBLAR TUGADI» (jonli sinov, 10.11)', async () => {
+    const b = baza({ so_tahlil_turkum_top: TURKUM });
+    const c = claude([
+      asbob(['turkum_top', { soz: 'a' }]), asbob(['turkum_top', { soz: 'b' }]), asbob(['turkum_top', { soz: 'c' }]),
+      yakun({ qisqa: 'Kiyim turkumi topildi.' }),
+    ]);
+    await tahlilQil({ provayder: c.provayder, rpc: b.rpc }, SAVOL, 45_000);
+    const oxirgi = c.soʻrovlar[3]!.xabarlar.at(-1)!.content as Array<Record<string, unknown>>;
+    expect(oxirgi.map((x) => x.type)).toEqual(['tool_result', 'text']);
+    expect(String(oxirgi[1]!.text)).toMatch(/ASBOBLAR TUGADI/);
+    // Oldingi chaqiruvlarga eslatma tushmaydi.
+    expect(JSON.stringify(c.soʻrovlar[2]!.xabarlar)).not.toMatch(/ASBOBLAR TUGADI/);
+  });
+
+  it('aylanishlar tugagach darvoza qaytarsa — bitta qoʻshimcha aylanish (hisobla chaqira olsin)', async () => {
+    const b = baza({ so_tahlil_turkum_top: TURKUM, so_tahlil_bozor: BOZOR });
+    const c = claude([
+      asbob(['turkum_top', { soz: 'a' }]), asbob(['turkum_top', { soz: 'b' }]),
+      asbob(['bozor_kesimi', { filtr: { turkumlar: [10014] } }]),
+      yakun({ qisqa: 'Bir faol sotuvchiga oʻrtacha 15,9 mln soʻm tushum toʻgʻri keladi.' }),
+      asbob(['hisobla', { ifoda: '272704.5 / 17151' }]),
+      yakun({ qisqa: 'Bir faol sotuvchiga oʻrtacha 15,9 mln soʻm tushum toʻgʻri keladi (hisob: 272 704,5 / 17 151).' }),
+    ]);
+    const r = await tahlilQil({ provayder: c.provayder, rpc: b.rpc }, SAVOL, 45_000);
+    expect(r).not.toBeNull();
+    expect(c.soʻrovlar.map((x) => x.asbobsiz)).toEqual([false, false, false, true, false, true]);
+    expect(c.soʻrovlar[4]!.xabarlar.at(-1)!.content as string).toMatch(/hisobla/);
+  });
+
+  it('«x» kabi mazmunsiz javob — boʻsh deb qaytariladi (jonli sinov, 10.11)', async () => {
+    const b = baza({ so_tahlil_bozor: BOZOR });
+    const c = claude([
+      asbob(['bozor_kesimi', { filtr: { turkumlar: [10014] } }]),
+      yakun({ qisqa: 'x' }),
+      yakun({ qisqa: 'Kiyim va poyabzalda oxirgi 30 kunda 17 902 sotuvchi faol.' }),
+    ]);
+    const r = await tahlilQil({ provayder: c.provayder, rpc: b.rpc }, SAVOL, 45_000);
+    expect(r!.qisqa).toMatch(/17 902/);
+    expect(c.soʻrovlar[2]!.xabarlar.at(-1)!.content as string).toMatch(/BOʻSH/);
+  });
+
+  it('oʻrtacha va ulushlar kod hisoblaydi — AI oʻzi hisoblamaydi, darvoza qaytarmaydi (20-savol, 10.11)', async () => {
+    const b = baza({ so_tahlil_bozor: BOZOR });
+    const c = claude([
+      asbob(['bozor_kesimi', { filtr: { turkumlar: [10014] } }]),
+      yakun({ qisqa: 'Bir faol sotuvchiga oʻrtacha 15,2 mln soʻm, kamida bitta sotganiga — 28,3 mln soʻm oylik tushum.\n'
+        + 'Faollarning 53,8% i sotgan; shu paytgacha 7 920 sotuvchi hech sotmagan (21,2%).' }),
+    ]);
+    const r = await tahlilQil({ provayder: c.provayder, rpc: b.rpc }, SAVOL, 45_000);
+    expect(r).not.toBeNull();
+    expect(c.soʻrovlar).toHaveLength(2);
+    const natija = JSON.parse(String((c.soʻrovlar[1]!.xabarlar.at(-1)!.content as Array<Record<string, unknown>>)[0]!.content));
+    expect(natija.sotuvchilar_30kun).toMatchObject({ sotgan_foiz: 53.8, sotmagan_foiz: 46.2, ortacha_tushum_mln: 15.23, ortacha_tushum_sotgan_mln: 28.32 });
+    expect(natija.shu_paytgacha).toMatchObject({ hech_sotmagan: 7920, sotgan_foiz: 78.8, hech_sotmagan_foiz: 21.2 });
+    expect(BOZOR.sotuvchilar_30kun).not.toHaveProperty('sotgan_foiz'); // asl obyekt oʻzgarmaydi
+  });
+
+  it('yaxlitlangan raqam («200 ming», manbada 197 000) — qabul; 5% farq — yoʻq', async () => {
+    const savol = { ...SAVOL, holat: 'Ekrandagi katalog: narxlar 60 000 – 197 000 soʻm.' };
+    const yaxshi = claude([yakun({ qisqa: 'Katalogingizda narxlar 60 mingdan 200 ming soʻmgacha.' })]);
+    expect(await tahlilQil({ provayder: yaxshi.provayder, rpc: baza({}).rpc }, savol, 45_000)).not.toBeNull();
+    const yomon = claude([yakun({ qisqa: 'Katalogingizda narxlar 60 mingdan 210 ming soʻmgacha.' }), null]);
+    expect(await tahlilQil({ provayder: yomon.provayder, rpc: baza({}).rpc }, savol, 45_000)).toBeNull();
+    expect(yomon.soʻrovlar[1]!.xabarlar.at(-1)!.content as string).toMatch(/210 ming/);
+  });
+
   it('Claude ishlamasa — null (chaqiruvchi eski yoʻlga qaytadi)', async () => {
     const c = claude([null]);
     expect(await tahlilQil({ provayder: c.provayder, rpc: baza({}).rpc }, SAVOL, 45_000)).toBeNull();
@@ -216,6 +283,21 @@ describe('tahlilQil — nazoratchi savoli', () => {
 });
 
 describe('yordamchilar', () => {
+  it('yaxlit2 va boyit: chegaralar', () => {
+    expect(yaxlit2(197_000)).toBe(200_000);
+    expect(yaxlit2(189_980)).toBe(190_000);
+    expect(yaxlit2(3.35)).toBeCloseTo(3.4, 9);
+    expect(yaxlit2(47)).toBe(47);
+    expect(yaxlit2(0)).toBe(0);
+    expect(yaxlit2(-1234)).toBe(-1200);
+    expect(boyit('tovar_qidir', BOZOR)).toBe(BOZOR);
+    expect(boyit('bozor_kesimi', { sotuvchilar_30kun: { jami: 0, sotgan: 0, tushum_mln: 0 } }))
+      .toEqual({ sotuvchilar_30kun: { jami: 0, sotgan: 0, tushum_mln: 0 } });
+    const t = boyit('bozor_kesimi', { tovarlar_30kun: { jami: 10735, sotgan: 3999, tugagan: 2351, yangi_60kun: 4007, yangi_60kun_sotgan: 1828 } }) as Record<string, Record<string, unknown>>;
+    expect(t.tovarlar_30kun).toMatchObject({ sotgan_foiz: 37.3, tugagan_foiz: 21.9, yangi_60kun_sotgan_foiz: 45.6 });
+    expect(t.hosila).toMatch(/Kod hisoblagan/);
+  });
+
   it('hisobla: amallar tartibi, qavs, kasr, xato', () => {
     expect(hisobla('(27.1 - 3.2) / 3.2 * 100')).toBeCloseTo(746.875, 6);
     expect(hisobla('2+3*4')).toBe(14);
