@@ -167,13 +167,14 @@ describe('tahlilQil — nazoratchi savoli', () => {
 
   it('aylanishlar tugasa — oxirgi chaqiruv asbobsiz (javob yozilsin)', async () => {
     const b = baza({ so_tahlil_turkum_top: TURKUM });
+    // 10.11 dan: koʻpi bilan 3 aylanish (jonli sinovda 4 aylanish + uzun javob 25–38 s).
     const c = claude([
       asbob(['turkum_top', { soz: 'a' }]), asbob(['turkum_top', { soz: 'b' }]), asbob(['turkum_top', { soz: 'c' }]),
-      asbob(['turkum_top', { soz: 'd' }]), yakun({ qisqa: 'Kiyim turkumi topildi.' }),
+      yakun({ qisqa: 'Kiyim turkumi topildi.' }),
     ]);
     const r = await tahlilQil({ provayder: c.provayder, rpc: b.rpc }, SAVOL, 45_000);
     expect(r).not.toBeNull();
-    expect(c.soʻrovlar.map((s) => s.asbobsiz)).toEqual([false, false, false, false, true]);
+    expect(c.soʻrovlar.map((s) => s.asbobsiz)).toEqual([false, false, false, true]);
   });
 
   it('Claude ishlamasa — null (chaqiruvchi eski yoʻlga qaytadi)', async () => {
