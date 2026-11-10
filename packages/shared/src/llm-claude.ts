@@ -243,7 +243,7 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
 
 /**
  * AI TAHLILCHI provayderi (2026-11-05, `tahlilchi.ts`): bitta Messages API chaqiruvi — asboblar
- * (`tools`, `strict`), suhbat (`messages`, asbob natijalari bilan), oxirgi javob JSON sxemada
+ * (`tools`; `strict` siz — pastda nega), suhbat (`messages`, asbob natijalari bilan), oxirgi javob JSON sxemada
  * (`output_config.format`). Asbobni BAJARMAYDI — tsikl `tahlilQil` da (darvoza, vaqt, oqim).
  *
  * - Bloklar (fikrlash bloklari ham) OʻZGARISHSIZ qaytariladi: keyingi chaqiruvda xuddi shunday
@@ -271,7 +271,10 @@ export function claudeTahlilProvayderi(s: ClaudeSozlama): TahlilProvayder | null
       max_tokens: 16_000,
       system: [{ type: 'text', text: c.korsatma, cache_control: { type: 'ephemeral' } }],
       tools: c.asboblar.map((a, i) => ({
-        name: a.nom, description: a.tavsif, input_schema: a.sxema, strict: true,
+        // `strict` YOʻQ (10.11, jonli 400): strict sxemalarda ixtiyoriy maydon soni cheklangan, filtr
+        // sxemasi (14 ta ixtiyoriy) uch asbobda — «too many optional parameters (48)». Kirish kodda
+        // tekshiriladi (`asbobniBajar` → `filtrniTekshir`), xato boʻlsa model `is_error` ni koʻrib qayta yozadi.
+        name: a.nom, description: a.tavsif, input_schema: a.sxema,
         ...(i === oxirgi ? { cache_control: { type: 'ephemeral' } } : {}),
       })),
       ...(c.asbobsiz ? { tool_choice: { type: 'none' } } : {}),
