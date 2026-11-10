@@ -569,7 +569,16 @@ const OCHISH_SARALASH = new Set(['ommabop', 'kop_buyurtma', 'narx_arzon', 'narx_
 
 export function tahlilJavobiniOqi(matn: string): XomJavob | null {
   let j: unknown;
-  try { j = JSON.parse(matn); } catch { return null; }
+  try {
+    j = JSON.parse(matn);
+  } catch {
+    // Jonli sinov (10.11): darvoza qaytargandan keyin model ba'zan JSON oldidan gap yozadi («Tushunarli, tuzataman.»)
+    // — matn bloklari qoʻshilganda JSON buziladi va javob «sxemaga mos emas» deb tashlanardi. Ichidagi obyektni olamiz.
+    const a = matn.indexOf('{');
+    const b = matn.lastIndexOf('}');
+    if (a < 0 || b <= a) return null;
+    try { j = JSON.parse(matn.slice(a, b + 1)); } catch { return null; }
+  }
   if (!j || typeof j !== 'object') return null;
   const o = j as Record<string, unknown>;
   if (typeof o.qisqa !== 'string' || !o.qisqa.trim()) return null;

@@ -70,6 +70,15 @@ const SOTUVCHILAR = {
   },
 };
 
+describe('tahlilJavobiniOqi', () => {
+  it('JSON oldida gap boʻlsa ham ichidagi obyekt oʻqiladi (jonli sinov, 10.11)', () => {
+    const j = tahlilJavobiniOqi('Tushunarli, tuzataman.\n{"qisqa":"Kiyimda 17 902 sotuvchi.","batafsil":"","tovarlar":[],"dokonlar":[],"ochish":null,"keyingi":[]}');
+    expect(j?.qisqa).toBe('Kiyimda 17 902 sotuvchi.');
+    expect(tahlilJavobiniOqi('JSON yoʻq')).toBeNull();
+    expect(tahlilJavobiniOqi('{"qisqa": "yarim')).toBeNull();
+  });
+});
+
 describe('tahlilQil — nazoratchi savoli', () => {
   it('turkum → bozor + sotuvchilar (parallel) → javob; raqamlar asbobdan, havolalar boyitiladi', async () => {
     const b = baza({ so_tahlil_turkum_top: TURKUM, so_tahlil_bozor: BOZOR, so_tahlil_sotuvchilar: SOTUVCHILAR });
