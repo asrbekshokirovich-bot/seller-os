@@ -609,13 +609,29 @@ interface Darvoza { ok: boolean; sabab: string }
  */
 const TAHLIL_TARIFLARI = 'oyna 30 kun; eng yaxshi 20%, keyingi 30%, yuqori 50%; yangi tovar 60 kun; trend: oxirgi 7 kun va oldingi 23 kun';
 
+/**
+ * `*_mln` maydonlari soʻmda ham (×1 000 000): asbob «tushum_mln: 1.43» beradi, AI «1,43 mln soʻm» yozadi,
+ * tekshiruv esa uni 1 430 000 deb oʻqiydi (jonli sinov, 10.11: har ikkinchi javob shu sababli qaytarilib,
+ * 8–10 s yoʻqotilardi).
+ */
+function mlnSonlari(x: unknown, chiqdi: number[] = []): number[] {
+  if (Array.isArray(x)) { for (const v of x) mlnSonlari(v, chiqdi); return chiqdi; }
+  if (x && typeof x === 'object') {
+    for (const [k, v] of Object.entries(x as Record<string, unknown>)) {
+      if (/_mln$/u.test(k) && typeof v === 'number' && Number.isFinite(v)) chiqdi.push(v * 1_000_000);
+      else mlnSonlari(v, chiqdi);
+    }
+  }
+  return chiqdi;
+}
+
 function darvoza(j: XomJavob, s: TahlilSavoli, natijalar: readonly unknown[], til: Yozuv): Darvoza {
   const matn = [j.qisqa, j.batafsil].filter(Boolean).join('\n');
   const tk = tekshir(matn, {
     // Natija matni ham: undagi sanalar («2026-10-27») — raqam emas, satr; AI ularni aytadi.
     matnlar: [s.savol, s.holat ?? '', s.tarix ?? '', s.bilim ?? '', s.bugun, s.ism ?? '', TAHLIL_TARIFLARI,
       ...natijalar.map((n) => JSON.stringify(n))],
-    sonlar: natijalar.flatMap((n) => natijaSonlari(n)),
+    sonlar: natijalar.flatMap((n) => [...natijaSonlari(n), ...mlnSonlari(n)]),
   });
   const tilMos = til === 'uz' || kirillUlushi(matn) >= 0.5;
   // Asbob maʼlumot bergan-u, javob «maʼlumotim yoʻq» deyapti — aynan nazoratchi koʻrgan xato.
