@@ -535,11 +535,49 @@ function vaqtBilan<T>(p: Promise<T>, ms: number): Promise<T | null> {
   });
 }
 
+/**
+ * Mijoz soʻzi ↔ Uzum turkum nomi. Jonli sinov (10.11): «telefon gʻiloflari» — Uzumda «Qoplamalar» (Smartfonlar uchun
+ * aksessuarlar ichida); turkum_top hamma soʻz ildizini yoʻldan qidiradi va uni topmasdi, AI pult va akkumulyator
+ * gʻiloflari bilan javob berdi.
+ */
+const TURKUM_SINONIM: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^(g[ʻʼ'‘’`]?ilof|chexol|чехол|чехл|кейс)/iu, 'qoplama'],
+];
+
+/** Soʻz roʻyxatidagi sinonimlar almashtirilgan shakli (oʻzgarmasa — `null`). */
+export function turkumSinonimi(soz: string): string | null {
+  let ozgardi = false;
+  const yangi = soz.split(/\s+/u).filter(Boolean).map((w) => {
+    const t = TURKUM_SINONIM.find(([re]) => re.test(w));
+    if (!t) return w;
+    ozgardi = true;
+    return t[1];
+  }).join(' ');
+  return ozgardi ? yangi : null;
+}
+
+/** turkum_top + sinonim bilan qidiruv (parallel), natijalar birlashtiriladi — sinonim topgani oldinda. */
+async function turkumTopSinonim(d: TahlilBogliqliklari, s: { rpc: string; arg: unknown }, sinonim: string): Promise<unknown> {
+  const [asl, yangi] = await Promise.all([
+    vaqtBilan(d.rpc<unknown>(s.rpc, s.arg), ASBOB_MS),
+    vaqtBilan(d.rpc<unknown>(s.rpc, { ...(s.arg as Record<string, unknown>), p_soz: sinonim }), ASBOB_MS),
+  ]);
+  const top = (x: unknown) => {
+    const t = x && typeof x === 'object' ? (x as Record<string, unknown>).topildi : null;
+    return Array.isArray(t) ? (t as Array<Record<string, unknown>>) : [];
+  };
+  if (!asl && !yangi) return null;
+  const korildi = new Set<unknown>();
+  const topildi = [...top(yangi), ...top(asl)].filter((t) => (korildi.has(t.id) ? false : (korildi.add(t.id), true)));
+  return { ...((asl ?? yangi) as Record<string, unknown>), topildi, sinonim };
+}
+
 async function asbobniBajar(d: TahlilBogliqliklari, nom: string, kirish: unknown): Promise<AsbobNatijasi> {
   const s = asbobSorovi(nom, kirish);
   if ('xato' in s) return { ok: false, xato: s.xato };
   if ('natija' in s) return { ok: true, natija: s.natija };
-  const r = await vaqtBilan(d.rpc<unknown>(s.rpc, s.arg), ASBOB_MS);
+  const sinonim = nom === 'turkum_top' ? turkumSinonimi(String((s.arg as Record<string, unknown>).p_soz ?? '')) : null;
+  const r = sinonim ? await turkumTopSinonim(d, s, sinonim) : await vaqtBilan(d.rpc<unknown>(s.rpc, s.arg), ASBOB_MS);
   if (r === null || r === undefined) return { ok: false, xato: 'baza javob bermadi (vaqt tugadi yoki xato) — boshqa asbob yoki torroq qamrov bilan urinib koʻr' };
   return { ok: true, natija: boyit(nom, r) };
 }

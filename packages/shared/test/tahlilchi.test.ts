@@ -9,8 +9,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import {
-  asbobSorovi, boyit, filtrniTekshir, hisobla, tahlilJavobiniOqi, tahlilQil, tahlilQismi, uzumOchishManzili, uzumTovarIdsi,
-  yaxlit2,
+  asbobSorovi, boyit, filtrniTekshir, hisobla, tahlilJavobiniOqi, tahlilQil, tahlilQismi, turkumSinonimi, uzumOchishManzili,
+  uzumTovarIdsi, yaxlit2,
   type TahlilChaqiruvi, type TahlilJavobi, type TahlilSavoli,
 } from '../src/tahlilchi';
 
@@ -265,6 +265,27 @@ describe('tahlilQil — nazoratchi savoli', () => {
     const yomon = claude([yakun({ qisqa: 'Katalogingizda narxlar 60 mingdan 210 ming soʻmgacha.' }), null]);
     expect(await tahlilQil({ provayder: yomon.provayder, rpc: baza({}).rpc }, savol, 45_000)).toBeNull();
     expect(yomon.soʻrovlar[1]!.xabarlar.at(-1)!.content as string).toMatch(/210 ming/);
+  });
+
+  it('turkum_top sinonim bilan ham qidiradi: «telefon gʻilof» → «Qoplamalar» (13-savol, 10.11)', async () => {
+    const chaqirildi: string[] = [];
+    const rpc = async <T,>(_nom: string, arg: unknown): Promise<T | null> => {
+      const soz = String((arg as Record<string, unknown>).p_soz);
+      chaqirildi.push(soz);
+      const topildi = soz === 'telefon qoplama'
+        ? [{ id: 11937, nom: 'Qoplamalar', yol: 'Elektronika › Smartfonlar va telefonlar › Smartfonlar uchun aksessuarlar › Qoplamalar' }]
+        : [{ id: 13626, nom: 'Akkumulyator gʻiloflar', yol: 'Elektronika › … › Akkumulyator gʻiloflar' }, { id: 11937, nom: 'Qoplamalar', yol: '…' }];
+      return { holat: HOLAT, soz, topildi } as T;
+    };
+    const c = claude([asbob(['turkum_top', { soz: 'telefon gʻilof' }]), yakun({ qisqa: 'Telefon qoplamalari turkumi topildi.' })]);
+    await tahlilQil({ provayder: c.provayder, rpc }, SAVOL, 45_000);
+    expect(chaqirildi.sort()).toEqual(['telefon gʻilof', 'telefon qoplama']);
+    const natija = JSON.parse(String((c.soʻrovlar[1]!.xabarlar.at(-1)!.content as Array<Record<string, unknown>>)[0]!.content));
+    expect(natija.topildi.map((x: { id: number }) => x.id)).toEqual([11937, 13626]);
+    expect(natija.sinonim).toBe('telefon qoplama');
+    expect(turkumSinonimi('krossovka')).toBeNull();
+    expect(turkumSinonimi('telefon chexoli')).toBe('telefon qoplama');
+    expect(turkumSinonimi("ko'zoynak g'ilofi")).toBe("ko'zoynak qoplama");
   });
 
   it('Claude ishlamasa — null (chaqiruvchi eski yoʻlga qaytadi)', async () => {
