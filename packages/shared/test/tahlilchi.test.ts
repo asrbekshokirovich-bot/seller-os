@@ -130,6 +130,20 @@ describe('tahlilQil — nazoratchi savoli', () => {
     expect(c.soʻrovlar).toHaveLength(2);
   });
 
+  it('boʻsh javob — aniq sabab bilan qaytariladi, keyingi urinish kuchliroq (jonli sinov, 10.11)', async () => {
+    const b = baza({ so_tahlil_bozor: BOZOR });
+    const c = claude([
+      asbob(['bozor_kesimi', { filtr: { turkumlar: [10014] } }]),
+      yakun({ qisqa: '' }),
+      yakun({ qisqa: 'Kiyim va poyabzalda oxirgi 30 kunda 17 902 sotuvchi faol.\nMaʼlumot: 2026-10-27 holatiga, sotuv — taxminiy.' }),
+    ]);
+    const r = await tahlilQil({ provayder: c.provayder, rpc: b.rpc }, SAVOL, 45_000);
+    expect(r).not.toBeNull();
+    expect(c.soʻrovlar.map((x) => x.kuch)).toEqual(['low', 'low', 'medium']);
+    const qaytdi = c.soʻrovlar[2]!.xabarlar.at(-1)!.content as string;
+    expect(qaytdi).toMatch(/BOʻSH/);
+  });
+
   it('asbobda yoʻq raqam — sababi bilan qaytariladi, ikkinchi javob qabul', async () => {
     const b = baza({ so_tahlil_bozor: BOZOR });
     const c = claude([

@@ -281,7 +281,7 @@ export function claudeTahlilProvayderi(s: ClaudeSozlama): TahlilProvayder | null
       messages: c.xabarlar,
       // `low` (10.11): jonli sinovda bitta savol 25–38 s — koʻp vaqt fikrlash va uzun javobga ketardi; javob
       // asosan asbob raqamlarini tushuntirish, chuqur fikrlash shart emas.
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: c.json } },
+      output_config: { effort: c.kuch ?? 'low', format: { type: 'json_schema', schema: c.json } },
       ...(zaxira ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
     } as unknown as Anthropic.Beta.Messages.MessageCreateParamsStreaming;
     try {
