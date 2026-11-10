@@ -24,7 +24,28 @@ export const TAHLIL_MIGRATSIYALARI = [
   '0078_zumsavdo_tovar_baho.sql',
   '0079_zumsavdo_tahlil.sql',
   '0080_selleros_tahlil_asboblari.sql',
+  '0081_zumsavdo_tahlil_jadval.sql',
+  '0082_zumsavdo_tahlil_bosqichli.sql',
 ];
+
+/** Bitta qadam natijasi (`zumsavdo.tahlil_qadam`). */
+export type Qadam = Record<string, unknown> & { davom?: boolean; bosqich?: string; xato?: string };
+
+/**
+ * Tahlil jadvallarini toʻliq qurish: `tahlil_qadam(true)` tugaguncha (jonli bazada pg_cron
+ * kechasi daqiqada bitta chaqiradi). Har qadam natijasi qaytariladi — qadamlar soni va
+ * bosqichlar tartibini tekshirish uchun. Xato boʻlsa — darhol yiqiladi.
+ */
+export async function tahlilQur(db: PGlite, max = 500): Promise<Qadam[]> {
+  const qadamlar: Qadam[] = [];
+  for (let i = 0; i < max; i++) {
+    const q = (await db.query<{ j: Qadam }>('select zumsavdo.tahlil_qadam(true) as j')).rows[0]!.j;
+    qadamlar.push(q);
+    if (q.xato) throw new Error(`tahlil_qadam xatosi (${String(q.bosqich)}): ${q.xato}`);
+    if (!q.davom) return qadamlar;
+  }
+  throw new Error(`tahlil_qadam ${max} qadamda tugamadi`);
+}
 
 const SXEMA = `
   create role anon; create role authenticated; create role service_role;
