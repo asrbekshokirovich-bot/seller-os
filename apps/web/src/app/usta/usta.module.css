@@ -2810,8 +2810,12 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
+/* Saytda tugma — <a>; menejer pufagidagi havola rangi (.ilova .ai a) uni bosib, matn fon bilan bir xil
+   boʻlib qolardi (jonli skrinshot, 10.11). */
+.ilova .ai a.tahlilTugma { color: #fff; text-decoration: none; }
+
 @media (hover: hover) {
-  .tahlilTugma:hover { filter: brightness(1.08); color: #fff; }
+  .tahlilTugma:hover, .ilova .ai a.tahlilTugma:hover { filter: brightness(1.08); color: #fff; }
 }
 
 .tahlilKeyingi {
