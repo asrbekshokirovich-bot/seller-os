@@ -52,6 +52,7 @@ import {
   hisobniYoz,
   voronkaniOl,
   boshNamunasi,
+  kartochkaMosBer,
   kartochkaYozBer,
   xitoyNomlariBer,
   turkumRasmlari,
@@ -59,6 +60,8 @@ import {
   suhbatTahrir,
   suhbatBolagi,
   suhbatlarOqi,
+  ishlarimOqi,
+  ishHolatiniYoz,
   suhbatQaytar,
   suhbatOqi,
   suhbatTurn,
@@ -545,7 +548,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
           // 10-qadam kartochka matni — AI (kalit boʻlmasa qolip). Faqat tovar nomlari ketadi.
           ...(claude ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama, k) } : {}),
           // 1688 nomlari — oʻzbekcha (7-taklif): tez model (tushunish bilan bir xil, Haiku).
-          ...(claudeTushun ? { xitoyNomlari: (s: string[]) => xitoyNomlariBer({ ...llmSozlama, provayder: claudeTushun }, s) } : {}) }),
+          ...(claudeTushun ? { xitoyNomlari: (s: string[]) => xitoyNomlariBer({ ...llmSozlama, provayder: claudeTushun }, s) } : {}),
+          // Kartochka matni: oʻzbekcha va ruscha bir xil maʼnodami (ikkinchi koʻrik, 4-taklif) — tez model.
+          ...(claudeTushun ? { kartochkaMos: (m: Parameters<typeof kartochkaMosBer>[1]) => kartochkaMosBer({ ...llmSozlama, provayder: claudeTushun }, m) } : {}) }),
       // AI SUHBAT (nazoratchi, 2026-10-19: "hamma xabarni AI yozsin, javobni AI tushunsin, natijani AI
       // tushuntirsin; 12 qadam qolsin"). Faqat Claude bilan; `AI_SUHBAT=0` — oʻchiradi (eski yoʻl).
       ...(claude !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {
@@ -670,6 +675,20 @@ async function ishla(req: Request, yol: string): Promise<Response> {
     const r = await suhbatlarOqi({ rpc }, token);
     if ('xato' in r) return javob(r, r.xato === 'baza javob bermadi' ? 503 : 401);
     return javob(r);
+  }
+  // «Ishlarim» (ikkinchi koʻrik K2, 0083): chat yozgan ishlar (GET) va «bajarildi» belgisi (POST) — faqat oʻziniki.
+  if (yol === '/ishlarim' && (req.method === 'GET' || req.method === 'POST')) {
+    const token = req.headers.get('x-sessiya') ?? '';
+    if (!token) return javob({ xato: 'sessiya tokeni yoʻq' }, 401);
+    if (req.method === 'GET') {
+      const r = await ishlarimOqi({ rpc }, token);
+      if ('xato' in r) return javob(r, r.xato === 'baza javob bermadi' ? 503 : 401);
+      return javob(r);
+    }
+    let tana: unknown = null;
+    try { tana = await req.json(); } catch { /* boʻsh — 400 */ }
+    const r = await ishHolatiniYoz({ rpc }, token, tana);
+    return 'xato' in r ? javob({ xato: r.xato }, r.status) : javob(r);
   }
   if (yol === '/suhbat-bolagi' && req.method === 'GET') {
     const token = req.headers.get('x-sessiya') ?? '';
@@ -889,7 +908,8 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       if (!ruxsat.ochiq) return javob({ ...ruxsat.javob, sana, belgi: p.belgi }, 402);
       return javob({ sana, pasport: p });
     }
-    const jadval = taqqosJadvali(ids.map((id) => ({ productId: id, t: boyicha.get(id) ?? null })), opts);
+    // Rus sahifasida jadval ruscha (ikkinchi koʻrik, 12-taklif).
+    const jadval = taqqosJadvali(ids.map((id) => ({ productId: id, t: boyicha.get(id) ?? null })), { ...opts, til: parametr.get('til') === 'ru' ? 'ru' : 'uz' });
     if (!ruxsat.ochiq) return javob({ ...ruxsat.javob, sana, ustunlar: jadval.ustunlar }, 402);
     return javob({ sana, jadval });
   }

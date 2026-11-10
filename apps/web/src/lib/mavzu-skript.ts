@@ -7,6 +7,8 @@
  * (Next.js: «Preventing flash before hydration»).
  */
 
+import { SUHBAT_BOR } from '../app/usta/suhbatYordam';
+
 export const MAVZU_KALIT = 'so_mavzu';
 
 /** Brauzer panelining rangi (telefon) — sahifa fonida. */
@@ -29,4 +31,4 @@ export const PANEL_RANGI = { tungi: '#1A0F20', yorug: '#F7F3F9' } as const;
  * yashirin» qoidasi faqat shunda yoqiladi (JS butunlay oʻchiq boʻlsa
  * sahifa yashirin qolib ketmasin).
  */
-export const MAVZU_SKRIPTI = `(function(){var d=document.documentElement,m,t,c;try{m=localStorage.getItem("${MAVZU_KALIT}");t=localStorage.getItem("so_til")}catch(e){}try{if(t!=="ru"&&t!=="uz"){c=document.cookie.match(/(?:^|; )so_til=(ru|uz)(?:;|$)/);t=c&&c[1]}}catch(e){}d.setAttribute("data-mavzu",m==="tungi"?"tungi":"yorug");if(t==="ru"||t==="uz")d.lang=t;if(t==="ru")["manrope"].forEach(function(n){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href="/fonts/"+n+"-cyrillic.woff2";document.head.appendChild(l)});d.setAttribute("data-skript","");try{c=document.querySelector("meta[name='theme-color']");if(c&&m==="tungi")c.setAttribute("content","${PANEL_RANGI.tungi}")}catch(e){}})()`;
+export const MAVZU_SKRIPTI = `(function(){var d=document.documentElement,m,t,c;try{m=localStorage.getItem("${MAVZU_KALIT}");t=localStorage.getItem("so_til")}catch(e){}try{if(t!=="ru"&&t!=="uz"){c=document.cookie.match(/(?:^|; )so_til=(ru|uz)(?:;|$)/);t=c&&c[1]}}catch(e){}d.setAttribute("data-mavzu",m==="tungi"?"tungi":"yorug");if(t==="ru"||t==="uz")d.lang=t;if(t==="ru")["manrope"].forEach(function(n){var l=document.createElement("link");l.rel="preload";l.as="font";l.type="font/woff2";l.crossOrigin="anonymous";l.href="/fonts/"+n+"-cyrillic.woff2";document.head.appendChild(l)});d.setAttribute("data-skript","");try{if(localStorage.getItem("${SUHBAT_BOR}")==="1"||/sessiya=/.test(location.hash))d.setAttribute("data-suhbat-bor","")}catch(e){}try{c=document.querySelector("meta[name='theme-color']");if(c&&m==="tungi")c.setAttribute("content","${PANEL_RANGI.tungi}")}catch(e){}})()`;

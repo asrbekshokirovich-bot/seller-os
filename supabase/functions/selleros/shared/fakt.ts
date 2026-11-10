@@ -128,7 +128,9 @@ export function kargoStavkasi(f: Faktlar, kursUsd: number | null): KargoStavkasi
     usdM3: faktSon(f, 'kargo.usd_m3'),
     minUsd: faktSon(f, 'kargo.min_usd'),
     tanlovBor: avia !== null && quruqlik !== null,
-    izoh: yetishmaydi.length ? `${yetishmaydi.join(', ')} kiritilmagan` : null,
+    // Mijozga tushunarli (ikkinchi koʻrik, 14-taklif): «kargo hamkori, kargo stavkasi kiritilmagan» oʻrniga.
+    izoh: avia === null && quruqlik === null ? 'kargo narxlari hali kiritilmagan — narxni kargo kompaniyangizdan soʻrang'
+      : yetishmaydi.length ? `${yetishmaydi.join(', ')} kiritilmagan` : null,
   };
 }
 

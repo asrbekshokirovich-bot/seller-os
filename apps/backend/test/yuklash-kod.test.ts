@@ -65,13 +65,13 @@ describe('yuklash', () => {
     expect(n.faktlar.ombor.manzil).toBe('Toshkent, Sergeli, Xonabod 2/2');
     expect(n.qatorlar.map((q) => [q.productId, q.miqdor, q.qadoq?.usul ?? null])).toEqual([[100, 30, 'Individual paket'], [200, 10, null]]);
     expect(n.jamiDona).toBe(40);
-    expect(n.izoh).toMatch(/Kartochkani tizim yaratmaydi/);
+    expect(n.izoh).toMatch(/Kartochkani kabinetda oʻzingiz yaratasiz/);
   });
   it('fakt oʻqilmadi / kiritilmagan farqlanadi; faqat 0058 bor — ishlaydi, kartochka qoidalari "yetishmaydi"', async () => {
-    expect(await kod(soxtaBaza({ fakt: null })).yuklash(holatYasa())).toMatchObject({ olchov_yoq: true, sabab: 'fakt roʻyxati oʻqilmadi (baza javob bermadi)' });
+    expect(await kod(soxtaBaza({ fakt: null })).yuklash(holatYasa())).toMatchObject({ olchov_yoq: true, sabab: 'maʼlumotlar oʻqilmadi (baza javob bermadi)' });
     const bosh = await kod(soxtaBaza({ fakt: {} })).yuklash(holatYasa());
     expect(bosh.olchov_yoq).toBe(true);
-    expect(bosh.sabab).toMatch(/kiritilmagan \(0058\/0059/);
+    expect(bosh.sabab).toMatch(/yuklash maʼlumotlari hali kiritilmagan/);
     const faqat58 = await kod(soxtaBaza({ fakt: QABUL_FAKT })).yuklash(holatYasa());
     expect(faqat58.olchov_yoq).toBe(false);
     expect(faqat58.talablar.minEni).toBeNull();

@@ -7,6 +7,22 @@
 import { describe, expect, it } from 'vitest';
 import { bilimJavobi, mijozHolati, SAVDO_SOHALARI, SOHA_MISOLLARI, suhbatTarixi, UZUM_BILIMI, yordamchiBilimi, yozishBilimi, type YolHolati } from '@selleros/shared';
 
+describe('kargo — foydali umumiy maslahat, yoʻq narsa vaʼda qilinmaydi (ikkinchi koʻrik, 18-taklif)', () => {
+  it('6-qadam tavsifi va kargo maslahati AI bilimida', () => {
+    const b = yordamchiBilimi('Xitoydan kargo 1 kg uchun qancha?');
+    expect(b).toMatch(/Kargo yoʻli \(avia yoki quruqlik\) faqat kargo narxlari kiritilgan boʻlsa tanlanadi/u);
+    expect(b).toMatch(/Kargo narxini 2–3 kompaniyadan soʻrang/u);
+    expect(b).not.toMatch(/buyurtma varaqasi va kargo yoʻli\./u);
+  });
+});
+
+describe('komissiya — rasmiy jadvaldan raqamlar (ikkinchi koʻrik, 19-taklif)', () => {
+  it('«Uzum komissiyasi qancha?» — AI bilimida oraliq va oʻrtacha bor', () => {
+    const b = yordamchiBilimi('Uzum komissiyasi qancha oladi?');
+    expect(b).toMatch(/turkumlarning koʻpida 13–25 %, oʻrtacha 20 %/u);
+  });
+});
+
 describe('Uzum bilimi', () => {
   it('har fakt manbasi bilan; "kafolat" yoʻq (darvoza uni taqiqlaydi)', () => {
     expect(UZUM_BILIMI.length).toBeGreaterThanOrEqual(80);
@@ -91,7 +107,7 @@ describe('bilimdan javob — LLM ishlamasa ham (jonli sinov, 2026-10-13: Gemini 
     ['qaysi birini tanlasam yaxshi?', 'yonalish', /Kartalardagi «imkoniyat bahosi»ga qarang/],
     ['qaysi tovarni tanlay?', 'tovarlar', /Yakuniy tanlov — sizniki/],
     ['kanstovar uzumda yuradimi?', 'qiziqish', /Buni taxmin bilan aytmayman/],
-    ['qaysi soha yaxshi?', 'qiziqish', /«Bilmayman» ni bosing — keyingi qadamda hamma sohadan/],
+    ['qaysi soha yaxshi?', 'qiziqish', /«Bilmayman»ni bosing — keyingi qadamda hamma sohadan/],
     ['kanstovar bilan kiyimdan qaysi biri osonroq?', 'byudjet', /raqam bilan Yoʻnalish qadamida koʻrsataman/],
   ])('«%s» (%s)', (matn, savolId, kutilgan) => {
     expect(bilimJavobi(matn, savolId, H)).toMatch(kutilgan);

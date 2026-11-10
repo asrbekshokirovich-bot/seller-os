@@ -25,6 +25,9 @@ export const VARIANT_RU: Readonly<Record<string, string>> = {
   'Boshqa joyda sotganman (bozor, Instagram…)': 'Продавал(а) в другом месте (рынок, Instagram…)',
   'Yoʻq, birinchi marta': 'Нет, впервые',
   'Bilmayman — eng yaxshilarini koʻrsating': 'Не знаю — покажите лучшие',
+  'Bu tovarni oʻtkazib yuborish': 'Пропустить этот товар',
+  'Ha, YATT ochdim': 'Да, ИП открыт',
+  'Hali ochmadim': 'Ещё не открыт',
   ...Object.fromEntries(SAVDO_SOHALARI.map((s) => [s.nom, s.ru])),
   // 2–5-qadam
   'Qayta urinish': 'Повторить',
@@ -67,7 +70,7 @@ export const VARIANT_RU: Readonly<Record<string, string>> = {
   'Tayyor': 'Готово',
   'Qoʻllanma boshqacha': 'Инструкция другая',
   'Oʻzim Toshkent omboriga olib boraman': 'Сам(а) отвезу на склад в Ташкенте',
-  'Uzum logistikasi (BTP orqali, pullik)': 'Логистика Uzum (через ПВЗ, платно)',
+  'Uzum logistikasi (topshirish punkti orqali, pullik)': 'Логистика Uzum (через ПВЗ, платно)',
   'Yaratdim, taymslot oldim': 'Создал(а), таймслот получен',
   'Topshirdim': 'Сдал(а)',
   'Taymslotni kutyapman': 'Жду таймслот',

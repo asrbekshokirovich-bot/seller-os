@@ -105,7 +105,7 @@ const TANISH = { ism: 'Aziz Karimov', telefon: '+998901234567' };
 const KURS_N = { olchov_yoq: false, usd: { somPerYuan: 12_650, valyuta: 'USD', sana: '12.10.2026', manba: 'CBU' } };
 /** Byudjet savoligacha (2026-10-26 tartibi): qiziqish («Bilmayman»), kurs. */
 const BYUDJETGACHA: YolHolati = { javoblar: { qiziqish: ['bilmayman'] }, natijalar: { kurs: KURS_N } };
-const TELEFON_SAVOLI = 'Aziz, telefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz. Raqam boshqa hech kimga berilmaydi.';
+const TELEFON_SAVOLI = 'Aziz, telefon raqamingizni yozing — kerak boʻlsa shu raqam orqali bogʻlanamiz.';
 /** Birinchi savol — salomlashish (yangi sessiyada jurnalda yoʻq, birinchi javob bilan yoziladi). */
 const SALOM_K = keyingi(boshlangichHolat());
 const SALOM = SALOM_K.tur === 'savol' ? SALOM_K.savol.matn : '';
@@ -405,7 +405,9 @@ describe('suhbatTurn', () => {
       natijalar: { yonalishlar: YONALISHLAR, tovarlar: TOVARLAR, tannarx: { hisoblandi: true }, xitoy: XITOY } });
     const d = bogliq(b);
     d.kod.buyurtma = async () => { throw new Error('kutilmagan'); };
-    const r = await suhbatTurn(d, 'tok', { savolId: 'xitoy_tanlov:100', javob: '983093623752' });
+    // 6-qadam: avval rang va oʻlcham (ikkinchi koʻrik, 14-taklif) — oʻtkaziladi, keyin varaqa kodi yiqiladi.
+    await suhbatTurn(d, 'tok', { savolId: 'xitoy_tanlov:100', javob: '983093623752' });
+    const r = await suhbatTurn(d, 'tok', { savolId: 'rang_olcham:100', javob: null });
     expect(r.xato).toBeUndefined();
     if (r.keyingi.tur !== 'savol') throw new Error(r.keyingi.tur);
     expect(r.keyingi.savol.id).toBe('xato_qayta:buyurtma');
@@ -460,8 +462,12 @@ describe('suhbatTurn', () => {
     expect(t2.xabarlar).toEqual([]);
     expect(b.jurnal.length).toBe(jurnalOldin + 2);
 
-    // 5-qadam tanlovi → 6-qadam: varaqa kodi + shahar savoli bitta turnda.
-    const t6 = await suhbatTurn(d, 'tok', { savolId: 'xitoy_tanlov:100', javob: '983093623752' });
+    // 5-qadam tanlovi → 6-qadam: avval rang va oʻlcham savoli (ikkinchi koʻrik, 14-taklif).
+    const t5 = await suhbatTurn(d, 'tok', { savolId: 'xitoy_tanlov:100', javob: '983093623752' });
+    if (t5.keyingi.tur !== 'savol') throw new Error(t5.keyingi.tur);
+    expect(t5.keyingi.savol.id).toBe('rang_olcham:100');
+    // Rang va oʻlcham → varaqa kodi + shahar savoli bitta turnda; varaqada mijoz yozgani.
+    const t6 = await suhbatTurn(d, 'tok', { savolId: 'rang_olcham:100', javob: 'qora: 40×5, 41×5' });
     expect(t6.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'menejer']);
     expect(t6.xabarlar[1]!.savolId).toBe('buyurtma');
     expect(t6.xabarlar[1]!.matn).toMatch(/Buyurtma varaqasi tayyor: 1 ta tovar, 30 dona/);
@@ -477,7 +483,7 @@ describe('suhbatTurn', () => {
     expect(t8.xabarlar.map((x) => x.rol)).toEqual(['obunachi', 'kod', 'kod', 'menejer']);
     expect(t8.xabarlar[1]!.savolId).toBe('ochiq_ish');
     expect(t8.xabarlar[2]!.savolId).toBe('rasmiy');
-    expect(t8.xabarlar[2]!.matn).toMatch(/Faktda yoʻq: BHM/);
+    expect(t8.xabarlar[2]!.matn).toMatch(/Hali kiritilmagan: BHM/);
     if (t8.keyingi.tur !== 'savol') throw new Error(t8.keyingi.tur);
     expect(t8.keyingi.savol.id).toBe('huquqiy_shakl');
     const t9 = await suhbatTurn(d, 'tok', { savolId: 'huquqiy_shakl', javob: 'yatt' });
@@ -572,12 +578,12 @@ describe('suhbatTurn', () => {
     if (t23.keyingi.tur !== 'savol') throw new Error(t23.keyingi.tur);
     expect(t23.keyingi.savol.id).toBe('sotuv_holat');
     expect(t23.qadam).toBe(11);
-    // Har turnda bitta menejer gapi: 7 javob + (1688 tekshir, tanlov, shahar, raqam, boshlaymiz, shakl, bank, kabinet)
+    // Har turnda bitta menejer gapi: 7 javob + (1688 tekshir, tanlov, rang va oʻlcham, shahar, raqam, boshlaymiz, shakl, bank, kabinet)
     // + (yuk_keldi, yuk_mos, studiya tekshir, studiya_tayyor, kartochka, qadoq, yetkazish, taymslot, topshirildi)
     // + (havola, signal, oy hisoboti, hisobot oyi, sotuv summasi, komissiya, deklaratsiya, yangi oy)
     // + birinchi savol (salomlashish) — birinchi javob bilan jurnalga tushadi (2026-10-19).
     const menejer = b.jurnal.filter((x) => (x as { rol: string }).rol === 'menejer');
-    expect(menejer.length).toBe(qadamlar.length + 26);
+    expect(menejer.length).toBe(qadamlar.length + 27);
   });
 
   it('tekshir: studiya qidiruvi hali tugamagan — xabar yoʻq, holat 9-qadam kutishida qoladi', async () => {

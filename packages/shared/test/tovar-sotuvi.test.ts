@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  BELGI_MAX, KUNLIK_CHEGARA, OYNA_KUN, idlarniOqi, kartochkaBelgilari, kartochkaBelgisi, kengaytmaQismiOchiq, oynaKuni, sotuvBahosi, taqqosJadvali, tovar30KunOqi,
+  BELGI_MAX, KUNLIK_CHEGARA, OYNA_KUN, belgiRuscha, idlarniOqi, kartochkaBelgilari, kartochkaBelgisi, kengaytmaQismiOchiq, oynaKuni, sotuvBahosi, taqqosJadvali, tovar30KunOqi,
   tovarPasporti, zararsizlikChegarasi, type Tovar30Kun,
 } from '../src/index.js';
 
@@ -195,6 +195,24 @@ describe('taqqosJadvali', () => {
     expect(qator_('chegara').eng).toBe(2);
     expect(j.xulosa[0]).toBe('Eng koʻp sotiladigani — 1-tovar.');
     expect(j.xulosa[1]).toMatch(/3-tovar, lekin u kamroq sotiladi/);
+  });
+
+  it('rus tilida (ikkinchi koʻrik, 12-taklif): qator nomlari, xulosa va belgi ruscha; raqamlar oʻsha', () => {
+    const uz = taqqosJadvali([t(1978350), t(3302715), t(1988172)], opts);
+    const j = taqqosJadvali([t(1978350), t(3302715), t(1988172)], { ...opts, til: 'ru' });
+    expect(j.qatorlar.map((q) => q.nom)).toContain('Продажи в месяц, оценка');
+    expect(j.qatorlar.find((q) => q.kalit === 'chegara')!.qiymatlar).toEqual(uz.qatorlar.find((q) => q.kalit === 'chegara')!.qiymatlar);
+    expect(j.xulosa[0]).toBe('Больше всего продаётся — товар 1.');
+    expect(j.xulosa.at(-1)).toMatch(/^Пока неизвестна цена в Китае/);
+    expect(j.ustunlar[0]!.belgi.matn).toMatch(/шт\/мес|Продаж|Законч|неясны|—/u);
+    // Tarjima qilinadigan maydonlarda oʻzbekcha soʻz qolmagan (tovar nomi va formula versiyasi — oʻzi).
+    const matnlar = [...j.qatorlar.map((q) => q.nom), ...j.xulosa, ...j.ustunlar.flatMap((u) => [u.belgi.matn, u.belgi.izoh])];
+    expect(matnlar.join(' | ')).not.toMatch(/tovar|sotiladi|oʻlchandi|ishonch|kun\b/u);
+    // Ibora tartibi ruscha (jonli koʻrikda «замер пока 1 дн» chiqqan edi): avval feʼl, keyin raqam.
+    const kam = { ...baho(1978350), holat: 'kam' as const, olchanganKun: 1 };
+    expect(belgiRuscha(kam).izoh).toBe('пока замерено 1 дн.');
+    const tugagan = { ...baho(1978350), holat: 'tugagan' as const, tugaganiga: 3 };
+    expect(belgiRuscha(tugagan).izoh).toBe('нет в наличии уже 3 дн.');
   });
 
   it('ishonchsiz raqam solishtirishga kirmaydi va bu ochiq aytiladi', () => {
