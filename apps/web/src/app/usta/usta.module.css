@@ -2774,7 +2774,10 @@ button.sizBelgi:disabled { opacity: 0.6; }
   line-height: 1.35;
 }
 
-.tahlilHavola:hover { box-shadow: inset 0 0 0 1.5px var(--acc); }
+/* Faqat sichqonchada (telefonda bosilgan joyda «tanlangandek» qolmasin — hover.test.ts). */
+@media (hover: hover) {
+  .tahlilHavola:hover { box-shadow: inset 0 0 0 1.5px var(--acc); }
+}
 
 .tahlilNom {
   overflow: hidden;
@@ -2807,7 +2810,9 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.tahlilTugma:hover { filter: brightness(1.08); color: #fff; }
+@media (hover: hover) {
+  .tahlilTugma:hover { filter: brightness(1.08); color: #fff; }
+}
 
 .tahlilKeyingi {
   display: flex;
