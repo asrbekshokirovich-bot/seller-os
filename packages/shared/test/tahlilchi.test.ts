@@ -109,6 +109,18 @@ describe('tahlilQil — nazoratchi savoli', () => {
     expect(c.soʻrovlar.every((s) => !s.asbobsiz)).toBe(true);
   });
 
+  it('«mln» shaklidagi raqam — asbobning `_mln` maydonidan, qaytarilmaydi (jonli sinov, 10.11)', async () => {
+    const b = baza({ so_tahlil_bozor: BOZOR });
+    const c = claude([
+      asbob(['bozor_kesimi', { filtr: { turkumlar: [10014] } }]),
+      yakun({ qisqa: 'Kiyimda oxirgi 30 kunda tushum 272 704,5 mln soʻm, eng koʻp sotgan tovarniki — 217,9 mln soʻm.\n'
+        + 'Maʼlumot: 2026-10-27 holatiga, sotuv — taxminiy.' }),
+    ]);
+    const r = await tahlilQil({ provayder: c.provayder, rpc: b.rpc }, SAVOL, 45_000);
+    expect(r).not.toBeNull();
+    expect(c.soʻrovlar).toHaveLength(2);
+  });
+
   it('asbobda yoʻq raqam — sababi bilan qaytariladi, ikkinchi javob qabul', async () => {
     const b = baza({ so_tahlil_bozor: BOZOR });
     const c = claude([
