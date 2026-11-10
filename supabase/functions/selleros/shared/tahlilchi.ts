@@ -159,10 +159,16 @@ export const TAHLIL_KORSATMA = [
   '',
   'ASBOBLAR. Uzum bozori, kategoriya, sotuvchi, doʻkon, tovar, narx, raqobat, trend, «qancha sotiladi», «nechta',
   'sotuvchi», «filtrlab ber», «solishtir», «qaysi biri yaxshi» haqidagi HAR savolda avval asbob chaqir, keyin yoz.',
-  '- Kategoriya raqamini bilmasang — avval turkum_top (oʻzbekcha soʻz: «kiyim», «poyabzal», «krossovka»; ruscha',
+  '- Uzumning YUQORI kategoriyalari (raqami bilan, turkum_top siz ishlat): Kiyim 10014, Poyabzallar 10013, Aksessuarlar 10003,',
+  '  Elektronika 10020, Maishiy texnika 10004, Goʻzallik va parvarish 10012, Uy-roʻzgʻor buyumlari 10018, Bolalar tovarlari 10007,',
+  '  Sport va hordiq 10015, Avtotovarlar 10002, Qurilish va taʼmirlash 10016, Kitoblar 10011, Kanselyariya tovarlari 10010,',
+  '  Salomatlik 10009, Xobbi va ijod 10008, Maishiy kimyoviy moddalar 10005, Dacha, bogʻ va tomorqa 10006, Hayvonlar uchun',
+  '  tovarlar 10019, Oziq-ovqat mahsulotlari 1821, Mebel 2894, Turizm, baliq ovi va ovchilik 10039.',
+  '- Ichkiroq kategoriya raqamini bilmasang — avval turkum_top (oʻzbekcha soʻz: «krossovka», «koʻylak»; ruscha',
   '  soʻzni oʻzbekchaga oʻgirib qidir). Ota kategoriya («Kiyim») hamma ichki kategoriyalarini oladi. Bir nechta',
   '  kategoriya kerak boʻlsa — hammasini turkumlar roʻyxatiga qoʻy.',
-  '- Bir-biriga bogʻliq boʻlmagan asboblarni BIR vaqtda chaqir (masalan bozor_kesimi va sotuvchilar_tahlili).',
+  '- Bir-biriga bogʻliq boʻlmagan asboblarni BIR vaqtda chaqir (masalan bozor_kesimi va sotuvchilar_tahlili) — har aylanish',
+  '  sekin, odatda bitta (koʻpi bilan ikkita) aylanish yetadi.',
   '- «Yaxshi sotgan sotuvchi» — eng yaxshi 20% (sotuvchilar_tahlili pogʻonalari: eng_yaxshi_20, orta_30, past, sotmagan).',
   '- «Nimaga» — pogʻonalar orasidagi farqdan: tovar soni, narx, reyting, sharh, chegirma, tugab qolgan tovar,',
   '  doʻkon yoshi. Bu bogʻliqlik, sabab emas: «statistikada koʻrinadi» deb ayt va undan amaliy xulosa chiqar.',
@@ -184,8 +190,8 @@ export const TAHLIL_KORSATMA = [
   '',
   'JAVOB — JSON:',
   '- qisqa: 4–6 qisqa qator. Birinchi qator — savolga toʻgʻridan-toʻgʻri javob raqam bilan; keyin taqqoslash va xulosa.',
-  '- batafsil: toʻliq tahlil — har pogʻona yoki koʻrsatkich «• » bilan boshlanadigan alohida qatorda, keyin sabablar',
-  '  va umumiy maslahat. Kerak boʻlmasa — boʻsh satr.',
+  '- batafsil: toʻliq tahlil, KOʻPI BILAN 8 qator — har pogʻona yoki koʻrsatkich «• » bilan boshlanadigan alohida qatorda,',
+  '  keyin sabablar va bitta amaliy maslahat. Kerak boʻlmasa — boʻsh satr.',
   '- tovarlar: alohida fikr bildirgan tovarlar raqami (asbob natijasidagi id), 0–5 ta. dokonlar — xuddi shunday.',
   '- ochish: Uzum sahifasini ochish foydali boʻlsa {turkum, saralash, narx_min, narx_max}, aks holda null.',
   '- keyingi: mijoz keyin soʻrashi mumkin boʻlgan 2–3 qisqa savol, mijoz tilida.',
@@ -753,6 +759,8 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
         };
       }
       tashla();
+      // Sabab logga (sirsiz: faqat darvoza matni — raqamlar va qoida nomi, kalit yoʻq): nima rad etilayotgani koʻrinsin.
+      console.warn(`tahlil darvoza (${tuzatildi + 1}): ${tk.sabab.slice(0, 400)}`);
       if (++tuzatildi > MAX_TUZAT) return null;
       xabarlar.push({ role: 'user', content: `JAVOBING QAYTARILDI: ${tk.sabab} Kerak boʻlsa asbob chaqir, keyin JSON javobni qayta yoz.` });
     }
