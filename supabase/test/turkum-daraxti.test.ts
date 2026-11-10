@@ -14,6 +14,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 const M77 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0077_zumsavdo_turkum_daraxti.sql'), 'utf8');
+const M84 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0084_zumsavdo_tahlil_tuzatish.sql'), 'utf8');
 
 const SXEMA = `
   create role anon; create role authenticated; create role service_role;
@@ -51,6 +52,7 @@ describe('0077 — turkum daraxti', () => {
     await db.exec(SXEMA);
     await db.exec(M77);
     await db.exec(M77); // qayta qoʻllash xavfsiz
+    await db.exec(M84); // 0084: faqat oʻzgargan qator yoziladi
   }, 120_000);
 
   it('toʻgʻri daraxt: yoʻl, yoʻl nomi, chuqurlik, barg', async () => {
@@ -81,6 +83,35 @@ describe('0077 — turkum daraxti', () => {
     expect(j.ochirildi).toBe(1);
     const nom = (await db.query<{ nom: string; yol_nomi: string }>('select nom, yol_nomi from zumsavdo.turkum where id = 14237')).rows[0]!;
     expect(nom).toEqual({ nom: 'Krossovkalar va kedalar', yol_nomi: 'Poyabzallar › Krossovkalar va kedalar' });
+  });
+
+  const maxVaqt = async () =>
+    (await db.query<{ v: string }>('select max(yangilandi)::text as v from zumsavdo.turkum')).rows[0]!.v;
+  const oxirgiDaraxt = () =>
+    daraxt().filter((x) => x.id !== 13702).map((x) => (x.id === 14237 ? { ...x, nom: 'Krossovkalar va kedalar' } : x));
+
+  it('0084: oʻzgarmagan daraxt qayta yozilsa — hech bir qator «yangilanmaydi» (tahlil har kecha qayta qurilmaydi)', async () => {
+    const oldin = await maxVaqt();
+    const j = await yoz(oxirgiDaraxt());
+    expect(j.ozgardi).toBe(0);
+    expect(j.ochirildi).toBe(0);
+    expect(await maxVaqt()).toBe(oldin);
+  });
+
+  it('0084: tugun oʻchsa — ildiz belgilanadi (daraxt oʻzgargani koʻrinadi)', async () => {
+    const oldin = await maxVaqt();
+    await new Promise((r) => setTimeout(r, 20));
+    const j = await yoz(oxirgiDaraxt().filter((x) => x.id !== 13701));
+    // 13701 oʻchdi; uning otasi 1001 endi oʻzi barg — bitta qator oʻzgaradi.
+    expect(j).toMatchObject({ ochirildi: 1, ozgardi: 1 });
+    expect(await maxVaqt()).not.toBe(oldin);
+  });
+
+  it('0084: nom oʻzgarsa — faqat oʻsha tugun va uning avlodlari yangilanadi', async () => {
+    const t = oxirgiDaraxt().filter((x) => x.id !== 13701).map((x) => (x.id === 1003 ? { ...x, nom: 'Qizlar' } : x));
+    const j = await yoz(t);
+    // 1003 va uning yagona bargi 13700 (yoʻl nomi «Kiyim › Qizlar › Shimlar» boʻldi).
+    expect(j.ozgardi).toBe(2);
   });
 
   const buzuq: Array<[string, () => unknown, RegExp]> = [

@@ -26,6 +26,7 @@ export const TAHLIL_MIGRATSIYALARI = [
   '0080_selleros_tahlil_asboblari.sql',
   '0081_zumsavdo_tahlil_jadval.sql',
   '0082_zumsavdo_tahlil_bosqichli.sql',
+  '0084_zumsavdo_tahlil_tuzatish.sql',
 ];
 
 /** Bitta qadam natijasi (`zumsavdo.tahlil_qadam`). */
