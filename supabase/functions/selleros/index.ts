@@ -125,6 +125,7 @@ import {
   type BozorPaneli,
   tahlilQil,
   tahlilRejimi,
+  tahlilLimitBilan,
   tahlilYoqilganmi,
   type TahlilOqimi,
   type TahlilSavoli,
@@ -573,8 +574,9 @@ async function ishla(req: Request, yol: string): Promise<Response> {
         },
       } : {}),
       ...(claudeTahlil !== null && Deno.env.get('AI_SUHBAT') !== '0' ? {
-        tahlil: (s: TahlilSavoli, ms: number, o?: TahlilOqimi) =>
-          tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama.sarf, ...(o ?? {}) }, s, ms),
+        // Kunlik limit (0085, nazoratchi 10.11): oshsa — eski oddiy AI yoʻli.
+        tahlil: (s: TahlilSavoli, ms: number, o?: TahlilOqimi) => tahlilLimitBilan(rpc, token,
+          () => tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama.sarf, ...(o ?? {}) }, s, ms)),
         tahlilRuxsat: (h: YolHolati) => tahlilYoqilganmi(tahlilRejim, h.javoblar['telefon']),
       } : {}),
     };
@@ -674,8 +676,10 @@ async function ishla(req: Request, yol: string): Promise<Response> {
       ai: claude
         ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama, vaqtMs: ms }, k, qism)
         : null,
+      // Kunlik limit (0085): sessiyasiz yoki limit tugagan — eski oddiy AI yoʻli.
       tahlil: claudeTahlil
-        ? (s: TahlilSavoli, ms: number, oq?: TahlilOqimi) => tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama.sarf, ...(oq ?? {}) }, s, ms)
+        ? (s: TahlilSavoli, ms: number, oq?: TahlilOqimi) => tahlilLimitBilan(rpc, token || null,
+          () => tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama.sarf, ...(oq ?? {}) }, s, ms))
         : null,
       tarifCheklovi: tarifCheklovi(),
     };

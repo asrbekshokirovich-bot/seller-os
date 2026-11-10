@@ -965,6 +965,41 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
   }
 }
 
+// ==================================================================== kunlik limit
+
+/**
+ * Kunlik limit (nazoratchi, 2026-11-10: «Ha, limit bilan yoq»; 0085). `kunlik` — bitta foydalanuvchiga;
+ * `jamiKunlik` — hamma foydalanuvchi yigʻindisi (anonim sessiya cheksiz yaratilsa ham xarajatga qattiq shift:
+ * jonli sinovda ~$0.045 savoliga → kuniga koʻpi bilan ~$23).
+ */
+export const TAHLIL_LIMIT = { kunlik: 30, jamiKunlik: 500 } as const;
+
+/**
+ * Tahlilni kunlik limit bilan chaqiradi: avval bitta savolni BAND qiladi (atomik, `so_tahlil_limit`), limit
+ * ichida boʻlsa — `ishla`. Sessiya yoʻq, limit tugagan yoki baza javob bermadi — `null`: chaqiruvchi eski oddiy
+ * AI yoʻliga qaytadi (nomaʼlum = toʻxtash, QOIDALAR §8-a). Tahlil yiqilsa ham band qaytarilmaydi — Claude
+ * chaqiruvlari boʻlgan, urinish sanaladi.
+ */
+export async function tahlilLimitBilan<T>(
+  rpc: <R>(nom: string, arg: unknown) => Promise<R | null>,
+  token: string | null | undefined,
+  ishla: () => Promise<T | null>,
+  limit: { kunlik: number; jamiKunlik: number } = TAHLIL_LIMIT,
+): Promise<T | null> {
+  if (!token) return null;
+  const b = await rpc<{ xato?: string; ruxsat?: boolean; soni?: number; jami?: number }>('so_tahlil_limit', {
+    p_token: token, p_oshir: true, p_limit: limit.kunlik, p_umumiy_limit: limit.jamiKunlik,
+  }).catch(() => null);
+  if (!b || b.xato || b.ruxsat !== true) {
+    // Sirsiz: faqat sanoq (kim ekani yoʻq).
+    if (b && b.ruxsat === false) {
+      console.warn(`tahlil limiti tugadi: ${(b.jami ?? 0) >= limit.jamiKunlik ? `umumiy ${limit.jamiKunlik}` : `shaxsiy ${limit.kunlik}`}`);
+    }
+    return null;
+  }
+  return ishla();
+}
+
 // ==================================================================== yoqish bayrogʻi
 
 /**
