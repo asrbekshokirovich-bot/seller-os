@@ -31,7 +31,8 @@ export const SAHIFALAR: readonly Sahifa[] = ['bosh', 'kirish', 'maxfiylik', 'obu
 /** Sahifa nima haqida — AI javobni shunga bogʻlasin. */
 export const SAHIFA_TAVSIFI: Record<Sahifa, string> = {
   bosh: 'Bosh sahifa: ZumSavdo nima qilishi, 12 qadamli yoʻl (nima sotishni tanlashdan Uzumda sotishgacha), bazada nechta '
-    + 'tovar kuzatilayotgani. «Suhbatni boshlash» tugmasi yordamchi suhbatini ochadi — u yerda 12 qadam bilan olib boriladi.',
+    + 'tovar kuzatilayotgani. «Suhbatni boshlash» tugmasi (shu oynadagi «Yoʻlni boshlash» havolasi ham) yordamchi suhbatini ochadi — '
+    + 'u yerda 12 qadam bilan olib boriladi.',
   kirish: 'Kirish sahifasi: suhbatni hisobga bogʻlab, istalgan qurilmada ochish. Kirmasa ham yordamchidan foydalanish mumkin '
     + '(suhbat shu brauzerda saqlanadi).',
   maxfiylik: 'Maxfiylik sahifasi: ZumSavdo qanday maʼlumot yigʻadi, kimga yuboradi (sunʼiy intellekt, surat xizmati), '

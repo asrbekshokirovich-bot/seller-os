@@ -465,9 +465,11 @@
 
 button.sizBelgi { cursor: pointer; }
 
-button.sizBelgi:not(:disabled):hover {
-  box-shadow: inset 0 0 0 1.5px var(--acc);
-  color: var(--acc);
+@media (hover: hover) {
+  button.sizBelgi:not(:disabled):hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 button.sizBelgi:disabled { opacity: 0.6; }
@@ -909,6 +911,45 @@ button.sizBelgi:disabled { opacity: 0.6; }
   color: var(--xira);
 }
 
+/* Manba sayti — bosiladigan (1-taklif). */
+/* Banklar — har biri bitta qator, batafsili bosilganda (ikkinchi koʻrik, 16-taklif). */
+.bankRoyxat {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+}
+
+.bankQator { border-bottom: 1px solid var(--chiziq); }
+
+.bankQator > summary,
+.bankQatorOddiy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 10px 0;
+  list-style: none;
+}
+
+.bankQator > summary { cursor: pointer; }
+.bankQator > summary::-webkit-details-marker { display: none; }
+.bankQator > summary::after { content: '▾'; color: var(--xira); }
+.bankQator[open] > summary::after { content: '▴'; }
+.bankQator > p { margin: 0 0 10px; }
+.bankNom { flex: 1 1 auto; font-weight: 700; }
+.bankNarx { color: var(--xira); font-size: 13.5px; }
+
+/* «Agent kim?» — buyurtma varaqasi ostida (14-taklif). */
+.agentIzoh { margin-top: 10px; }
+.agentIzoh > summary { cursor: pointer; color: var(--acc); font-size: 14px; font-weight: 600; }
+
+.manbaHavola {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
 .ajratilgan {
   margin: 14px 0 0;
   padding-top: 14px;
@@ -1202,6 +1243,11 @@ button.sizBelgi:disabled { opacity: 0.6; }
  * panel ustida, matn ustunining oʻng chetida (keng ekranda ustun 820 px, markazda). Ilgari
  * «↓ Savolga» yozuvli keng tugma edi va kartadagi «Tanlash» ni yopib qoʻyardi. Nomi — `aria-label`.
  */
+/* Telefonda ↓ kichikroq va chetroqda — matn va tugmalarni kamroq yopadi (ikkinchi koʻrik, 10-taklif). */
+@media (max-width: 760px) {
+  .pastgaTugma.pastgaTugma { width: 36px; height: 36px; right: 6px; opacity: 0.9; }
+}
+
 .pastgaTugma {
   position: absolute;
   z-index: 3;
@@ -1272,11 +1318,27 @@ button.sizBelgi:disabled { opacity: 0.6; }
   text-align: left;
 }
 
-.variant:not(:disabled):hover,
+/* Sahifa bilan kelgan salom (9-taklif): suhbati bor mijozda bosh skript `data-suhbat-bor` qoʻyadi — koʻrinmaydi. */
+:global(html[data-suhbat-bor]) .boshlangichPufak { display: none; }
+
 .variantTanlangan {
   box-shadow: inset 0 0 0 2px var(--acc);
   background: var(--acc10);
 }
+
+/*
+ * Sichqoncha bezagi — faqat sichqonchali qurilmada (ikkinchi koʻrik, 8-taklif): telefonda bosilgan joydagi
+ * :hover keyingi savolning xuddi shu joydagi tugmasida qolib, u «tanlangandek» koʻrinardi.
+ */
+@media (hover: hover) {
+  .variant:not(:disabled):hover {
+    box-shadow: inset 0 0 0 2px var(--acc);
+    background: var(--acc10);
+  }
+}
+
+/* Koʻp tanlovdagi oʻz nomli tugma («Bilmayman», 7-taklif) — butun qator. */
+.variantKeng { grid-column: 1 / -1; }
 
 .variantUzun {
   height: auto;
@@ -1420,7 +1482,9 @@ button.sizBelgi:disabled { opacity: 0.6; }
   white-space: nowrap;
 }
 
-.nomTugma:not(:disabled):hover { box-shadow: inset 0 0 0 2px var(--acc); }
+@media (hover: hover) {
+  .nomTugma:not(:disabled):hover { box-shadow: inset 0 0 0 2px var(--acc); }
+}
 .nomTugma:disabled { opacity: 0.55; }
 
 /* Yoʻnalish kartasidagi tanlash tugmasi — butun kenglikda, uzun nom oʻraladi. */
@@ -1547,27 +1611,8 @@ button.sizBelgi:disabled { opacity: 0.6; }
   .klavish { display: none; }
 }
 
-.variantBoshqa {
-  grid-column: span 2;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 0;
-  border-radius: 14px;
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--chiziq);
-  color: var(--xira);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: left;
-}
 
-.variantBoshqa > span { display: inline-flex; }
 
-/* Bitta ustunga tushganda «Boshqa …» qatori ham bitta ustun (span 2 yangi ustun ochmasin). */
-.variantlar[data-ustun='1'] .variantBoshqa { grid-column: 1 / -1; }
 
 .variantYakun {
   margin-top: 12px;
@@ -1611,9 +1656,11 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.tezSavol:not(:disabled):hover {
-  box-shadow: inset 0 0 0 1.5px var(--acc);
-  color: var(--acc);
+@media (hover: hover) {
+  .tezSavol:not(:disabled):hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 .tezSavol:disabled { opacity: 0.55; }
@@ -1642,10 +1689,16 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.batafsilTugma:hover,
 .batafsilTugma[aria-expanded='true'] {
   box-shadow: inset 0 0 0 1.5px var(--acc);
   color: var(--acc);
+}
+
+@media (hover: hover) {
+  .batafsilTugma:hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 .batafsilMatn {
@@ -1699,12 +1752,20 @@ button.sizBelgi:disabled { opacity: 0.6; }
   opacity: 0.7;
 }
 
-.javobBahoTugma:not(:disabled):hover,
 .javobBahoTanlangan {
   filter: none;
   opacity: 1;
   box-shadow: inset 0 0 0 1.5px var(--acc);
   background: var(--acc10);
+}
+
+@media (hover: hover) {
+  .javobBahoTugma:not(:disabled):hover {
+    filter: none;
+    opacity: 1;
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    background: var(--acc10);
+  }
 }
 
 .javobBahoRahmat {
@@ -1728,6 +1789,14 @@ button.sizBelgi:disabled { opacity: 0.6; }
 }
 
 .ilova .otkazishIchki { color: var(--xira); }
+
+/* «Bu tovarni oʻtkazib yuborish» — hech bir 1688 taklifi chegaraga sigʻmaganda maslahat (6-taklif). */
+.otkazishAsosiy,
+.ilova .otkazishAsosiy {
+  color: var(--acc);
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  background: var(--acc10);
+}
 
 /* Erkin javob — dizayndagi «Oʻzim yozaman» qatori. */
 .kiritish {
@@ -2350,9 +2419,11 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.nusxaTugma:hover {
-  box-shadow: inset 0 0 0 1.5px var(--acc);
-  color: var(--acc);
+@media (hover: hover) {
+  .nusxaTugma:hover {
+    box-shadow: inset 0 0 0 1.5px var(--acc);
+    color: var(--acc);
+  }
 }
 
 .nusxaMatn {
@@ -2401,6 +2472,86 @@ button.sizBelgi:disabled { opacity: 0.6; }
   margin-top: 10px;
 }
 
+/* ------------------------------------------------------ «Ishlarim» (ikkinchi koʻrik K2, 2026-11-06) */
+
+/* Chap menyuda «Suhbatlarim» ostida — bir xil koʻrinish. */
+.ishlarTugma {
+  margin-top: 10px;
+}
+
+.ishRoyxat {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Butun qator — bitta tugma: barmoq bilan bosish oson (katak kichik). */
+.ishQator {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--chiziq);
+  border-radius: 16px;
+  background: var(--kart);
+  color: var(--matn);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ishQator .katak {
+  margin-top: 1px;
+}
+
+.ishQator:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (hover: hover) {
+  .ishQator:hover {
+    border-color: var(--acc);
+  }
+}
+
+.ishBajarildi .katak {
+  background: var(--acc);
+  box-shadow: none;
+}
+
+.ishBajarildi .ishNom {
+  color: var(--xira);
+  text-decoration: line-through;
+}
+
+.ishMatn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ishNom {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ishSana {
+  font-size: 13px;
+  color: var(--xira);
+}
+
+/* Muddati oʻtgan ochiq ish — ogohlantirish rangida (qizil emas: bu xato emas, eslatma). */
+.ishOtdi {
+  color: var(--ogoh);
+  font-weight: 600;
+}
+
 .sbPanel {
   width: 640px;
 }
@@ -2437,8 +2588,10 @@ button.sizBelgi:disabled { opacity: 0.6; }
   cursor: pointer;
 }
 
-.sbKarta:hover {
-  border-color: var(--acc);
+@media (hover: hover) {
+  .sbKarta:hover {
+    border-color: var(--acc);
+  }
 }
 
 .sbKartaJoriy {

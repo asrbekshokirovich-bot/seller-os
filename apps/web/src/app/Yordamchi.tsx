@@ -196,9 +196,11 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
           )}
         </section>
       )}
-      <button ref={tugma} type="button" className={y.tugma} aria-expanded={ochiq} onClick={() => setOchiq((o) => !o)}>
+      {/* Telefonda — yumaloq belgi (ikkinchi koʻrik, 10-taklif): keng tugma «Avto», «10 mln» va «Payme» ni yopardi. */}
+      <button ref={tugma} type="button" className={y.tugma} aria-expanded={ochiq} onClick={() => setOchiq((o) => !o)}
+        aria-label={ochiq ? tr('Yopish', 'Закрыть') : tr('Savol bering', 'Задать вопрос')}>
         <Ikon nom={ochiq ? 'yopish' : 'suhbatlar'} o={18} />
-        <span>{ochiq ? tr('Yopish', 'Закрыть') : tr('Savol bering', 'Задать вопрос')}</span>
+        <span className={y.tugmaMatn}>{ochiq ? tr('Yopish', 'Закрыть') : tr('Savol bering', 'Задать вопрос')}</span>
       </button>
     </div>
   );

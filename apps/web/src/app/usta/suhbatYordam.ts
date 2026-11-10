@@ -6,6 +6,54 @@
 
 import type { Tr } from '../../lib/til';
 
+/** Suhbati bor mijoz belgisi (ikkinchi koʻrik, 9-taklif): bor boʻlsa — tayyor salom koʻrsatilmaydi. */
+export const SUHBAT_BOR = 'zs-suhbat-bor';
+
+/** Bu brauzerda mijoz oldin javob berganmi (`suhbatBorDeb`). Saqlab boʻlmasa — yoʻq. */
+export function suhbatBormi(): boolean {
+  try { return window.localStorage.getItem(SUHBAT_BOR) === '1'; } catch { return false; }
+}
+
+/** Xabarlar orasida mijozniki boʻlsa — belgi qoʻyiladi (keyingi ochilishda server kutiladi). */
+export function suhbatBorDeb(xabarlar: ReadonlyArray<{ rol: string }>): void {
+  if (!xabarlar.some((x) => x.rol === 'obunachi')) return;
+  try { window.localStorage.setItem(SUHBAT_BOR, '1'); } catch { /* saqlab boʻlmadi — keyingi safar ham salom darhol */ }
+}
+
+/** Fakt manbasi — mijozga koʻrinishi (`manbaKorinishi`). */
+export interface ManbaKorinish {
+  /** Bosiladigan saytlar (koʻpi bilan 3, sayt boʻyicha bittadan). */
+  havolalar: Array<{ nom: string; url: string }>;
+  /** Sayt topilmasa — manba matni (masalan «Oferta 14.08.2026, 4.17-band»); boʻlmasa `null`. */
+  matn: string | null;
+  /** Tekshirilgan sana «28.09.2026»; boʻlmasa `null`. */
+  sana: string | null;
+}
+
+/** Ichki hujjat («docs/RASMIYLASHTIRISH-FAKTLAR.md») — mijozga koʻrsatilmaydi. */
+const ICHKI_HUJJAT = /\bdocs\/[A-Z0-9-]+\.md\b/u;
+/** Sayt manzili: «lex.uz/docs/-7681520», «seller.uzum.uz/manual/uz», «buxgalter.uz». */
+const SAYT = /(?<![\w./-])((?:[a-z0-9-]+\.)+(?:uz|com|org|net|ru))(\/[^\s,;()«»"]*)?/giu;
+
+/**
+ * Fakt manbasi mijozga (ikkinchi koʻrik, 1-taklif): ichki hujjat qismi tashlanadi, saytlar bosiladigan
+ * havola boʻladi, «(ikkilamchi)» kabi ichki belgi olinadi, sana «28.09.2026» koʻrinishida.
+ */
+export function manbaKorinishi(manba: string | null, olchandi: string | null): ManbaKorinish {
+  const qismlar = (manba ?? '').split(';').map((x) => x.trim()).filter((x) => x !== '' && !ICHKI_HUJJAT.test(x));
+  const havolalar: Array<{ nom: string; url: string }> = [];
+  for (const q of qismlar) {
+    for (const m of q.matchAll(SAYT)) {
+      const nom = m[1]!.toLowerCase().replace(/^www\./u, '');
+      if (havolalar.length < 3 && !havolalar.some((h) => h.nom === nom)) havolalar.push({ nom, url: `https://${m[1]!.toLowerCase()}${m[2] ?? ''}` });
+    }
+  }
+  const matn = havolalar.length > 0 ? null
+    : qismlar.join('; ').replace(/\s*[(—-]*\s*ikkilamchi\s*\)?/giu, '').trim() || null;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/u.exec(olchandi ?? '');
+  return { havolalar, matn, sana: iso ? `${iso[3]}.${iso[2]}.${iso[1]}` : (olchandi || null) };
+}
+
 /* ------------------------------------------------------ turlar (API shakli) */
 
 export interface Variant {

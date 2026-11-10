@@ -73,6 +73,35 @@ function kod(b: ReturnType<typeof soxtaBaza>, sessiya = true, hozir = HOZIR) {
   };
 }
 
+describe('hisobotHisob — «Ha, YATT ochdim» YATT ishini yopadi («Ishlarim», ikkinchi koʻrik K2)', () => {
+  const RASMIY_YAKUN = { olchov_yoq: false, izoh: 'i', yozildi: [
+    { tur: 'kutyapman', sabab: 'YATT ochilishi', muddat: null, id: 41, yangi: true },
+    { tur: 'kutyapman', sabab: 'bank hisobi ochilishi (YATTdan keyin)', muddat: null, id: 42, yangi: true },
+  ] };
+
+  it('«ochdim» — faqat «YATT ochilishi» yopiladi (bank va kabinet — yoʻq: ular alohida ish)', async () => {
+    const b = soxtaBaza();
+    const k = kod(b);
+    const hn = await k.hisobot(holatYasa());
+    await k.hisobotHisob(holatYasa({ huquqiy_shakl: 'yoq', yatt_ochish: 'keyin', yatt_holati: 'ochdim', oy_sotuv: 4_000_000 }, { hisobot: hn, rasmiy_yakun: RASMIY_YAKUN }));
+    expect(b.kim('so_ochiq_ish_holat')).toEqual([{ p_token: 'tok', p_id: 41, p_bajarildi: true }]);
+  });
+
+  it('YATT savoli berilmagan, «yoq» yoki YATT ishi yozilmagan — yopilmaydi', async () => {
+    for (const [javob, natija] of [
+      [{}, { rasmiy_yakun: RASMIY_YAKUN }],
+      [{ yatt_holati: 'yoq' }, { rasmiy_yakun: RASMIY_YAKUN }],
+      [{ yatt_holati: 'ochdim' }, {}],
+    ] as const) {
+      const b = soxtaBaza();
+      const k = kod(b);
+      const hn = await k.hisobot(holatYasa());
+      await k.hisobotHisob(holatYasa({ ...javob }, { hisobot: hn, ...natija }));
+      expect(b.kim('so_ochiq_ish_holat')).toEqual([]);
+    }
+  });
+});
+
 describe('sotuv (11-qadam)', () => {
   it('havoladagi oʻz kartochka kuzatuvga qoʻshiladi; oʻlchov, raqobatchi, signallar, jami', async () => {
     const b = soxtaBaza();

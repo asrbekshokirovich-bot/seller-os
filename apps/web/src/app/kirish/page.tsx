@@ -19,6 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const tr = tarjima(await serverTili());
   return {
     title: tr('ZumSavdo — Kirish', 'ZumSavdo — Вход'),
+    // Kirish hali ishlamaydi (SMS/Telegram ulanmagan) — qidiruvda chiqmasin (ikkinchi koʻrik, 19-taklif).
+    robots: { index: false, follow: false },
     description: tr(
       'Suhbatingiz hisobingizga bogʻlanadi va istalgan qurilmada ochiladi.',
       'Чат привяжется к аккаунту и откроется на любом устройстве.',

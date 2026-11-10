@@ -9,7 +9,7 @@
 
 import type { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { tahlilBazasi } from './tahlil-sinov';
+import { tahlilBazasi, tahlilQur } from './tahlil-sinov';
 
 type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
 type Obj = { [k: string]: Json };
@@ -23,7 +23,7 @@ describe('0080 — tahlil asboblari', () => {
 
   beforeAll(async () => {
     db = await tahlilBazasi();
-    await db.query('select zumsavdo.tahlil_yangila()');
+    await tahlilQur(db);
   }, 180_000);
 
   it('turkum_top: «kiyimlar» → Kiyim (qoʻshimcha bilan), «shim» → Shimlar yoʻli bilan', async () => {

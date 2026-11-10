@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, tanlanganNomlar, telefonGuruhla, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
+import { aloqaJavobi, batafsilmi, boshlangichTanlov, dollarMatni, formaTelefoni, havolaQismlari, jsonOl, keyingiKaliti, kichikRasm, langarQarori, manbaKorinishi, navbatBuzildimi, pastgaHolati, raqamSavolimi, salomBolagi, sorovLangari, suhbatBorDeb, suhbatBormi, tanlanganNomlar, telefonGuruhla, uzilmasSon, xatoGapi, XATO, yonmaJoriy, type Langar } from '../src/app/usta/suhbatYordam';
 import { tarjima } from '../src/lib/til';
 
 const uz = tarjima('uz');
@@ -29,6 +29,48 @@ describe('boshlangichTanlov (2026-10-15: tajribada yozgan soha oldindan belgilan
     expect(boshlangichTanlov({ tur: 'savol', savol: { ...savol, turi: 'tanlov', tanlangan: ['uy'] } })).toEqual([]);
     expect(boshlangichTanlov({ tur: 'kod', harakat: 'kurs', qadam: 1 })).toEqual([]);
     expect(boshlangichTanlov(null)).toEqual([]);
+  });
+});
+
+describe('manbaKorinishi (ikkinchi koʻrik, 1-taklif: ichki fayl nomi va xom manba mijozga chiqmasin)', () => {
+  it('saytlar — bosiladigan havola, sayt boʻyicha bittadan; sana DD.MM.YYYY', () => {
+    expect(manbaKorinishi('PQ-247 12.08.2025 (lex.uz/docs/-7681520); OʻRQ-1108 25.12.2025 (buxgalter.uz text212712)', '2026-09-28')).toEqual({
+      havolalar: [{ nom: 'lex.uz', url: 'https://lex.uz/docs/-7681520' }, { nom: 'buxgalter.uz', url: 'https://buxgalter.uz' }],
+      matn: null, sana: '28.09.2026',
+    });
+    expect(manbaKorinishi('seller.uzum.uz/manual/uz/4.start-working (4.2); Uzum roʻyxat Google-hujjati', null).havolalar)
+      .toEqual([{ nom: 'seller.uzum.uz', url: 'https://seller.uzum.uz/manual/uz/4.start-working' }]);
+  });
+
+  it('ichki hujjat (docs/…md) tashlanadi; sayt yoʻq — matn, «ikkilamchi» belgisisiz; hech narsa — faqat sana', () => {
+    expect(manbaKorinishi('docs/RASMIYLASHTIRISH-FAKTLAR.md, 4-boʻlim — 6 bank, bank saytlari', '2026-10-14'))
+      .toEqual({ havolalar: [], matn: null, sana: '14.10.2026' });
+    expect(manbaKorinishi('soliq.uz — interaktiv xizmatlar; docs/RASMIYLASHTIRISH-FAKTLAR.md 5-boʻlim', '2026-09-30').havolalar)
+      .toEqual([{ nom: 'soliq.uz', url: 'https://soliq.uz' }]);
+    expect(manbaKorinishi('Oferta 14.08.2026, 4.17-band', '2026-09-28')).toEqual({ havolalar: [], matn: 'Oferta 14.08.2026, 4.17-band', sana: '28.09.2026' });
+    expect(manbaKorinishi('Soliq qoʻmitasi 50017 (ikkilamchi)', null).matn).toBe('Soliq qoʻmitasi 50017');
+    expect(manbaKorinishi(null, null)).toEqual({ havolalar: [], matn: null, sana: null });
+  });
+});
+
+describe('suhbatBormi / suhbatBorDeb (ikkinchi koʻrik, 9-taklif: yangi mijozga salom darhol)', () => {
+  it('mijoz xabari boʻlsa — belgi qoʻyiladi; boʻlmasa — yoʻq; saqlab boʻlmasa — yiqilmaydi', () => {
+    const xotira = new Map<string, string>();
+    const g = globalThis as unknown as { window?: unknown };
+    const eski = g.window;
+    g.window = { localStorage: { getItem: (k: string) => xotira.get(k) ?? null, setItem: (k: string, v: string) => { xotira.set(k, v); } } };
+    try {
+      expect(suhbatBormi()).toBe(false);
+      suhbatBorDeb([{ rol: 'menejer' }]);
+      expect(suhbatBormi()).toBe(false);
+      suhbatBorDeb([{ rol: 'menejer' }, { rol: 'obunachi' }]);
+      expect(suhbatBormi()).toBe(true);
+      g.window = undefined;
+      expect(suhbatBormi()).toBe(false);
+      expect(() => suhbatBorDeb([{ rol: 'obunachi' }])).not.toThrow();
+    } finally {
+      g.window = eski;
+    }
   });
 });
 

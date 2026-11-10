@@ -24,11 +24,11 @@ export const metadata: Metadata = {
 };
 
 /** Sahifa oxirgi marta qachon tekshirilgani. */
-const YANGILANDI = '2026-10-28';
+const YANGILANDI = '06.11.2026';
 
 export default function Maxfiylik() {
   return (
-    // Matn faqat oʻzbekcha (huquqiy tavsif) — `lang` shunga mos; ranglar va shrift — sayt mavzusidan.
+    // Ruschasi — `ru/page.tsx` (`so_til=ru` bilan rewrite); mazmuni bir xil boʻlishi shart. Ranglar — sayt mavzusidan.
     <div className={`zs-mavzu ${u.sahifa}`} lang="uz">
       <SahifaTepa til="uz" havola={{ href: '/', uz: 'Bosh sahifa', ru: 'Главная' }} />
 
@@ -81,8 +81,9 @@ export default function Maxfiylik() {
           </li>
           <li>
             Brauzer xotirasida (<code>localStorage</code>) — <code>so_til</code>{' '}
-            (til) va <code>so_mavzu</code> (yorugʻ yoki tungi mavzu). Xotiradagi
-            yozuvlar serverga yuborilmaydi.
+            (til), <code>so_mavzu</code> (yorugʻ yoki tungi mavzu) va <code>zs-suhbat-bor</code> — «sizda
+            suhbat bor» belgisi (faqat «1»: keyingi ochilishda tayyor salom emas, darhol suhbatingiz kutilsin).
+            Xotiradagi yozuvlar serverga yuborilmaydi.
           </li>
           <li>
             Varaq xotirasida (<code>sessionStorage</code>, varaq yopilsa oʻchadi) —{' '}
@@ -190,7 +191,7 @@ export default function Maxfiylik() {
                 <td>
                   Yordamchi bilan suhbat: savol-javoblar (oʻzingiz yozgan erkin xabarlar
                   ham), qaysi qadamdasiz va har qadamda kod hisoblagan natija
-                  (yoʻnalish, tovar, 1688 takliflari, varaqa, suratlar roʻyxati)
+                  (yoʻnalish, tovar, 1688 takliflari, rang va oʻlchami bilan varaqa, suratlar roʻyxati)
                 </td>
                 <td><code>suhbat_xabar</code>, <code>yol</code></td>
               </tr>
@@ -221,7 +222,8 @@ export default function Maxfiylik() {
               <tr>
                 <td>
                   Ochiq ishlar: «keyinroq» degan qadamlaringiz va yuk yoki
-                  Uzum qabulini kutish muddati
+                  Uzum qabulini kutish muddati. Ularni «Ishlarim»da koʻrasiz va bajarilganini
+                  belgilaysiz — belgi va uning vaqti saqlanadi
                 </td>
                 <td><code>ochiq_ish</code></td>
               </tr>
@@ -315,7 +317,8 @@ export default function Maxfiylik() {
             holatingiz, ism-familiya va telefonsiz; ZumSavdo ularni saqlamaydi. 10-qadamda
             «Kartochka matnini yozib ber» bossangiz — tanlangan tovarlarning Uzumdagi va 1688
             dagi nomi hamda yoʻnalish nomi (shaxsiy maʼlumot emas); kelgan matnni kod Uzum
-            qoidalari va raqamlar boʻyicha tekshiradi. Sessiya kaliti yuborilmaydi.
+            qoidalari va raqamlar boʻyicha tekshiradi, tez model esa oʻzbekcha va ruscha matn maʼnosini
+            solishtiradi (unga faqat shu kartochka matni boradi). Sessiya kaliti yuborilmaydi.
             Ism-familiya va telefonni yozgan xabaringiz — ularning savoliga javob (2026-10-21 dan)
             yoki boshqa gapingiz, masalan birinchi xabaringiz (2026-10-26 dan) — ham unga
             yuboriladi: u ism va telefonni gapingizdan ajratib oladi (ularni baribir kod

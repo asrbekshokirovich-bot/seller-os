@@ -113,6 +113,11 @@ function kod(b: ReturnType<typeof soxtaBaza>, f: typeof fetch | null = soxtaFetc
 const qator = (n: BuyurtmaNatijasi, id: number) => n.qatorlar.find((x) => x.productId === id)!;
 
 describe('buyurtma — kargo hamkori YOʻQ (0056 holati)', () => {
+  it('varaqa: rang va oʻlcham — mijoz yozgani (ikkinchi koʻrik, 14-taklif), boʻsh joylar kesiladi', async () => {
+    const n = await kod(soxtaBaza(), soxtaFetch().fetch).buyurtma(holatYasa({ 'rang_olcham:100': '  qora: 40×5, 41×5  ' }));
+    expect(qator(n, 100).rangOlcham).toBe('qora: 40×5, 41×5');
+  });
+
   it('varaqa: tanlangan taklif yuan+soʻm, oʻtkazilgan va qidirilmagan "tanlanmagan", kargo kiritilmagan', async () => {
     const b = soxtaBaza(); const s = soxtaFetch();
     const n = await kod(b, s.fetch).buyurtma(holatYasa());
@@ -121,27 +126,29 @@ describe('buyurtma — kargo hamkori YOʻQ (0056 holati)', () => {
     expect(qator(n, 100)).toMatchObject({
       sourceId: '983093623752', xitoyTitle: '1688 983093623752', manzil: 'https://detail.1688.com/offer/983093623752.html',
       miqdor: 30, narxYuan: 27, narxSom: 47_587, jamiYuan: 810, jamiSom: 1_427_610, weightG: 120,
-      kargoSom: null, kargoIzoh: 'kargo hamkori, kargo stavkasi kiritilmagan',
+      kargoSom: null, kargoIzoh: 'kargo narxlari hali kiritilmagan — narxni kargo kompaniyangizdan soʻrang',
     });
+    // Rang va oʻlcham yozilmagan — null (ikkinchi koʻrik, 14-taklif).
+    expect(qator(n, 100).rangOlcham).toBeNull();
     // Oʻtkazilgan tovar: 1688 da taklif bor edi, lekin tanlanmagan — varaqaga kirmaydi, sonlari null.
     expect(qator(n, 200)).toMatchObject({ sourceId: null, narxYuan: null, jamiSom: null, miqdor: 10, holat: 'tanlanmagan' });
     expect(n.jami).toEqual({ yuan: 810, som: 1_427_610, kargoSom: null, dona: 30, tayyor: 1, tanlanmagan: 2 });
     expect(n.kargo.tanlovBor).toBe(false);
-    expect(n.kargo.izoh).toBe('kargo hamkori, kargo stavkasi kiritilmagan');
+    expect(n.kargo.izoh).toBe('kargo narxlari hali kiritilmagan — narxni kargo kompaniyangizdan soʻrang');
     // CNY kursi 5-qadam natijasidan — CBU ga faqat USD uchun chiqiladi.
     expect(n.kurs.cny).toEqual({ somPerYuan: 1762.49, valyuta: 'CNY', sana: '25.09.2026', manba: 'CBU' });
     expect(n.kurs.usd?.somPerYuan).toBe(12_650);
     expect(s.urllar).toEqual(['https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/']);
     expect(b.nomlar()).toEqual(['so_fakt_oqi']);
     expect(b.chaqiruvlar[0]!.arg.p_kalitlar).toContain('kargo.avia.usd_kg');
-    expect(n.izoh).toMatch(/Tizim buyurtma bermaydi/);
+    expect(n.izoh).toMatch(/Biz buyurtma bermaymiz/);
   });
 
   it('fakt oʻqilmadi (baza null) — "kiritilmagan" EMAS, "oʻqilmadi"', async () => {
     const b = soxtaBaza({ fakt: null });
     const n = await kod(b).buyurtma(holatYasa());
-    expect(n.kargo.izoh).toBe('fakt roʻyxati oʻqilmadi (baza javob bermadi)');
-    expect(qator(n, 100).kargoIzoh).toBe('fakt roʻyxati oʻqilmadi (baza javob bermadi)');
+    expect(n.kargo.izoh).toBe('maʼlumotlar oʻqilmadi (baza javob bermadi)');
+    expect(qator(n, 100).kargoIzoh).toBe('maʼlumotlar oʻqilmadi (baza javob bermadi)');
   });
 
   it('5-qadam kursi yoʻq va CBU yiqilsa — soʻm null, yuan turadi (nol emas)', async () => {
@@ -186,7 +193,7 @@ describe('buyurtma — qayta buyurtma (11-qadam «Ha, yana buyurtma», partiya �
     expect(n.qatorlar.map((q) => [q.productId, q.miqdor, q.holat])).toEqual([[100, 75, 'tayyor']]);
     expect(qator(n, 100)).toMatchObject({ narxYuan: 27, jamiYuan: 2025 });
     expect(n.jami).toMatchObject({ dona: 75, tayyor: 1, tanlanmagan: 0 });
-    expect(n.izoh).toMatch(/^2-partiya \(qayta buyurtma\)\. Varaqa:/);
+    expect(n.izoh).toMatch(/^2-partiya \(qayta buyurtma\)\. Varaqa 5-qadamda/);
   });
 
   it('oʻtkazilgan — oldingi partiya miqdori; hammasiga 0 — olchov_yoq, sababi aytiladi', async () => {
@@ -263,7 +270,7 @@ describe('ochiqIsh', () => {
     const c = b.chaqiruvlar.find((x) => x.nom === 'so_ochiq_ish_yoz')!;
     expect(c.arg).toMatchObject({ p_token: 'tok', p_tur: 'kutyapman', p_sabab: 'yuk kelishi', p_muddat: null,
       p_props: { shahar: 'Toshkent', kargo_yol: null, buyurtma_raqami: 'ORD-1' } });
-    expect(n.izoh).toMatch(/Eslatma mexanizmi hali yoʻq/);
+    expect(n.izoh).toMatch(/eslatma yubormaymiz/);
   });
 
   it('kargo yoʻli BITTA (tanlov soʻralmagan) — oʻsha yoʻl muddati; Toshkent sanasi (UTC 20:00 — ertasi kun)', async () => {

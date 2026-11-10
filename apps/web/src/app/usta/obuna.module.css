@@ -67,6 +67,28 @@
   min-width: 0;
 }
 
+/* Cheklov oʻchiq — toʻlov bloki yoʻq, kartalar butun kenglikda (ikkinchi koʻrik, 3-taklif). */
+.ichi.ichiYakka { grid-template-columns: minmax(0, 1fr); }
+
+.rejalarUstun {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.bepulXabar {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--ogohBg);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .reja {
   flex: 1;
   min-width: 0;
@@ -470,7 +492,7 @@
 
 @media (max-width: 760px) {
   .tepa { height: 64px; padding: 0 14px; }
-  .ichi { padding: 18px 14px; }
+  .ichi { padding: 18px 14px 84px; }
   /* Telefonda toʻlov bloki yana bitta ustun va kartalardan keyin (oddiy tartib). */
   .tolov { order: 0; grid-template-columns: minmax(0, 1fr); row-gap: 0; }
   .usulYorliq { margin-top: 22px; }

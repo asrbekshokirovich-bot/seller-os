@@ -53,6 +53,13 @@ describe('javobni oʻqish', () => {
     expect(aiYozuvniOqi('{"oldin":"Ha.","izoh":"","savol":"S?","batafsil":"  "}')).toEqual({ oldin: 'Ha.', izoh: '', savol: 'S?' });
   });
 
+  it('koʻrsatma (ikkinchi koʻrik): maqtov kam; bilmasa — raqamsiz umumiy maslahat, yoʻq narsa vaʼda qilinmaydi', () => {
+    expect(AI_YOZ_KORSATMA).toMatch(/Maqtovni kam ishlat/u);
+    expect(AI_YOZ_KORSATMA).toMatch(/raqamsiz umumiy maslahat ber/u);
+    expect(AI_YOZ_KORSATMA).toMatch(/Hali yoʻq imkoniyatni vaʼda qilma/u);
+    expect(AI_YOZ_KORSATMA).not.toMatch(/«bu haqda aniq maʼlumotim yoʻq» deb ayt/u);
+  });
+
   it('koʻrsatma (3-taklif): koʻrinadigan qism 1–2 jumla, uzuni — batafsil da', () => {
     expect(AI_YOZ_KORSATMA).toMatch(/HAR BIRI\n?\s*1–2 QISQA JUMLA/u);
     expect(AI_YOZ_KORSATMA).toMatch(/- batafsil: kerak boʻlsa — toʻliq tushuntirish/u);

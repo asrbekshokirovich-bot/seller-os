@@ -39,12 +39,15 @@ import {
   hisobniYoz,
   voronkaniOl,
   boshNamunasi,
+  kartochkaMosBer,
   kartochkaYozBer,
   turkumRasmlari,
   suhbatBoshdan,
   suhbatTahrir,
   suhbatBolagi,
   suhbatlarOqi,
+  ishlarimOqi,
+  ishHolatiniYoz,
   suhbatQaytar,
   suhbatOqi,
   suhbatTurn,
@@ -467,7 +470,11 @@ export function build(): FastifyInstance {
         studiya: { url: process.env.STUDIYA_URL ?? null, kalit: process.env.STUDIYA_KALIT ?? null },
         kurs: { qiymat: kurs },
         ...(claude
-          ? { kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(token), k) }
+          ? {
+            kartochkaLlm: (k: Parameters<typeof kartochkaYozBer>[1]) => kartochkaYozBer(llmSozlama(token), k),
+            // Ikki til bir xil maʼnodami (ikkinchi koʻrik, 4-taklif) — Edge bilan bir xil: tez model.
+            kartochkaMos: (m: Parameters<typeof kartochkaMosBer>[1]) => kartochkaMosBer({ ...llmSozlama(token), provayder: claudeTushun }, m),
+          }
           : {}) }),
     // AI suhbat (2026-10-19) — Edge bilan bir xil: faqat Claude bilan, `AI_SUHBAT=0` oʻchiradi.
     ...(claude !== null && process.env.AI_SUHBAT !== '0'
@@ -601,6 +608,22 @@ export function build(): FastifyInstance {
     const r = await suhbatlarOqi({ rpc }, token);
     if ('xato' in r) return javob.code(r.xato === 'baza javob bermadi' ? 503 : 401).send(r);
     return r;
+  });
+
+  // «Ishlarim» (0083, ikkinchi koʻrik K2): roʻyxat va «bajarildi» belgisi — Edge bilan bir xil.
+  app.get('/ishlarim', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    const r = await ishlarimOqi({ rpc }, token);
+    if ('xato' in r) return javob.code(r.xato === 'baza javob bermadi' ? 503 : 401).send(r);
+    return r;
+  });
+
+  app.post('/ishlarim', async (request, javob) => {
+    const token = request.headers['x-sessiya'];
+    if (typeof token !== 'string' || !token) return javob.code(401).send({ xato: 'sessiya tokeni yoʻq' });
+    const r = await ishHolatiniYoz({ rpc }, token, request.body ?? null);
+    return 'xato' in r ? javob.code(r.status).send({ xato: r.xato }) : r;
   });
 
   app.get('/suhbat-bolagi', async (request, javob) => {

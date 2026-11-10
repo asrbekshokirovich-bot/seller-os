@@ -5,13 +5,18 @@
  */
 
 import type { Metadata } from 'next';
+import { boshlangichHolat, keyingi } from '@selleros/shared';
 import Suhbat from '../Suhbat';
+import type { Keyingi } from '../suhbatYordam';
 
 export const metadata: Metadata = {
   title: 'ZumSavdo — Помощник',
   description: 'Выберите по цифрам, что продавать на Uzum.',
 };
 
+/** Yangi mijozga salom darhol (9-taklif) — oʻzbekchasi bilan bir xil savol, matni ruscha (`savol.ru`). */
+const BOSHLANGICH = JSON.parse(JSON.stringify(keyingi(boshlangichHolat()))) as Keyingi;
+
 export default function UstaRu() {
-  return <Suhbat til="ru" />;
+  return <Suhbat til="ru" boshlangich={BOSHLANGICH} />;
 }

@@ -1263,7 +1263,8 @@ function aiXabarlariniQoy(yangi: SuhbatXabari[], y: AiYozuv, ak: AiKirish, kodla
   if (izohBor) yangi[oxirgi] = { ...yangi[oxirgi]!, matn: y.izoh };
   if (y.oldin) {
     yangi.splice(ak.boshi, 0, ak.savolId !== null && ak.mijoz !== null
-      ? { rol: 'menejer', matn: y.oldin, savolId: ak.savolId, javob: { erkin: true, manba: 'ai', munosabat: true } }
+      // 👍/👎 — faqat mijoz savol bergan boʻlsa (ikkinchi koʻrik, 13-taklif): «30% marjani yozib qoʻydim» kabi tasdiq bahosiz.
+      ? { rol: 'menejer', matn: y.oldin, savolId: ak.savolId, ...(ak.savolBor ? { javob: { erkin: true, manba: 'ai', munosabat: true } } : {}) }
       : { rol: 'menejer', matn: y.oldin }, ...(izohBor ? [] : batafsil));
   } else if (!izohBor) {
     yangi.push(...batafsil);
@@ -1319,7 +1320,8 @@ async function aiErkinXabar(
     ...(y
       ? [
         // `javob` — erkin javob ekani va manbasi: sahifa unga 👍/👎 qoʻyadi.
-        ...(y.oldin ? [{ rol: 'menejer' as const, matn: y.oldin, savolId: k0.savol.id, javob: { erkin: true, manba: 'ai' } }] : []),
+        // 👍/👎 — faqat savolga javob ostida (13-taklif); oddiy gapga javob — bahosiz.
+        ...(y.oldin ? [{ rol: 'menejer' as const, matn: y.oldin, savolId: k0.savol.id, ...(t.savolBor ? { javob: { erkin: true, manba: 'ai' } } : {}) }] : []),
         // «Batafsil» — javobdan keyin, yopiq (2026-10-27).
         ...(y.batafsil ? [batafsilXabari(y.batafsil)] : []),
         { rol: 'menejer' as const, matn: y.savol || (keyingiSavol !== k1.savol ? keyingiSavol.matn : k0.savol.matn), savolId: k0.savol.id },

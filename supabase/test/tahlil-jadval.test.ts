@@ -1,34 +1,60 @@
 /**
- * 0079 — AI tahlilchining tayyor jadvallari: SQL HAQIQIY Postgres da (PGlite).
+ * 0079 + 0082 — AI tahlilchining tayyor jadvallari: SQL HAQIQIY Postgres da (PGlite).
  *
  * NEGA BU TEST BOR. AI aytadigan har raqam shu jadvallardan keladi. Bu yerda kichik,
  * qoʻlda hisoblab boʻladigan bozor yasaladi va tekshiriladi: tovar sotuvi formula bilan
  * (0078) — kartochka bilan bir xil; ota turkum = barglari yigʻindisi (doʻkon ikki bargda
  * boʻlsa ham BIR marta sanaladi); «eng yaxshi 20%» ulushi; «shu paytgacha» — oxirgi
- * TOʻLIQ perepis oʻtishidan; yangilash faqat manba oʻzgarganda va har safar jurnalga;
- * tashqaridan (anon) oʻqib boʻlmaydi.
+ * TOʻLIQ perepis oʻtishidan; tashqaridan (anon) oʻqib boʻlmaydi.
+ *
+ * 0082 (05.11 hodisasidan keyin): qurilish KICHIK QADAMLARDA, nofaol nusxaga; tayyor
+ * boʻlmaguncha AI eski (toʻliq) nusxani koʻradi; faqat kechasi; xato yoziladi va
+ * 5 tasidan keyin qurilish toʻxtaydi.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { tahlilBazasi } from './tahlil-sinov';
+import { tahlilBazasi, tahlilQur, type Qadam } from './tahlil-sinov';
 
-describe('0079 — tahlil jadvallari', () => {
+const M82 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0082_zumsavdo_tahlil_bosqichli.sql'), 'utf8');
+
+describe('0079/0082 — tahlil jadvallari', () => {
   let db: PGlite;
+  let birinchi: Qadam[];
   const bitta = async <T>(sql: string, p: unknown[] = []) => (await db.query<T>(sql, p)).rows[0]!;
   const hammasi = async <T>(sql: string, p: unknown[] = []) => (await db.query<T>(sql, p)).rows;
-  const yangila = async (m = false) => (await bitta<{ j: { yangilandi: string[] } }>('select zumsavdo.tahlil_yangila($1) as j', [m])).j;
+  const qadam = async (m = true) => (await bitta<{ j: Qadam }>('select zumsavdo.tahlil_qadam($1) as j', [m])).j;
+  const holat = async () =>
+    bitta<{ faol: string | null; quriladi: string | null; bosqich: string | null; xato_soni: number; oxirgi_xato: string | null }>(
+      'select faol, quriladi, bosqich, xato_soni, oxirgi_xato from zumsavdo.tahlil_qurilish where id = 1',
+    );
+  const korinish = async (v: string) =>
+    (await bitta<{ d: string }>(`select pg_get_viewdef('zumsavdo.${v}'::regclass) as d`)).d;
 
   beforeAll(async () => {
     db = await tahlilBazasi();
+    birinchi = await tahlilQur(db);
   }, 180_000);
 
-  it('birinchi yangilash: hamma jadval, jurnalga yoziladi; ikkinchisi — hech narsa', async () => {
-    const j = await yangila();
-    expect(j.yangilandi).toEqual(['tahlil_tovar', 'tahlil_dokon_turkum', 'tahlil_census_dt', 'tahlil_dokon', 'tahlil_turkum']);
-    expect((await yangila()).yangilandi).toEqual([]);
-    const jurnal = await hammasi<{ census_pass: number; sana: string }>('select census_pass, sana::text from zumsavdo.tahlil_jurnal');
-    expect(jurnal).toEqual([{ census_pass: 2, sana: '2026-10-27' }]);
+  it('birinchi qurilish: hamma bosqich tartib bilan, «b» nusxaga, jurnalga yoziladi; ikkinchisi — hech narsa', async () => {
+    const bosqichlar = [...new Set(birinchi.map((q) => q.bosqich).filter(Boolean))];
+    expect(bosqichlar).toEqual(['tovar_indeks', 'census', 'census_yig', 'dokon_turkum', 'dokon', 'turkum', 'yakun', 'tayyor']);
+    // Birinchi qurilishda eski nusxa yoʻq — tozalash qadami ham yoʻq.
+    expect(birinchi.some((q) => q.tozalandi)).toBe(false);
+    expect(birinchi[0]).toMatchObject({ boshlandi: 'b', sana: '2026-10-27', census_pass: 2 });
+    expect(await holat()).toMatchObject({ faol: 'b', quriladi: null, bosqich: null, xato_soni: 0 });
+    expect(await korinish('tahlil_tovar')).toContain('tahlil_tovar_b');
+    expect(await qadam()).toMatchObject({ yangi_yoq: true });
+    const jurnal = await hammasi<{ census_pass: number; sana: string; qatorlar: Record<string, number | string> }>(
+      'select census_pass, sana::text, qatorlar from zumsavdo.tahlil_jurnal',
+    );
+    expect(jurnal).toHaveLength(1);
+    expect(jurnal[0]).toMatchObject({ census_pass: 2, sana: '2026-10-27' });
+    expect(jurnal[0]!.qatorlar).toMatchObject({ tovar: 6, daraxtsiz_tovar: 0, dokon_turkum: 6, dokon: 5, turkum: 6, nusxa: 'b' });
+    const h = await bitta<{ j: { sana: string; census_pass: number } }>('select zumsavdo.tahlil_holati() as j');
+    expect(h.j).toMatchObject({ sana: '2026-10-27', census_pass: 2 });
   });
 
   it('tovar: oyiga formula bilan, tushum = oyiga × narx, reyting oxirgi TOʻLIQ oʻtishdan', async () => {
@@ -80,17 +106,98 @@ describe('0079 — tahlil jadvallari', () => {
     expect(r.y).toBe(26);
   });
 
-  it('manba oʻzgarsa — qayta yangilanadi (yangi xulosa kuni → tovar jadvallari)', async () => {
+  it('yangi kun: «a» nusxaga quriladi, tayyor boʻlmaguncha AI eski toʻliq nusxani koʻradi', async () => {
     await db.exec(`insert into zumsavdo.xulosa_jurnal (sana) values ('2026-10-28')`);
-    const j = await yangila();
-    expect(j.yangilandi).toEqual(['tahlil_tovar', 'tahlil_dokon_turkum', 'tahlil_dokon', 'tahlil_turkum']);
+    // Yangi kunda Katta doʻkonning shimi ikki baravar sotildi.
+    await db.exec(`update zumsavdo.tovar_30kun set sana = '2026-10-28', sotildi = '{${Array(30).fill(8).join(',')}}' where product_id = 10`);
+    expect(await qadam()).toMatchObject({ boshlandi: 'a', sana: '2026-10-28' });
+    // Bir necha qadam — qurilish yarmida.
+    for (let i = 0; i < 3; i++) await qadam();
+    expect(await holat()).toMatchObject({ faol: 'b', quriladi: 'a' });
+    const oldin = await bitta<{ oyiga: number; n: number }>(
+      'select (select oyiga from zumsavdo.tahlil_tovar where product_id = 10) as oyiga, (select count(*)::int from zumsavdo.tahlil_turkum) as n',
+    );
+    expect(oldin).toEqual({ oyiga: 120, n: 6 });
+
+    const qolgan = await tahlilQur(db);
+    // Perepis oʻtishi oʻzgarmagan — «shu paytgacha» qayta hisoblanmaydi, faol nusxadan olinadi.
+    const bosqichlar = qolgan.map((q) => q.bosqich);
+    expect(bosqichlar).not.toContain('census');
+    expect(bosqichlar).toContain('dokon_turkum');
+    expect(await holat()).toMatchObject({ faol: 'a', quriladi: null });
+    expect(await korinish('tahlil_dokon')).toContain('tahlil_dokon_a');
+    // Almashgandan keyingi qadamda eski nusxa (b) boʻshatildi — diskda bitta nusxa.
+    expect(qolgan.some((q) => q.tozalandi === 'b')).toBe(true);
+    const eski = await bitta<{ n: number }>(
+      `select (select count(*) from zumsavdo.tahlil_tovar_b) + (select count(*) from zumsavdo.tahlil_turkum_b)
+            + (select count(*) from zumsavdo.tahlil_dokon_b) + (select count(*) from zumsavdo.tahlil_census_dt_b) as n`,
+    );
+    expect(Number(eski.n)).toBe(0);
+    const keyin = await bitta<{ oyiga: number; census: number }>(
+      `select (select oyiga from zumsavdo.tahlil_tovar where product_id = 10) as oyiga,
+              (select census_sotuvchilar::int from zumsavdo.tahlil_turkum where turkum = 100) as census`,
+    );
+    expect(keyin).toEqual({ oyiga: 240, census: 5 });
+    expect((await bitta<{ n: number }>('select count(*)::int as n from zumsavdo.tahlil_jurnal')).n).toBe(2);
   });
 
-  it('tashqaridan oʻqib boʻlmaydi', async () => {
+  it('qurilish yarmida yangi kun kelsa — boshidan (aralash nusxa boʻlmaydi)', async () => {
+    await db.exec(`insert into zumsavdo.xulosa_jurnal (sana) values ('2026-10-29')`);
+    expect(await qadam()).toMatchObject({ boshlandi: 'b', sana: '2026-10-29' });
+    await db.exec(`insert into zumsavdo.xulosa_jurnal (sana) values ('2026-10-30')`);
+    expect(await qadam()).toMatchObject({ qayta: 'yangi tovar_30kun kuni', sana: '2026-10-30' });
+    await tahlilQur(db);
+    const j = await bitta<{ sana: string }>('select sana::text from zumsavdo.tahlil_jurnal order by id desc limit 1');
+    expect(j.sana).toBe('2026-10-30');
+    expect(await holat()).toMatchObject({ faol: 'b', quriladi: null });
+  });
+
+  it('xato: yoziladi, faol nusxa buzilmaydi; 5 ta xatodan keyin cron qadami toʻxtaydi', async () => {
+    await db.exec(`update zumsavdo.tahlil_qurilish set quriladi = 'a', bosqich = 'nomalum' where id = 1`);
+    for (let i = 1; i <= 5; i++) {
+      expect(await qadam()).toMatchObject({ bosqich: 'nomalum', davom: false });
+      expect((await holat()).xato_soni).toBe(i);
+    }
+    expect((await holat()).oxirgi_xato).toContain('nomaʼlum bosqich');
+    // Faol nusxa (b) oʻqilishda davom etadi.
+    expect((await bitta<{ n: number }>('select count(*)::int as n from zumsavdo.tahlil_tovar')).n).toBe(6);
+    // Cron qadami (majburiy emas): kechasi — toʻxtagan, kunduzi — kutadi; ikkala holatda ham ish qilmaydi.
+    const q = await qadam(false);
+    expect(Boolean(q.toxtadi) || Boolean(q.kutish)).toBe(true);
+    expect((await holat()).xato_soni).toBe(5);
+    await db.exec(`update zumsavdo.tahlil_qurilish set quriladi = null, bosqich = null, xato_soni = 0, oxirgi_xato = null where id = 1`);
+  });
+
+  it('tun oynasi: UTC 20:00–02:59 (Toshkent 01:00–07:59)', async () => {
+    const r = await hammasi<{ v: string; t: boolean }>(
+      `select v, zumsavdo.tahlil_tunmi(v::timestamptz) as t
+         from unnest(array['2026-11-05 19:59:59Z', '2026-11-05 20:00:00Z', '2026-11-05 23:30:00Z', '2026-11-06 02:59:59Z',
+                           '2026-11-06 03:00:00Z', '2026-11-05 10:50:00Z']) v`,
+    );
+    expect(Object.fromEntries(r.map((x) => [x.v, x.t]))).toEqual({
+      '2026-11-05 19:59:59Z': false, '2026-11-05 20:00:00Z': true, '2026-11-05 23:30:00Z': true,
+      '2026-11-06 02:59:59Z': true, '2026-11-06 03:00:00Z': false, '2026-11-05 10:50:00Z': false,
+    });
+  });
+
+  it('0082 ni qayta qoʻllash xavfsiz: faol nusxa oʻzgarmaydi, maʼlumot joyida', async () => {
+    await db.exec(M82);
+    expect(await korinish('tahlil_tovar')).toContain('tahlil_tovar_b');
+    expect((await bitta<{ n: number }>('select count(*)::int as n from zumsavdo.tahlil_tovar')).n).toBe(6);
+    expect(await qadam()).toMatchObject({ yangi_yoq: true });
+  });
+
+  it('tashqaridan oʻqib ham, qurib ham boʻlmaydi', async () => {
     const r = await hammasi<{ v: string; e: boolean }>(
       `select v, has_table_privilege('anon', 'zumsavdo.' || v, 'select') or has_table_privilege('authenticated', 'zumsavdo.' || v, 'select') as e
-         from unnest(array['tahlil_tovar', 'tahlil_census_dt', 'tahlil_dokon_turkum', 'tahlil_dokon', 'tahlil_turkum', 'tahlil_jurnal']) v`,
+         from unnest(array['tahlil_tovar', 'tahlil_census_dt', 'tahlil_dokon_turkum', 'tahlil_dokon', 'tahlil_turkum', 'tahlil_jurnal',
+                           'tahlil_qurilish', 'tahlil_tovar_a', 'tahlil_tovar_b', 'tahlil_census_qism_a', 'tahlil_turkum_b']) v`,
     );
     expect(r.filter((x) => x.e)).toEqual([]);
+    const f = await hammasi<{ f: string; e: boolean }>(
+      `select f, has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute') as e
+         from unnest(array['zumsavdo.tahlil_qadam(boolean)', 'zumsavdo.tahlil_nusxa_tozala(text)', 'zumsavdo.tahlil_filtrla(jsonb)']) f`,
+    );
+    expect(f.filter((x) => x.e)).toEqual([]);
   });
 });

@@ -76,12 +76,37 @@ describe('kartochkaManbalari — holatdan', () => {
   });
 });
 
-function kodLlm(llm: XitoyBogliqligi['kartochkaLlm'] | null) {
+function kodLlm(llm: XitoyBogliqligi['kartochkaLlm'] | null, mos?: XitoyBogliqligi['kartochkaMos']) {
   const rpc = async <T>(): Promise<T | null> => null;
   return suhbatKodHarakatlari(rpc, () => ({ bayroqlar: [], baholanmadi: [] }), () => 10, {
-    kalit: null, fetch, token: 't', tarifCheklovi: false, ...(llm ? { kartochkaLlm: llm } : {}),
+    kalit: null, fetch, token: 't', tarifCheklovi: false, ...(llm ? { kartochkaLlm: llm } : {}), ...(mos ? { kartochkaMos: mos } : {}),
   });
 }
+
+describe('kartochka matni — oʻzbekcha va ruscha bir xil maʼnoda (ikkinchi koʻrik, 4-taklif)', () => {
+  const BIRTA = { ...H, natijalar: { ...H.natijalar, buyurtma: { qatorlar: [{ productId: 100, title: 'Gel ruchka 0,5 mm, 12 dona, koʻk', holat: 'tayyor' }] } } };
+
+  it('maʼno farq qilsa — sababi bilan qayta yoziladi; ikkinchisi mos — qabul qilinadi', async () => {
+    const tuzatlar: Array<string | null | undefined> = [];
+    let tekshiruv = 0;
+    const n = await kodLlm(async (k) => { tuzatlar.push(k.tuzat); return YAXSHI; },
+      async () => (++tekshiruv === 1 ? { mos: false, farq: 'Nomda: «qalin tagliksiz» ↔ «на толстой подошве»' } : { mos: true, farq: '' }))
+      .kartochkaMatni(BIRTA) as KartochkaMatniNatijasi;
+    expect(n.qatorlar[0]!.matn).toEqual(YAXSHI);
+    expect(tekshiruv).toBe(2);
+    expect(tuzatlar[1]).toMatch(/oʻzbekcha va ruscha matn maʼnosi farq qiladi: Nomda: «qalin tagliksiz»/);
+  });
+
+  it('baribir farq qilsa — matn yoʻq, sababi aytiladi; tekshiruv ishlamasa (null) — matn oʻtadi', async () => {
+    const yomon = await kodLlm(async () => YAXSHI, async () => ({ mos: false, farq: 'rang farqi' })).kartochkaMatni(BIRTA) as KartochkaMatniNatijasi;
+    expect(yomon.qatorlar[0]!.matn).toBeNull();
+    expect(yomon.qatorlar[0]!.muammolar.join(' ')).toMatch(/maʼnosi farq qiladi: rang farqi/);
+    const ishlamadi = await kodLlm(async () => YAXSHI, async () => null).kartochkaMatni(BIRTA) as KartochkaMatniNatijasi;
+    expect(ishlamadi.qatorlar[0]!.matn).toEqual(YAXSHI);
+    const yiqildi = await kodLlm(async () => YAXSHI, async () => { throw new Error('tarmoq'); }).kartochkaMatni(BIRTA) as KartochkaMatniNatijasi;
+    expect(yiqildi.qatorlar[0]!.matn).toEqual(YAXSHI);
+  });
+});
 
 describe('kod kartochka_matni — LLM + qoida tekshiruvi', () => {
   it('birinchi matn qoidadan oʻtmasa — sababi bilan qayta soʻraladi; toʻgʻrisi qabul qilinadi', async () => {

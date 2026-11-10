@@ -43,6 +43,10 @@ export const UZUM_BILIMI: readonly string[] = [
   '[Ishlash modellari] FBS’da cut-off vaqtini o‘zingiz belgilaysiz. Kabinetda faqat bitta ombor yaratish mumkin va u haftasiga kamida 5 kun ishlashi kerak. (Manba: Uzum qoʻllanmasi 8.2)',
   '[Ishlash modellari] DBS’da yetkazish muddatini har hudud uchun 1 kundan 5 kungacha belgilaysiz. Tovaringiz faqat siz tanlagan hududlardagi xaridorlarga ko‘rinadi. (Manba: Uzum qoʻllanmasi 9.2)',
   '[Komissiya] Komissiya va logistika yig‘imi faqat sotilgan tovar tushumidan ushlanadi. Ular birgalikda quyidagilarni qoplaydi: buyurtmani yig‘ish, ekvayring va kassa, xaridor shahrigacha yetkazish, BBP’da berish yoki kuryer, qaytarishda tovarni omborga qaytarib qayta sotuvga chiqarish. (Manba: Uzum qoʻllanmasi 3.2)',
+  // Raqamlar `selleros.uzum_komissiya` dan (4 705 qator, 2026-11-06 da hisoblandi; ikkinchi koʻrik, 19-taklif).
+  '[Komissiya] Uzumning rasmiy jadvali boʻyicha (FBO, chegirmadan keyin, 06.10.2026 holati) komissiya turkumga qarab 1 % dan '
+    + '35 % gacha; turkumlarning koʻpida 13–25 %, oʻrtacha 20 %. Aniq foizni ZumSavdo 4-qadamda (Tannarx) tanlangan turkum boʻyicha '
+    + 'shu jadvaldan oladi. (Manba: Uzum tariflar jadvali, «Комиссия на продажу» varagʻi.)',
   '[Komissiya] Komissiya miqdori tovar toifasiga bog‘liq va avtomatik hisoblanadi. ZumSavdo 4-qadamda tanlangan turkumning komissiyasini Uzumning rasmiy jadvalidan oladi. (Manba: Uzum qoʻllanmasi 3.2)',
   '[Komissiya] Rasmiy komissiya jadvali — Uzum tariflar jadvalining “Savdo komissiyasi” varag‘i: har toifa uchun FBO, FBS va DBS bo‘yicha “chegirmagacha”, “chegirma miqdori” va “chegirmadan keyingi” komissiya; “-%” bu toifa o‘sha modelda sotilmaydi degani. (Manba: Uzum tariflar jadvali)',
   '[Komissiya] Jadvalning “Kalkulyator” varag‘ida narx, o‘lcham, aylanma va modelni kiritsangiz, komissiya, logistika va saqlash haqi hisoblanadi. Jadvaldagi namuna: 30 000 so‘mlik tovar, 17,00% → 5 100 so‘m komissiya. (Manba: Uzum tariflar jadvali; Uzum qoʻllanmasi 3.2, 3.2.1)',
@@ -95,7 +99,7 @@ export const UZUM_BILIMI: readonly string[] = [
   '[Tovarni Uzum omboriga topshirish] Tasdiqlangan taymslotsiz yoki belgilangan vaqtdan oldin/keyin kelgan yetkazma qabul qilinmaydi. Taymslotni 3 martadan ko‘p o‘zgartirib bo‘lmaydi. (Manba: Uzum qoʻllanmasi 6.3, 6.4)',
   '[Tovarni Uzum omboriga topshirish] Qadoq: har bir dona alohida, butun, yopiq qadoqda bo‘lsin; shtrix/QR-kod qadoqni ochmasdan o‘qilsin. Noto‘g‘ri qadoq tufayli shikastni Uzum qoplamaydi. (Manba: Uzum qoʻllanmasi 6.1)',
   '[Tovarni Uzum omboriga topshirish] 1 m³ ga sig‘adigan tovarlarning umumiy chakana narxi kamida 5 000 000 so‘m bo‘lishi kerak (yirik maishiy texnikadan tashqari). Shu sababli arzon hajmli tovarlar (hajmli yumshoq o‘yinchoq, arzon suyuqliklar, hajmli yostiq va b.) qabul qilinmaydi. (Manba: Uzum qoʻllanmasi 2.2)',
-  '[Tovarni Uzum omboriga topshirish] Viloyatdan yuborish: shahringizda Uzum BTP bo‘lsa, pullik Uzum logistikasi (https://logistics.uzum.uz) bilan omborga yuborish mumkin; qutida 20 kg gacha. (Manba: Uzum qoʻllanmasi 14)',
+  '[Tovarni Uzum omboriga topshirish] Viloyatdan yuborish: shahringizda Uzum topshirish punkti (BTP) bo‘lsa, pullik Uzum logistikasi (https://logistics.uzum.uz) bilan omborga yuborish mumkin; qutida 20 kg gacha. (Manba: Uzum qoʻllanmasi 14)',
   '[Tovarni Uzum omboriga topshirish] Omborga yetkazmada har bir muammoli dona uchun 2 500 so‘m ushlanadi: ortiqcha, kamomad, kodi yo‘q yoki shikastlangan, brak, markirovka xatosi. (Manba: Uzum qoʻllanmasi 6.4; Uzum ofertasi 4.16)',
   '[Reklama va targ‘ibot vositalari] Kabinetning “Marketing” bo‘limidagi vositalar: Aksiyalar (“Taymer”), Promokodlar, Aksiyalar taqvimi, Bust TOP, Buyurtmalarni ko‘paytirish va UTM reklama havolalari. (Manba: Uzum qoʻllanmasi 11)',
   '[Reklama va targ‘ibot vositalari] Promokod chegirmasini siz to‘laysiz, Uzum komissiyasi esa tovar to‘liq narxda sotilgandek olinadi. (Manba: Uzum qoʻllanmasi 11.2)',
