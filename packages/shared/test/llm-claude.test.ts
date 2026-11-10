@@ -8,7 +8,9 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLAUDE_MODELI, CLAUDE_TUSHUN_MODELI, claudeNarxi, claudeProvayderi, javobMatni, kalitniAjrat, sirsiz } from '../src/llm-claude';
+import {
+  CLAUDE_MODELI, CLAUDE_TUSHUN_MODELI, claudeNarxi, claudeProvayderi, javobMatni, kalitniAjrat, keshliXabarlar, sirsiz,
+} from '../src/llm-claude';
 import {
   aiSarfYozuvchi, aiTushunBer, aiYozBer, kartochkaYozBer, KARTOCHKA_KORSATMA,
   sahifaJavobBer, type LlmSarfi,
@@ -312,6 +314,31 @@ describe('provayder chaqiruvi (llm.ts)', () => {
  * (kalit bilan) logga tushdi. Endi: kalit matndan ajratiladi, logga ketadigan har matn
  * `sirsiz` dan oʻtadi.
  */
+describe('tahlil suhbati keshi (2026-11-10)', () => {
+  it('oxirgi xabarning oxirgi blokida cache_control; qolganlari va asl xabarlar oʻzgarmaydi', () => {
+    const asl = [
+      { role: 'user' as const, content: 'KIRISH: savol va ekran' },
+      { role: 'assistant' as const, content: [{ type: 'tool_use', id: 't1', name: 'bozor_kesimi', input: {} }] },
+      { role: 'user' as const, content: [{ type: 'tool_result', tool_use_id: 't1', content: '{}' }, { type: 'text', text: 'ASBOBLAR TUGADI' }] },
+    ];
+    const nusxa = JSON.stringify(asl);
+    const k = keshliXabarlar(asl);
+    expect(k).toHaveLength(3);
+    expect(k[0]).toEqual(asl[0]);
+    expect(k[1]).toEqual(asl[1]);
+    const oxirgi = k[2]!.content as Array<Record<string, unknown>>;
+    expect(oxirgi[0]).toEqual({ type: 'tool_result', tool_use_id: 't1', content: '{}' });
+    expect(oxirgi[1]).toEqual({ type: 'text', text: 'ASBOBLAR TUGADI', cache_control: { type: 'ephemeral' } });
+    expect(JSON.stringify(asl)).toBe(nusxa);
+  });
+
+  it('matnli oxirgi xabar — bitta text blokiga aylanadi (API uchun bir xil), kesh belgisi bilan', () => {
+    const k = keshliXabarlar([{ role: 'user', content: 'Salom' }]);
+    expect(k).toEqual([{ role: 'user', content: [{ type: 'text', text: 'Salom', cache_control: { type: 'ephemeral' } }] }]);
+    expect(keshliXabarlar([])).toEqual([]);
+  });
+});
+
 describe('kalit va log xavfsizligi', () => {
   const KALIT = 'sk-ant-api03-SINOV_kalit-123';
   const CURL = `curl https://api.anthropic.com/v1/messages \\n  --header "x-api-key: ${KALIT}" \\n  --header "anthropic-version: 2023-06-01"`;

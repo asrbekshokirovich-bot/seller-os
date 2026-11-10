@@ -248,13 +248,33 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
  *
  * - Bloklar (fikrlash bloklari ham) OʻZGARISHSIZ qaytariladi: keyingi chaqiruvda xuddi shunday
  *   yuboriladi (Sonnet 5.5 «preserved thinking»: tarix faqat qoʻshiladi, oʻzgartirilmaydi).
- * - Kesh: asboblar va koʻrsatma har chaqiruvda bir xil — oxirgi asbob va koʻrsatmada `cache_control`.
+ * - Kesh: asboblar va koʻrsatma har chaqiruvda bir xil — oxirgi asbob va koʻrsatmada `cache_control`; suhbat —
+ *   oxirgi xabarda (`keshliXabarlar`): keyingi aylanish oldingi hamma narsani keshdan oʻqiydi.
  * - `asbobsiz` — `tool_choice: none` (vaqt yoki aylanish tugadi: endi javob yoz). Majburiy asbob
  *   (`any`/`tool`) Sonnet 5.5 da 400 — ishlatilmaydi.
  * - Rad etilsa — `fallbacks: 'default'` (yuqoridagi provayderdek); oqimda `fallback` bloki kelsa
  *   qoralama boshidan.
  * - Yiqilish — `null`; log `sirsiz`.
  */
+/**
+ * Tahlil suhbati — oxirgi xabarning oxirgi blokida `cache_control` (2026-11-10). Har aylanishda butun oldingi suhbat
+ * (kirish matni ~8 ming token: ekran, bilim, tarix; asbob natijalari) keshsiz qayta yuborilardi — jonli sinovda bitta
+ * javob ~$0.15 (5–6 chaqiruv). Endi keyingi chaqiruv oldingisini keshdan oʻqiydi. Asl xabarlar oʻzgarmaydi;
+ * `cache_control` belgisi «preserved thinking» tekshiruviga taʼsir qilmaydi (tahrir hisoblanmaydi). Kesh nuqtalari:
+ * oxirgi asbob, tizim, oxirgi xabar — 3 ta (chegara 4).
+ */
+export function keshliXabarlar(xabarlar: TahlilChaqiruvi['xabarlar']): Array<Record<string, unknown>> {
+  const n = xabarlar.length;
+  if (!n) return [];
+  const oxirgi = xabarlar[n - 1]!;
+  const bloklar: Array<Record<string, unknown>> = typeof oxirgi.content === 'string'
+    ? [{ type: 'text', text: oxirgi.content }]
+    : oxirgi.content.map((b) => ({ ...b }));
+  if (!bloklar.length) return xabarlar.map((x) => ({ ...x }));
+  bloklar[bloklar.length - 1] = { ...bloklar[bloklar.length - 1], cache_control: { type: 'ephemeral' } };
+  return [...xabarlar.slice(0, -1).map((x) => ({ ...x })), { ...oxirgi, content: bloklar }];
+}
+
 export function claudeTahlilProvayderi(s: ClaudeSozlama): TahlilProvayder | null {
   const kalit = kalitniAjrat(s.kalit);
   if (!kalit) return null;
@@ -278,7 +298,7 @@ export function claudeTahlilProvayderi(s: ClaudeSozlama): TahlilProvayder | null
         ...(i === oxirgi ? { cache_control: { type: 'ephemeral' } } : {}),
       })),
       ...(c.asbobsiz ? { tool_choice: { type: 'none' } } : {}),
-      messages: c.xabarlar,
+      messages: keshliXabarlar(c.xabarlar),
       // `low` (10.11): jonli sinovda bitta savol 25–38 s — koʻp vaqt fikrlash va uzun javobga ketardi; javob
       // asosan asbob raqamlarini tushuntirish, chuqur fikrlash shart emas.
       output_config: { effort: c.kuch ?? 'low', format: { type: 'json_schema', schema: c.json } },
