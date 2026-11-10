@@ -15,6 +15,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 const M77 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0077_zumsavdo_turkum_daraxti.sql'), 'utf8');
 const M84 = readFileSync(join(import.meta.dirname, '..', 'migrations', '0084_zumsavdo_tahlil_tuzatish.sql'), 'utf8');
+// 0084 dan faqat daraxt yozuvchisi (qolgani tahlil jadvallariga bogʻliq — `tahlil-jadval.test.ts`).
+const OXIRI = 'grant execute on function public.so_turkum_daraxti_yoz(jsonb) to service_role;';
+const M84_DARAXT = M84.slice(M84.indexOf('create or replace function public.so_turkum_daraxti_yoz'), M84.indexOf(OXIRI) + OXIRI.length);
 
 const SXEMA = `
   create role anon; create role authenticated; create role service_role;
@@ -52,7 +55,7 @@ describe('0077 — turkum daraxti', () => {
     await db.exec(SXEMA);
     await db.exec(M77);
     await db.exec(M77); // qayta qoʻllash xavfsiz
-    await db.exec(M84); // 0084: faqat oʻzgargan qator yoziladi
+    await db.exec(M84_DARAXT); // 0084: faqat oʻzgargan qator yoziladi
   }, 120_000);
 
   it('toʻgʻri daraxt: yoʻl, yoʻl nomi, chuqurlik, barg', async () => {
