@@ -262,6 +262,7 @@ sekin; tayyor jadval bilan < 1 s. Hech biri yangi oʻlchov emas — hammasi quyi
 | `zumsavdo.tahlil_turkum` (koʻrinish → `_a`/`_b`) | daraxtning HAR tuguni (ota ham — barglar yigʻindisi, doʻkon bir marta): sotuvchilar, sotgan, tovar, dona, tushum, eng yaxshi 20% / 10 doʻkon tushumi, narx medianasi, trend, shu paytgacha sotuvchilar | yuqoridagilar + daraxt |
 | `zumsavdo.tahlil_jurnal` | har tugagan qurilish: qaysi kun, qaysi perepis oʻtishi (va sanasi), nechta qator, daraxtsiz tovar soni, qaysi nusxa, nechta qadam va daqiqa | `tahlil_qadam()` (yakun) |
 | `zumsavdo.tahlil_qurilish` (0082) | bitta qator: faol nusxa (`a`/`b`), qurilayotgan nusxa, bosqich, kursor, qadamlar, oxirgi xato | `tahlil_qadam()` |
+| `selleros.tahlil_limit` (0085) | foydalanuvchi × kun: nechta tahlil savoli (kunlik limit; umumiy shift — kun yigʻindisi) | `so_tahlil_limit` (atomik band qilish, faqat `service_role`) |
 
 Yangilash — `zumsavdo.tahlil_qadam()` (0082): har chaqiruv BITTA kichik qadam oʻz
 tranzaksiyasida (25 000 tovar / 100 000 perepis raqami / doʻkon×turkum / doʻkon / bir guruh

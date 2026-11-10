@@ -98,6 +98,7 @@ import {
   kursniOl,
   tahlilQil,
   tahlilRejimi,
+  tahlilLimitBilan,
   tahlilYoqilganmi,
   type TahlilOqimi,
   type TahlilSavoli,
@@ -487,8 +488,9 @@ export function build(): FastifyInstance {
       : {}),
     ...(claudeTahlil !== null && process.env.AI_SUHBAT !== '0'
       ? {
-        tahlil: (s: TahlilSavoli, ms: number, o?: TahlilOqimi) =>
-          tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama(token).sarf, ...(o ?? {}) }, s, ms),
+        // Kunlik limit (0085) — Edge bilan bir xil.
+        tahlil: (s: TahlilSavoli, ms: number, o?: TahlilOqimi) => tahlilLimitBilan(rpc, token,
+          () => tahlilQil({ provayder: claudeTahlil, rpc, sarf: llmSozlama(token).sarf, ...(o ?? {}) }, s, ms)),
         tahlilRuxsat: (h: YolHolati) => tahlilYoqilganmi(tahlilRejim, h.javoblar['telefon']),
       }
       : {}),
@@ -579,9 +581,10 @@ export function build(): FastifyInstance {
         ? (k: SahifaSorovi, ms: number, qism?: (m: string) => void) => sahifaJavobBer({ ...llmSozlama(typeof token === 'string' && token ? token : null), vaqtMs: ms }, k, qism)
         : null,
       tahlil: tahlilBu
-        ? (s: TahlilSavoli, ms: number, oq?: TahlilOqimi) => tahlilQil({
-          provayder: tahlilBu, rpc, sarf: llmSozlama(typeof token === 'string' && token ? token : null).sarf, ...(oq ?? {}),
-        }, s, ms)
+        ? (s: TahlilSavoli, ms: number, oq?: TahlilOqimi) => tahlilLimitBilan(rpc, typeof token === 'string' ? token : null,
+          () => tahlilQil({
+            provayder: tahlilBu, rpc, sarf: llmSozlama(typeof token === 'string' && token ? token : null).sarf, ...(oq ?? {}),
+          }, s, ms))
         : null,
       tarifCheklovi: tarifCheklovi(),
     };

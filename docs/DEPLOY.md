@@ -52,7 +52,7 @@ Boshqa ixtiyoriy sozlama:
 | Sir | Nima qiladi |
 |---|---|
 | `AI_SUHBAT=0` | **AI suhbatni** oʻchiradi (2026-10-19, `ai-suhbat.ts`). Standart — Claude kaliti boʻlsa yoqilgan: mijoz yozganini AI tushunadi (bir gapdagi bir nechta javob ham), har xabarni AI yozadi, natijalarni tushuntiradi; 12 qadam va raqamlar — koddan. Oʻchsa — kod jumlalari va bazadagi javoblar (AI siz). `/health` → `live.aiSuhbat`. |
-| `AI_TAHLIL` | **AI tahlilchi** (2026-11-05, `tahlilchi.ts`, 0077–0081): Uzum bozori savoliga bazadan, asboblar bilan (`so_tahlil_*`). `off` (yoki `0`) — oʻchiq; boʻsh yoki `sinov` — faqat sinov raqamlari (+998 90 000 …); `on` — hammaga. Model — `CLAUDE_TAHLIL_MODEL`, boʻlmasa `CLAUDE_MODEL`. `/health` → `live.aiTahlil`. Yoqishdan oldin: 0077–0081 qoʻllangan, daraxt yuklangan (`turkum.yml`), `zumsavdo.tahlil_jurnal` da yozuv bor. |
+| `AI_TAHLIL` | **AI tahlilchi** (2026-11-05, `tahlilchi.ts`, 0077–0081): Uzum bozori savoliga bazadan, asboblar bilan (`so_tahlil_*`). `off` (yoki `0`) — oʻchiq; boʻsh yoki `sinov` — faqat sinov raqamlari (+998 90 000 …); `on` — hammaga. Model — `CLAUDE_TAHLIL_MODEL`, boʻlmasa `CLAUDE_MODEL`. `/health` → `live.aiTahlil`. Yoqishdan oldin: 0077–0081 qoʻllangan, daraxt yuklangan (`turkum.yml`), `zumsavdo.tahlil_jurnal` da yozuv bor. Kunlik limit (0085, `TAHLIL_LIMIT`): bitta foydalanuvchiga 30 ta tahlil savoli, hammaga jami 500 ta; oshsa yoki sessiya yoʻq boʻlsa — eski oddiy AI yoʻli. |
 
 ## Studiya (9-qadam) sirlari
 

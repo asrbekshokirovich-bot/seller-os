@@ -9,8 +9,8 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import {
-  asbobSorovi, boyit, filtrniTekshir, hisobla, tahlilJavobiniOqi, tahlilQil, tahlilQismi, turkumSinonimi, uzumOchishManzili,
-  uzumTovarIdsi, yaxlit2,
+  asbobSorovi, boyit, filtrniTekshir, hisobla, TAHLIL_LIMIT, tahlilJavobiniOqi, tahlilLimitBilan, tahlilQil, tahlilQismi,
+  turkumSinonimi, uzumOchishManzili, uzumTovarIdsi, yaxlit2,
   type TahlilChaqiruvi, type TahlilJavobi, type TahlilSavoli,
 } from '../src/tahlilchi';
 
@@ -300,6 +300,47 @@ describe('tahlilQil — nazoratchi savoli', () => {
     expect(kirish).toMatch(/JAVOB TILI: rus tili/);
     expect(kirish).toMatch(/MIJOZ SAVOLI: Сколько продавцов\?/);
     expect(kirish).toMatch(/MIJOZ ISMI: Davrbek/);
+  });
+});
+
+describe('kunlik limit (0085, nazoratchi 10.11)', () => {
+  const limitRpc = (javob: unknown) => {
+    const chaqirildi: Array<{ nom: string; arg: unknown }> = [];
+    const rpc = async <T,>(nom: string, arg: unknown): Promise<T | null> => {
+      chaqirildi.push({ nom, arg });
+      if (javob instanceof Error) throw javob;
+      return javob as T | null;
+    };
+    return { rpc, chaqirildi };
+  };
+
+  it('limit ichida — band qilinadi (30 / umumiy 500) va tahlil ishlaydi', async () => {
+    const b = limitRpc({ soni: 1, jami: 7, ruxsat: true });
+    const ishla = vi.fn(async () => 'javob');
+    expect(await tahlilLimitBilan(b.rpc, 'tok', ishla)).toBe('javob');
+    expect(b.chaqirildi).toEqual([{ nom: 'so_tahlil_limit', arg: { p_token: 'tok', p_oshir: true, p_limit: 30, p_umumiy_limit: 500 } }]);
+    expect(TAHLIL_LIMIT).toEqual({ kunlik: 30, jamiKunlik: 500 });
+    expect(ishla).toHaveBeenCalledOnce();
+  });
+
+  it('limit tugagan, sessiya yoʻq, baza javob bermadi yoki xato — null, tahlil chaqirilmaydi', async () => {
+    for (const javob of [{ soni: 30, jami: 99, ruxsat: false }, { xato: 'sessiya topilmadi' }, null, new Error('tarmoq'), { soni: 1 }]) {
+      const ishla = vi.fn(async () => 'javob');
+      expect(await tahlilLimitBilan(limitRpc(javob).rpc, 'tok', ishla)).toBeNull();
+      expect(ishla).not.toHaveBeenCalled();
+    }
+    const b = limitRpc({ ruxsat: true });
+    const ishla = vi.fn(async () => 'javob');
+    expect(await tahlilLimitBilan(b.rpc, '', ishla)).toBeNull();
+    expect(await tahlilLimitBilan(b.rpc, null, ishla)).toBeNull();
+    expect(b.chaqirildi).toHaveLength(0);
+    expect(ishla).not.toHaveBeenCalled();
+  });
+
+  it('tahlil yiqilsa (null) — band qaytarilmaydi (urinish sanaladi)', async () => {
+    const b = limitRpc({ soni: 2, jami: 2, ruxsat: true });
+    expect(await tahlilLimitBilan(b.rpc, 'tok', async () => null)).toBeNull();
+    expect(b.chaqirildi).toHaveLength(1);
   });
 });
 
