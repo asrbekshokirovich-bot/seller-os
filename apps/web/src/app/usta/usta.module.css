@@ -2740,3 +2740,82 @@ button.sizBelgi:disabled { opacity: 0.6; }
   .katalogXulosa { margin-top: 10px; gap: 6px; }
   .katalogTugma { margin-top: 10px; }
 }
+
+/*
+ * AI tahlilchi javobi ostida (2026-11-05): tovar/doʻkon havolalari, «Uzumda ochish», «Top-3 ni ochish»,
+ * keyingi savollar. Havola — butun qator bosiladi (telefonda ham oson).
+ */
+.tahlil {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  white-space: normal;
+}
+
+.tahlilHavolalar {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tahlilHavola {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--acc10);
+  color: var(--matn);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+/* Faqat sichqonchada (telefonda bosilgan joyda «tanlangandek» qolmasin — hover.test.ts). */
+@media (hover: hover) {
+  .tahlilHavola:hover { box-shadow: inset 0 0 0 1.5px var(--acc); }
+}
+
+.tahlilNom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tahlilRaqam {
+  font-size: 12.5px;
+  color: var(--xira);
+  font-variant-numeric: tabular-nums;
+}
+
+.tahlilTugmalar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tahlilTugma {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--acc);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .tahlilTugma:hover { filter: brightness(1.08); color: #fff; }
+}
+
+.tahlilKeyingi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

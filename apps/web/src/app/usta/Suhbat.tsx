@@ -34,6 +34,7 @@ import { BOSH_XABAR_KALIT, boshXabarniOl } from '@/lib/bosh-xabar';
 import { cbuQatorlari, type CbuQatorlari } from '@/lib/brauzer-kurs';
 import { hisobla } from '@/lib/hisob';
 import { sessiyaSarlavhasi, useKengaytmadami } from '@/lib/kengaytma';
+import { TahlilIlovasi, tahlilJavobimi } from './TahlilIlovasi';
 import { useMavzu, type Mavzu } from '@/lib/mavzu';
 import { tarjima, type Til, type Tr } from '@/lib/til';
 import { useTil } from '@/lib/useTil';
@@ -147,7 +148,9 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
    * (`qayta`) — olib tashlanadi. `oqimHolati` — «Oʻylayapti…» yoki «Yozmoqda…».
    */
   const [qoralama, setQoralama] = useState<AiYozuvQismi | null>(null);
-  const [oqimHolati, setOqimHolati] = useState<'tushunmoqda' | 'yozmoqda' | null>(null);
+  const [oqimHolati, setOqimHolati] = useState<'tushunmoqda' | 'yozmoqda' | 'hisoblamoqda' | null>(null);
+  /** AI tahlilchi nima hisoblayapti (2026-11-05) — «Uzum bazasidan sotuvchilarni hisoblayapman…». */
+  const [oqimIzoh, setOqimIzoh] = useState<string | null>(null);
 
   const [mavzu, mavzuniTanla] = useMavzu();
   const [til, tilniTanla] = useTil(boshTil);
@@ -512,7 +515,7 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
       if (tana.boshdan === true) langar.current = { tur: 'tepa', qolda: false, sakra: true };
     } finally {
       // Qoralama — tekshirilgan xabarlar bilan bir render da almashadi (React ularni birga chizadi).
-      if (!jim) { setQoralama(null); setOqimHolati(null); }
+      if (!jim) { setQoralama(null); setOqimHolati(null); setOqimIzoh(null); }
       if (!jim) bandQil(false);
       if (korinish) {
         setYuborilgan(null);
@@ -534,7 +537,11 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
     try {
       await sseOqi(tana, (h, q) => {
         if (mening !== avlod.current) return;
-        if (h === 'holat') setOqimHolati((q as { holat?: unknown }).holat === 'tushunmoqda' ? 'tushunmoqda' : 'yozmoqda');
+        if (h === 'holat') {
+          const x = q as { holat?: unknown; izoh?: unknown };
+          setOqimHolati(x.holat === 'tushunmoqda' ? 'tushunmoqda' : x.holat === 'hisoblamoqda' ? 'hisoblamoqda' : 'yozmoqda');
+          setOqimIzoh(typeof x.izoh === 'string' && x.izoh ? x.izoh.slice(0, 120) : null);
+        }
         else if (h === 'qism') setQoralama(q as AiYozuvQismi);
         else if (h === 'qayta') setQoralama(null);
         else if (h === 'tayyor') oxiri = { ok: true, d: q as SuhbatJavobi };
@@ -814,6 +821,8 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
   const savolKorsat = savol !== null && !(oxirgi?.rol === 'menejer' && oxirgi.savolId === savol.id);
   // Savol oqimda (server yozgan) — u oxirgi xabar: «↓ Savolga» shunga olib boradi (`data-savol`).
   const savolPufagi = savol !== null && !savolKorsat ? xabarlar.length - 1 : -1;
+  /** Oxirgi AI tahlilchi javobi — uning keyingi savollari bosiladi (eskilariniki — yoʻq). */
+  const oxirgiTahlil = xabarlar.reduce((m, x, i) => (tahlilJavobimi(x.javob) ? i : m), -1);
   const tezOrada = keyingi?.tur === 'tezOrada' ? keyingi : null;
   const kutish = keyingi?.tur === 'kutish' ? keyingi : null;
   const tezOradaKorsat = tezOrada !== null && !(oxirgi?.rol === 'menejer' && oxirgi.matn === tezOrada.matn);
@@ -1035,6 +1044,8 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
                   : undefined}
                 ilova={i === tugmaPufagi ? ilova : undefined}
                 savolmi={i === savolPufagi}
+                kengaytmada={kengaytmada}
+                soroq={i === oxirgiTahlil && savol && !band ? (t: string) => tezSoroq(savol.id, t) : undefined}
               />
             ))}
             </RangKonteksti.Provider>
@@ -1055,7 +1066,9 @@ export default function Suhbat({ til: boshTil, boshlangich }: {
             {band && (
               <div className={u.yozmoqda} role="status">
                 <span className={u.nuqtalar} aria-hidden="true"><i /><i /><i /></span>
-                <span>{oqimHolati === 'tushunmoqda' ? tr('Oʻylayapti…', 'Думает…') : tr('Yozmoqda…', 'Пишет…')}</span>
+                <span>{oqimHolati === 'tushunmoqda' ? tr('Oʻylayapti…', 'Думает…')
+                  : oqimHolati === 'hisoblamoqda' ? (oqimIzoh ?? tr('Uzum bazasidan hisoblayapman…', 'Считаю по базе Uzum…'))
+                    : tr('Yozmoqda…', 'Пишет…')}</span>
               </div>
             )}
 
@@ -1199,8 +1212,12 @@ function Havolali({ matn }: { matn: string }) {
   );
 }
 
-function XabarPufagi({ x, tr, katalog, xitoy, yonalish, ilova, savolmi = false }: {
+function XabarPufagi({ x, tr, katalog, xitoy, yonalish, ilova, savolmi = false, kengaytmada = false, soroq }: {
   x: Xabar; tr: Tr; katalog?: KatalogRejimi | undefined; xitoy?: XitoyRejimi | undefined; yonalish?: YonalishRejimi | undefined;
+  /** Kengaytma panelida — AI tahlilchi tugmalari Uzumni panel orqali ochadi. */
+  kengaytmada?: boolean;
+  /** AI tahlilchining keyingi savollari (faqat oxirgi tahlil javobida). */
+  soroq?: ((matn: string) => void) | undefined;
   /** Hozirgi savolning javob tugmalari — savol bilan bitta oynada. */
   ilova?: ReactNode;
   /** Hozirgi savolning oʻzi — «↓ Savolga» shu yerga olib boradi. */
@@ -1215,6 +1232,7 @@ function XabarPufagi({ x, tr, katalog, xitoy, yonalish, ilova, savolmi = false }
     return (
       <div className={`${u.pufak} ${u.ai}${ilova ? ` ${u.savolPufak}` : ''}`} data-savol={savolmi ? '1' : undefined}>
         <Havolali matn={x.matn} />
+        {tahlilJavobimi(x.javob) && <TahlilIlovasi j={x.javob} tr={tr} kengaytmada={kengaytmada} soroq={soroq} />}
         {erkin && <BahoTugmalari matn={x.matn} tr={tr} />}
         {ilova}
       </div>

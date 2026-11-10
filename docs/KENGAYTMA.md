@@ -3,6 +3,23 @@
 Uzum.uz tovar sahifasiga tugma qoʻshadi: bosilganda 1688 dan
 oʻxshash tovarlarni qidiradi.
 
+## 2026-11-05 — 0.5.0: «Uzumda ochish» (AI tahlilchi)
+
+Nazoratchi: «filtrlash soʻralsa xulosani oʻz nusxamizdan qilamiz, lekin xuddi Uzumdan jonli qilinayotgandek
+taassurot uygʻotamiz — 2–3 asosiy eng koʻp sotilgan tovar yoki doʻkonni brauzerda ochib beramiz».
+
+- Yon paneldagi chatda AI tahlilchi javobi ostida tugmalar: «Uzumda ochish ↗» (turkum sahifasi AI tanlagan
+  saralash va narx bilan) va «Top-3 ni ochish» (eng muhim 2–3 tovar). Bosilsa — sayt ramkasi panelga xabar
+  yuboradi (`zumsavdo:uzum-och`), panel yangi tablarda ochadi (`src/uzum-och.ts`, `panel.ts`). Ochilgan Uzum
+  sahifasida kengaytmaning oʻz belgilari (oyiga ≈N dona) chiqadi.
+- Xavfsizlik: xabar faqat sayt ramkasidan (`origin` + `source`), faqat `https://uzum.uz` dagi tovar va turkum
+  sahifalari, bir bosishda koʻpi bilan 3 ta, 1,5 s da bir marta. Manifestga yangi huquq qoʻshilmadi
+  (`chrome.tabs.create` ga ruxsat shart emas).
+- Uzum manzil parametrlari brauzerda oʻlchangan (2026-11-05): `sorting=orders|price|rating|date`,
+  `ordering=descending|ascending`, narx — `filters=filter=RV-0:<dan>~<gacha>`. Katta harfli `ORDERS`/`DESC` va
+  `minPrice/maxPrice` ni Uzum tashlaydi.
+- Kengaytmasiz saytda tugmalar oddiy havola (bittadan yangi tab).
+
 ## 2026-10-27 — 0.4.1: bir xil nomli turkumlar va tezlik
 
 Jonli tekshiruvda (0.4.0) ikki kamchilik topildi, nazoratchi: «ikkalasini tuzat».

@@ -44,6 +44,7 @@
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.133.0';
 import type { LlmChaqiruvi, LlmProvayder, LlmSarfi } from './llm.ts';
+import type { TahlilChaqiruvi, TahlilJavobi, TahlilProvayder } from './tahlilchi.ts';
 
 export const CLAUDE_MODELI = 'claude-sonnet-5-5';
 /** Tushunish (AI suhbat, JSON) uchun standart model — tez va arzon (2026-10-26). */
@@ -229,6 +230,87 @@ export function claudeProvayderi(s: ClaudeSozlama): LlmProvayder | null {
       // stek yozilmaydi (unda ham xato matni takrorlanadi).
       if (e instanceof Anthropic.APIError) {
         console.warn(`llm ${c.belgi} (${model}): HTTP ${e.status ?? '?'} ${sirsiz(String(e.message)).slice(0, 160)}`);
+      } else {
+        const x = e as Error | undefined;
+        console.warn(`llm ${c.belgi} (${model}): ${x?.name ?? 'xato'}: ${sirsiz(String(x?.message ?? '')).slice(0, 160)}`);
+      }
+      return null;
+    } finally {
+      clearTimeout(soat);
+    }
+  };
+}
+
+/**
+ * AI TAHLILCHI provayderi (2026-11-05, `tahlilchi.ts`): bitta Messages API chaqiruvi — asboblar
+ * (`tools`, `strict`), suhbat (`messages`, asbob natijalari bilan), oxirgi javob JSON sxemada
+ * (`output_config.format`). Asbobni BAJARMAYDI — tsikl `tahlilQil` da (darvoza, vaqt, oqim).
+ *
+ * - Bloklar (fikrlash bloklari ham) OʻZGARISHSIZ qaytariladi: keyingi chaqiruvda xuddi shunday
+ *   yuboriladi (Sonnet 5.5 «preserved thinking»: tarix faqat qoʻshiladi, oʻzgartirilmaydi).
+ * - Kesh: asboblar va koʻrsatma har chaqiruvda bir xil — oxirgi asbob va koʻrsatmada `cache_control`.
+ * - `asbobsiz` — `tool_choice: none` (vaqt yoki aylanish tugadi: endi javob yoz). Majburiy asbob
+ *   (`any`/`tool`) Sonnet 5.5 da 400 — ishlatilmaydi.
+ * - Rad etilsa — `fallbacks: 'default'` (yuqoridagi provayderdek); oqimda `fallback` bloki kelsa
+ *   qoralama boshidan.
+ * - Yiqilish — `null`; log `sirsiz`.
+ */
+export function claudeTahlilProvayderi(s: ClaudeSozlama): TahlilProvayder | null {
+  const kalit = kalitniAjrat(s.kalit);
+  if (!kalit) return null;
+  const model = s.model?.trim() || CLAUDE_MODELI;
+  const zaxira = !/^claude-haiku-/.test(model);
+  const mijoz = new Anthropic({ apiKey: kalit, maxRetries: 1, ...(s.fetchFn ? { fetch: s.fetchFn } : {}) });
+
+  return async (c: TahlilChaqiruvi): Promise<TahlilJavobi | null> => {
+    const nazorat = new AbortController();
+    const soat = setTimeout(() => nazorat.abort(), c.vaqtMs);
+    const oxirgi = c.asboblar.length - 1;
+    const sorov = {
+      model,
+      max_tokens: 16_000,
+      system: [{ type: 'text', text: c.korsatma, cache_control: { type: 'ephemeral' } }],
+      tools: c.asboblar.map((a, i) => ({
+        name: a.nom, description: a.tavsif, input_schema: a.sxema, strict: true,
+        ...(i === oxirgi ? { cache_control: { type: 'ephemeral' } } : {}),
+      })),
+      ...(c.asbobsiz ? { tool_choice: { type: 'none' } } : {}),
+      messages: c.xabarlar,
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: c.json } },
+      ...(zaxira ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
+    } as unknown as Anthropic.Beta.Messages.MessageCreateParamsStreaming;
+    try {
+      const oqim = mijoz.beta.messages.stream(sorov, { signal: nazorat.signal, timeout: c.vaqtMs });
+      let yozildi = '';
+      for await (const h of oqim) {
+        if (h.type === 'content_block_start' && h.content_block.type === 'fallback') {
+          yozildi = '';
+          c.qism?.('');
+        } else if (h.type === 'content_block_delta' && h.delta.type === 'text_delta' && h.delta.text) {
+          yozildi += h.delta.text;
+          c.qism?.(yozildi);
+        }
+      }
+      const r = await oqim.finalMessage();
+      if (c.sarf) {
+        try {
+          for (const x of sarflar(r, model, c.belgi)) c.sarf(x);
+        } catch (e) {
+          console.warn(`llm ${c.belgi}: sarf yozilmadi — ${(e as Error)?.name ?? 'xato'}`);
+        }
+      }
+      if (r.stop_reason === 'refusal' || r.stop_reason === 'max_tokens') {
+        console.warn(`llm ${c.belgi} (${r.model}): ${r.stop_reason}`);
+        return null;
+      }
+      const bloklar = r.content as unknown as ReadonlyArray<Record<string, unknown>>;
+      const boshi = bloklar.map((b) => b.type).lastIndexOf('fallback') + 1;
+      const chaqiruvlar = bloklar.slice(boshi).flatMap((b) => (b.type === 'tool_use' && typeof b.id === 'string' && typeof b.name === 'string'
+        ? [{ id: b.id, nom: b.name, kirish: b.input }] : []));
+      return { bloklar, toxtash: r.stop_reason ?? null, matn: javobMatni(r.content as Array<{ type: string; text?: string }>), chaqiruvlar };
+    } catch (e) {
+      if (e instanceof Anthropic.APIError) {
+        console.warn(`llm ${c.belgi} (${model}): HTTP ${e.status ?? '?'} ${sirsiz(String(e.message)).slice(0, 200)}`);
       } else {
         const x = e as Error | undefined;
         console.warn(`llm ${c.belgi} (${model}): ${x?.name ?? 'xato'}: ${sirsiz(String(x?.message ?? '')).slice(0, 160)}`);

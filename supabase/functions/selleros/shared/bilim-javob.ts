@@ -98,11 +98,10 @@ const MAVZULAR: readonly Mavzu[] = [
     javob: () => ['Foyda oldindan vaʼda qilinmaydi: raqamlar Uzumdagi oʻlchov va taxmin.', lugat('Marja'), '4-qadamda tannarx va chegara narxni hisoblab koʻrsataman — qaror sizniki.'] },
   { re: /komissiya|комисс/u, javob: () => [lugat('Komissiya'), ...uzum('Komissiya', /^Komissiya va logistika yig‘imi/u, 1)] },
   { re: /pul qachon|qachon tushadi|pulni qachon|to'lov qachon|to'lovlar|pul (necha|qancha) (kun|vaqt)|necha kunda tushadi|выплат|когда деньги/u, javob: () => uzum('To‘lovlar', null, 3) },
-  // «Xitoydan tovar necha kunda keladi?» — kargo muddati oʻlchanmagan (fakt yoʻq): raqamsiz.
+  // «Xitoydan tovar necha kunda keladi?» — kargo kompaniyalarining eʼlon qilingan muddati (2026-11-05, manbasi bilan).
   { re: /(necha|qancha) (kun|kunda|hafta|haftada|oy|oyda|vaqt|vaqtda) ?.{0,25}(kelad|yetib kel|yetkazil)|(kelad|yetib keladi|yetkaziladi)\p{L}*.{0,10}(necha|qancha)|сколько (дней|времени|ид[её]т|везут)|как долго (ид|вез|достав)|срок\p{L}* доставк/u,
-    javob: () => ['Aniq kunini ayta olmayman — buni oʻlchamaganman: muddat kargo kompaniyasiga va yoʻlga bogʻliq.',
-      'Avia — tezroq, lekin qimmatroq; quruqlik (avto yoki temir yoʻl) — sekinroq, lekin arzonroq. Bunga 1688 dagi sotuvchining tovarni joʻnatishi va bojxona ham qoʻshiladi.',
-      'Aniq muddatni kargo kompaniyasidan soʻrang. 6-qadamda (Buyurtma va kargo) buyurtma varaqasini birga tayyorlaymiz.'] },
+    javob: () => [...uzum('Kargo va bojxona', /avia kargo|avto \(quruqlik\)/u, 2),
+      'Bunga 1688 sotuvchisining joʻnatishi (odatda bir necha kun) qoʻshiladi. Aniq muddatni kargo kompaniyasidan soʻrang — 6-qadamda (Buyurtma va kargo) buyurtma varaqasini birga tayyorlaymiz.'] },
   { re: /logistika|yetkazib berish haqi|dostavka haqi|логист/u, javob: () => uzum('Logistika', /^Logistika yig‘imi/u, 1) },
   { re: /saqlash|хранени/u, javob: () => uzum('Logistika', /saqlash/u, 2) },
   // Soliq va bank — raqamli javob (`erkin-malumot.ts`, 7-qadam faktlari) bazadan oʻqiy olmasa — umumiysi.
@@ -122,12 +121,12 @@ const MAVZULAR: readonly Mavzu[] = [
   { re: /^(?=.*(?<!\p{L})(rasm|surat|foto|фото)\p{L}{0,6}(?!\p{L}))(?=.*(kartochka|карточк|kerak|talab|o'lcham|format|требован|размер|нужн)).*/u,
     javob: () => [...uzum('Tovar kartochkasi', /^Surat:/u, 1),
       '9-qadamda (Studiya) tanlangan 1688 taklifining suratlaridan kartochka uchun oq fonli suratlar tayyorlayman.'] },
-  // Bojxona stavkasi oʻlchanmagan — raqamsiz, rasmiy manzil bilan.
+  // Bojxona: posilka limiti va yagona toʻlov (gazeta.uz, manbasi bilan); tijorat partiyasi — rasmiy yoʻl.
   { re: /bojxona|растамож|таможн/u,
-    javob: () => ['Bojxona toʻlovini raqam bilan ayta olmayman — buni oʻlchamaganman: u tovar turiga, qiymatiga va qanday olib kelinishiga bogʻliq.',
-      'Rasmiy stavka va qoidalar — Bojxona qoʻmitasining rasmiy saytida (customs.uz).',
-      'Tovarni kargo orqali olib kelsangiz, bojxona kargo narxiga kiradimi yoki yoʻqmi — kargo kompaniyasidan albatta soʻrang va tannarxga qoʻshing.'] },
-  { re: /kargo|cargo|карго/u, javob: () => [lugat('Kargo'), '6-qadamda buyurtma varaqasi va kargo yoʻli tayyorlanadi.'] },
+    javob: () => [...uzum('Kargo va bojxona', /bojsiz/u, 1),
+      'Kargo «pod klyuch» boʻlsa, bojxona rasmiylashtiruvi odatda kargo narxiga kiradi — kargo kompaniyasidan yozma soʻrang. Rasmiy stavkalar — customs.uz.'] },
+  { re: /kargo|cargo|карго/u, javob: () => [lugat('Kargo'), ...uzum('Kargo va bojxona', /avia kargo|avto \(quruqlik\)/u, 2),
+    '6-qadamda buyurtma varaqasi va kargo yoʻli tayyorlanadi.'] },
   { re: /qaytar|возврат|vozvrat/u, javob: () => uzum('Qaytarish', null, 2) },
   // «Sifatsiz tovar kelsa nima qilaman?» — Xitoydan kelgan yuk (8-qadam); xaridor qaytarsa — yuqoridagi mavzu.
   { re: /sifatsiz|nuqson|brak|yaroqsiz|singan|buzuq|buzilgan|shikast|kam keld|kam kels|chala kel|некачеств|брак|сломан|поврежд|недостач/u,

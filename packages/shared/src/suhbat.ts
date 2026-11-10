@@ -63,6 +63,7 @@ import {
   type AiYozuvQismi,
 } from './ai-suhbat.js';
 import { SAVDO_SOHALARI } from './soha.js';
+import { uzumOchishManzili, type TahlilNatijasi, type TahlilSavoli } from './tahlilchi.js';
 
 export interface SuhbatXabari {
   rol: 'obunachi' | 'menejer' | 'kod';
@@ -153,15 +154,36 @@ export interface SuhbatBogliqliklari {
    * Natija oʻzgarmaydi: oxirida xuddi oqimsizdagi `SuhbatJavobi` qaytadi.
    */
   oqim?: SuhbatOqimi | null;
+  /**
+   * AI TAHLILCHI (nazoratchi, 2026-11-05: «har savolga aniq statistika, taqqoslash va xulosa»):
+   * mijoz savol bersa (TUSHUN `savol_bor`) — avval shu: Claude asboblar bilan bazadan hisoblaydi
+   * (`tahlilchi.ts`). `null` — ishlamadi: eski yoʻl (YOZ). Berilmasa — tahlilchi yoʻq.
+   */
+  tahlil?: ((s: TahlilSavoli, vaqtMs: number, oqim?: TahlilOqimi) => Promise<TahlilNatijasi | null>) | null;
+  /** Tahlilchi shu mijozga yoqilganmi (`AI_TAHLIL=sinov` — faqat sinov raqamlari). Berilmasa — hammaga. */
+  tahlilRuxsat?: ((h: YolHolati) => boolean) | null;
 }
+
+/** Tahlilchi oqimi: nima hisoblanyapti, javobning qisqa qismi yozilgan sari, qoralama bekor. */
+export interface TahlilOqimi {
+  holat: (izoh: string) => void;
+  qism: (qisqa: string) => void;
+  qayta: () => void;
+}
+
+/** Tahlilchiga eng kam vaqt: undan kam qolsa — eski yoʻl (YOZ tezroq). */
+const TAHLIL_KAM_MS = 18_000;
 
 /**
  * Turn davomidagi hodisalar (oqim). Qoralama darvozadan hali oʻtmagan: oʻtmasa — `qayta`
  * (sahifa uni olib tashlaydi), keyin yangisi yoki kod qolipi keladi.
  */
 export interface SuhbatOqimi {
-  /** Nima qilinyapti: `tushunmoqda` — mijoz gapini oʻqiyapti, `yozmoqda` — javob yozilyapti. */
-  holat: (h: 'tushunmoqda' | 'yozmoqda') => void;
+  /**
+   * Nima qilinyapti: `tushunmoqda` — mijoz gapini oʻqiyapti, `yozmoqda` — javob yozilyapti,
+   * `hisoblamoqda` — AI tahlilchi bazadan hisoblayapti (`izoh` — nima, mijoz tilida; 2026-11-05).
+   */
+  holat: (h: 'tushunmoqda' | 'yozmoqda' | 'hisoblamoqda', izoh?: string) => void;
   /** AI yozayotgan xabar — shu paytgacha yozilgani (har safar boshidan). */
   qism: (y: AiYozuvQismi) => void;
   /** Qoralama oʻtmadi — ekrandan olinsin. */
@@ -1272,6 +1294,12 @@ async function aiErkinXabar(
   const k1 = summaTugmalari(kj.tur === 'savol' && kj.savol.id === k0.savol.id ? kj : k0, matn, holat);
   const songgi = songgiSuhbat(xabarlar);
   const tt = tushunishUchun(matn);
+  // AI TAHLILCHI (2026-11-05): mijoz savol bergan, javobi rad etilmagan — avval bazadan, asboblar bilan.
+  // 05.11 jonli: «nechta sotuvchi kiyim sotgan…» ga «Uzumga kira olmayman» degan edi. Ishlamasa — eski yoʻl.
+  if (d.tahlil && t.savolBor && !t.sabab && (d.tahlilRuxsat?.(holat) ?? true) && qoldi() >= TAHLIL_KAM_MS) {
+    const tv = await tahlilErkinXabar(d, token, holat, k0, k1, matn, songgi, tt, qoldi);
+    if (tv) return tv;
+  }
   const malumot = t.sabab ? null : await bazadanMalumot(d, tt, holat);
   const baza = bazaJavobi(tt, ruschami(matn), k0.savol.id, t.sabab, holat, d.tarifCheklovi, malumot);
   // Birinchi savolda salomlashish chatda bor yoki shu turnda qoʻyiladi — AI uni qayta aytmasin (jonli
@@ -1301,6 +1329,50 @@ async function aiErkinXabar(
       // AI baribir yozolmadi — tayyor javob YOʻQ (2026-10-26): javob qabul qilinmagan boʻlsa — kodning
       // sababi (nimani tuzatish kerak), aks holda qisqa uzr. Savol oʻsha — tugmalari shu pufakda.
       : [{ rol: 'menejer' as const, matn: t.sabab ? (til === 'ru' ? sababRu(t.sabab) : t.sabab) : aiUzr(til), savolId: k0.savol.id }]),
+  ];
+  const qadam = joriyQadam(holat);
+  const w = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {
+    p_token: token, p_xabarlar: yangi, p_holat: holat, p_qadam: qadam, p_profil: null,
+  });
+  const yozildi = w !== null && !w.xato;
+  return { xabarlar: yangi, keyingi: k1, qadam, yozildi, ...(yozildi ? holatBelgilari(holat) : { xato: w?.xato ?? 'jurnalga yozilmadi' }) };
+}
+
+/**
+ * AI tahlilchi javobi xabarlari: mijoz gapi, javob (qisqa — 👍/👎 bilan, havolalar va «Uzumda
+ * ochish» bilan), «Batafsil» (yopiq), keyin joriy savol qayta (kod matni — tez). Yoʻl holati
+ * oʻzgarmaydi. Tahlilchi ishlamasa — `null` (chaqiruvchi eski yoʻlga oʻtadi).
+ */
+async function tahlilErkinXabar(
+  d: SuhbatBogliqliklari, token: string, holat: YolHolati, k0: JoriySavol, k1: JoriySavol, matn: string,
+  songgi: ReadonlyArray<{ rol: string; matn: string; savolId?: string | null }>, tt: string, qoldi: () => number,
+): Promise<SuhbatJavobi | null> {
+  const til = yozuvi(matn);
+  const oqim = d.oqim ?? null;
+  const r = await d.tahlil!({
+    savol: matn, til, bugun: toshkentSanasi(new Date()), ism: mijozIsmi(holat),
+    holat: mijozHolati(holat, k0.savol.qadam), tarix: suhbatTarixi(songgi, holat), bilim: yordamchiBilimi(tt, d.tarifCheklovi),
+  }, qoldi() - 4_000, oqim ? {
+    holat: (izoh) => oqim.holat('hisoblamoqda', izoh),
+    qism: (q) => oqim.qism({ oldin: q, izoh: '', savol: '' }),
+    qayta: () => oqim.qayta(),
+  } : undefined).catch(() => null);
+  if (!r) return null;
+  const savolBor = songgi.some((x) => x.rol === 'menejer' && x.savolId === k0.savol.id);
+  const keyingiSavol = salomsizSavol(k1.savol);
+  const yangi: SuhbatXabari[] = [
+    ...(savolBor ? [] : [{ rol: 'menejer' as const, matn: savolMatni(k0.savol, til), savolId: k0.savol.id }]),
+    { rol: 'obunachi', matn },
+    {
+      rol: 'menejer', matn: apostrofTozala(r.qisqa), savolId: k0.savol.id,
+      // `erkin` — 👍/👎; `havolalar` va `ochish` — sahifa tugmalari (Uzumda ochish).
+      javob: {
+        erkin: true, manba: 'tahlil', havolalar: r.havolalar, ochish: r.ochish,
+        ochishManzili: r.ochish ? uzumOchishManzili(r.ochish) : null, keyingi: r.keyingi, sana: r.sana,
+      },
+    },
+    ...(r.batafsil ? [batafsilXabari(apostrofTozala(r.batafsil))] : []),
+    { rol: 'menejer', matn: savolMatni(keyingiSavol, til), savolId: k0.savol.id },
   ];
   const qadam = joriyQadam(holat);
   const w = await d.rpc<{ xato?: string; yozildi?: number }>('so_suhbat_yoz', {

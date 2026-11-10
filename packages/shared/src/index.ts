@@ -62,3 +62,4 @@ export * from './tovar-sotuvi.js';
 export * from './bozor-paneli.js';
 export * from './hisob.js';
 export * from './bosh-namuna.js';
+export * from './tahlilchi.js';
