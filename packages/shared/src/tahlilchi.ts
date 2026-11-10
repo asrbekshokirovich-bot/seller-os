@@ -19,7 +19,7 @@
  * Har yiqilish `null` (XATO EMAS): chaqiruvchi eski yoʻlga qaytadi.
  */
 
-import { natijaSonlari, tekshir } from './tekshiruv.js';
+import { natijaSonlari, raqamlar, tekshir } from './tekshiruv.js';
 import { kirillUlushi, type Yozuv } from './yozuv.js';
 import type { LlmSarfi } from './llm.js';
 
@@ -150,6 +150,18 @@ const MAX_PARALLEL = 4;
 const NATIJA_MAX = 14_000;
 /** Javob qayta yozdirilishi. */
 const MAX_TUZAT = 2;
+/** `qisqa` shundan qisqa boʻlsa — boʻsh hisoblanadi (jonli sinov, 10.11: model «x» yozib qoʻydi). */
+const MIN_QISQA = 12;
+
+/**
+ * Asbobsiz chaqiruvdan oldin modelga ochiq aytiladi. Jonli sinov (10.11): aylanishlar tugab `tool_choice: none`
+ * boʻlganda model yana asbob chaqirmoqchi boʻlib, boʻsh JSON (yoki «x») yozardi — 13-, 20-, 23-savollar shundan yiqildi.
+ */
+const ASBOBSIZ_ESLATMA = 'ASBOBLAR TUGADI: endi asbob chaqirib boʻlmaydi — faqat yakuniy JSON javobni yoz. qisqa ni boʻsh '
+  + 'qoldirma: yuqoridagi asbob natijalaridagi raqamlar bilan javob ber. Hosila raqamni oʻzing hisoblama — asbob bergan '
+  + 'raqamni (yaxlitlab boʻlsa ham) yoz.';
+const BOSH_SABAB = 'javobing BOʻSH (qisqa yoʻq). qisqa ga asbob natijalaridagi raqamlar bilan javob yoz; maʼlumot yetmasa — '
+  + 'borini ayt va nima yetishmasligini bir gapda ayt.';
 
 // ==================================================================== koʻrsatma
 
@@ -529,7 +541,61 @@ async function asbobniBajar(d: TahlilBogliqliklari, nom: string, kirish: unknown
   if ('natija' in s) return { ok: true, natija: s.natija };
   const r = await vaqtBilan(d.rpc<unknown>(s.rpc, s.arg), ASBOB_MS);
   if (r === null || r === undefined) return { ok: false, xato: 'baza javob bermadi (vaqt tugadi yoki xato) — boshqa asbob yoki torroq qamrov bilan urinib koʻr' };
-  return { ok: true, natija: r };
+  return { ok: true, natija: boyit(nom, r) };
+}
+
+/**
+ * Kod hisoblagan hosila raqamlar (QOIDALAR §3: raqamni kod hisoblaydi). Jonli sinov (10.11): «oʻrtacha bir sotuvchi
+ * oyiga qancha tushum qiladi?» — AI `tushum_mln / jami` ni oʻzi hisoblardi (5,603 mln), darvoza ikki marta qaytarardi,
+ * javob eski yoʻlga tushardi. Endi oʻrtacha va ulushlar natijaning oʻzida; asl obyekt oʻzgarmaydi.
+ */
+export function boyit(nom: string, natija: unknown): unknown {
+  if (nom !== 'bozor_kesimi' && nom !== 'sotuvchilar_tahlili') return natija;
+  const ob = (x: unknown) => (x && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : null);
+  const n = ob(natija);
+  if (!n) return natija;
+  const son = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+  const foiz = (a: unknown, b: unknown) => {
+    const x = son(a); const y = son(b);
+    return x !== null && y ? Math.round((1000 * x) / y) / 10 : null;
+  };
+  const bolin = (a: unknown, b: unknown) => {
+    const x = son(a); const y = son(b);
+    return x !== null && y ? Math.round((100 * x) / y) / 100 : null;
+  };
+  const ustiga = (o: Record<string, unknown> | null, q: Record<string, number | null>) => {
+    if (!o) return undefined;
+    const yangi = Object.fromEntries(Object.entries(q).filter(([k, v]) => v !== null && !(k in o)));
+    return Object.keys(yangi).length ? { ...o, ...yangi } : undefined;
+  };
+  const chiqdi: Record<string, unknown> = { ...n };
+  let qoshildi = false;
+  const qoy = (kalit: string, v: Record<string, unknown> | undefined) => { if (v) { chiqdi[kalit] = v; qoshildi = true; } };
+  const s30 = ob(n.sotuvchilar_30kun);
+  qoy('sotuvchilar_30kun', ustiga(s30, {
+    sotgan_foiz: foiz(s30?.sotgan, s30?.jami),
+    sotmagan_foiz: foiz(s30?.sotmagan, s30?.jami),
+    ortacha_tushum_mln: bolin(s30?.tushum_mln, s30?.jami),
+    ortacha_tushum_sotgan_mln: bolin(s30?.tushum_mln, s30?.sotgan),
+  }));
+  const t30 = ob(n.tovarlar_30kun);
+  qoy('tovarlar_30kun', ustiga(t30, {
+    sotgan_foiz: foiz(t30?.sotgan, t30?.jami),
+    tugagan_foiz: foiz(t30?.tugagan, t30?.jami),
+    yangi_60kun_sotgan_foiz: foiz(t30?.yangi_60kun_sotgan, t30?.yangi_60kun),
+  }));
+  const sp = ob(n.shu_paytgacha);
+  const jami = son(sp?.sotuvchilar); const sotgan = son(sp?.sotgan_sotuvchilar);
+  qoy('shu_paytgacha', ustiga(sp, {
+    hech_sotmagan: jami !== null && sotgan !== null ? jami - sotgan : null,
+    sotgan_foiz: foiz(sotgan, jami),
+    hech_sotmagan_foiz: jami !== null && sotgan !== null ? foiz(jami - sotgan, jami) : null,
+  }));
+  if (qoshildi) {
+    chiqdi.hosila = 'Kod hisoblagan: ortacha_tushum_mln — bir faol sotuvchiga oʻrtacha oylik tushum, ortacha_tushum_sotgan_mln '
+      + '— kamida bitta sotgan sotuvchiga, *_foiz — ulush (foizda).';
+  }
+  return chiqdi;
 }
 
 /** AI ga ketadigan natija matni — juda uzun boʻlsa massivlar qisqartiriladi (jim emas: belgisi bor). */
@@ -604,6 +670,19 @@ export function tahlilJavobiniOqi(matn: string): XomJavob | null {
   };
 }
 
+/** Asbobsiz chaqiruv oldidan oxirgi user xabariga eslatma (bir marta; obyekt almashtiriladi, oʻzgartirilmaydi). */
+function asbobsizEslat(xabarlar: TahlilXabari[]): void {
+  const i = xabarlar.length - 1;
+  const x = xabarlar[i];
+  if (!x || x.role !== 'user') return;
+  if (typeof x.content === 'string') {
+    if (!x.content.includes('ASBOBLAR TUGADI')) xabarlar[i] = { ...x, content: `${x.content}\n${ASBOBSIZ_ESLATMA}` };
+    return;
+  }
+  if (x.content.some((b) => b.type === 'text' && String(b.text).includes('ASBOBLAR TUGADI'))) return;
+  xabarlar[i] = { ...x, content: [...x.content, { type: 'text', text: ASBOBSIZ_ESLATMA }] };
+}
+
 /** Model JSON ni toʻgʻri yozgan-u, `qisqa` boʻsh (sxemaga mos, mazmunsiz). */
 function bomBoshmi(matn: string): boolean {
   try {
@@ -651,14 +730,33 @@ function mlnSonlari(x: unknown, chiqdi: number[] = []): number[] {
   return chiqdi;
 }
 
+/**
+ * Ikki xonali raqamgacha yaxlitlash: 197 000 → 200 000, 3,35 → 3,4. Jonli sinov (10.11): AI «200 ming soʻmgacha» deb
+ * yaxlitlardi (manbada 197 000), darvoza 0,5% dan katta farq deb qaytarardi — har gal ~7 s qayta yozish.
+ */
+export function yaxlit2(x: number): number {
+  if (!Number.isFinite(x) || x === 0) return x;
+  const k = 10 ** (Math.floor(Math.log10(Math.abs(x))) - 1);
+  return Math.round(x / k) * k;
+}
+
+/**
+ * `hisobla` natijasi «mln» bilan ham: asbob pulni `*_mln` da beradi, AI `912.4 - 217.9` ni hisoblab «694,5 mln soʻm»
+ * yozadi — tekshiruv uni 694 500 000 deb oʻqiydi.
+ */
+function hisoblaMln(x: unknown): number[] {
+  const o = x && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : null;
+  return o && typeof o.ifoda === 'string' && typeof o.natija === 'number' && Number.isFinite(o.natija) ? [o.natija * 1_000_000] : [];
+}
+
 function darvoza(j: XomJavob, s: TahlilSavoli, natijalar: readonly unknown[], til: Yozuv): Darvoza {
   const matn = [j.qisqa, j.batafsil].filter(Boolean).join('\n');
-  const tk = tekshir(matn, {
-    // Natija matni ham: undagi sanalar («2026-10-27») — raqam emas, satr; AI ularni aytadi.
-    matnlar: [s.savol, s.holat ?? '', s.tarix ?? '', s.bilim ?? '', s.bugun, s.ism ?? '', TAHLIL_TARIFLARI,
-      ...natijalar.map((n) => JSON.stringify(n))],
-    sonlar: natijalar.flatMap((n) => [...natijaSonlari(n), ...mlnSonlari(n)]),
-  });
+  // Natija matni ham: undagi sanalar («2026-10-27») — raqam emas, satr; AI ularni aytadi.
+  const matnlar = [s.savol, s.holat ?? '', s.tarix ?? '', s.bilim ?? '', s.bugun, s.ism ?? '', TAHLIL_TARIFLARI,
+    ...natijalar.map((n) => JSON.stringify(n))];
+  const sonlar = natijalar.flatMap((n) => [...natijaSonlari(n), ...mlnSonlari(n), ...hisoblaMln(n)]);
+  const yaxlitlar = [...sonlar, ...matnlar.flatMap((t) => raqamlar(t).map((r) => r.qiymat))].map(yaxlit2);
+  const tk = tekshir(matn, { matnlar, sonlar: [...sonlar, ...yaxlitlar] });
   const tilMos = til === 'uz' || kirillUlushi(matn) >= 0.5;
   // Asbob maʼlumot bergan-u, javob «maʼlumotim yoʻq» deyapti — aynan nazoratchi koʻrgan xato.
   const radEtdi = natijalar.length > 0 && RAD_GAPI.test(matn);
@@ -755,7 +853,9 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
     for (;;) {
       const vaqt = Math.min(CHAQIRUV_MS, qoldi() - 1_500);
       if (vaqt < KAM_MS) { tashla(); return null; }
-      const asbobsiz = aylanish >= MAX_AYLANISH || qoldi() < YAKUN_MS;
+      // Darvoza har qaytarganda bitta qoʻshimcha aylanish: «hisobla asbobini chaqir» desak — chaqira olsin.
+      const asbobsiz = aylanish >= MAX_AYLANISH + tuzatildi || qoldi() < YAKUN_MS;
+      if (asbobsiz) asbobsizEslat(xabarlar);
       const j = await d.provayder({
         korsatma: TAHLIL_KORSATMA, asboblar: TAHLIL_ASBOBLARI, xabarlar, json: TAHLIL_JAVOB_SXEMA, vaqtMs: vaqt, asbobsiz,
         kuch, belgi: 'tahlil', sarf: d.sarf,
@@ -794,12 +894,12 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
         // (sirsiz: model matnining boshi, kalit yoʻq).
         console.warn(`tahlil json: ${j.matn.slice(0, 300).replace(/\s+/g, ' ')}`);
       }
-      const bosh = !javob && bomBoshmi(j.matn);
+      const bosh = javob ? javob.qisqa.replace(/\s+/gu, ' ').trim().length < MIN_QISQA : bomBoshmi(j.matn);
       if (bosh) kuch = 'medium';
-      const tk = javob
-        ? darvoza(javob, s, natijalar, s.til)
-        : bosh
-          ? { ok: false, sabab: 'javobing BOʻSH (qisqa yoʻq). qisqa ga asbob natijalaridagi raqamlar bilan javob yoz; maʼlumot yetmasa — borini ayt va nima yetishmasligini bir gapda ayt.' }
+      const tk = bosh
+        ? { ok: false, sabab: BOSH_SABAB }
+        : javob
+          ? darvoza(javob, s, natijalar, s.til)
           : { ok: false, sabab: 'javob JSON sxemaga mos emas.' };
       if (javob && tk.ok) {
         return {
@@ -816,7 +916,10 @@ export async function tahlilQil(d: TahlilBogliqliklari, s: TahlilSavoli, vaqtMs:
       // Sabab logga (sirsiz: faqat darvoza matni — raqamlar va qoida nomi, kalit yoʻq): nima rad etilayotgani koʻrinsin.
       console.warn(`tahlil darvoza (${tuzatildi + 1}): ${tk.sabab.slice(0, 400)}`);
       if (++tuzatildi > MAX_TUZAT) return null;
-      xabarlar.push({ role: 'user', content: `JAVOBING QAYTARILDI: ${tk.sabab} Kerak boʻlsa asbob chaqir, keyin JSON javobni qayta yoz.` });
+      const keyin = aylanish >= MAX_AYLANISH + tuzatildi || qoldi() < YAKUN_MS
+        ? 'JSON javobni qayta yoz.'
+        : 'Kerak boʻlsa asbob chaqir (hosila raqam uchun — hisobla), keyin JSON javobni qayta yoz.';
+      xabarlar.push({ role: 'user', content: `JAVOBING QAYTARILDI: ${tk.sabab} ${keyin}` });
     }
   } catch {
     tashla();
