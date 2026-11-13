@@ -68,7 +68,12 @@ jobs:
       # `selleros.id_frontier` da 0 qator edi. Yozish yoʻlining oʻzi ham
       # buzuq edi (`0051` ga qarang) — ikkalasi shu yerda birga
       # tuzatildi.
+      #
+      # `continue-on-error` (2026-11-13): zond Uzumdan xato olsa (403, 429,
+      # tarmoq) bugungi nuqtani YOZMAYDI va 3 bilan chiqadi. Bu o'lchovni
+      # to'xtatmasligi kerak — zond o'lchovdan mustaqil kunlik nuqta.
       - name: Frontier zondi
+        continue-on-error: true
         working-directory: apps/scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
