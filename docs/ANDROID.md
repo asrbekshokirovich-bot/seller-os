@@ -22,6 +22,7 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 | `apps/web/public/ilova/` | Ikonkalar — `icon.svg` dan chizilgan PNG |
 | `apps/web/test/ilova.test.ts` | Uch joy (twa-manifest, assetlinks, Android loyiha) bir xilligini tekshiradi |
 | `.github/workflows/android.yml` | GitHub: imzosiz AAB → «android-imzosiz» oldindan-reliz |
+| `.github/workflows/android-jonli.yml` | Har kuni: jonli saytdagi `assetlinks.json` va Google tekshiruvi |
 | `scripts/android-imzola.sh` | Nazoratchi kompyuterida imzolash: AAB va APK |
 
 ## Kalit
