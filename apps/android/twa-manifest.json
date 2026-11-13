@@ -1,0 +1,50 @@
+{
+  "packageId": "uz.zumsavdo.app",
+  "host": "zumsavdo.vercel.app",
+  "name": "ZumSavdo",
+  "launcherName": "ZumSavdo",
+  "display": "standalone",
+  "themeColor": "#F7F3F9",
+  "themeColorDark": "#1A0F20",
+  "navigationColor": "#F7F3F9",
+  "navigationColorDark": "#1A0F20",
+  "navigationDividerColor": "#F7F3F9",
+  "navigationDividerColorDark": "#1A0F20",
+  "backgroundColor": "#F7F3F9",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://zumsavdo.vercel.app/ilova/ikonka-512.png",
+  "maskableIconUrl": "https://zumsavdo.vercel.app/ilova/ikonka-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "../../../Documents/ZumSavdo-Android-kalit/zumsavdo-upload.p12",
+    "alias": "zumsavdo"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://zumsavdo.vercel.app/",
+  "minSdkVersion": 23,
+  "orientation": "default",
+  "fingerprints": [
+    {
+      "name": "upload-kalit",
+      "value": "5E:18:C9:18:6F:29:AF:D6:DE:D9:38:BC:85:19:0F:8E:A7:3B:E0:0C:95:5D:60:6C:FA:F5:4C:2B:34:E0:B5:3E"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "displayOverride": [],
+  "appVersion": "1.0.0"
+}
