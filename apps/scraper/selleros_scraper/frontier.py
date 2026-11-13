@@ -33,11 +33,28 @@ from .token import TokenProvider
 MAX_QADAMLAR = 25
 
 
+class FrontierXato(RuntimeError):
+    """Zond javob o'rniga xato oldi — natija ishonchsiz, bazaga yozilmaydi."""
+
+
 def mavjudmi(
     client: httpx.Client, headers: dict[str, str], pid: int
 ) -> bool:
+    """`True` — mahsulot bor, `False` — Uzum "yo'q" dedi.
+
+    Boshqa har qanday natija (429, 401, 403, tarmoq, 5xx) "yo'q" EMAS —
+    `FrontierXato`. 2026-11-12..13: Uzum (Cloudflare) GitHub IP laridan
+    har so'rovga HTTP 403 qaytardi; eski kod uni "yo'q" deb o'qib,
+    binary-search boshlang'ich chegaraga (2 500 000) tushdi va shu son
+    `selleros.id_frontier` ga yozildi (haqiqiysi ~3,63 mln edi).
+    """
     javob = sorov(client, headers, pid)
-    return javob.natija == Natija.TOPILDI
+    if javob.natija == Natija.TOPILDI:
+        return True
+    if javob.natija == Natija.YOQ:
+        return False
+    tafsilot = f" ({javob.tafsilot})" if javob.tafsilot else ""
+    raise FrontierXato(f"id {pid}: {javob.natija.value}{tafsilot}")
 
 
 def frontier_top(
@@ -90,6 +107,13 @@ def frontier_top(
         else:
             baland = orta
 
+    # Hech bir zond "bor" demagan bo'lsa, `past` — bizning taxminimiz,
+    # o'lchov emas. Uni frontier deb yozish — raqam to'qish.
+    if past == boshlangich_past:
+        raise FrontierXato(
+            f"{boshlangich_past} dan yuqori birorta ham id topilmadi — natija ishonchsiz"
+        )
+
     return past, qadamlar
 
 
@@ -129,13 +153,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"XATO: {xato}", file=sys.stderr)
             return 2
 
-    with httpx.Client(timeout=20.0) as client:
-        max_id, qadamlar = frontier_top(
-            client, tokens,
-            boshlangich_past=args.past,
-            boshlangich_baland=args.baland,
-            rps=args.rps,
-        )
+    try:
+        with httpx.Client(timeout=20.0) as client:
+            max_id, qadamlar = frontier_top(
+                client, tokens,
+                boshlangich_past=args.past,
+                boshlangich_baland=args.baland,
+                rps=args.rps,
+            )
+    except FrontierXato as xato:
+        # Bugungi nuqta YOZILMAYDI: yo'q nuqta — bo'shliq, noto'g'ri
+        # nuqta esa `id_yoshi()` regressiyasini buzadi.
+        print(json.dumps({
+            "max_id": None, "qadamlar": None, "yozildi": False, "bazada": None,
+            "xato": str(xato),
+        }, ensure_ascii=False, indent=2))
+        print(f"XATO: frontier o'lchanmadi, bazaga yozilmadi — {xato}", file=sys.stderr)
+        return 3
 
     # Avval yoziladi, keyin hisobot bosiladi.
     #

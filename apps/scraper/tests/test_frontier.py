@@ -170,3 +170,106 @@ def test_frontier_kutilmagan_javob_xato():
         store = FakeStore(yomon)
         with pytest.raises(StoreError):
             store.frontier_yoz(None, 3285215, 23)
+
+
+# ------------------------------------------- xato "yo'q" EMAS (2026-11-13)
+#
+# Jonli holat: 2026-11-12 va 11-13 da Uzum (Cloudflare) GitHub IP laridan
+# har so'rovga HTTP 403 + HTML qaytardi. Eski `mavjudmi` uni "yo'q" deb
+# o'qidi, binary-search boshlang'ich chegaraga tushdi va `id_frontier` ga
+# 2 500 000 yozildi (11-11 da 3 633 687 edi).
+
+HTML_403 = '<!DOCTYPE html>\n<!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]-->'
+
+
+def _hammasiga(status: int, *, json_body=None, text: str = "") -> httpx.MockTransport:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if json_body is not None:
+            return httpx.Response(status, json=json_body)
+        return httpx.Response(status, text=text)
+    return httpx.MockTransport(handler)
+
+
+def _top(transport: httpx.MockTransport) -> tuple[int, int]:
+    with httpx.Client(transport=transport) as client:
+        return frontier_top(
+            client, FakeTokens(),
+            boshlangich_past=2_500_000,
+            boshlangich_baland=5_000_000,
+            rps=100.0,
+        )
+
+
+def test_frontier_403_yoq_emas(monkeypatch):
+    """Eski kod shu holatda 2 500 000 qaytarardi va u bazaga yozilardi."""
+    import pytest
+    from selleros_scraper.frontier import FrontierXato
+
+    monkeypatch.setattr(time, "sleep", lambda _: None)
+    with pytest.raises(FrontierXato, match="HTTP 403"):
+        _top(_hammasiga(403, text=HTML_403))
+
+
+def test_frontier_429_yoq_emas(monkeypatch):
+    import pytest
+    from selleros_scraper.frontier import FrontierXato
+
+    monkeypatch.setattr(time, "sleep", lambda _: None)
+    with pytest.raises(FrontierXato):
+        _top(_hammasiga(429, text="Too Many Requests"))
+
+
+def test_frontier_yarim_yolda_xato(monkeypatch):
+    """To'g'ri boshlab, o'rtada xato olsa ham — natija qaytarilmaydi."""
+    import pytest
+    from selleros_scraper.frontier import FrontierXato
+
+    monkeypatch.setattr(time, "sleep", lambda _: None)
+    soni = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        soni["n"] += 1
+        if soni["n"] >= 4:
+            return httpx.Response(403, text=HTML_403)
+        pid = json.loads(request.content)["variables"]["id"]
+        return httpx.Response(200, json=javob_ok(pid) if pid <= 3_200_000 else JAVOB_YOQ)
+
+    with pytest.raises(FrontierXato):
+        _top(httpx.MockTransport(handler))
+    assert soni["n"] == 4, "xatodan keyin zond to'xtashi kerak"
+
+
+def test_frontier_hech_biri_topilmasa_ishonchsiz(monkeypatch):
+    """Hech bir id "bor" demasa — boshlang'ich chegara o'lchov emas, taxmin."""
+    import pytest
+    from selleros_scraper.frontier import FrontierXato
+
+    monkeypatch.setattr(time, "sleep", lambda _: None)
+    with pytest.raises(FrontierXato, match="topilmadi"):
+        _top(_hammasiga(200, json_body=JAVOB_YOQ))
+
+
+def test_frontier_main_xatoda_bazaga_yozmaydi(monkeypatch, capsys):
+    """Xato — 3 bilan chiqish, bazaga BIR MARTA ham yozilmaydi."""
+    from selleros_scraper import frontier as fr
+    from selleros_scraper.store import Store
+
+    yozuvlar: list[int] = []
+
+    class YozuvchiStore:
+        def frontier_yoz(self, client, max_id, steps):
+            yozuvlar.append(max_id)
+            return {"max_id": max_id}
+
+    def yiqiladi(*_a, **_k):
+        raise fr.FrontierXato("id 5000000: xato (HTTP 403)")
+
+    monkeypatch.setattr(Store, "env_dan", classmethod(lambda cls: YozuvchiStore()))
+    monkeypatch.setattr(fr, "frontier_top", yiqiladi)
+
+    assert fr.main([]) == 3
+    assert yozuvlar == []
+    chiqish = json.loads(capsys.readouterr().out)
+    assert chiqish["yozildi"] is False
+    assert chiqish["bazada"] is None
+    assert "403" in chiqish["xato"]
