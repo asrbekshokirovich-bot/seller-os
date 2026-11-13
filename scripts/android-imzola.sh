@@ -84,11 +84,43 @@ python3 -c 'import sys, zipfile; open(sys.argv[2], "wb").write(zipfile.ZipFile(s
   "$ISH/z.apks" "$ISH/$NOM.apk"
 
 # 3) Tekshiruv: ikkala fayl ham AYNAN shu kalit bilan imzolanganmi.
-iz() { keytool -printcert -jarfile "$1" 2>/dev/null | sed -n 's/^[[:space:]]*SHA256: *//p' | head -n1 | tr -d '[:space:]'; }
-for f in "$ISH/$NOM.aab" "$ISH/$NOM.apk"; do
-  bor="$(iz "$f")"
-  [ "$bor" = "$KUTILGAN" ] || xato "$(basename "$f"): imzo izi «$bor», kutilgani «$KUTILGAN»"
-done
+#    AAB — JAR imzosi (keytool oʻqiydi). APK — minSdk 24 boʻlgani uchun faqat
+#    v2/v3 imzo (APK Signing Block) boʻlishi mumkin, keytool uni koʻrmaydi:
+#    sertifikat blokdan oʻqiladi va uning SHA-256 izi solishtiriladi.
+aab_izi() { keytool -printcert -jarfile "$1" 2>/dev/null | sed -n 's/^[[:space:]]*SHA256: *//p' | head -n1 | tr -d '[:space:]'; }
+apk_izi() {
+  python3 - "$1" <<'PY'
+import hashlib, struct, sys
+d = open(sys.argv[1], 'rb').read()
+eocd = d.rfind(b'PK\x05\x06')
+cd = struct.unpack('<I', d[eocd + 16:eocd + 20])[0]
+if d[cd - 16:cd] != b'APK Sig Block 42':
+    sys.exit(0)
+hajm = struct.unpack('<Q', d[cd - 24:cd - 16])[0]
+i, oxir, juft = cd - hajm, cd - 24, {}
+while i < oxir:
+    n = struct.unpack('<Q', d[i:i + 8])[0]
+    juft[struct.unpack('<I', d[i + 8:i + 12])[0]] = d[i + 12:i + 8 + n]
+    i += 8 + n
+def lp(b, o):
+    l = struct.unpack('<I', b[o:o + 4])[0]
+    return b[o + 4:o + 4 + l], o + 4 + l
+for sxema in (0xF05368C0, 0x7109871A):  # v3, v2
+    if sxema in juft:
+        imzolovchi, _ = lp(lp(juft[sxema], 0)[0], 0)
+        malumot, _ = lp(imzolovchi, 0)
+        _, o = lp(malumot, 0)               # dayjestlar
+        sertlar, _ = lp(malumot, o)         # X.509 sertifikatlar
+        sert, _ = lp(sertlar, 0)
+        h = hashlib.sha256(sert).hexdigest().upper()
+        print(':'.join(h[k:k + 2] for k in range(0, 64, 2)))
+        break
+PY
+}
+bor="$(aab_izi "$ISH/$NOM.aab")"
+[ "$bor" = "$KUTILGAN" ] || xato "AAB: imzo izi «$bor», kutilgani «$KUTILGAN»"
+bor="$(apk_izi "$ISH/$NOM.apk")"
+[ "$bor" = "$KUTILGAN" ] || xato "APK: imzo izi «$bor», kutilgani «$KUTILGAN»"
 "${JARSIGNER[@]}" -verify "$ISH/$NOM.aab" 2>/dev/null | grep -q 'jar verified' || xato "AAB imzosi tekshiruvdan oʻtmadi"
 
 mkdir -p "$CHIQ"
