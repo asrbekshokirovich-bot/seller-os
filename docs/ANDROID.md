@@ -7,7 +7,12 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 
 - Saytdagi har oʻzgarish ilovada **darhol** koʻrinadi. Yangi APK/AAB faqat ilova
   qobigʻi oʻzgarganda kerak: nom, ikonka, ranglar, versiya.
-- Paket nomi: `uz.zumsavdo.app`. Play'ga birinchi yuklangandan keyin oʻzgartirib boʻlmaydi.
+- Paket nomi: `uz.zumsavdo.ilova` — Play'dagi mavjud ZumSavdo ilovasiniki (oʻzgartirib
+  boʻlmaydi). Bu ilova ilgari Expo bilan yigʻilgan (`apps/mobile`, `claude/gracious-ramanujan-itkgq0`
+  tarmogʻi, 2026-09-29) va boshqa upload kalit bilan yuklangan; 2026-11-13 dan uning oʻrnini
+  shu TWA egallaydi (nazoratchi qarori).
+- Play talabi boʻyicha har yangi versiyada `appVersionCode` avvalgisidan katta: Expo versiyasi
+  `1` edi, TWA `2` dan boshlanadi.
 - Play talabi: 2026-08-31 dan yangi ilova va yangilanish **API 36** ni nishonga oladi
   (`targetSdkVersion 36` — test va CI tekshiradi).
 
@@ -49,6 +54,13 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 
 ## Play Console
 
+- **Upload kalit almashtirildi.** Play mavjud ilova uchun eski upload kalitni kutardi
+  (SHA-1 `85:2B:32:31:AB:23:3B:37:23:D2:91:55:2D:0B:1C:FF:41:83:42:FC`). Uning fayli va
+  paroli topilmadi (2026-11-13: ikki kompyuter, Gmail, Drive tekshirildi; Expo bulutidagi
+  EAS kalit ehtimoli — `xojamurod23` hisobi — tekshirilmagan). Yechim (nazoratchi qarori):
+  Play Console → Protected with Play → Play Store protection → Play app signing →
+  «Request upload key reset» orqali yangi kalit sertifikatini (`upload_certificate.pem`,
+  kalit papkasida) yuborish. Google tasdiqlagach, AAB faqat yangi kalit bilan qabul qilinadi.
 - **Play App Signing.** AAB yuklangach, Google ilovani oʻz kaliti bilan qayta imzolaydi.
   Play Console → App integrity → App signing → «App signing key certificate» SHA-256 ni
   `twa-manifest.json` → `fingerprints` ga va `assetlinks.json` ga qoʻshing. Aks holda

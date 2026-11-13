@@ -1,5 +1,5 @@
 {
-  "packageId": "uz.zumsavdo.app",
+  "packageId": "uz.zumsavdo.ilova",
   "host": "zumsavdo.vercel.app",
   "name": "ZumSavdo",
   "launcherName": "ZumSavdo",
@@ -21,7 +21,7 @@
     "alias": "zumsavdo"
   },
   "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "fallbackType": "customtabs",
