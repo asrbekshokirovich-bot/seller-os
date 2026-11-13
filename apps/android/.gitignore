@@ -1,0 +1,14 @@
+# Gradle va Android Studio hosilalari
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+
+# Imzo kaliti HECH QACHON omborga tushmaydi (QOIDALAR.md §3).
+# Kalit faqat nazoratchi kompyuterida: Documents\ZumSavdo-Android-kalit
+*.jks
+*.p12
+*.keystore
+key.properties

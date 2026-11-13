@@ -1,0 +1,128 @@
+# Android ilova — imzosiz AAB yigʻish.
+#
+# Ilova — saytning oʻzi: `apps/android` Trusted Web Activity, Chrome
+# zumsavdo.vercel.app ni manzil satrisiz, toʻliq ekranda ochadi. Saytdagi
+# har oʻzgarish ilovada darhol koʻrinadi; yangi APK/AAB faqat ilova
+# qobigʻi (nom, ikonka, versiya, ranglar) oʻzgarganda kerak.
+#
+# IMZO BU YERDA YOʻQ — ataylab. Upload kalit faqat nazoratchining
+# kompyuterida (Documents\ZumSavdo-Android-kalit): QOIDALAR.md §1 — kalitlar
+# odamda. CI imzosiz AAB yasaydi va uni «android-imzosiz» oldindan-relizga
+# qoʻyadi; imzo va APK nazoratchi kompyuterida `scripts/android-imzola.sh`
+# bilan qilinadi (docs/ANDROID.md).
+name: Android ilova
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'claude/android-*']
+    paths: ['apps/android/**', '.github/workflows/android.yml']
+
+concurrency:
+  group: android-ilova
+  cancel-in-progress: false
+
+permissions:
+  contents: write # oldindan-reliz uchun
+
+jobs:
+  aab:
+    name: Imzosiz AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            apps/android/*.gradle*
+            apps/android/app/*.gradle*
+            apps/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Yigʻish
+        run: ./gradlew --no-daemon bundleRelease
+
+      # Versiya qotirilgan — `latest` emas (deploy.yml dagi Supabase CLI
+      # bilan bir xil sabab: anonim API soʻrovi rate-limit ga tushadi).
+      - name: bundletool
+        run: |
+          curl -sSfL --retry 3 -o "$RUNNER_TEMP/bundletool.jar" \
+            https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+
+      # Yigʻilgan manifest twa-manifest.json ga mosmi. Kutilmagan ruxsat
+      # (masalan, kutubxona yangilanib qoʻshgan) jimgina oʻtib ketmasin —
+      # Play uni koʻrib chiqishda toʻxtatadi, biz esa bu yerda.
+      - name: Manifest tekshiruvi
+        run: |
+          aab=app/build/outputs/bundle/release/app-release.aab
+          java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle "$aab" > "$RUNNER_TEMP/manifest.xml"
+          python3 - "$RUNNER_TEMP/manifest.xml" twa-manifest.json <<'PY'
+          import json, sys, xml.etree.ElementTree as ET
+          A = '{http://schemas.android.com/apk/res/android}'
+          m = ET.parse(sys.argv[1]).getroot()
+          t = json.load(open(sys.argv[2]))
+          xato = []
+          def tekshir(nom, bor, kerak):
+              if str(bor) != str(kerak):
+                  xato.append(f"{nom}: {bor} (kerak: {kerak})")
+          sdk = m.find('uses-sdk')
+          tekshir('package', m.get('package'), t['packageId'])
+          tekshir('versionCode', m.get(A + 'versionCode'), t['appVersionCode'])
+          tekshir('versionName', m.get(A + 'versionName'), t['appVersionName'])
+          tekshir('minSdkVersion', sdk.get(A + 'minSdkVersion'), t['minSdkVersion'])
+          # Play: 2026-08-31 dan yangi ilova va yangilanish API 36 talab qiladi.
+          tekshir('targetSdkVersion', sdk.get(A + 'targetSdkVersion'), 36)
+          ruxsatlar = sorted(p.get(A + 'name') for p in m.findall('uses-permission'))
+          ruxsat_etilgan = {f"{t['packageId']}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"}
+          begona = [r for r in ruxsatlar if r not in ruxsat_etilgan]
+          print('Ruxsatlar:', ruxsatlar or "yo'q")
+          if begona:
+              xato.append(f"kutilmagan ruxsat: {begona}")
+          if xato:
+              print('::error::' + '; '.join(xato))
+              sys.exit(1)
+          print("Manifest twa-manifest.json ga mos.")
+          PY
+
+      # Imzosiz boʻlishi SHART: imzo bor boʻlsa, u debug kalit — Play rad etadi,
+      # telefondagi ilova ustiga esa oʻrnatilmaydi.
+      - name: Imzosizligi
+        run: |
+          aab=app/build/outputs/bundle/release/app-release.aab
+          if unzip -Z1 "$aab" | grep -qE '^META-INF/[^/]+\.(RSA|EC|DSA)$'; then
+            echo "::error::AAB imzolangan chiqdi — kutilmagan kalit."
+            exit 1
+          fi
+          echo "Imzosiz — toʻgʻri."
+
+      - name: Artefakt (zaxira nusxa)
+        uses: actions/upload-artifact@v4
+        with:
+          name: zumsavdo-imzosiz-aab
+          path: apps/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      # Doimiy manzil: imzolash skripti shu yerdan oladi. Har yugurish
+      # avvalgisini almashtiradi — bitta fayl, saqlash yigʻilmaydi.
+      - name: Oldindan-reliz «android-imzosiz»
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/zumsavdo-imzosiz.aab"
+          sha=$(sha256sum "$RUNNER_TEMP/zumsavdo-imzosiz.aab" | cut -d' ' -f1)
+          ver=$(python3 -c "import json; t=json.load(open('twa-manifest.json')); print(t['appVersionName'], '(' + str(t['appVersionCode']) + ')')")
+          gh release delete android-imzosiz --yes --cleanup-tag || true
+          gh release create android-imzosiz "$RUNNER_TEMP/zumsavdo-imzosiz.aab" \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Android — imzosiz AAB $ver" \
+            --notes "Imzosiz: oʻrnatib ham, Play'ga yuklab ham boʻlmaydi — avval upload kalit bilan imzolanadi (docs/ANDROID.md, scripts/android-imzola.sh). Tarmoq: ${GITHUB_REF_NAME}. Commit: ${GITHUB_SHA}. SHA-256: ${sha}"
+          echo "SHA-256: $sha"
