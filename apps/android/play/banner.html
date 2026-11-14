@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  Play Market banneri (Feature graphic) — manba. Play talabi: 1024×500, PNG yoki JPEG, shaffofliksiz.
+  Rasm: apps/android/play/banner.png. Qayta chizish: shu faylni brauzerda 1024×500 oynada ochib,
+  sahifani rasmga oling (shaffoflikni olib tashlang). Belgi — ilova ikonkasining oʻzi (icon.svg),
+  ranglar va shrift — saytdagidek (bosh sahifa: fon #F7F3F9, matn #2A1733, xira #6B5A74, Manrope).
+-->
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<title>ZumSavdo — Play banneri</title>
+<style>
+  @font-face {
+    font-family: Manrope;
+    font-weight: 400 800;
+    src: url('../../web/public/fonts/manrope-latin.woff2') format('woff2');
+  }
+  html, body { margin: 0; }
+  body {
+    width: 1024px;
+    height: 500px;
+    overflow: hidden;
+    position: relative;
+    display: grid;
+    place-items: center;
+    background: #F7F3F9;
+    font-family: Manrope, sans-serif;
+    color: #2A1733;
+  }
+  .doira { position: absolute; border-radius: 50%; background: #EFE6F4; }
+  .d1 { width: 420px; height: 420px; right: -140px; top: -190px; }
+  .d2 { width: 300px; height: 300px; left: -120px; bottom: -170px; }
+  .guruh { position: relative; display: flex; align-items: center; gap: 44px; }
+  .belgi { width: 176px; height: 176px; display: block; }
+  .nom { font-weight: 800; font-size: 96px; line-height: 1; letter-spacing: -0.02em; }
+  .shior { margin-top: 18px; font-weight: 600; font-size: 30px; line-height: 1.3; color: #6B5A74; }
+</style>
+</head>
+<body>
+  <div class="doira d1"></div>
+  <div class="doira d2"></div>
+  <div class="guruh">
+    <img class="belgi" src="../../web/src/app/icon.svg" alt="">
+    <div>
+      <div class="nom">ZumSavdo</div>
+      <div class="shior">Uzumda nima sotishni<br>raqamlar bilan tanlang.</div>
+    </div>
+  </div>
+</body>
+</html>
