@@ -24,7 +24,10 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 | `apps/android/twa-manifest.json` | Asosiy sozlama: paket, sayt, ranglar, versiya, kalit izlari |
 | `apps/web/public/.well-known/assetlinks.json` | Sayt tomoni: «bu ilova meniki». Busiz ilovada manzil satri chiqadi |
 | `apps/web/src/app/manifest.ts` | Veb-ilova manifesti (`/manifest.webmanifest`) |
-| `apps/web/public/ilova/` | Ikonkalar — `icon.svg` dan chizilgan PNG |
+| `apps/web/scripts/ikonka.mjs` | Hamma ikonka bitta manbadan: sayt, Android ilova, Play |
+| `apps/web/public/ilova/` | Veb-ilova ikonkalari (Android ilova ham shulardan) |
+| `apps/android/store_icon.png` | Play Market ikonkasi: 512 px, toʻliq kvadrat |
+| `apps/android/play/banner.png` | Play Market banneri (1024×500); manbasi — `banner.html` |
 | `apps/web/test/ilova.test.ts` | Uch joy (twa-manifest, assetlinks, Android loyiha) bir xilligini tekshiradi |
 | `.github/workflows/android.yml` | GitHub: imzosiz AAB → «android-imzosiz» oldindan-reliz |
 | `.github/workflows/android-jonli.yml` | Har kuni: jonli saytdagi `assetlinks.json` va Google tekshiruvi |
@@ -39,6 +42,19 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 - Yaratilgan: 2026-11-13, nazoratchi kompyuterida (keytool, RSA 4096, PKCS12, 2054 yilgacha).
 - Ochiq izi (sir emas, `assetlinks.json` da turadi):
   `5E:18:C9:18:6F:29:AF:D6:DE:D9:38:BC:85:19:0F:8E:A7:3B:E0:0C:95:5D:60:6C:FA:F5:4C:2B:34:E0:B5:3E`
+
+## Ikonka va ranglar
+
+- Belgi — bosh sahifadagi nishonning oʻzi (`apps/web/src/app/bosh.module.css` → `.nishon`):
+  toʻq siyoh `#4A2A57`, oq Manrope ExtraBold «Z». Hamma ikonka (brauzer yorligʻi, iPhone,
+  Android ilova, ochilish rasmi, Play) shu skriptdan: `node apps/web/scripts/ikonka.mjs`.
+  `ilova.test.ts` ikonkalar rangini nishon bilan solishtiradi.
+- 2026-11-14 gacha ikonka eski terrakota (`#D2552D`) dizaynda qolib ketgan edi — sayt ichi
+  2026-10-22 da siyoh rangga oʻtgan (nazoratchi: «ichidagidek rangda boʻlsin»).
+- Ilova tepasi va pasti (holat va navigatsiya paneli) telefon tungi rejimda ham `#F7F3F9`:
+  sayt tizim rejimiga ergashmaydi — standart yorugʻ, tungi faqat tugma bilan. Cheklov:
+  foydalanuvchi saytda tungi mavzuni tanlasa, panel och qoladi (TWA panel rangini
+  sahifadan olmaydi).
 
 ## Yangi versiya chiqarish
 
@@ -65,6 +81,9 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
   Play Console → App integrity → App signing → «App signing key certificate» SHA-256 ni
   `twa-manifest.json` → `fingerprints` ga va `assetlinks.json` ga qoʻshing. Aks holda
   Play'dan oʻrnatilgan ilovada manzil satri koʻrinadi. Bu iz sir emas.
+- **Ikonka va banner** yangi AAB siz almashadi: Play Console → Main store listing →
+  Graphics: App icon ← `apps/android/store_icon.png`, Feature graphic ←
+  `apps/android/play/banner.png`. Saqlangach, oʻzgarish Google koʻrigidan oʻtadi.
 - Maxfiylik siyosati: `https://zumsavdo.vercel.app/maxfiylik`.
 - **Toʻlov.** Saytda Payme orqali obuna bor. Play qoidasiga koʻra ilova ichida raqamli
   xizmat sotilsa, Google Play Billing talab qilinishi mumkin. Play'ga chiqarishdan oldin
@@ -75,3 +94,5 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 `cd apps/android && npx @bubblewrap/cli update` — loyihani `twa-manifest.json` dan
 qayta yasaydi (ikonka manzillari saytdagi fayllarga ishora qiladi). Diqqat: andoza
 `build.gradle` ga yana `jcenter()` ni qoʻyadi — uni `mavenCentral()` ga qaytaring.
+Keyin `node apps/web/scripts/ikonka.mjs` ni qayta ishga tushiring: Bubblewrap ikonkalarni
+oʻzicha qayta chizadi.

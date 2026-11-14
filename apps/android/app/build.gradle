@@ -27,11 +27,11 @@ def twaManifest = [
     name: 'ZumSavdo', // The application name.
     launcherName: 'ZumSavdo', // The name shown on the Android Launcher.
     themeColor: '#F7F3F9', // The color used for the status bar.
-    themeColorDark: '#1A0F20', // The color used for the dark status bar.
+    themeColorDark: '#F7F3F9', // The color used for the dark status bar.
     navigationColor: '#F7F3F9', // The color used for the navigation bar.
-    navigationColorDark: '#1A0F20', // The color used for the dark navbar.
+    navigationColorDark: '#F7F3F9', // The color used for the dark navbar.
     navigationDividerColor: '#F7F3F9', // The navbar divider color.
-    navigationDividerColorDark: '#1A0F20', // The dark navbar divider color.
+    navigationDividerColorDark: '#F7F3F9', // The dark navbar divider color.
     backgroundColor: '#F7F3F9', // The color used for the splash screen background.
     enableNotifications: false, // Set to true to enable notification delegation.
     // Every shortcut must include the following fields:
