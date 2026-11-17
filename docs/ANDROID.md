@@ -8,6 +8,9 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 - Saytdagi har oʻzgarish ilovada **darhol** koʻrinadi. Yangi APK/AAB faqat ilova
   qobigʻi oʻzgarganda kerak: nom, ikonka, ranglar, versiya.
 - Paket nomi: `uz.zumsavdo.app`. Play'ga birinchi yuklangandan keyin oʻzgartirib boʻlmaydi.
+  2026-11-17 nazoratchi qarori: paket shu qoladi — AAB Play'dagi **yangi** ilovaga
+  yuklanadi. `claude/android-paket` tarmogʻidagi `uz.zumsavdo.ilova` (eski Expo ilova
+  oʻrniga) ishlatilmaydi.
 - Play talabi: 2026-08-31 dan yangi ilova va yangilanish **API 36** ni nishonga oladi
   (`targetSdkVersion 36` — test va CI tekshiradi).
 
@@ -46,6 +49,13 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
    `Documents\ZumSavdo-Android\ZumSavdo-<versiya>-<kod>.apk` va `.aab`.
    Kompyuterga ulangan Claude sessiyasi buni kalit papkasiga ruxsat bilan oʻzi qiladi.
 4. APK — telefonda sinash uchun; AAB — Play Console'ga yuklash uchun.
+
+Versiyalar (`appVersionName` (`appVersionCode`)):
+
+| Versiya | Sana | Nima |
+|---|---|---|
+| 1.0.0 (1) | 2026-11-13 | Birinchi TWA |
+| 1.0.1 (2) | 2026-11-17 | Faqat versiya oshdi — Play yangi yuklash uchun kattaroq kod talab qiladi |
 
 ## Play Console
 
