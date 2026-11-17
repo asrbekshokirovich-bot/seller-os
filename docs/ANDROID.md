@@ -7,10 +7,14 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 
 - Saytdagi har oʻzgarish ilovada **darhol** koʻrinadi. Yangi APK/AAB faqat ilova
   qobigʻi oʻzgarganda kerak: nom, ikonka, ranglar, versiya.
-- Paket nomi: `uz.zumsavdo.app`. Play'ga birinchi yuklangandan keyin oʻzgartirib boʻlmaydi.
-  2026-11-17 nazoratchi qarori: paket shu qoladi — AAB Play'dagi **yangi** ilovaga
-  yuklanadi. `claude/android-paket` tarmogʻidagi `uz.zumsavdo.ilova` (eski Expo ilova
-  oʻrniga) ishlatilmaydi.
+- Paket nomi: `uz.zumsavdo.ilova` — Play'dagi mavjud ZumSavdo ilovasiniki (oʻzgartirib
+  boʻlmaydi). Bu ilova ilgari Expo bilan yigʻilgan (`apps/mobile`, `claude/gracious-ramanujan-itkgq0`
+  tarmogʻi, 2026-09-29) va boshqa upload kalit bilan yuklangan; 2026-11-13 dan uning oʻrnini
+  shu TWA egallaydi (nazoratchi qarori).
+- Play talabi boʻyicha har yangi versiyada `appVersionCode` avvalgisidan katta: Expo versiyasi
+  `1` edi, TWA `2` dan boshlanadi.
+- 2026-11-17: Play Console `uz.zumsavdo.app` AAB ni rad etdi («needs to have the package name
+  uz.zumsavdo.ilova») — demak yuklash shu mavjud ilovaga, paket `uz.zumsavdo.ilova`.
 - Play talabi: 2026-08-31 dan yangi ilova va yangilanish **API 36** ni nishonga oladi
   (`targetSdkVersion 36` — test va CI tekshiradi).
 
@@ -22,7 +26,10 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 | `apps/android/twa-manifest.json` | Asosiy sozlama: paket, sayt, ranglar, versiya, kalit izlari |
 | `apps/web/public/.well-known/assetlinks.json` | Sayt tomoni: «bu ilova meniki». Busiz ilovada manzil satri chiqadi |
 | `apps/web/src/app/manifest.ts` | Veb-ilova manifesti (`/manifest.webmanifest`) |
-| `apps/web/public/ilova/` | Ikonkalar — `icon.svg` dan chizilgan PNG |
+| `apps/web/scripts/ikonka.mjs` | Hamma ikonka bitta manbadan: sayt, Android ilova, Play |
+| `apps/web/public/ilova/` | Veb-ilova ikonkalari (Android ilova ham shulardan) |
+| `apps/android/store_icon.png` | Play Market ikonkasi: 512 px, toʻliq kvadrat |
+| `apps/android/play/banner.png` | Play Market banneri (1024×500); manbasi — `banner.html` |
 | `apps/web/test/ilova.test.ts` | Uch joy (twa-manifest, assetlinks, Android loyiha) bir xilligini tekshiradi |
 | `.github/workflows/android.yml` | GitHub: imzosiz AAB → «android-imzosiz» oldindan-reliz |
 | `.github/workflows/android-jonli.yml` | Har kuni: jonli saytdagi `assetlinks.json` va Google tekshiruvi |
@@ -37,6 +44,19 @@ Ilova ochilganda Chrome `zumsavdo.vercel.app` ni manzil satrisiz, toʻliq ekrand
 - Yaratilgan: 2026-11-13, nazoratchi kompyuterida (keytool, RSA 4096, PKCS12, 2054 yilgacha).
 - Ochiq izi (sir emas, `assetlinks.json` da turadi):
   `5E:18:C9:18:6F:29:AF:D6:DE:D9:38:BC:85:19:0F:8E:A7:3B:E0:0C:95:5D:60:6C:FA:F5:4C:2B:34:E0:B5:3E`
+
+## Ikonka va ranglar
+
+- Belgi — bosh sahifadagi nishonning oʻzi (`apps/web/src/app/bosh.module.css` → `.nishon`):
+  toʻq siyoh `#4A2A57`, oq Manrope ExtraBold «Z». Hamma ikonka (brauzer yorligʻi, iPhone,
+  Android ilova, ochilish rasmi, Play) shu skriptdan: `node apps/web/scripts/ikonka.mjs`.
+  `ilova.test.ts` ikonkalar rangini nishon bilan solishtiradi.
+- 2026-11-14 gacha ikonka eski terrakota (`#D2552D`) dizaynda qolib ketgan edi — sayt ichi
+  2026-10-22 da siyoh rangga oʻtgan (nazoratchi: «ichidagidek rangda boʻlsin»).
+- Ilova tepasi va pasti (holat va navigatsiya paneli) telefon tungi rejimda ham `#F7F3F9`:
+  sayt tizim rejimiga ergashmaydi — standart yorugʻ, tungi faqat tugma bilan. Cheklov:
+  foydalanuvchi saytda tungi mavzuni tanlasa, panel och qoladi (TWA panel rangini
+  sahifadan olmaydi).
 
 ## Yangi versiya chiqarish
 
@@ -54,15 +74,26 @@ Versiyalar (`appVersionName` (`appVersionCode`)):
 
 | Versiya | Sana | Nima |
 |---|---|---|
-| 1.0.0 (1) | 2026-11-13 | Birinchi TWA |
-| 1.0.1 (2) | 2026-11-17 | Faqat versiya oshdi — Play yangi yuklash uchun kattaroq kod talab qiladi |
+| 1.0.0 (1) | 2026-11-13 | Birinchi TWA, `uz.zumsavdo.app` — Play'ga yuklanmagan |
+| 1.0.1 (2) | 2026-11-17 | `uz.zumsavdo.app` — Play rad etdi (paket boshqa) |
+| 1.0.1 (3) | 2026-11-17 | `uz.zumsavdo.ilova`, siyoh rang logotip — Play'dagi mavjud ilovaga |
 
 ## Play Console
 
+- **Upload kalit almashtirildi.** Play mavjud ilova uchun eski upload kalitni kutardi
+  (SHA-1 `85:2B:32:31:AB:23:3B:37:23:D2:91:55:2D:0B:1C:FF:41:83:42:FC`). Uning fayli va
+  paroli topilmadi (2026-11-13: ikki kompyuter, Gmail, Drive tekshirildi; Expo bulutidagi
+  EAS kalit ehtimoli — `xojamurod23` hisobi — tekshirilmagan). Yechim (nazoratchi qarori):
+  Play Console → Protected with Play → Play Store protection → Play app signing →
+  «Request upload key reset» orqali yangi kalit sertifikatini (`upload_certificate.pem`,
+  kalit papkasida) yuborish. Google tasdiqlagach, AAB faqat yangi kalit bilan qabul qilinadi.
 - **Play App Signing.** AAB yuklangach, Google ilovani oʻz kaliti bilan qayta imzolaydi.
   Play Console → App integrity → App signing → «App signing key certificate» SHA-256 ni
   `twa-manifest.json` → `fingerprints` ga va `assetlinks.json` ga qoʻshing. Aks holda
   Play'dan oʻrnatilgan ilovada manzil satri koʻrinadi. Bu iz sir emas.
+- **Ikonka va banner** yangi AAB siz almashadi: Play Console → Main store listing →
+  Graphics: App icon ← `apps/android/store_icon.png`, Feature graphic ←
+  `apps/android/play/banner.png`. Saqlangach, oʻzgarish Google koʻrigidan oʻtadi.
 - Maxfiylik siyosati: `https://zumsavdo.vercel.app/maxfiylik`.
 - **Toʻlov.** Saytda Payme orqali obuna bor. Play qoidasiga koʻra ilova ichida raqamli
   xizmat sotilsa, Google Play Billing talab qilinishi mumkin. Play'ga chiqarishdan oldin
@@ -73,3 +104,5 @@ Versiyalar (`appVersionName` (`appVersionCode`)):
 `cd apps/android && npx @bubblewrap/cli update` — loyihani `twa-manifest.json` dan
 qayta yasaydi (ikonka manzillari saytdagi fayllarga ishora qiladi). Diqqat: andoza
 `build.gradle` ga yana `jcenter()` ni qoʻyadi — uni `mavenCentral()` ga qaytaring.
+Keyin `node apps/web/scripts/ikonka.mjs` ni qayta ishga tushiring: Bubblewrap ikonkalarni
+oʻzicha qayta chizadi.
