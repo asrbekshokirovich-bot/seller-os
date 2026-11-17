@@ -39,6 +39,10 @@ else
 fi
 
 ISH="$(mktemp -d)"
+# Windows (Git Bash): Java «/tmp/...» yoʻlni tushunmaydi — ayniqsa «file:/tmp/..pw»
+# (bundletool --ks-pass) Git Bash tomonidan oʻgirilmaydi va APK yasalmaydi
+# (2026-11-17). Shuning uchun yoʻl «C:/...» koʻrinishiga oʻtkaziladi.
+if command -v cygpath >/dev/null 2>&1; then ISH="$(cygpath -m "$ISH")"; fi
 tozala() {
   if [ -f "$ISH/pw" ]; then shred -u "$ISH/pw" 2>/dev/null || rm -f "$ISH/pw"; fi
   rm -rf "$ISH"
