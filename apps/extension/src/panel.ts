@@ -1,6 +1,6 @@
 // Yon panel — FAQAT CHAT (nazoratchi qarori, 2026-09-29).
 //
-// Panelda ZumSavdo saytining `/yonaltirish` sahifasi (suhbat) ramkada ochiladi.
+// Panelda ZumSavdo saytining `/usta` sahifasi (suhbat) ramkada ochiladi.
 // Boshqa hech narsa chizilmaydi: kartochka ham, natijalar ham, hisob ham —
 // hammasi chatning oʻzida.
 //
@@ -45,7 +45,7 @@ async function boshla(): Promise<void> {
     xabarYoz('Sessiya ochilmadi — internetni tekshirib panelni qayta oching.');
     return;
   }
-  ramka.src = `${SAYT}/yonaltirish#sessiya=${encodeURIComponent(token)}&kengaytma=1`;
+  ramka.src = `${SAYT}/usta#sessiya=${encodeURIComponent(token)}&kengaytma=1`;
   ramka.hidden = false;
   const el = document.getElementById('xabar');
   if (el) el.hidden = true;

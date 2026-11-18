@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
  */
 describe('telefonda «tanlangandek» koʻrinish yoʻq', () => {
   it('usta.module.css: :hover qoidalari @media (hover: hover) ichida', () => {
-    const css = readFileSync(new URL('../src/app/yonaltirish/usta.module.css', import.meta.url), 'utf8');
+    const css = readFileSync(new URL('../src/app/_suhbat/usta.module.css', import.meta.url), 'utf8');
     const tashqarida: string[] = [];
     let chuqurlik = 0;
     let hoverMedia = -1;

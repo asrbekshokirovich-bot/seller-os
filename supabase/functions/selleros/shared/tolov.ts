@@ -155,7 +155,7 @@ export function tolovSozlamasi(env: (k: string) => string | undefined): TolovSoz
   const paketKodi = e('PAYME_PAKET_KODI');
   return {
     jonli,
-    qaytish: e('TOLOV_QAYTISH_URL') ?? 'https://zumsavdo.vercel.app/yonaltirish',
+    qaytish: e('TOLOV_QAYTISH_URL') ?? 'https://zumsavdo.vercel.app/usta',
     payme: {
       merchantId: e('PAYME_MERCHANT_ID'),
       kalit: jonli ? e('PAYME_KEY') : e('PAYME_TEST_KEY'),

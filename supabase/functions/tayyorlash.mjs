@@ -52,7 +52,6 @@ export const FAYLLAR = [
   ['packages/shared/src/uzum-bilim.ts', 'shared/uzum-bilim.ts'],
   ['packages/shared/src/yordamchi.ts', 'shared/yordamchi.ts'],
   ['packages/shared/src/yozuv.ts', 'shared/yozuv.ts'],
-  ['packages/shared/src/tez-savollar.ts', 'shared/tez-savollar.ts'],
   ['packages/shared/src/baho.ts', 'shared/baho.ts'],
   ['packages/shared/src/kartochka-matn.ts', 'shared/kartochka-matn.ts'],
   ['packages/shared/src/erkin-malumot.ts', 'shared/erkin-malumot.ts'],

@@ -53,11 +53,6 @@ export async function ishHolatiniYoz(d: { rpc: Rpc }, token: string, tana: unkno
   return { ok: true };
 }
 
-/** Muddati oʻtgan ochiq ish (`bugun` — mahalliy sana, `YYYY-MM-DD`). Muddatsiz yoki bajarilgan — yoʻq. */
-export function muddatiOtgan(ish: Pick<Ish, 'holat' | 'muddat'>, bugun: string): boolean {
-  return ish.holat === 'ochiq' && ish.muddat !== null && ish.muddat.slice(0, 10) < bugun;
-}
-
 const OY_UZ = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr'];
 const OY_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 

@@ -77,7 +77,7 @@ function TaqqosJadvaliQismi({ tr, til }: { tr: ReturnType<typeof tarjima>; til: 
       <div className={u.qulf}>
         <p><strong>{j.izoh ?? tr('Taqqoslash jadvali obuna bilan ochiladi.', 'Таблица сравнения открывается с подпиской.')}</strong></p>
         <ul>{(j.ustunlar ?? []).map((x) => <li key={x.productId}>{x.nom ?? tr(`Tovar ${x.productId}`, `Товар ${x.productId}`)} — {x.belgi.matn}</li>)}</ul>
-        <a className={u.tugma} href="/yonaltirish">{tr('Obuna', 'Подписка')} — {minglik(j.narx_som ?? 149000)} {tr('soʻm/oy', 'сум/мес')}</a>
+        <a className={u.tugma} href="/usta">{tr('Obuna', 'Подписка')} — {minglik(j.narx_som ?? 149000)} {tr('soʻm/oy', 'сум/мес')}</a>
       </div>
     );
   }

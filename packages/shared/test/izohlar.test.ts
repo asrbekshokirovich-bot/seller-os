@@ -26,11 +26,10 @@ describe('kod kartasi izohlari', () => {
     expect(izohRu('Eski izoh (BACKLOG).')).toBeNull();
   });
 
-  it('suhbat matnlarida ichki yozuv qolmagan (ssenariy, suhbat-kod, chat sahifasi)', () => {
+  it('suhbat matnlarida ichki yozuv qolmagan (ssenariy, suhbat-kod)', () => {
     for (const fayl of [
       new URL('../src/ssenariy.ts', import.meta.url),
       new URL('../../../apps/backend/src/suhbat-kod.ts', import.meta.url),
-      new URL('../../../apps/web/src/app/yonaltirish/Suhbat.tsx', import.meta.url),
     ]) {
       const matn = izohsiz(readFileSync(fayl, 'utf8'));
       const topildi = matn.split('\n').filter((q) => ICHKI.test(q));

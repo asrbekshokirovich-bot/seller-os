@@ -25,7 +25,7 @@ export default function TaqqosSahifa() {
   return (
     // Til — head skripti qoʻygan `<html lang>` dan (ikkinchi koʻrik, 12-taklif): rus tilida sahifa ruscha.
     <div className={`zs-mavzu ${u.sahifa}`}>
-      <SahifaTepa havola={{ href: '/yonaltirish', uz: 'Suhbatga oʻtish', ru: 'Начать чат' }} />
+      <SahifaTepa havola={{ href: '/usta', uz: 'Suhbatga oʻtish', ru: 'Начать чат' }} />
       <main className={u.ichi}>
         <Taqqos />
       </main>

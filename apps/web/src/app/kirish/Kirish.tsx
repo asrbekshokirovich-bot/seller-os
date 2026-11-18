@@ -135,7 +135,7 @@ export default function Kirish({ tovar, til: boshTil }: { tovar: number | null; 
             </div>
             {xabar && <p className={k.xabar} role="status">{xabar}</p>}
             <div className={k.yoki}><span />{tr('yoki', 'или')}<span /></div>
-            <Havola className={k.mehmon} href="/yonaltirish">
+            <Havola className={k.mehmon} href="/usta">
               <span className={k.mehmonIkon}><Ikon nom="odam" o={20} /></span>
               <span className={k.mehmonMatn}>
                 <span className={k.mehmonNom}>{tr('Mehmon sifatida davom etish', 'Продолжить как гость')}</span>
