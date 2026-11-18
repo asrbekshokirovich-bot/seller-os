@@ -39,15 +39,20 @@ const config = {
    */
 
   /*
-   * Ruscha Usta — CDN darajasida: `so_til=ru` cookie bilan kelgan `/usta`
-   * soʻrovi statik `/usta/ru` ga buriladi (manzil oʻzgarmaydi, funksiya
-   * chaqirilmaydi). `beforeFiles` — `/usta` sahifasi bor, `afterFiles`
+   * Ruscha Yoʻnaltirish (eski Usta suhbati) — CDN darajasida: `so_til=ru`
+   * cookie bilan kelgan `/yonaltirish` soʻrovi statik `/yonaltirish/ru` ga
+   * buriladi (manzil oʻzgarmaydi). `beforeFiles` — sahifa bor, `afterFiles`
    * rewrite unga yetib bormasdi.
+   *
+   * `/usta` — yangi ZumSavdo ilovasi (5 funksiya oynasi, Uzum analitikasi).
+   * U `zumsavdo` omboridagi `ilova/` dan statik qurilib `public/usta/` ga
+   * qoʻyiladi (HashRouter: `/usta#/uzum`). Eski suhbat `/yonaltirish` da.
    */
   async rewrites() {
     return {
       beforeFiles: [
-        { source: '/usta', has: [{ type: 'cookie', key: 'so_til', value: 'ru' }], destination: '/usta/ru' },
+        { source: '/yonaltirish', has: [{ type: 'cookie', key: 'so_til', value: 'ru' }], destination: '/yonaltirish/ru' },
+        { source: '/usta', destination: '/usta/index.html' },
         // «Maxfiylik» ruschasi (ikkinchi koʻrik, 12-taklif) — xuddi Usta kabi statik nusxa.
         { source: '/maxfiylik', has: [{ type: 'cookie', key: 'so_til', value: 'ru' }], destination: '/maxfiylik/ru' },
       ],

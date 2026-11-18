@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0A1A34" />
+    <link rel="icon" href="/usta/favicon.svg" type="image/svg+xml" />
+    <title>ZumSavdo</title>
+    <script>
+      // Eski brauzer kengaytmasi suhbatni `/usta#sessiya=...` bilan ochadi;
+      // suhbat endi `/yonaltirish` da — shu yerga o'tkazamiz.
+      if (location.pathname.indexOf("/usta") === 0 && /(^|[#&])(sessiya|kengaytma)=/.test(location.hash)) {
+        location.replace("/yonaltirish" + location.hash);
+      }
+    </script>
+    <script type="module" crossorigin src="/usta/assets/index-CMFyUMlF.js"></script>
+    <link rel="stylesheet" crossorigin href="/usta/assets/index-BWrNvYvV.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

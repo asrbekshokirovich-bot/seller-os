@@ -7,7 +7,7 @@
  * (Next.js: «Preventing flash before hydration»).
  */
 
-import { SUHBAT_BOR } from '../app/usta/suhbatYordam';
+import { SUHBAT_BOR } from '../app/yonaltirish/suhbatYordam';
 
 export const MAVZU_KALIT = 'so_mavzu';
 

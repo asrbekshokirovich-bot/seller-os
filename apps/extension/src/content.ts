@@ -20,7 +20,7 @@ const PANEL_ID = 'selleros-xitoy-panel';
 const JOY_SELEKTOR = '[data-testid="product-actions"], .product-actions, .product-page';
 /**
  * ZumSavdo chat manzili — natijalar panelidagi "toʻliq hisob" havolasi
- * (yangi oynada `/usta`). Yon panel bilan bir manzil (`panel.ts`, `SAYT`).
+ * (yangi oynada `/yonaltirish`). Yon panel bilan bir manzil (`panel.ts`, `SAYT`).
  * Boʻsh boʻlsa havola chizilmaydi.
  */
 const SELLEROS_SAYT = 'https://zumsavdo.vercel.app';
@@ -288,7 +288,7 @@ function natijalarniKorsat(natijalar: Natija[], meta: Meta): void {
   oxiri.className = 'selleros-panel-oxiri';
   if (SELLEROS_SAYT) {
     const a = document.createElement('a');
-    a.href = `${SELLEROS_SAYT}/usta`;
+    a.href = `${SELLEROS_SAYT}/yonaltirish`;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.textContent = 'Toʻliq hisob (chegara narx, kargo, soliq) — ZumSavdo chatida';

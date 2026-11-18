@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function SahifaTopilmadi() {
   return (
     <div className={`zs-mavzu ${t.sahifa}`}>
-      <SahifaTepa havola={{ href: '/usta', uz: 'Suhbatga oʻtish', ru: 'Перейти в чат' }} />
+      <SahifaTepa havola={{ href: '/yonaltirish', uz: 'Suhbatga oʻtish', ru: 'Перейти в чат' }} />
       <main className={t.ichi}>
         <div className={t.son} aria-hidden="true">404</div>
         <h1 className={t.sarlavha}><Ikki uz="Bu sahifa topilmadi" ru="Страница не найдена" /></h1>
@@ -34,7 +34,7 @@ export default function SahifaTopilmadi() {
           />
         </p>
         <div className={t.tugmalar}>
-          <Havola className={t.asosiy} href="/usta"><Ikki uz="Suhbatga oʻtish" ru="Перейти в чат" /></Havola>
+          <Havola className={t.asosiy} href="/yonaltirish"><Ikki uz="Suhbatga oʻtish" ru="Перейти в чат" /></Havola>
           <Havola className={t.ikkinchi} href="/"><Ikki uz="Bosh sahifa" ru="Главная" /></Havola>
         </div>
       </main>

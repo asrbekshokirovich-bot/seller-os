@@ -549,7 +549,7 @@ function BoshSavol({ til, tr }: { til: Til; tr: Tr }) {
     setKetdi(true);
     boshXabarniSaqla(matn);
     birMarta('bosh_boshladi');
-    window.location.assign(hashBilan('/usta', hash));
+    window.location.assign(hashBilan('/yonaltirish', hash));
   }
 
   return (

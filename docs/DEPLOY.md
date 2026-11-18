@@ -110,7 +110,8 @@ Vercel da.
 | Yoʻl | Nima | Qayerdan |
 |---|---|---|
 | `/` | sotuv sahifasi | `dizayn/ZumSavdo-standalone.html` dan yasaladi |
-| `/usta` | 1-qadam formasi | `src/app/usta/page.tsx` |
+| `/usta` | yangi ZumSavdo ilovasi (Uzum analitikasi va boshqa oynalar) | `public/usta/` — `zumsavdo` omboridagi `ilova/` da `npm run seller-os` bilan quriladi |
+| `/yonaltirish` | 1-qadam formasi (eski Usta suhbati) | `src/app/yonaltirish/page.tsx` |
 
 Sotuv sahifasi Next komponenti EMAS: u dizayn vositasidan chiqqan
 178 KB lik tayyor HTML. `dizayn/qurish.mjs` uni ochib, matn

@@ -174,7 +174,7 @@ function chiz(panel: HTMLElement, j: Javob, o: {
     );
     panel.append(k, el('p', 'zs-qulf', j.izoh ?? 'Toʻliq bozor paneli obuna bilan ochiladi.'));
     const a = el('a', 'zs-tugma zs-asosiy', `Obuna — ${minglik(j.narx_som ?? 149000)} soʻm/oy`);
-    a.href = `${SAYT}/usta`; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.href = `${SAYT}/yonaltirish`; a.target = '_blank'; a.rel = 'noopener noreferrer';
     panel.append(a);
     return;
   }

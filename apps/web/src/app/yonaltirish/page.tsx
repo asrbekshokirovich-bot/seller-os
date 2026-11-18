@@ -1,5 +1,5 @@
 /**
- * Usta — `/usta`.
+ * Usta — `/yonaltirish`.
  *
  * 2026-09-25 gacha bu fayl uch savollik forma va natija kartalari
  * edi (2 000 qator). Nazoratchi topshirigʻi bilan u SUHBAT ga

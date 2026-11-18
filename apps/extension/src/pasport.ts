@@ -136,7 +136,7 @@ function chiz(panel: HTMLElement, j: Javob, qosh: (nom: string) => void): void {
     const qulf = el('p', 'zs-qulf', j.izoh ?? 'Toʻliq pasport obuna bilan ochiladi.');
     panel.append(qulf);
     const a = el('a', 'zs-tugma zs-asosiy', `Obuna — ${minglik(j.narx_som ?? 149000)} soʻm/oy`);
-    a.href = `${SAYT}/usta`; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.href = `${SAYT}/yonaltirish`; a.target = '_blank'; a.rel = 'noopener noreferrer';
     panel.append(a);
     return;
   }
@@ -187,7 +187,7 @@ function chiz(panel: HTMLElement, j: Javob, qosh: (nom: string) => void): void {
   q.type = 'button';
   q.addEventListener('click', () => { qosh(p.nom ?? document.title); q.textContent = '✓ Taqqoslashda'; });
   const chat = el('a', 'zs-tugma', 'Chatda hisobla');
-  chat.href = `${SAYT}/usta`; chat.target = '_blank'; chat.rel = 'noopener noreferrer';
+  chat.href = `${SAYT}/yonaltirish`; chat.target = '_blank'; chat.rel = 'noopener noreferrer';
   tugmalar.append(q, chat);
   panel.append(tugmalar);
 }

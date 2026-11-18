@@ -115,9 +115,9 @@ describe('Payme — usullar', () => {
   });
 
   it('toʻlov sahifasi: base64 parametrlar; sinovda — test.paycom.uz; «;» li qaytish manzili qoʻshilmaydi', () => {
-    const jonli = paymeCheckoutUrl({ merchantId: 'm1', buyurtma: 7, summaTiyin: SUMMA, qaytish: 'https://zumsavdo.vercel.app/usta', sinov: false });
+    const jonli = paymeCheckoutUrl({ merchantId: 'm1', buyurtma: 7, summaTiyin: SUMMA, qaytish: 'https://zumsavdo.vercel.app/yonaltirish', sinov: false });
     expect(jonli.startsWith('https://checkout.paycom.uz/')).toBe(true);
-    expect(atob(jonli.split('/').pop()!)).toBe(`m=m1;ac.order_id=7;a=${SUMMA};l=uz;c=https://zumsavdo.vercel.app/usta`);
+    expect(atob(jonli.split('/').pop()!)).toBe(`m=m1;ac.order_id=7;a=${SUMMA};l=uz;c=https://zumsavdo.vercel.app/yonaltirish`);
     const sinov = paymeCheckoutUrl({ merchantId: 'm1', buyurtma: 7, summaTiyin: SUMMA, qaytish: 'https://x.uz/a;b', sinov: true });
     expect(sinov.startsWith('https://test.paycom.uz/')).toBe(true);
     expect(atob(sinov.split('/').pop()!)).toBe(`m=m1;ac.order_id=7;a=${SUMMA};l=uz`);
@@ -196,16 +196,16 @@ describe('Click — imzo va forma', () => {
   });
 
   it('toʻlov sahifasi: my.click.uz, summa N.NN, transaction_param — buyurtma', () => {
-    const u = new URL(clickCheckoutUrl({ xizmatId: '1', merchantId: '2', buyurtma: 42, summaSom: OBUNA_NARXI, qaytish: 'https://zumsavdo.vercel.app/usta' }));
+    const u = new URL(clickCheckoutUrl({ xizmatId: '1', merchantId: '2', buyurtma: 42, summaSom: OBUNA_NARXI, qaytish: 'https://zumsavdo.vercel.app/yonaltirish' }));
     expect(u.origin + u.pathname).toBe('https://my.click.uz/services/pay');
-    expect(Object.fromEntries(u.searchParams)).toEqual({ service_id: '1', merchant_id: '2', amount: '149000.00', transaction_param: '42', return_url: 'https://zumsavdo.vercel.app/usta' });
+    expect(Object.fromEntries(u.searchParams)).toEqual({ service_id: '1', merchant_id: '2', amount: '149000.00', transaction_param: '42', return_url: 'https://zumsavdo.vercel.app/yonaltirish' });
   });
 });
 
 // ==================================================================== boshlash va sozlamalar
 
 const SOZ = (q: Partial<TolovSozlamasi> = {}): TolovSozlamasi => ({
-  jonli: false, qaytish: 'https://zumsavdo.vercel.app/usta',
+  jonli: false, qaytish: 'https://zumsavdo.vercel.app/yonaltirish',
   payme: { merchantId: 'm1', kalit: 'k', chek: null },
   click: { xizmatId: '1', merchantId: '2', maxfiyKalit: 's' }, ...q,
 });
@@ -216,7 +216,7 @@ describe('tolovSozlamasi va tolovniBoshla', () => {
     expect(tolovSozlamasi((k) => env[k])).toMatchObject({ jonli: false, payme: { merchantId: 'm1', kalit: 'sinov', chek: null }, click: { xizmatId: '1', merchantId: null } });
     const j = tolovSozlamasi((k) => ({ ...env, PAYMENTS_LIVE: '1', PAYME_PAKET_KODI: '15' } as Record<string, string>)[k]);
     expect(j).toMatchObject({ jonli: true, payme: { kalit: 'jonli', chek: { ikpu: '103', paketKodi: '15', qqsFoiz: 0 } } });
-    expect(j.qaytish).toBe('https://zumsavdo.vercel.app/usta');
+    expect(j.qaytish).toBe('https://zumsavdo.vercel.app/yonaltirish');
   });
 
   it('notanish provayder — 400; sozlanmagan — 503 va buyurtma yozilmaydi; Click — faqat jonli', async () => {

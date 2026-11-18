@@ -6,6 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${sayt}/`, changeFrequency: 'daily', priority: 1 },
     { url: `${sayt}/usta`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${sayt}/yonaltirish`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${sayt}/maxfiylik`, changeFrequency: 'monthly', priority: 0.3 },
   ];
 }
