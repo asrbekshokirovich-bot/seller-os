@@ -26,7 +26,6 @@ export * from './bilim-javob.js';
 export * from './uzum-bilim.js';
 export * from './yordamchi.js';
 export * from './yozuv.js';
-export * from './tez-savollar.js';
 export * from './baho.js';
 export * from './erkin-malumot.js';
 export * from './munosabat.js';

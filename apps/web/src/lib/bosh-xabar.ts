@@ -17,7 +17,6 @@ import { BILMAYMAN, SAVDO_SOHALARI } from '@selleros/shared';
 import type { Til } from './til';
 
 export const BOSH_XABAR_KALIT = 'zs-bosh-xabar';
-export const BOSH_XABAR_MUDDAT_MS = 10 * 60 * 1000;
 /** Matn chegarasi — chatdagi yozish maydonidagidek (`maxLength={500}`). */
 export const BOSH_XABAR_MAX = 500;
 
@@ -53,30 +52,5 @@ export function boshXabarniSaqla(matn: string, hozir = Date.now()): boolean {
     return true;
   } catch {
     return false;
-  }
-}
-
-/**
- * Chat ochilganda: matnni oladi va OʻCHIRADI — sahifa yangilansa qayta yuborilmaydi. Yoʻq,
- * buzuq yoki eskirgan — `null`.
- */
-export function boshXabarniOl(hozir = Date.now()): string | null {
-  let xom: string | null;
-  try {
-    xom = sessionStorage.getItem(BOSH_XABAR_KALIT);
-    if (xom !== null) sessionStorage.removeItem(BOSH_XABAR_KALIT);
-  } catch {
-    return null;
-  }
-  if (!xom) return null;
-  try {
-    const o = JSON.parse(xom) as { matn?: unknown; vaqt?: unknown };
-    if (typeof o.matn !== 'string' || typeof o.vaqt !== 'number') return null;
-    // Eskirgan yoki soati notoʻgʻri (kelajakdan) — yuborilmaydi.
-    if (hozir - o.vaqt > BOSH_XABAR_MUDDAT_MS || o.vaqt - hozir > 60_000) return null;
-    const t = o.matn.trim();
-    return t ? t.slice(0, BOSH_XABAR_MAX) : null;
-  } catch {
-    return null;
   }
 }

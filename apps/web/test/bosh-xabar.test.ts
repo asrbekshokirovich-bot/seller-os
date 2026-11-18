@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BYUDJET_TUGMALARI } from '@selleros/shared';
 import {
-  BOSH_XABAR_KALIT, BOSH_XABAR_MAX, BOSH_XABAR_MUDDAT_MS, boshXabarMatni, boshXabarniOl, boshXabarniSaqla, pulMatni,
+  BOSH_XABAR_MAX, boshXabarMatni, pulMatni,
 } from '../src/lib/bosh-xabar';
 
 function xotira() {
@@ -56,31 +56,3 @@ describe('boshXabarMatni', () => {
   });
 });
 
-describe('boshXabarniSaqla / boshXabarniOl', () => {
-  it('saqlangan matn bir marta oʻqiladi va oʻchadi', () => {
-    expect(boshXabarniSaqla('Sport. Byudjet: 10 mln soʻm', 1_000)).toBe(true);
-    expect(boshXabarniOl(2_000)).toBe('Sport. Byudjet: 10 mln soʻm');
-    expect(boshXabarniOl(2_000)).toBeNull();
-  });
-
-  it('eskirgan, kelajakdan yoki buzuq — yuborilmaydi (lekin baribir oʻchadi)', () => {
-    const s = sessionStorage as unknown as ReturnType<typeof xotira>;
-    boshXabarniSaqla('eski', 0);
-    expect(boshXabarniOl(BOSH_XABAR_MUDDAT_MS + 1)).toBeNull();
-    expect(s.m.has(BOSH_XABAR_KALIT)).toBe(false);
-    boshXabarniSaqla('kelajak', 500_000);
-    expect(boshXabarniOl(0)).toBeNull();
-    for (const xom of ['json emas', '{"matn":5,"vaqt":1}', '{"matn":"x"}', '{"matn":"   ","vaqt":1}']) {
-      s.setItem(BOSH_XABAR_KALIT, xom);
-      expect(boshXabarniOl(1), xom).toBeNull();
-    }
-  });
-
-  it('xotira yopiq — yiqilmaydi: saqlash `false`, oʻqish `null`', () => {
-    vi.stubGlobal('sessionStorage', {
-      getItem: () => { throw new Error('yopiq'); }, setItem: () => { throw new Error('yopiq'); }, removeItem: () => {},
-    });
-    expect(boshXabarniSaqla('x')).toBe(false);
-    expect(boshXabarniOl()).toBeNull();
-  });
-});

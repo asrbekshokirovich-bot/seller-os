@@ -15,7 +15,7 @@
  * ham xato.
  *
  * Matn bu yerda OʻZBEKCHA. Webdagi uch savolning ruschasi (2026-09-25)
- * `apps/web/src/app/usta/page.tsx` dagi `SAVOL_RU` da — faqat
+ * (eski `/usta` chat sahifasidagi `SAVOL_RU` da edi — sahifa olib tashlandi) — faqat
  * koʻrinadigan matn; maydon va qiymatlar shu yerda, bitta.
  */
 

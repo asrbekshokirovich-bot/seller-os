@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ishHolatiniYoz, ishlarimOqi, ishNomi, muddatiOtgan } from '../src/index.js';
+import { ishHolatiniYoz, ishlarimOqi, ishNomi } from '../src/index.js';
 
 /** Soxta baza: chaqiruvlarni yozadi, oldindan berilgan javobni qaytaradi. */
 function soxta(javob: unknown) {
@@ -37,12 +37,6 @@ describe('«Ishlarim» (ikkinchi koʻrik, K2)', () => {
     expect(await ishHolatiniYoz(soxta(null), 'tok', { id: 9, bajarildi: false })).toEqual({ xato: 'baza javob bermadi', status: 503 });
   });
 
-  it('muddati oʻtgan: faqat ochiq, muddatli va bugundan oldingi', () => {
-    expect(muddatiOtgan({ holat: 'ochiq', muddat: '2026-11-05' }, '2026-11-06')).toBe(true);
-    expect(muddatiOtgan({ holat: 'ochiq', muddat: '2026-11-06' }, '2026-11-06')).toBe(false);
-    expect(muddatiOtgan({ holat: 'yopiq', muddat: '2026-11-01' }, '2026-11-06')).toBe(false);
-    expect(muddatiOtgan({ holat: 'ochiq', muddat: null }, '2026-11-06')).toBe(false);
-  });
 
   it('nom: birinchi harf katta, eski oy yozuvi odamcha; qavslar bittalab', () => {
     expect(ishNomi('yuk kelishi')).toBe('Yuk kelishi');

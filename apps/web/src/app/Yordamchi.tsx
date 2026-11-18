@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { oqimmi, sseOqi } from '@selleros/shared';
 import { useKengaytmadami } from '@/lib/kengaytma';
 import { Ikon } from './Ikon';
-import { TahlilIlovasi, tahlilJavobimi, type TahlilJavobi } from './usta/TahlilIlovasi';
+import { TahlilIlovasi, tahlilJavobimi, type TahlilJavobi } from './_suhbat/TahlilIlovasi';
 import y from './yordamchi.module.css';
 
 export type YordamchiSahifasi = 'bosh' | 'kirish' | 'maxfiylik' | 'obuna';
@@ -35,9 +35,9 @@ const TEZ: Record<YordamchiSahifasi, Array<[string, string]>> = {
 export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = true }: {
   sahifa: YordamchiSahifasi;
   til: 'uz' | 'ru';
-  /** Kengaytma rejimidagi sessiya sarlavhasi (`/usta`); oddiy saytda — cookie. */
+  /** Kengaytma rejimidagi sessiya sarlavhasi; oddiy saytda — cookie. */
   sarlavha?: () => Record<string, string>;
-  /** «Yoʻlni boshlash» havolasi — `/usta` ichida kerak emas. */
+  /** «Yoʻlni boshlash» havolasi (yangi ilova, `/usta`). */
   boshlashHavolasi?: boolean;
 }) {
   const tr = (uz: string, ru: string) => (til === 'ru' ? ru : uz);
@@ -190,7 +190,7 @@ export default function Yordamchi({ sahifa, til, sarlavha, boshlashHavolasi = tr
             </button>
           </form>
           {boshlashHavolasi && (
-            <a className={y.boshlash} href={til === 'ru' ? '/usta/ru' : '/usta'}>
+            <a className={y.boshlash} href="/usta">
               {tr('Yoʻlni boshlash — nima sotishni birga tanlaymiz →', 'Начать путь — вместе выберем, что продавать →')}
             </a>
           )}
