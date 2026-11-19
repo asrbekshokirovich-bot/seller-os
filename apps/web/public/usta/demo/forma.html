@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sotuvchi kabineti — demo forma (ZumSavdo)</title>
+<!--
+  ZumSavdo kengaytmasini sinash uchun DEMO sotuvchi kabineti formasi.
+  Bu forma kengaytma haqida hech narsa bilmaydi: kengaytma uni haqiqiy
+  kabinetdagidek — maydon yorliqlariga qarab — to'ldiradi.
+  ?mp=uzum|yandex|wb   ?v=2 — boshqa yorliqlar va tartib (forma o'zgarganini sinash)
+-->
+<style>
+  :root { --c: #7000ff; --ink: #1f2229; --mut: #7a7f8a; --line: #e3e5ea; --bg: #f2f3f6; --bad: #e5262b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 Inter, "Segoe UI", system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+  .demo { background: #0a1a34; color: #d4e94c; font: 600 12.5px/1 system-ui, sans-serif; padding: 9px 16px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .demo a { color: #fff; text-decoration: none; padding: 3px 8px; border-radius: 99px; border: 1px solid #33476b; }
+  .demo a.on { border-color: #d4e94c; color: #d4e94c; }
+  .demo .sp { flex: 1; }
+  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 31px); }
+  aside { background: #fff; border-right: 1px solid var(--line); padding: 18px 12px; }
+  .logo { font-weight: 900; font-size: 20px; color: var(--c); padding: 0 8px 18px; }
+  .logo small { display: block; font-size: 11.5px; color: var(--mut); font-weight: 600; }
+  .nav a { display: block; padding: 9px 10px; border-radius: 8px; color: #444; text-decoration: none; font-weight: 550; }
+  .nav a.on { background: color-mix(in srgb, var(--c) 10%, #fff); color: var(--c); }
+  main { padding: 22px 28px 120px; max-width: 980px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--mut); margin: 0 0 18px; }
+  .sec { background: #fff; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; border: 1px solid var(--line); }
+  .sec > h2 { font-size: 15px; margin: 0 0 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+  .full { grid-column: 1 / -1; }
+  .fld { display: flex; flex-direction: column; gap: 6px; }
+  .fld > label, .fld > .lbl { font-size: 13px; font-weight: 600; color: #3b3f48; }
+  .req::after { content: " *"; color: var(--bad); }
+  input, select, textarea { font: inherit; color: inherit; border: 1px solid #d3d6dd; border-radius: 8px; padding: 9px 11px; background: #fff; width: 100%; }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus, select:focus, textarea:focus, [contenteditable]:focus { outline: 2px solid color-mix(in srgb, var(--c) 40%, transparent); border-color: var(--c); }
+  .rich { min-height: 140px; border: 1px solid #d3d6dd; border-radius: 8px; padding: 10px 12px; background: #fff; white-space: pre-wrap; }
+  .rich-bar { display: flex; gap: 4px; margin-bottom: -1px; }
+  .rich-bar span { font-size: 12px; padding: 3px 8px; border: 1px solid #d3d6dd; border-bottom: 0; border-radius: 6px 6px 0 0; color: var(--mut); background: #fafafa; }
+  .hint { font-size: 12px; color: var(--mut); }
+  .err { font-size: 12px; color: var(--bad); display: none; }
+  .bad .err { display: block; }
+  .bad input, .bad select, .bad textarea, .bad .rich, .bad .combo-in { border-color: var(--bad); }
+  .tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--bg); border-radius: 10px; margin-bottom: 14px; }
+  .tabs button { border: 0; background: none; padding: 7px 14px; border-radius: 8px; font: inherit; font-weight: 600; color: var(--mut); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .tabpane[hidden] { display: none; }
+  .combo { position: relative; }
+  .combo-list { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.12); max-height: 260px; overflow: auto; display: none; }
+  .combo.open .combo-list { display: block; }
+  .combo-list [role=option] { padding: 9px 12px; cursor: pointer; }
+  .combo-list [role=option]:hover, .combo-list [role=option][aria-selected=true] { background: var(--bg); }
+  .combo-list small { display: block; color: var(--mut); font-size: 11.5px; }
+  .chosen { margin-top: 6px; font-size: 12.5px; color: var(--c); font-weight: 600; }
+  table.var { width: 100%; border-collapse: collapse; }
+  table.var th { text-align: left; font-size: 12px; color: var(--mut); font-weight: 600; padding: 6px 6px; border-bottom: 1px solid var(--line); }
+  table.var td { padding: 6px; border-bottom: 1px solid var(--line); }
+  table.var input { padding: 7px 8px; }
+  .btn { height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid #d3d6dd; background: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn.p { background: var(--c); border-color: var(--c); color: #fff; }
+  .drop { border: 2px dashed #cfd3db; border-radius: 12px; padding: 22px; text-align: center; color: var(--mut); cursor: pointer; display: block; }
+  .drop input { display: none; }
+  .imgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 10px; }
+  .imgs img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fafafa; }
+  .foot { position: fixed; left: 220px; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); padding: 12px 28px; display: flex; gap: 10px; align-items: center; z-index: 10; }
+  .foot .sp { flex: 1; }
+  .ok { text-align: center; padding: 70px 20px; }
+  .ok .ic { width: 72px; height: 72px; border-radius: 50%; background: #e3f4ea; color: #137a3f; display: grid; place-items: center; margin: 0 auto 16px; font-size: 36px; }
+  @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } aside { display: none; } .grid { grid-template-columns: 1fr; } .foot { left: 0; } main { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="demo">
+  <span>ZumSavdo · DEMO sotuvchi kabineti</span>
+  <span id="mps"></span>
+  <span class="sp"></span>
+  <span id="vers"></span>
+</div>
+<div class="shell">
+  <aside><div class="logo" id="logo"></div><nav class="nav" id="nav"></nav></aside>
+  <main id="main"></main>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var MP = { uzum: 1, yandex: 1, wb: 1 }[q.get("mp")] ? q.get("mp") : "uzum";
+  var V = q.get("v") === "2" ? 2 : 1;
+
+  var CATS = {
+    uzum: [["Kiyim", "Erkaklar kiyimi", "Futbolka va maykalar"], ["Kiyim", "Ayollar kiyimi", "Futbolka va toplar"], ["Elektronika", "Audiotexnika", "Quloqchinlar va garnituralar"], ["Elektronika", "Smartfon aksessuarlari", "Quvvatlagichlar"], ["Uy-ro'zg'or", "Oshxona", "Oziq-ovqat saqlash idishlari"], ["Uy-ro'zg'or", "Oshxona", "Lanchbokslar"], ["Uy-ro'zg'or", "Uyni tartibga solish", "Saqlash qutilari"]],
+    yandex: [["Одежда", "Мужская одежда", "Футболки"], ["Одежда", "Женская одежда", "Футболки и топы"], ["Электроника", "Аудиотехника", "Наушники и гарнитуры"], ["Электроника", "Аксессуары для телефонов", "Зарядные устройства"], ["Дом и сад", "Посуда и кухня", "Контейнеры для еды"], ["Дом и сад", "Посуда и кухня", "Ланч-боксы"]],
+    wb: [["Мужчинам", "Футболки и майки", "Футболки"], ["Женщинам", "Футболки и топы", "Футболки"], ["Электроника", "Наушники", "Беспроводные наушники"], ["Дом", "Кухня", "Контейнеры для хранения продуктов"], ["Дом", "Кухня", "Ланч-боксы"]]
+  };
+
+  var P = {
+    uzum: { nom: "Uzum Market", c: "#7000ff", sub: "Sotuvchi kabineti", h: "Yangi tovar", nav: ["Bosh sahifa", "Tovarlar", "Buyurtmalar", "Moliya", "Analitika"] },
+    yandex: { nom: "Яндекс Маркет", c: "#e8b400", sub: "Кабинет продавца", h: "Новый товар", nav: ["Главная", "Товары", "Заказы", "Финансы", "Аналитика"] },
+    wb: { nom: "Wildberries", c: "#cb11ab", sub: "Портал продавцов", h: "Создание карточки", nav: ["Главная", "Товары", "Поставки", "Финансы", "Аналитика"] }
+  }[MP];
+  document.documentElement.style.setProperty("--c", P.c);
+  document.getElementById("logo").innerHTML = P.nom + "<small>" + P.sub + "</small>";
+  document.getElementById("nav").innerHTML = P.nav.map(function (n, i) { return '<a href="#" class="' + (i === 1 ? "on" : "") + '">' + n + "</a>"; }).join("");
+  document.getElementById("mps").innerHTML = ["uzum", "yandex", "wb"].map(function (m) { return '<a href="?mp=' + m + (V === 2 ? "&v=2" : "") + '" class="' + (m === MP ? "on" : "") + '">' + m + "</a>"; }).join(" ");
+  document.getElementById("vers").innerHTML = '<a href="?mp=' + MP + '" class="' + (V === 1 ? "on" : "") + '">Forma v1</a> <a href="?mp=' + MP + '&v=2" class="' + (V === 2 ? "on" : "") + '">Forma v2 (yorliqlar boshqa)</a>';
+
+  // Maydonlar: [id, yorliq v1, yorliq v2, tur, majburiy]
+  var F = {
+    uzum: {
+      til: true,
+      asosiy: [
+        ["nom", "Mahsulot nomi", "Tovar nomi", "text", 1],
+        ["qisqa", "Qisqa tavsif", "Tovar haqida qisqacha", "textarea", 0],
+        ["tavsif", "To'liq tavsif", "Mahsulot tavsifi", "rich", 1]
+      ],
+      boshqa: [
+        ["kat", "Kategoriya", "Turkum", "combo", 1],
+        ["ikpu", "IKPU (MXIK) kodi", "MXIK kod", "text", 1],
+        ["brend", "Brend", "Tovar belgisi (brend)", "text", 1],
+        ["mamlakat", "Ishlab chiqarilgan mamlakat", "Kelib chiqish mamlakati", "select", 0],
+        ["material", "Material", "Tarkibi", "text", 0],
+        ["ogirlik", "Og'irligi (qadoq bilan), kg", "Qadoqdagi vazn, kg", "number", 0],
+        ["uzunlik", "Uzunligi, sm", "Qadoq uzunligi, sm", "number", 0],
+        ["eni", "Eni, sm", "Qadoq eni, sm", "number", 0],
+        ["balandlik", "Balandligi, sm", "Qadoq balandligi, sm", "number", 0],
+        ["kalit", "Kalit so'zlar (qidiruv uchun)", "Qidiruv teglari", "text", 0]
+      ],
+      varH: [["Rang", "Rangi"], ["O'lcham", "O'lchami"], ["Narx, so'm", "Sotuv narxi"], ["Chegirmasiz narx", "Eski narx"], ["Qoldiq", "Ombordagi soni"], ["SKU", "Artikul"]],
+      varAdd: "Variant qo'shish",
+      rasm: ["Rasmlar", "Tovar suratlari"],
+      yubor: "Moderatsiyaga yuborish",
+      ok: "Tovar moderatsiyaga yuborildi", okSub: "Tekshiruv 1–2 ish kunida tugaydi. Holatni «Tovarlar» bo'limida kuzating."
+    },
+    yandex: {
+      asosiy: [
+        ["nom", "Название товара", "Наименование", "text", 1],
+        ["tavsif", "Описание", "Описание товара", "textarea", 1]
+      ],
+      boshqa: [
+        ["kat", "Категория", "Категория на Маркете", "combo", 1],
+        ["brend", "Бренд", "Производитель (бренд)", "text", 1],
+        ["mamlakat", "Страна производства", "Страна-изготовитель", "select", 0],
+        ["ogirlik", "Вес с упаковкой, кг", "Вес брутто, кг", "number", 1],
+        ["uzunlik", "Длина, см", "Длина упаковки, см", "number", 1],
+        ["eni", "Ширина, см", "Ширина упаковки, см", "number", 1],
+        ["balandlik", "Высота, см", "Высота упаковки, см", "number", 1],
+        ["material", "Материал", "Состав", "text", 0]
+      ],
+      varH: [["Цвет", "Цвет товара"], ["Размер", "Размер"], ["Цена, сум", "Цена продажи"], ["Цена до скидки", "Старая цена"], ["Остаток", "Остаток на складе"], ["SKU", "Ваш SKU"]],
+      varAdd: "Добавить вариант",
+      rasm: ["Фото", "Изображения товара"],
+      yubor: "Сохранить и отправить",
+      ok: "Товар создан", okSub: "Карточка отправлена на проверку."
+    },
+    wb: {
+      asosiy: [
+        ["nom", "Наименование", "Название", "text", 1],
+        ["tavsif", "Описание", "Описание карточки", "textarea", 1]
+      ],
+      boshqa: [
+        ["kat", "Предмет", "Категория (предмет)", "combo", 1],
+        ["brend", "Бренд", "Торговая марка", "text", 1],
+        ["mamlakat", "Страна производства", "Страна", "select", 0],
+        ["material", "Состав", "Материал изделия", "text", 0],
+        ["ogirlik", "Вес товара с упаковкой (кг)", "Вес, кг", "number", 0]
+      ],
+      varH: [["Цвет", "Цвет"], ["Размер", "Рос. размер"], ["Цена, сум", "Розничная цена"], ["Цена до скидки", "Цена без скидки"], ["Остаток", "Количество"], ["Артикул продавца", "Баркод/артикул"]],
+      varAdd: "Добавить размер",
+      rasm: ["Медиафайлы", "Фото и видео"],
+      yubor: "Сохранить",
+      ok: "Карточка товара создана", okSub: "Карточка появится в каталоге после модерации."
+    }
+  }[MP];
+
+  var L = function (f) { return V === 2 ? f[2] : f[1]; };
+  var esc = function (t) { var e = document.createElement("div"); e.textContent = t; return e.innerHTML; };
+  var n = 0;
+  function maydon(f, suf, til) {
+    var id = "f_" + f[0] + (suf || "") + "_" + (++n);
+    var lbl = L(f) + (til ? (V === 2 ? " (" + til.toUpperCase() + ")" : "") : "");
+    var req = f[4] ? ' class="req"' : "";
+    var r = f[4] ? " required" : "";
+    var inner;
+    if (f[3] === "textarea") inner = '<textarea id="' + id + '"' + r + "></textarea>";
+    else if (f[3] === "rich") inner = '<div class="rich-bar"><span>B</span><span>I</span><span>•</span></div><div class="rich" id="' + id + '" contenteditable="true" role="textbox" aria-multiline="true"' + (r ? ' aria-required="true"' : "") + "></div>";
+    else if (f[3] === "select") inner = '<select id="' + id + '"><option value="">' + (MP === "uzum" ? "Tanlang" : "Выберите") + '</option><option>Xitoy</option><option>O\'zbekiston</option><option>Turkiya</option><option>Китай</option><option>Россия</option></select>';
+    else if (f[3] === "combo") inner = '<div class="combo"><input id="' + id + '" class="combo-in" role="combobox" aria-expanded="false" autocomplete="off" placeholder="' + (MP === "uzum" ? "Qidirish…" : "Поиск…") + '"' + r + '><div class="combo-list" role="listbox"></div><div class="chosen"></div></div>';
+    else inner = '<input id="' + id + '" type="' + (f[3] === "number" ? "number" : "text") + '"' + (f[3] === "number" ? ' step="any"' : "") + r + ">";
+    var lab = f[3] === "rich" ? '<span class="lbl" id="' + id + '_l"' + req + ">" + esc(lbl) + "</span>" : '<label for="' + id + '"' + req + ">" + esc(lbl) + "</label>";
+    if (f[3] === "rich") inner = inner.replace('contenteditable', 'aria-labelledby="' + id + '_l" contenteditable');
+    var wide = f[3] === "rich" || f[3] === "textarea" || f[0] === "nom" || f[0] === "kat" || f[0] === "kalit";
+    return '<div class="fld' + (wide ? " full" : "") + '" data-f="' + f[0] + (suf || "") + '" data-req="' + (f[4] ? 1 : 0) + '">' + lab + inner + '<div class="err">' + (MP === "uzum" ? "Majburiy maydon" : "Обязательное поле") + "</div></div>";
+  }
+
+  var boshqa = F.boshqa.slice();
+  if (V === 2) boshqa.reverse();
+  var h = "<h1>" + P.h + "</h1><p class=\"sub\">" + (MP === "uzum" ? "Barcha majburiy maydonlarni to'ldiring" : "Заполните обязательные поля") + "</p>";
+  h += '<div class="sec"><h2>' + (MP === "uzum" ? "Asosiy ma'lumot" : "Основная информация") + "</h2>";
+  if (F.til && V === 1) {
+    h += '<div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-tab="uz">O\'zbekcha</button><button type="button" role="tab" aria-selected="false" data-tab="ru">Русский</button></div>';
+    ["uz", "ru"].forEach(function (t, i) {
+      h += '<div class="tabpane grid" data-pane="' + t + '"' + (i ? " hidden" : "") + ">" + F.asosiy.map(function (f) { return maydon(f, "_" + t, t); }).join("") + "</div>";
+    });
+  } else if (F.til) {
+    h += '<div class="grid">' + ["uz", "ru"].map(function (t) { return F.asosiy.map(function (f) { return maydon(f, "_" + t, t); }).join(""); }).join("") + "</div>";
+  } else {
+    h += '<div class="grid">' + F.asosiy.map(function (f) { return maydon(f); }).join("") + "</div>";
+  }
+  h += "</div>";
+  h += '<div class="sec"><h2>' + (MP === "uzum" ? "Xususiyatlar va logistika" : "Характеристики") + '</h2><div class="grid">' + boshqa.map(function (f) { return maydon(f); }).join("") + "</div></div>";
+  h += '<div class="sec"><h2>' + (MP === "uzum" ? "Variantlar va narx" : "Варианты и цены") + '</h2><table class="var" data-f="variant"><thead><tr>' + F.varH.map(function (x, i) { return "<th" + (i === 2 ? ' class="req"' : "") + ">" + esc(V === 2 ? x[1] : x[0]) + "</th>"; }).join("") + '<th></th></tr></thead><tbody></tbody></table><div style="margin-top:10px"><button type="button" class="btn" id="addVar">+ ' + esc(F.varAdd) + "</button></div></div>";
+  h += '<div class="sec"><div class="fld" data-f="rasm" data-req="1"><span class="lbl req" id="rasm_l">' + esc(V === 2 ? F.rasm[1] : F.rasm[0]) + '</span><label class="drop">' + (MP === "uzum" ? "Rasmlarni shu yerga tashlang yoki tanlang" : "Перетащите фото или выберите") + ' <input type="file" accept="image/*" multiple aria-labelledby="rasm_l"></label><div class="imgs"></div><div class="err">' + (MP === "uzum" ? "Kamida 1 ta rasm" : "Минимум 1 фото") + "</div></div></div>";
+  h += '<div class="foot"><span class="hint" id="hint"></span><span class="sp"></span><button type="button" class="btn">' + (MP === "uzum" ? "Qoralama" : "Черновик") + '</button><button type="submit" class="btn p" id="send">' + esc(F.yubor) + "</button></div>";
+  var main = document.getElementById("main");
+  main.innerHTML = '<form id="frm" novalidate>' + h + "</form>";
+
+  // tillar
+  main.querySelectorAll("[data-tab]").forEach(function (b) {
+    b.onclick = function () {
+      main.querySelectorAll("[data-tab]").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+      main.querySelectorAll("[data-pane]").forEach(function (p) { p.hidden = p.dataset.pane !== b.dataset.tab; });
+    };
+  });
+
+  // kategoriya (qidiruvli ro'yxat)
+  main.querySelectorAll(".combo").forEach(function (c) {
+    var inp = c.querySelector("input"), list = c.querySelector(".combo-list"), ch = c.querySelector(".chosen");
+    function draw() {
+      var s = inp.value.trim().toLowerCase();
+      var r = CATS[MP].filter(function (p) { return !s || p.join(" ").toLowerCase().indexOf(s) >= 0; });
+      list.innerHTML = r.map(function (p, i) { return '<div role="option" data-i="' + CATS[MP].indexOf(p) + '">' + esc(p[2]) + "<small>" + esc(p.slice(0, 2).join(" › ")) + "</small></div>"; }).join("") || '<div style="padding:10px;color:#999">—</div>';
+    }
+    inp.addEventListener("focus", function () { draw(); c.classList.add("open"); inp.setAttribute("aria-expanded", "true"); });
+    inp.addEventListener("input", function () { c.dataset.val = ""; ch.textContent = ""; draw(); c.classList.add("open"); });
+    inp.addEventListener("blur", function () { setTimeout(function () { c.classList.remove("open"); inp.setAttribute("aria-expanded", "false"); }, 150); });
+    list.addEventListener("mousedown", function (e) {
+      var o = e.target.closest("[role=option]"); if (!o) return;
+      var p = CATS[MP][+o.dataset.i];
+      inp.value = p[2]; c.dataset.val = p.join(" > "); ch.textContent = "✓ " + p.join(" › ");
+      c.classList.remove("open");
+    });
+  });
+
+  // variantlar
+  var tb = main.querySelector("table.var tbody");
+  function addRow() {
+    var tr = document.createElement("tr");
+    tr.innerHTML = F.varH.map(function (x, i) { return '<td><input ' + (i >= 2 && i <= 4 ? 'type="number" ' : 'type="text" ') + 'aria-label="' + esc(V === 2 ? x[1] : x[0]) + '"></td>'; }).join("") + '<td><button type="button" class="btn" title="O\'chirish">×</button></td>';
+    tr.querySelector("td:last-child button").onclick = function () { if (tb.children.length > 1) tr.remove(); };
+    tb.appendChild(tr);
+  }
+  addRow();
+  document.getElementById("addVar").onclick = addRow;
+
+  // rasmlar
+  var fi = main.querySelector("input[type=file]"), imgs = main.querySelector(".imgs");
+  fi.addEventListener("change", function () {
+    imgs.innerHTML = "";
+    Array.prototype.forEach.call(fi.files, function (f) {
+      var im = document.createElement("img"); im.src = URL.createObjectURL(f); imgs.appendChild(im);
+    });
+  });
+
+  // yuborish
+  document.getElementById("frm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var bad = 0;
+    main.querySelectorAll(".fld[data-req='1']").forEach(function (f) {
+      var el = f.querySelector("input:not([type=file]), textarea, select, .rich");
+      var empty;
+      if (f.dataset.f === "rasm") empty = !fi.files.length;
+      else if (f.querySelector(".combo")) empty = !f.querySelector(".combo").dataset.val;
+      else if (el && el.classList.contains("rich")) empty = !el.textContent.trim();
+      else empty = !el || !String(el.value).trim();
+      f.classList.toggle("bad", empty);
+      if (empty) bad++;
+    });
+    var priceEmpty = Array.prototype.some.call(tb.querySelectorAll("tr"), function (tr) { return !tr.querySelectorAll("input")[2].value; });
+    if (priceEmpty) bad++;
+    if (bad) {
+      document.getElementById("hint").textContent = (MP === "uzum" ? "To'ldirilmagan majburiy maydonlar: " : "Не заполнено обязательных полей: ") + bad;
+      var first = main.querySelector(".fld.bad"); if (first) first.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    history.pushState({}, "", location.pathname + "?mp=" + MP + (V === 2 ? "&v=2" : "") + "&yuborildi=1");
+    main.innerHTML = '<div class="ok"><div class="ic">✓</div><h1>' + esc(F.ok) + '</h1><p class="sub">' + esc(F.okSub) + '</p><a class="btn" href="?mp=' + MP + (V === 2 ? "&v=2" : "") + '" style="display:inline-grid;place-items:center;text-decoration:none;color:inherit">' + (MP === "uzum" ? "Yana tovar qo'shish" : "Добавить ещё") + "</a></div>";
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1688 — demo mahsulot sahifasi (ZumSavdo)</title>
+<!--
+  ZumSavdo kengaytmasini sinash uchun DEMO sahifa. Haqiqiy 1688 emas.
+  Ma'lumot tuzilishi haqiqiy 1688 sahifasidagidek: window.__INIT_DATA (globalData).
+  Kengaytma shu ma'lumotni aynan haqiqiy saytdagi kabi o'qiydi.
+  Ma'lumotlar src/mock/studiya.ts dagi namunalar bilan bir xil (nom_asl orqali bog'langan).
+-->
+<style>
+  :root { --o: #ff6a00; --ink: #222; --mut: #888; --line: #eee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; color: var(--ink); background: #f5f5f5; }
+  .demo { background: #0a1a34; color: #d4e94c; font: 600 12.5px/1 system-ui, sans-serif; padding: 9px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .demo a { color: #fff; }
+  .demo .sp { flex: 1; }
+  header { background: #fff; border-bottom: 2px solid var(--o); }
+  .hw { max-width: 1180px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; gap: 24px; }
+  .logo { color: var(--o); font-weight: 900; font-size: 28px; letter-spacing: -1px; }
+  .logo small { font-size: 13px; color: var(--mut); font-weight: 500; margin-left: 6px; letter-spacing: 0; }
+  .srch { flex: 1; display: flex; border: 2px solid var(--o); border-radius: 6px; overflow: hidden; max-width: 560px; }
+  .srch input { flex: 1; border: 0; padding: 9px 12px; font: inherit; }
+  .srch button { background: var(--o); color: #fff; border: 0; padding: 0 22px; font: inherit; font-weight: 700; }
+  main { max-width: 1180px; margin: 16px auto; padding: 0 16px; }
+  .box { background: #fff; border-radius: 8px; padding: 20px; display: grid; grid-template-columns: 420px 1fr; gap: 28px; }
+  .gal .big { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: #fafafa; display: block; }
+  .gal .th { display: flex; gap: 8px; margin-top: 10px; }
+  .gal .th img { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
+  .gal .th img.on { border-color: var(--o); }
+  .title-text { font-size: 20px; font-weight: 700; margin: 0 0 12px; }
+  .price-box { background: linear-gradient(90deg, #fff4ec, #fff); border-radius: 6px; padding: 14px 16px; display: flex; gap: 36px; }
+  .price-box .lbl { color: var(--mut); font-size: 12px; }
+  .price-text { color: var(--o); font-size: 28px; font-weight: 800; }
+  .price-text::before { content: "¥"; font-size: 16px; margin-right: 2px; }
+  .row { display: grid; grid-template-columns: 70px 1fr; gap: 12px; margin-top: 16px; align-items: start; }
+  .row > span { color: var(--mut); padding-top: 6px; }
+  .sku { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sku-item { border: 1px solid #ddd; border-radius: 4px; padding: 5px 14px; background: #fff; cursor: pointer; }
+  .sku-item.on { border-color: var(--o); color: var(--o); }
+  .buy { margin-top: 22px; display: flex; gap: 12px; }
+  .buy button { height: 44px; padding: 0 34px; border-radius: 6px; font: inherit; font-weight: 700; font-size: 16px; border: 0; }
+  .b1 { background: #fff1e6; color: var(--o); border: 1px solid var(--o) !important; }
+  .b2 { background: var(--o); color: #fff; }
+  .shop { margin-top: 18px; color: var(--mut); font-size: 13px; }
+  .detail { background: #fff; border-radius: 8px; padding: 20px; margin-top: 16px; }
+  .detail h3 { margin: 0 0 12px; font-size: 16px; border-left: 4px solid var(--o); padding-left: 8px; }
+  table.attr { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.attr td { border: 1px solid var(--line); padding: 8px 12px; }
+  table.attr td:nth-child(odd) { background: #fafafa; color: var(--mut); width: 140px; }
+  .desc img { width: 100%; max-width: 750px; display: block; margin: 0 auto; }
+  .other { display: flex; gap: 8px; flex-wrap: wrap; }
+  .other a { font: 600 12px system-ui; background: #fff; border: 1px solid #ddd; padding: 4px 10px; border-radius: 99px; color: #333; text-decoration: none; }
+  @media (max-width: 860px) { .box { grid-template-columns: 1fr; } .srch { display: none; } }
+</style>
+</head>
+<body>
+<div class="demo">
+  <span>ZumSavdo · DEMO 1688 sahifasi — kengaytmani sinash uchun</span>
+  <span class="sp"></span>
+  <span class="other" id="other"></span>
+</div>
+<header><div class="hw"><div class="logo">1688<small>阿里巴巴批发</small></div><div class="srch"><input value="" placeholder="搜索商品"><button>搜索</button></div></div></header>
+<main id="app"></main>
+
+<script>
+(function () {
+  var U = function (id, w) { return "https://images.unsplash.com/photo-" + id + "?auto=format&fit=crop&w=" + (w || 900) + "&h=" + (w || 900) + "&q=80"; };
+  var DATA = {
+    futbolka: {
+      offerId: "736251904417",
+      tempModel: { offerTitle: "夏季纯棉oversize短袖T恤男女同款宽松百搭重磅230g圆领打底衫", companyName: "广州棉语服饰有限公司", offerUnit: "件", beginAmount: 2, categoryName: "男装 > T恤" },
+      images: ["1581655353564-df123a1eb820", "1583743814966-8936f5b7be1a", "1618354691373-d851c5c3a990", "1576566588028-4147f3842f27"],
+      flags: [{ ieroglif: true }, { suv_belgi: true }, {}, { ieroglif: true, suv_belgi: true }],
+      ranges: [{ beginAmount: 2, price: "18.50" }, { beginAmount: 50, price: "17.60" }, { beginAmount: 300, price: "16.80" }],
+      props: [{ prop: "颜色", value: ["白色", "黑色", "灰色", "卡其色"] }, { prop: "尺码", value: ["S", "M", "L", "XL", "2XL"] }],
+      price: 18.5,
+      attrs: [["面料", "100%棉"], ["克重", "230g"], ["版型", "宽松"], ["领型", "圆领"], ["袖长", "短袖"], ["适用季节", "夏季"], ["产地", "广东广州"]],
+      desc: "230g重磅纯棉面料，不易变形，柔软亲肤透气。宽松落肩版型，男女同款。支持一件代发，量大从优。",
+      sizeChart: [["尺码", "衣长", "胸围", "肩宽"], ["S", "68", "108", "52"], ["M", "70", "112", "54"], ["L", "72", "116", "56"], ["XL", "74", "120", "58"], ["2XL", "76", "124", "60"]],
+      weight: 0.26
+    },
+    quloqchin: {
+      offerId: "712093458812",
+      tempModel: { offerTitle: "无线蓝牙耳机降噪入耳式运动跑步超长续航适用苹果华为小米", companyName: "声动数码旗舰店", offerUnit: "副", beginAmount: 1, categoryName: "影音电器 > 蓝牙耳机" },
+      images: ["1572569511254-d8f925fe2cbb", "1590658268037-6bf12165a8df", "1606841837239-c5a1a4a07af7", "1606741965326-cb990ae01bb2"],
+      flags: [{ ieroglif: true, suv_belgi: true }, {}, { ieroglif: true }, { suv_belgi: true }],
+      ranges: [{ beginAmount: 1, price: "39.00" }],
+      props: [{ prop: "颜色", value: ["白色", "黑色"] }],
+      price: 39,
+      attrs: [["蓝牙版本", "5.3"], ["续航时间", "6小时 / 30小时(含充电仓)"], ["充电接口", "Type-C"], ["防水等级", "IPX5"], ["降噪", "ENC通话降噪"], ["电池容量", "耳机40mAh / 充电仓400mAh"]],
+      desc: "蓝牙5.3芯片，连接稳定低延迟。ENC通话降噪，单次续航6小时，配合充电仓30小时。IPX5防水防汗。",
+      weight: 0.12
+    },
+    idish: {
+      offerId: "487211093345",
+      tempModel: { offerTitle: "玻璃保鲜盒密封饭盒微波炉加热专用便当盒冰箱收纳盒带盖套装", companyName: "家居优选工厂店", offerUnit: "套", beginAmount: 1, categoryName: "厨房用品 > 保鲜盒" },
+      images: ["1543352632-5a4b24e4d2a6", "1543352632-fea6d4f83e78", "1584269600464-37b1b58a9fe7"],
+      flags: [{ ieroglif: true }, { suv_belgi: true }, { ieroglif: true, suv_belgi: true }],
+      ranges: [{ beginAmount: 1, price: "26.90" }],
+      props: [{ prop: "颜色", value: ["蓝色盖", "灰色盖"] }, { prop: "规格", value: ["3件套", "5件套"] }],
+      skuPrice: { "3件套": 26.9, "5件套": 41.5 },
+      price: 26.9,
+      attrs: [["材质", "高硼硅玻璃 + PP盖"], ["耐温", "-20°C ~ 400°C"], ["容量", "370ml / 640ml / 1040ml"], ["密封方式", "四边扣"], ["适用", "微波炉 / 烤箱 / 冰箱 / 洗碗机"]],
+      desc: "高硼硅玻璃材质，耐热-20°C至400°C，可进微波炉、烤箱、冰箱。四边扣密封，防漏防串味。",
+      weight: 1.4
+    }
+  };
+
+  var id = new URLSearchParams(location.search).get("id");
+  if (!DATA[id]) id = "futbolka";
+  var d = DATA[id];
+
+  // Haqiqiy 1688 dagidek: sahifa ichida JSON (kengaytma shuni o'qiydi).
+  var skuInfoMap = {};
+  var p0 = d.props[0], p1 = d.props[1];
+  p0.value.forEach(function (a) {
+    (p1 ? p1.value : [null]).forEach(function (b) {
+      var key = b ? a + "&gt;" + b : a;
+      skuInfoMap[key] = { price: String((d.skuPrice && b && d.skuPrice[b]) || d.price), canBookCount: 500 + Math.floor(Math.random() * 3000) };
+    });
+  });
+  var init = {
+    globalData: {
+      offerId: d.offerId,
+      tempModel: d.tempModel,
+      images: d.images.map(function (x, i) { return { fullPathImageURI: U(x), zsFlags: d.flags[i] }; }),
+      skuModel: { skuProps: d.props.map(function (p) { return { prop: p.prop, value: p.value.map(function (v) { return { name: v }; }) }; }), skuInfoMap: skuInfoMap },
+      orderParamModel: { orderParam: { skuParam: { skuRangePrices: d.ranges } } },
+      featureAttributes: d.attrs.map(function (a) { return { name: a[0], values: [a[1]] }; }),
+      sizeChart: d.sizeChart || null,
+      unitWeight: d.weight,
+      description: d.desc
+    }
+  };
+  var s = document.createElement("script");
+  s.type = "text/plain";
+  s.id = "init-data";
+  s.textContent = "window.__INIT_DATA=" + JSON.stringify(init) + ";";
+  document.head.appendChild(s);
+
+  var other = document.getElementById("other");
+  Object.keys(DATA).forEach(function (k) {
+    var a = document.createElement("a");
+    a.href = "?id=" + k;
+    a.textContent = k === "futbolka" ? "Futbolka" : k === "quloqchin" ? "Quloqchin" : "Idish";
+    if (k === id) a.style.borderColor = "#d4e94c";
+    other.appendChild(a);
+  });
+
+  var esc = function (t) { var e = document.createElement("div"); e.textContent = t; return e.innerHTML; };
+  var html = '<div class="box"><div class="gal"><img class="big" id="big" src="' + U(d.images[0]) + '" alt=""><div class="th">' +
+    d.images.map(function (x, i) { return '<img src="' + U(x, 160) + '" data-i="' + i + '" class="' + (i ? "" : "on") + '" alt="">'; }).join("") +
+    '</div></div><div><h1 class="title-text">' + esc(d.tempModel.offerTitle) + '</h1>' +
+    '<div class="price-box">' + d.ranges.map(function (r) { return '<div><div class="price-text">' + r.price + '</div><div class="lbl">≥' + r.beginAmount + d.tempModel.offerUnit + '</div></div>'; }).join("") + '</div>' +
+    d.props.map(function (p) { return '<div class="row"><span>' + p.prop + '</span><div class="sku">' + p.value.map(function (v, i) { return '<span class="sku-item' + (i ? "" : " on") + '">' + esc(v) + '</span>'; }).join("") + '</div></div>'; }).join("") +
+    '<div class="buy"><button class="b1">加入进货单</button><button class="b2">立即订购</button></div>' +
+    '<div class="shop">' + esc(d.tempModel.companyName) + ' · 起批量 ' + d.tempModel.beginAmount + d.tempModel.offerUnit + ' · 一件代发</div></div></div>' +
+    '<div class="detail"><h3>商品属性</h3><table class="attr"><tbody>' +
+    (function () { var r = ""; for (var i = 0; i < d.attrs.length; i += 2) { r += "<tr><td>" + esc(d.attrs[i][0]) + "</td><td>" + esc(d.attrs[i][1]) + "</td>" + (d.attrs[i + 1] ? "<td>" + esc(d.attrs[i + 1][0]) + "</td><td>" + esc(d.attrs[i + 1][1]) + "</td>" : "<td></td><td></td>") + "</tr>"; } return r; })() +
+    '</tbody></table></div>' +
+    '<div class="detail desc"><h3>商品详情</h3><p>' + esc(d.desc) + '</p>' + d.images.map(function (x) { return '<img src="' + U(x, 750) + '" alt="">'; }).join("") + '</div>';
+  document.getElementById("app").innerHTML = html;
+  document.querySelectorAll(".th img").forEach(function (im) {
+    im.onclick = function () {
+      document.getElementById("big").src = U(d.images[+im.dataset.i]);
+      document.querySelectorAll(".th img").forEach(function (x) { x.classList.toggle("on", x === im); });
+    };
+  });
+  document.querySelectorAll(".sku").forEach(function (g) {
+    g.addEventListener("click", function (e) {
+      var t = e.target.closest(".sku-item"); if (!t) return;
+      g.querySelectorAll(".sku-item").forEach(function (x) { x.classList.toggle("on", x === t); });
+    });
+  });
+})();
+</script>
+</body>
+</html>
