@@ -1,20 +1,66 @@
-// Sayt ikonkalari — brauzer yorligʻi va telefon bosh ekrani (Next.js app ikonkalari):
-//   src/app/favicon.ico      16, 32, 48 px (ICO ichida PNG)
-//   src/app/icon.svg         vektor — har oʻlchamda tiniq
-//   src/app/apple-icon.png   180 px, toʻliq kvadrat (iPhone burchakni oʻzi yumaloqlaydi)
-// Belgi kengaytmaniki bilan bir xil (`apps/extension/gen-icons.mjs`): terrakota
-// (#D2552D) yumaloq kvadrat, ichida oq "Z". Bogʻliqliksiz: node:zlib bilan PNG.
-// Ishga tushirish: `node apps/web/scripts/ikonka.mjs` (repo ildizidan).
+// Brend ikonkalari — sayt, Android ilova va Play Market uchun BITTA manba.
+//
+// Belgi sayt ichidagi nishon bilan aynan bir xil (`src/app/bosh.module.css` → `.nishon`):
+// toʻq siyoh (#4A2A57) yumaloq kvadrat (burchak 11/38), ichida oq Manrope ExtraBold «Z»,
+// shrift oʻlchami quti tomonining yarmi (19/38), CSS `place-items: center` kabi joylashgan.
+// 2026-11-14 gacha ikonka eski terrakota dizaynda (#D2552D) qolib ketgan edi — sayt
+// ichi 2026-10-22 da siyoh rangga oʻtgan (nazoratchi: «ichidagidek rangda boʻlsin»).
+//
+// Yaratadi (repo ildizidan: `node apps/web/scripts/ikonka.mjs`):
+//   apps/web/src/app/favicon.ico            16, 32, 48 px (ICO ichida PNG)
+//   apps/web/src/app/icon.svg               vektor — har oʻlchamda tiniq
+//   apps/web/src/app/apple-icon.png         180 px, toʻliq kvadrat (iPhone burchakni oʻzi yumaloqlaydi)
+//   apps/web/public/ilova/ikonka-*.png      veb-ilova manifesti va Android ilova manbasi
+//   apps/android/store_icon.png             Play Market ikonkasi: 512 px, toʻliq kvadrat
+//                                           (Google burchakni oʻzi yumaloqlaydi)
+//   apps/android/app/src/main/res/          ilova ikonkasi (mipmap-*) va ochilish rasmi (drawable-*)
+//
+// Bogʻliqliksiz: node:zlib bilan PNG. Brauzer kengaytmasi ikonkasi alohida
+// (`apps/extension/gen-icons.mjs`) — u Chrome doʻkoniga alohida chiqadi.
 import { deflateSync } from 'node:zlib';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-const ILOVA = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'app');
-const ACC = [0xd2, 0x55, 0x2d];
+const WEB = join(dirname(fileURLToPath(import.meta.url)), '..');
+const ILOVA = join(WEB, 'src', 'app');
+const OMMAVIY = join(WEB, 'public', 'ilova');
+const ANDROID = join(WEB, '..', 'android');
+const RES = join(ANDROID, 'app', 'src', 'main', 'res');
+
+const RANG = '#4A2A57';
+const ACC = [0x4a, 0x2a, 0x57];
 const OQ = [0xff, 0xff, 0xff];
-// Z — 100×100 birlikda (kengaytma ikonkasidagi bilan bir xil koʻpburchak).
-const Z = [[30, 28], [72, 28], [72, 40], [45, 61], [72, 61], [72, 73], [28, 73], [28, 61], [55, 40], [30, 40]];
+/** Burchak radiusi — nishondagidek 11px / 38px, 100 birlikda. */
+const RADIUS = (11 / 38) * 100;
+
+// Manrope ExtraBold (wght 800) «Z» harfi konturi — shrift birligida (1em = 2000, y yuqoriga).
+// Manba: `public/fonts/manrope-latin.woff2` (fontTools: instancer wght=800, RecordingPen).
+// Harfda egri chiziq yoʻq — oddiy koʻpburchak.
+const Z_SHRIFT = [[100, 0], [100, 34], [784, 1186], [160, 1186], [160, 1440], [1260, 1440], [1260, 1406], [580, 256], [1240, 256], [1240, 0]];
+const EM = 2000;
+const KENGLIK = 1360; // harf kengligi (advance)
+// Tayanch chiziq quti markazidan qancha pastda (shrift oʻlchamiga nisbatan). Bosh sahifa
+// nishoni: 38px quti, 19px harf, `place-items: center`. Chromium shrift ascent/descent ini
+// butun pikselga yaxlitlaydi (2132→20, 600→6): qator qutisi 26px, tayanch chiziq 6+20 = 26px.
+const TAYANCH = (26 - 19) / 19;
+
+/**
+ * «Z» ni 100×100 qutiga joylaydi, `s` — shrift oʻlchami (quti tomoniga nisbatan, %).
+ * Saytdagidek: harf kengligi markazda, tayanch chiziq nishondagi joyida.
+ */
+function zet(s) {
+  const k = s / EM;
+  const tayanch = 50 + TAYANCH * s;
+  return Z_SHRIFT.map(([x, y]) => [50 + (x - KENGLIK / 2) * k, tayanch - y * k]);
+}
+
+/** Nishon (sayt ichidagidek): shrift quti tomonining yarmi. */
+const Z_NISHON = zet(50);
+// Maskable (Android moslashuvchan ikonka): koʻrinadigan qism — rasmning markaziy 72/91 qismi
+// (`res/mipmap-anydpi-v26/ic_launcher.xml`: 108dp qatlam, 8.5dp chekka, 72dp koʻrinadi).
+// Telefon ekranida nishondagidek koʻrinishi uchun harf shuncha kichikroq.
+const Z_MASKABLE = zet(50 * (72 / 91));
 
 function ichidami(x, y, poly) {
   let ichida = false;
@@ -26,13 +72,13 @@ function ichidami(x, y, poly) {
   return ichida;
 }
 
-/** Yumaloq kvadrat (radius 26/100). `kvadrat` — burchaksiz, toʻliq maydon (apple-icon). */
+/** Yumaloq kvadrat (radius RADIUS/100). `kvadrat` — burchaksiz, toʻliq maydon. */
 function fonda(x, y, kvadrat) {
-  if (kvadrat) return x >= 0 && x <= 100 && y >= 0 && y <= 100;
-  const r = 26;
-  const cx = Math.min(Math.max(x, r), 100 - r);
-  const cy = Math.min(Math.max(y, r), 100 - r);
-  return (x - cx) ** 2 + (y - cy) ** 2 <= r * r && x >= 0 && x <= 100 && y >= 0 && y <= 100;
+  if (x < 0 || x > 100 || y < 0 || y > 100) return false;
+  if (kvadrat) return true;
+  const cx = Math.min(Math.max(x, RADIUS), 100 - RADIUS);
+  const cy = Math.min(Math.max(y, RADIUS), 100 - RADIUS);
+  return (x - cx) ** 2 + (y - cy) ** 2 <= RADIUS * RADIUS;
 }
 
 function crc32(buf) {
@@ -53,9 +99,13 @@ function bolak(tur, data) {
   return Buffer.concat([uz, tana, crc]);
 }
 
-/** RGBA PNG, 8×8 qayta namunalash bilan silliq chetlar. */
-function png(o, kvadrat = false) {
-  const N = 8;
+/**
+ * RGBA PNG, qayta namunalash bilan silliq chetlar.
+ * @param {number} o oʻlcham, px
+ * @param {{kvadrat?: boolean, z?: number[][]}} [v] kvadrat — burchaksiz; z — harf koʻpburchagi
+ */
+function png(o, { kvadrat = false, z = Z_NISHON } = {}) {
+  const N = o >= 256 ? 4 : 8;
   const qatorlar = [];
   for (let py = 0; py < o; py++) {
     const q = Buffer.alloc(1 + o * 4);
@@ -68,13 +118,13 @@ function png(o, kvadrat = false) {
           const y = ((py + (sy + 0.5) / N) / o) * 100;
           if (fonda(x, y, kvadrat)) {
             fon++;
-            if (ichidami(x, y, Z)) zet++;
+            if (ichidami(x, y, z)) zet++;
           }
         }
       }
-      const z = fon ? zet / fon : 0;
+      const ulush = fon ? zet / fon : 0;
       const i = 1 + px * 4;
-      for (let k = 0; k < 3; k++) q[i + k] = Math.round(ACC[k] * (1 - z) + OQ[k] * z);
+      for (let k = 0; k < 3; k++) q[i + k] = Math.round(ACC[k] * (1 - ulush) + OQ[k] * ulush);
       q[i + 3] = Math.round((fon / (N * N)) * 255);
     }
     qatorlar.push(q);
@@ -114,9 +164,26 @@ function ico(olchamlar) {
   return Buffer.concat([sarlavha, ...katalog, ...rasmlar]);
 }
 
-const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="26" fill="#D2552D"/><path fill="#fff" d="M${Z.map(([x, y]) => `${x} ${y}`).join('L')}Z"/></svg>\n`;
+const son = (n) => String(Math.round(n * 100) / 100);
+const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="${son(RADIUS)}" fill="${RANG}"/><path fill="#fff" d="M${Z_NISHON.map(([x, y]) => `${son(x)} ${son(y)}`).join('L')}Z"/></svg>\n`;
 
+// Sayt
 writeFileSync(join(ILOVA, 'favicon.ico'), ico([16, 32, 48]));
 writeFileSync(join(ILOVA, 'icon.svg'), SVG);
-writeFileSync(join(ILOVA, 'apple-icon.png'), png(180, true));
-console.log('Ikonkalar yaratildi: favicon.ico, icon.svg, apple-icon.png');
+writeFileSync(join(ILOVA, 'apple-icon.png'), png(180, { kvadrat: true }));
+writeFileSync(join(OMMAVIY, 'ikonka-192.png'), png(192));
+writeFileSync(join(OMMAVIY, 'ikonka-512.png'), png(512));
+writeFileSync(join(OMMAVIY, 'ikonka-maskable-512.png'), png(512, { kvadrat: true, z: Z_MASKABLE }));
+
+// Play Market ikonkasi
+writeFileSync(join(ANDROID, 'store_icon.png'), png(512, { kvadrat: true }));
+
+// Android ilova: Bubblewrap andozasidagi oʻlchamlar (mdpi → xxxhdpi)
+const ZICHLIK = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+for (const [nom, z] of Object.entries(ZICHLIK)) {
+  writeFileSync(join(RES, `mipmap-${nom}`, 'ic_launcher.png'), png(48 * z));
+  writeFileSync(join(RES, `mipmap-${nom}`, 'ic_maskable.png'), png(82 * z, { kvadrat: true, z: Z_MASKABLE }));
+  writeFileSync(join(RES, `drawable-${nom}`, 'splash.png'), png(300 * z));
+}
+
+console.log('Ikonkalar yaratildi: sayt (favicon.ico, icon.svg, apple-icon.png, ilova/), Play (store_icon.png), Android (mipmap, drawable)');

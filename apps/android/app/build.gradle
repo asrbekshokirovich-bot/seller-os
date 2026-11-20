@@ -21,17 +21,17 @@ plugins {
 }
 
 def twaManifest = [
-    applicationId: 'uz.zumsavdo.app',
+    applicationId: 'uz.zumsavdo.ilova',
     hostName: 'zumsavdo.vercel.app', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'ZumSavdo', // The application name.
     launcherName: 'ZumSavdo', // The name shown on the Android Launcher.
     themeColor: '#F7F3F9', // The color used for the status bar.
-    themeColorDark: '#1A0F20', // The color used for the dark status bar.
+    themeColorDark: '#F7F3F9', // The color used for the dark status bar.
     navigationColor: '#F7F3F9', // The color used for the navigation bar.
-    navigationColorDark: '#1A0F20', // The color used for the dark navbar.
+    navigationColorDark: '#F7F3F9', // The color used for the dark navbar.
     navigationDividerColor: '#F7F3F9', // The navbar divider color.
-    navigationDividerColorDark: '#1A0F20', // The dark navbar divider color.
+    navigationDividerColorDark: '#F7F3F9', // The dark navbar divider color.
     backgroundColor: '#F7F3F9', // The color used for the splash screen background.
     enableNotifications: false, // Set to true to enable notification delegation.
     // Every shortcut must include the following fields:
@@ -52,12 +52,12 @@ def twaManifest = [
 
 android {
     compileSdkVersion 36
-    namespace "uz.zumsavdo.app"
+    namespace "uz.zumsavdo.ilova"
     defaultConfig {
-        applicationId "uz.zumsavdo.app"
+        applicationId "uz.zumsavdo.ilova"
         minSdkVersion 24
         targetSdkVersion 36
-        versionCode 1
+        versionCode 2
         versionName "1.0.0"
 
         // The name for the application

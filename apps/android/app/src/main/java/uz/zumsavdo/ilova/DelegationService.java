@@ -1,4 +1,4 @@
-package uz.zumsavdo.app;
+package uz.zumsavdo.ilova;
 
 
 
